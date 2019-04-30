@@ -33,15 +33,20 @@ public class ImgLib2
 		double avg, median, min, max;
 	}
 
-	public static < T extends RealType< T > > RandomAccessibleInterval< T > render( final IterableRealInterval< T > data, final Interval interval )
+	public static < T extends RealType< T > > RealRandomAccessible< T > render( final IterableRealInterval< T > data )
 	{
 		final KDTree< T > tree = new KDTree< T > ( data );
 
 		NearestNeighborSearch< T > search = new NearestNeighborSearchOnKDTree< T >( tree );
 
 		// make it into RealRandomAccessible using nearest neighbor search
-		RealRandomAccessible< T > realRandomAccessible =
-			Views.interpolate( search, new NearestNeighborSearchInterpolatorFactory< T >() );
+		return Views.interpolate( search, new NearestNeighborSearchInterpolatorFactory< T >() );
+	}
+
+	public static < T extends RealType< T > > RandomAccessibleInterval< T > render( final IterableRealInterval< T > data, final Interval interval )
+	{
+		// make it into RealRandomAccessible using nearest neighbor search
+		RealRandomAccessible< T > realRandomAccessible = render( data );
 
 		// convert it into a RandomAccessible which can be displayed
 		RandomAccessible< T > randomAccessible = Views.raster( realRandomAccessible );
@@ -49,17 +54,20 @@ public class ImgLib2
 		return Views.interval( randomAccessible, interval );
 	}
 
-	public static < T extends RealType< T > > RandomAccessibleInterval< T > render( final IterableRealInterval< T > data, final Interval interval, final T outofbounds, final double maxRadius )
+	public static < T extends RealType< T > > RealRandomAccessible< T > render( final IterableRealInterval< T > data, final T outofbounds, final double maxRadius )
 	{
 		final KDTree< T > tree = new KDTree< T > ( data );
 
-		NearestNeighborSearch< T > search;
-		//search = new NearestNeighborSearchOnKDTree< FloatType >( tree );
-		search = new NearestNeighborMaxDistanceSearchOnKDTree< T >( tree, outofbounds, maxRadius );
+		NearestNeighborSearch< T > search = new NearestNeighborMaxDistanceSearchOnKDTree< T >( tree, outofbounds, maxRadius );
 
 		// make it into RealRandomAccessible using nearest neighbor search
-		RealRandomAccessible< T > realRandomAccessible =
-			Views.interpolate( search, new NearestNeighborSearchInterpolatorFactory< T >() );
+		return Views.interpolate( search, new NearestNeighborSearchInterpolatorFactory< T >() );
+	}
+
+	public static < T extends RealType< T > > RandomAccessibleInterval< T > render( final IterableRealInterval< T > data, final Interval interval, final T outofbounds, final double maxRadius )
+	{
+		// make it into RealRandomAccessible using nearest neighbor search
+		RealRandomAccessible< T > realRandomAccessible = render( data, outofbounds, maxRadius );
 
 		// convert it into a RandomAccessible which can be displayed
 		RandomAccessible< T > randomAccessible = Views.raster( realRandomAccessible );
