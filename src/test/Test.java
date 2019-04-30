@@ -5,18 +5,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import ij.ImageJ;
-import net.imglib2.KDTree;
-import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealInterval;
 import net.imglib2.RealPointSampleList;
-import net.imglib2.RealRandomAccessible;
 import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.interpolation.neighborsearch.NearestNeighborSearchInterpolatorFactory;
-import net.imglib2.neighborsearch.NearestNeighborSearch;
-import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
 import net.imglib2.type.numeric.real.FloatType;
-import net.imglib2.view.Views;
 import test.ImgLib2.SimpleStats;
 
 public class Test
@@ -47,27 +40,15 @@ public class Test
 		for ( final String gene : values.keySet() )
 			System.out.println( gene );
 
-		final RealPointSampleList< FloatType > list = ImgLib2.wrapFloat( coordinates, values.get( "Pcp4" ) );
 
-		final KDTree< FloatType > tree = new KDTree< FloatType > ( list );
+		final RealPointSampleList< FloatType > data = ImgLib2.wrapFloat( coordinates, values.get( "Pcp4" ) );
+		final RealPointSampleList< FloatType > median = Filters.filterMedian( data, distanceStats.median * 2 );
 
-		NearestNeighborSearch< FloatType > search;
-		//search = new NearestNeighborSearchOnKDTree< FloatType >( tree );
-		search = new NearestNeighborMaxDistanceSearchOnKDTree< FloatType >( tree, new FloatType( -1 ), distanceStats.median / 2.0 );
-
-		// make it into RealRandomAccessible using nearest neighbor search
-		RealRandomAccessible< FloatType > realRandomAccessible =
-			Views.interpolate( search, new NearestNeighborSearchInterpolatorFactory< FloatType >() );
-
-		// convert it into a RandomAccessible which can be displayed
-		RandomAccessible< FloatType > randomAccessible = Views.raster( realRandomAccessible );
-
-		RandomAccessibleInterval< FloatType > view = Views.interval(
-				randomAccessible,
-				ImgLib2.roundRealInterval( interval ) );
+		final RandomAccessibleInterval< FloatType > img = ImgLib2.render( data, ImgLib2.roundRealInterval( interval ), new FloatType( -1 ), distanceStats.median / 2.0 );
+		final RandomAccessibleInterval< FloatType > medianImg = ImgLib2.render( median, ImgLib2.roundRealInterval( interval ), new FloatType( -1 ), distanceStats.median / 2.0 );
 
 		new ImageJ();
-
-		ImageJFunctions.show( view );
+		ImageJFunctions.show( img );
+		ImageJFunctions.show( medianImg );
 	}
 }
