@@ -3,6 +3,8 @@ package test;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.imglib2.Dimensions;
+import net.imglib2.FinalDimensions;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
@@ -95,6 +97,20 @@ public class ImgLib2
 		stats.max = max;
 
 		return stats;
+	}
+
+	public static long[] dimensions( final Interval ri )
+	{
+		final long[] dim = new long[ ri.numDimensions() ];
+		ri.dimensions( dim );
+		return dim;
+	}
+
+	public static long[] min( final Interval ri )
+	{
+		final long[] min = new long[ ri.numDimensions() ];
+		ri.min( min );
+		return min;
 	}
 
 	public static Interval roundRealInterval( final RealInterval ri )

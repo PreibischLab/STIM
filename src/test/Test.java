@@ -5,13 +5,19 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import ij.ImageJ;
+import net.imglib2.FinalDimensions;
+import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealInterval;
 import net.imglib2.RealPointSampleList;
+import net.imglib2.img.Img;
+import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.iterator.IntervalIterator;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.view.Views;
 import test.ImgLib2.SimpleStats;
 
 public class Test
@@ -23,6 +29,7 @@ public class Test
 		System.out.println( "Loaded " + coordinates.size() + " coordinates." );
 
 		final RealInterval interval = Reader.getInterval( coordinates );
+		final Interval renderInterval = ImgLib2.roundRealInterval( interval );
 
 		System.out.println( "Interval: " + Util.printRealInterval( interval ) );
 
@@ -44,20 +51,26 @@ public class Test
 
 		System.out.println( "Computing ... " );
 
+		final FloatType outofboundsFloat = new FloatType( -1 );
+		final DoubleType outofboundsDouble = new DoubleType( -1 );
+
 		final RealPointSampleList< FloatType > data = ImgLib2.wrapFloat( coordinates, values.get( "Pcp4" ) );
-		final RealPointSampleList< FloatType > median = Filters.filterMedian( data, distanceStats.median * 2 );
-		//final RealPointSampleList< FloatType > median2 = Filters.filterMedian( data, new IntervalIterator( ImgLib2.roundRealInterval( interval ) ), distanceStats.median * 2 );
-		final RealPointSampleList< DoubleType > avg = Filters.filterAverage( data, distanceStats.median * 2 );
+		final RealPointSampleList< FloatType > median = Filters.filterMedian( data, outofboundsFloat, distanceStats.median * 2 );
+		final RealPointSampleList< DoubleType > avg = Filters.filterAverage( data, outofboundsDouble, distanceStats.median * 2 );
+
+		final RandomAccessibleInterval< FloatType > upImg = Views.translate( ArrayImgs.floats( ImgLib2.dimensions( renderInterval ) ), ImgLib2.min( renderInterval ) );
+		Filters.filterMedian( data, upImg, outofboundsFloat, distanceStats.median * 2 );
 
 		System.out.println( "Rendering ... " );
 
-		final RandomAccessibleInterval< FloatType > img = ImgLib2.render( data, ImgLib2.roundRealInterval( interval ), new FloatType( -1 ), distanceStats.median / 2.0 );
-		final RandomAccessibleInterval< FloatType > medianImg = ImgLib2.render( median, ImgLib2.roundRealInterval( interval ), new FloatType( -1 ), distanceStats.median / 2.0 );
-		final RandomAccessibleInterval< DoubleType > avgImg = ImgLib2.render( avg, ImgLib2.roundRealInterval( interval ), new DoubleType( -1 ), distanceStats.median / 2.0 );
+		final RandomAccessibleInterval< FloatType > img = ImgLib2.render( data, renderInterval, outofboundsFloat, distanceStats.median / 2.0 );
+		final RandomAccessibleInterval< FloatType > medianImg = ImgLib2.render( median, renderInterval, outofboundsFloat, distanceStats.median / 2.0 );
+		final RandomAccessibleInterval< DoubleType > avgImg = ImgLib2.render( avg, renderInterval, outofboundsDouble, distanceStats.median / 2.0 );
 
 		new ImageJ();
 		ImageJFunctions.show( img );
 		ImageJFunctions.show( medianImg );
+		ImageJFunctions.show( upImg );
 		ImageJFunctions.show( avgImg );
 	}
 }
