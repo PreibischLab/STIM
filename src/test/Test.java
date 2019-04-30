@@ -15,9 +15,9 @@ import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.interpolation.neighborsearch.NearestNeighborSearchInterpolatorFactory;
 import net.imglib2.neighborsearch.NearestNeighborSearch;
 import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
-import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
+import test.ImgLib2.SimpleStats;
 
 public class Test
 {
@@ -31,6 +31,15 @@ public class Test
 
 		System.out.println( "Interval: " + Util.printRealInterval( interval ) );
 
+		final SimpleStats distanceStats = ImgLib2.distanceStats( coordinates );
+
+		System.out.println( "Median Distance: " + distanceStats.median );
+		System.out.println( "Average Distance: " + distanceStats.avg );
+		System.out.println( "Min Distance: " + distanceStats.min );
+		System.out.println( "Max Distance: " + distanceStats.max );
+
+		System.out.println( "Interval: " + Util.printRealInterval( interval ) );
+
 		final HashMap< String, double[] > values = Reader.readGenes( new File("/Users/spreibi/Downloads/patterns_examples/dge_normalized_small.txt" ), coordinates.size() );
 
 		System.out.println( "Loaded: " + values.keySet().size() + " genes with " + coordinates.size() + " values each." );
@@ -40,10 +49,11 @@ public class Test
 
 		final RealPointSampleList< FloatType > list = ImgLib2.wrapFloat( coordinates, values.get( "Pcp4" ) );
 
-		// using nearest neighbor search we will be able to return a value an any position in space
-		NearestNeighborSearch< FloatType > search =
-			new NearestNeighborSearchOnKDTree< FloatType >(
-				new KDTree< FloatType > ( list ) );
+		final KDTree< FloatType > tree = new KDTree< FloatType > ( list );
+
+		NearestNeighborSearch< FloatType > search;
+		//search = new NearestNeighborSearchOnKDTree< FloatType >( tree );
+		search = new NearestNeighborMaxDistanceSearchOnKDTree< FloatType >( tree, new FloatType( -1 ), distanceStats.median / 2.0 );
 
 		// make it into RealRandomAccessible using nearest neighbor search
 		RealRandomAccessible< FloatType > realRandomAccessible =
