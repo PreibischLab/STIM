@@ -1,4 +1,4 @@
-package test;
+package filter;
 
 import net.imglib2.Cursor;
 import net.imglib2.IterableRealInterval;

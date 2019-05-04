@@ -8,10 +8,52 @@ import java.util.HashMap;
 
 import mpicbg.spim.io.TextFileAccess;
 import net.imglib2.FinalRealInterval;
+import net.imglib2.Interval;
 import net.imglib2.RealInterval;
+import test.ImgLib2.SimpleStats;
 
 public class Reader
 {
+	public static class STData
+	{
+		public ArrayList< double[] > coordinates;
+		public HashMap< String, double[] > genes;
+		public SimpleStats distanceStats;
+		public RealInterval interval;
+		public Interval renderInterval;
+	}
+
+	public static STData read( final File locations, final File genes, final double offset )
+	{
+		final STData data = new STData();
+
+		data.coordinates = Reader.readCoordinates( locations );
+
+		System.out.println( "Loaded " + data.coordinates.size() + " coordinates." );
+
+		data.distanceStats = ImgLib2.distanceStats( data.coordinates );
+
+		System.out.println( "Median Distance: " + data.distanceStats.median );
+		System.out.println( "Average Distance: " + data.distanceStats.avg );
+		System.out.println( "Min Distance: " + data.distanceStats.min );
+		System.out.println( "Max Distance: " + data.distanceStats.max );
+
+		data.genes = Reader.readGenes( genes, data.coordinates.size(), offset );
+
+		System.out.println( "Loaded: " + data.genes.keySet().size() + " genes with " + data.coordinates.size() + " values each." );
+
+		for ( final String gene : data.genes.keySet() )
+			System.out.println( gene );
+
+		data.interval = Reader.getInterval( data.coordinates );
+		data.renderInterval = ImgLib2.roundRealInterval( data.interval );
+
+		System.out.println( "Interval: " + Util.printRealInterval( data.interval ) );
+		System.out.println( "RenderInterval: " + Util.printRealInterval( data.renderInterval ) );
+
+		return data;
+	}
+
 	public static ArrayList< double[] > readCoordinates( final File file )
 	{
 		final ArrayList< double[] > coordinates = new ArrayList<>();
@@ -54,7 +96,7 @@ public class Reader
 		return new FinalRealInterval( min, max );
 	}
 
-	public static HashMap< String, double[] > readGenes( final File file, final int numCoordinates )
+	public static HashMap< String, double[] > readGenes( final File file, final int numCoordinates, final double offset )
 	{
 		final BufferedReader in = TextFileAccess.openFileRead( file );
 
@@ -77,7 +119,7 @@ public class Reader
 				final double[] v = new double[ numCoordinates ];
 
 				for ( int i = 0; i < numCoordinates; ++i )
-					v[ i ] = Double.parseDouble( loc[ i + 1 ] );
+					v[ i ] = Double.parseDouble( loc[ i + 1 ] ) + offset;
 
 				values.put( geneName, v );
 			}

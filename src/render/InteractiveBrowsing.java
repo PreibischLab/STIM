@@ -1,4 +1,4 @@
-package test;
+package render;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -18,6 +18,10 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.ui.InteractiveDisplayCanvas;
 import net.imglib2.ui.overlay.LogoPainter;
 import net.imglib2.ui.viewer.InteractiveRealViewer2D;
+import test.ImgLib2;
+import test.Reader;
+import test.Reader.STData;
+import test.Util;
 import test.ImgLib2.SimpleStats;
 
 public class InteractiveBrowsing< T extends RealType< T > >
@@ -56,36 +60,15 @@ public class InteractiveBrowsing< T extends RealType< T > >
 
 	public static void main( String[] args )
 	{
-		final ArrayList< double[] > coordinates = Reader.readCoordinates( new File( "/Users/spreibi/Downloads/patterns_examples/locations.txt" ) );
-
-		System.out.println( "Loaded " + coordinates.size() + " coordinates." );
-
-		final RealInterval interval = Reader.getInterval( coordinates );
-		final Interval renderInterval = ImgLib2.roundRealInterval( interval );
-
-		System.out.println( "Interval: " + Util.printRealInterval( interval ) );
-
-		final SimpleStats distanceStats = ImgLib2.distanceStats( coordinates );
-
-		System.out.println( "Median Distance: " + distanceStats.median );
-		System.out.println( "Average Distance: " + distanceStats.avg );
-		System.out.println( "Min Distance: " + distanceStats.min );
-		System.out.println( "Max Distance: " + distanceStats.max );
-
-		System.out.println( "Interval: " + Util.printRealInterval( interval ) );
-
-		final HashMap< String, double[] > values = Reader.readGenes( new File("/Users/spreibi/Downloads/patterns_examples/dge_normalized_small.txt" ), coordinates.size() );
-
-		System.out.println( "Loaded: " + values.keySet().size() + " genes with " + coordinates.size() + " values each." );
-
-		for ( final String gene : values.keySet() )
-			System.out.println( gene );
+		final STData stdata = Reader.read(
+				new File( "/Users/spreibi/Downloads/patterns_examples/locations.txt" ),
+				new File( "/Users/spreibi/Downloads/patterns_examples/dge_normalized_small.txt" ), 0 );
 
 		System.out.println( "Computing ... " );
 
 		final FloatType outofboundsFloat = new FloatType( -1 );
 
-		final RealPointSampleList< FloatType > data = ImgLib2.wrapFloat( coordinates, values.get( "Pcp4" ) );
+		final RealPointSampleList< FloatType > data = ImgLib2.wrapFloat( stdata.coordinates, stdata.genes.get( "Pcp4" ) );
 
 		final Converter< FloatType, ARGBType > converter = new Converter< FloatType, ARGBType >()
 		{
@@ -97,6 +80,6 @@ public class InteractiveBrowsing< T extends RealType< T > >
 			}
 		};
 
-		new InteractiveBrowsing<>( ImgLib2.render( data, outofboundsFloat, distanceStats.median / 2.0 ), converter );
+		new InteractiveBrowsing<>( Render.render( data, outofboundsFloat, stdata.distanceStats.median / 2.0 ), converter );
 	}
 }

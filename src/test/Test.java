@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import filter.Filters;
 import ij.ImageJ;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
@@ -14,6 +15,7 @@ import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
+import render.Render;
 import test.ImgLib2.SimpleStats;
 
 public class Test
@@ -38,7 +40,7 @@ public class Test
 
 		System.out.println( "Interval: " + Util.printRealInterval( interval ) );
 
-		final HashMap< String, double[] > values = Reader.readGenes( new File("/Users/spreibi/Downloads/patterns_examples/dge_normalized_small.txt" ), coordinates.size() );
+		final HashMap< String, double[] > values = Reader.readGenes( new File("/Users/spreibi/Downloads/patterns_examples/dge_normalized_small.txt" ), coordinates.size(), 0 );
 
 		System.out.println( "Loaded: " + values.keySet().size() + " genes with " + coordinates.size() + " values each." );
 
@@ -59,9 +61,9 @@ public class Test
 
 		System.out.println( "Rendering ... " );
 
-		final RandomAccessibleInterval< FloatType > img = ImgLib2.render( data, renderInterval, outofboundsFloat, distanceStats.median / 2.0 );
-		final RandomAccessibleInterval< FloatType > medianImg = ImgLib2.render( median, renderInterval, outofboundsFloat, distanceStats.median / 2.0 );
-		final RandomAccessibleInterval< DoubleType > avgImg = ImgLib2.render( avg, renderInterval, outofboundsDouble, distanceStats.median / 2.0 );
+		final RandomAccessibleInterval< FloatType > img = Render.render( data, renderInterval, outofboundsFloat, distanceStats.median / 2.0 );
+		final RandomAccessibleInterval< FloatType > medianImg = Render.render( median, renderInterval, outofboundsFloat, distanceStats.median / 2.0 );
+		final RandomAccessibleInterval< DoubleType > avgImg = Render.render( avg, renderInterval, outofboundsDouble, distanceStats.median / 2.0 );
 
 		new ImageJ();
 		ImageJFunctions.show( img );
