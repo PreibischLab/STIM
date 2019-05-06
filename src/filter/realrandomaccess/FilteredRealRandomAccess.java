@@ -1,22 +1,50 @@
-package filter;
+package filter.realrandomaccess;
 
+import filter.Filter;
+import filter.FilterFactory;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.Localizable;
 import net.imglib2.RealLocalizable;
 import net.imglib2.RealRandomAccess;
 import net.imglib2.Sampler;
+import test.SimpleRealLocalizable;
 
-public abstract class FilteredRealRandomAccess< T > implements RealRandomAccess< T >
+public class FilteredRealRandomAccess< S, T > implements RealRandomAccess< T >
 {
-	final IterableRealInterval< T > data;
+	final IterableRealInterval< S > data;
+	final FilterFactory< S, T > filterFactory;
+	final Filter< T > filter;
+	final T output;
 	final double[] pos;
+	final SimpleRealLocalizable loc;
 	final int n;
 
-	public FilteredRealRandomAccess( final IterableRealInterval< T > data )
+	public FilteredRealRandomAccess( final IterableRealInterval< S > data, final FilterFactory< S, T > filterFactory )
 	{
 		this.data = data;
+		this.filterFactory = filterFactory;
 		this.n = data.numDimensions();
 		this.pos = new double[ n ];
+		this.filter = filterFactory.createFilter( data );
+		this.output = filterFactory.create();
+		this.loc = new SimpleRealLocalizable( pos );
+	}
+
+	@Override
+	public T get()
+	{
+		filter.filter( loc, output );
+
+		return output;
+	}
+
+	@Override
+	public RealRandomAccess< T > copyRealRandomAccess()
+	{
+		final FilteredRealRandomAccess< S, T > mrr = new FilteredRealRandomAccess< S, T >( data, filterFactory );
+		mrr.setPosition( this );
+
+		return mrr;
 	}
 
 	@Override

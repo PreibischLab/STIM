@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import filter.Filters;
+import filter.MeanFilterFactory;
+import filter.MedianFilterFactory;
 import ij.ImageJ;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
@@ -53,17 +55,17 @@ public class Test
 		final DoubleType outofboundsDouble = new DoubleType( -1 );
 
 		final RealPointSampleList< FloatType > data = ImgLib2.wrapFloat( coordinates, values.get( "Pcp4" ) );
-		final RealPointSampleList< FloatType > median = Filters.filterMedian( data, outofboundsFloat, distanceStats.median * 2 );
-		final RealPointSampleList< DoubleType > avg = Filters.filterAverage( data, outofboundsDouble, distanceStats.median * 2 );
+		final RealPointSampleList< FloatType > median = Filters.filter( data, new MedianFilterFactory<>( outofboundsFloat, distanceStats.median * 2 ) );
+		final RealPointSampleList< DoubleType > avg = Filters.filter( data, new MeanFilterFactory<>( outofboundsDouble, distanceStats.median * 2 ) );
 
 		final RandomAccessibleInterval< FloatType > upImg = Views.translate( ArrayImgs.floats( ImgLib2.dimensions( renderInterval ) ), ImgLib2.min( renderInterval ) );
-		Filters.filterMedian( data, upImg, outofboundsFloat, distanceStats.median * 2 );
+		Filters.filter( data, upImg, new MedianFilterFactory<>( outofboundsFloat, distanceStats.median * 2 ) );
 
 		System.out.println( "Rendering ... " );
 
-		final RandomAccessibleInterval< FloatType > img = Render.render( data, renderInterval, outofboundsFloat, distanceStats.median / 2.0 );
-		final RandomAccessibleInterval< FloatType > medianImg = Render.render( median, renderInterval, outofboundsFloat, distanceStats.median / 2.0 );
-		final RandomAccessibleInterval< DoubleType > avgImg = Render.render( avg, renderInterval, outofboundsDouble, distanceStats.median / 2.0 );
+		final RandomAccessibleInterval< FloatType > img = Render.raster( Render.renderNN( data, outofboundsFloat, distanceStats.median / 2.0 ), renderInterval );
+		final RandomAccessibleInterval< FloatType > medianImg = Render.raster( Render.renderNN( median, outofboundsFloat, distanceStats.median / 2.0 ), renderInterval );
+		final RandomAccessibleInterval< DoubleType > avgImg = Render.raster( Render.renderNN( avg, outofboundsDouble, distanceStats.median / 2.0 ), renderInterval );
 
 		new ImageJ();
 		ImageJFunctions.show( img );
