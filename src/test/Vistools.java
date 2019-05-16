@@ -1,4 +1,4 @@
-package render;
+package test;
 
 import java.io.File;
 
@@ -8,20 +8,21 @@ import filter.Filters;
 import filter.GaussianFilterFactory;
 import filter.MedianFilterFactory;
 import filter.realrandomaccess.MedianRealRandomAccessible;
+import importer.Reader;
+import importer.Reader.STData;
 import net.imglib2.RealPointSampleList;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.type.numeric.real.FloatType;
-import test.ImgLib2;
-import test.Reader;
-import test.Reader.STData;
+import render.Render;
+import util.ImgLib2Util;
 
 public class Vistools
 {
 	public static void main( String[] args )
 	{
 		final STData stdata = Reader.read(
-				new File( "/Users/spreibi/Downloads/patterns_examples/locations.txt" ),
-				new File( "/Users/spreibi/Downloads/patterns_examples/dge_normalized_small.txt" ),
+				new File( "/Users/spreibi/Documents/BIMSB/Publications/imglib2-st/patterns_examples_2d/locations.txt" ),
+				new File( "/Users/spreibi/Documents/BIMSB/Publications/imglib2-st/patterns_examples_2d/dge_normalized_small.txt" ),
 				1.0 );
 
 		final double displayRadius = stdata.distanceStats.median / 2.0;
@@ -33,7 +34,7 @@ public class Vistools
 
 		final FloatType outofbounds = new FloatType( 0 );
 
-		final RealPointSampleList< FloatType > data = ImgLib2.wrapFloat( stdata.coordinates, stdata.genes.get( "Pcp4" ) );
+		final RealPointSampleList< FloatType > data = ImgLib2Util.wrapFloat( stdata.coordinates, stdata.genes.get( "Pcp4" ) );
 		final RealPointSampleList< FloatType > medianFiltered = Filters.filter( data, new MedianFilterFactory<>( outofbounds, medianRadius ) );//outofbounds, medianRadius );
 
 		final RealRandomAccessible< FloatType > median = new MedianRealRandomAccessible<>( data, outofbounds, medianRadius );

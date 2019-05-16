@@ -1,4 +1,4 @@
-package test;
+package util;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +15,7 @@ import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Util;
 
-public class ImgLib2
+public class ImgLib2Util
 {
 	public static class SimpleStats
 	{
@@ -52,6 +52,33 @@ public class ImgLib2
 		stats.max = max;
 
 		return stats;
+	}
+
+	public static String printRealInterval( final RealInterval interval )
+	{
+		String out = "(Interval empty)";
+
+		if ( interval == null || interval.numDimensions() == 0 )
+			return out;
+
+		out = "[" + interval.realMin( 0 );
+
+		for ( int i = 1; i < interval.numDimensions(); i++ )
+			out += ", " + interval.realMin( i );
+
+		out += "] -> [" + interval.realMax( 0 );
+
+		for ( int i = 1; i < interval.numDimensions(); i++ )
+			out += ", " + interval.realMax( i );
+
+		out += "], size (" + (interval.realMax( 0 ) - interval.realMin( 0 ));
+
+		for ( int i = 1; i < interval.numDimensions(); i++ )
+			out += ", " + (interval.realMax( i ) - interval.realMin( i ));
+
+		out += ")";
+
+		return out;
 	}
 
 	public static long[] dimensions( final Interval ri )

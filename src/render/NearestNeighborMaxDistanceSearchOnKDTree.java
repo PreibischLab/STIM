@@ -4,8 +4,8 @@ import net.imglib2.KDTree;
 import net.imglib2.RealLocalizable;
 import net.imglib2.Sampler;
 import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
-import test.SimpleRealLocalizable;
-import test.SimpleSampler;
+import util.SimpleRealLocalizable;
+import util.SimpleSampler;
 
 public class NearestNeighborMaxDistanceSearchOnKDTree< T > extends NearestNeighborSearchOnKDTree< T >
 {

@@ -5,7 +5,7 @@ import filter.RadiusSearchFilterFactory;
 import net.imglib2.KDTree;
 import net.imglib2.RealLocalizable;
 import net.imglib2.Sampler;
-import test.SimpleSampler;
+import util.SimpleSampler;
 
 public class FilteredMaxDistanceSearchOnKDTree< S, T > implements IntegratingNeighborSearch< T >
 {

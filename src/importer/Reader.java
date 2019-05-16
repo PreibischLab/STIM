@@ -1,4 +1,4 @@
-package test;
+package importer;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -10,7 +10,8 @@ import mpicbg.spim.io.TextFileAccess;
 import net.imglib2.FinalRealInterval;
 import net.imglib2.Interval;
 import net.imglib2.RealInterval;
-import test.ImgLib2.SimpleStats;
+import util.ImgLib2Util;
+import util.ImgLib2Util.SimpleStats;
 
 public class Reader
 {
@@ -31,7 +32,7 @@ public class Reader
 
 		System.out.println( "Loaded " + data.coordinates.size() + " coordinates." );
 
-		data.distanceStats = ImgLib2.distanceStats( data.coordinates );
+		data.distanceStats = ImgLib2Util.distanceStats( data.coordinates );
 
 		System.out.println( "Median Distance: " + data.distanceStats.median );
 		System.out.println( "Average Distance: " + data.distanceStats.avg );
@@ -46,10 +47,10 @@ public class Reader
 			System.out.println( gene );
 
 		data.interval = Reader.getInterval( data.coordinates );
-		data.renderInterval = ImgLib2.roundRealInterval( data.interval );
+		data.renderInterval = ImgLib2Util.roundRealInterval( data.interval );
 
-		System.out.println( "Interval: " + Util.printRealInterval( data.interval ) );
-		System.out.println( "RenderInterval: " + Util.printRealInterval( data.renderInterval ) );
+		System.out.println( "Interval: " + ImgLib2Util.printRealInterval( data.interval ) );
+		System.out.println( "RenderInterval: " + ImgLib2Util.printRealInterval( data.renderInterval ) );
 
 		return data;
 	}

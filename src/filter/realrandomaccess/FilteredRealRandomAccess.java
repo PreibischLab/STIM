@@ -7,7 +7,7 @@ import net.imglib2.Localizable;
 import net.imglib2.RealLocalizable;
 import net.imglib2.RealRandomAccess;
 import net.imglib2.Sampler;
-import test.SimpleRealLocalizable;
+import util.SimpleRealLocalizable;
 
 public class FilteredRealRandomAccess< S, T > implements RealRandomAccess< T >
 {

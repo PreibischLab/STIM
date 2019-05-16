@@ -1,4 +1,4 @@
-package test;
+package util;
 
 import net.imglib2.Sampler;
 
