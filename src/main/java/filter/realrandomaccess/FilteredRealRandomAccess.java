@@ -48,12 +48,6 @@ public class FilteredRealRandomAccess< S, T > implements RealRandomAccess< T >
 	}
 
 	@Override
-	public double getDoublePosition( final int d )
-	{
-		return pos[ d ];
-	}
-
-	@Override
 	public int numDimensions()
 	{
 		return n;
@@ -207,5 +201,31 @@ public class FilteredRealRandomAccess< S, T > implements RealRandomAccess< T >
 	public Sampler< T > copy()
 	{
 		return copyRealRandomAccess();
+	}
+
+	@Override
+	public void localize( final float[] position )
+	{
+		for ( int d = 0; d < n; ++d )
+			position[ d ] = (float)pos[ d ];
+	}
+
+	@Override
+	public void localize( final double[] position )
+	{
+		for ( int d = 0; d < n; ++d )
+			position[ d ] = pos[ d ];
+	}
+
+	@Override
+	public float getFloatPosition( final int d )
+	{
+		return (float)pos[ d ];
+	}
+
+	@Override
+	public double getDoublePosition( final int d )
+	{
+		return pos[ d ];
 	}
 }
