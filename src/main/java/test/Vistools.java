@@ -9,7 +9,7 @@ import filter.GaussianFilterFactory;
 import filter.MedianFilterFactory;
 import filter.realrandomaccess.MedianRealRandomAccessible;
 import importer.Reader;
-import importer.Reader.STData;
+import importer.STData;
 import net.imglib2.RealPointSampleList;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.type.numeric.real.FloatType;

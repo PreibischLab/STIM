@@ -7,22 +7,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import net.imglib2.FinalRealInterval;
-import net.imglib2.Interval;
 import net.imglib2.RealInterval;
 import util.ImgLib2Util;
-import util.ImgLib2Util.SimpleStats;
 
 public class Reader
 {
-	public static class STData
-	{
-		public ArrayList< double[] > coordinates;
-		public HashMap< String, double[] > genes;
-		public SimpleStats distanceStats;
-		public RealInterval interval;
-		public Interval renderInterval;
-	}
-
 	public static STData read( final File locations, final File genes, final double offset )
 	{
 		final STData data = new STData();
