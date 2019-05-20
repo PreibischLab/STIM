@@ -22,7 +22,7 @@ import render.Render;
 import util.ImgLib2Util;
 import util.ImgLib2Util.SimpleStats;
 
-public class Test
+public class Test2d
 {
 	public static void main( String[] args )
 	{
@@ -46,7 +46,7 @@ public class Test
 
 		final HashMap< String, double[] > values = Reader.readGenes( new File("/Users/spreibi/Documents/BIMSB/Publications/imglib2-st/patterns_examples_2d/dge_normalized_small.txt" ), coordinates.size(), 0 );
 
-		System.out.println( "Loaded: " + values.keySet().size() + " genes with " + coordinates.size() + " values each." );
+		System.out.println( "Loaded: " + values.keySet().size() + " genes with " + coordinates.size() + " locations each." );
 
 		for ( final String gene : values.keySet() )
 			System.out.println( gene );
