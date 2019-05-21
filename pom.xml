@@ -130,9 +130,20 @@
 		</dependency>
 
 		<!-- SCIFIO dependencies -->
+				<dependency>
+			<groupId>sc.fiji</groupId>
+			<artifactId>bigdataviewer-core</artifactId>
+			<version>7.0.0</version>
+				</dependency>
 		<dependency>
 			<groupId>sc.fiji</groupId>
 			<artifactId>bigdataviewer-vistools</artifactId>
+			<version>1.0.0-beta-15</version>
+		</dependency>
+		<dependency>
+			<groupId>sc.fiji</groupId>
+			<artifactId>bigvolumeviewer</artifactId>
+			<version>0.1.5-SNAPSHOT</version>
 		</dependency>
 	</dependencies>
 
