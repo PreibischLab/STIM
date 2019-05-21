@@ -16,7 +16,7 @@ import net.imglib2.type.numeric.real.FloatType;
 import render.Render;
 import util.ImgLib2Util;
 
-public class Vistools
+public class Vistools2d
 {
 	public static void main( String[] args )
 	{

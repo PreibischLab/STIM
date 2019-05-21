@@ -4,77 +4,50 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
 import net.imglib2.FinalRealInterval;
 import net.imglib2.RealInterval;
-import util.ImgLib2Util;
 
 public class Reader
 {
 	public static STData read( final File locations, final File genes, final File geneNames, final double offset )
 	{
-		final STData data = new STData();
-
-		data.coordinates = readCoordinates( locations );
-
-		System.out.println( "Loaded " + data.coordinates.size() + " coordinates." );
-
-		data.distanceStats = ImgLib2Util.distanceStats( data.coordinates );
-
-		System.out.println( "Median Distance: " + data.distanceStats.median );
-		System.out.println( "Average Distance: " + data.distanceStats.avg );
-		System.out.println( "Min Distance: " + data.distanceStats.min );
-		System.out.println( "Max Distance: " + data.distanceStats.max );
+		final ArrayList< double[] > coordinates = readCoordinates( locations );
+		System.out.println( "Read " + coordinates.size() + " coordinates." );
 
 		final ArrayList< String > geneNameList = readGeneNames( geneNames );
-
 		System.out.println( "Read " + geneNameList.size() + " gene names." );
 
 		//for ( final String gene : data.genes.keySet() )
 		//	System.out.println( gene );
 
-		data.genes = Reader.readGenes( genes, geneNameList, data.coordinates.size(), 0 );
+		final HashMap< String, double[] > geneMap = Reader.readGenes( genes, geneNameList, coordinates.size(), 0 );
+		System.out.println( "Read " + geneMap.keySet().size() + " genes with " + coordinates.size() + " locations each." );
 
-		System.out.println( "Loaded: " + data.genes.keySet().size() + " genes with " + data.coordinates.size() + " locations each." );
+		final STData data = new STData( coordinates, geneMap );
 
-		data.interval = Reader.getInterval( data.coordinates );
-		data.renderInterval = ImgLib2Util.roundRealInterval( data.interval );
-
-		System.out.println( "Interval: " + ImgLib2Util.printRealInterval( data.interval ) );
-		System.out.println( "RenderInterval: " + ImgLib2Util.printRealInterval( data.renderInterval ) );
+		data.printInfo();
 
 		return data;
 	}
 
 	public static STData read( final File locations, final File genes, final double offset )
 	{
-		final STData data = new STData();
+		final ArrayList< double[] > coordinates = Reader.readCoordinates( locations );
+		System.out.println( "Read " + coordinates.size() + " coordinates." );
 
-		data.coordinates = Reader.readCoordinates( locations );
+		final HashMap< String, double[] > geneMap = Reader.readGenes( genes, coordinates.size(), offset );
+		System.out.println( "Read " + geneMap.keySet().size() + " genes with " + coordinates.size() + " locations each." );
 
-		System.out.println( "Loaded " + data.coordinates.size() + " coordinates." );
+		//for ( final String gene : data.genes.keySet() )
+		//	System.out.println( gene );
 
-		data.distanceStats = ImgLib2Util.distanceStats( data.coordinates );
+		final STData data = new STData( coordinates, geneMap );
 
-		System.out.println( "Median Distance: " + data.distanceStats.median );
-		System.out.println( "Average Distance: " + data.distanceStats.avg );
-		System.out.println( "Min Distance: " + data.distanceStats.min );
-		System.out.println( "Max Distance: " + data.distanceStats.max );
-
-		data.genes = Reader.readGenes( genes, data.coordinates.size(), offset );
-
-		System.out.println( "Loaded: " + data.genes.keySet().size() + " genes with " + data.coordinates.size() + " locations each." );
-
-		for ( final String gene : data.genes.keySet() )
-			System.out.println( gene );
-
-		data.interval = Reader.getInterval( data.coordinates );
-		data.renderInterval = ImgLib2Util.roundRealInterval( data.interval );
-
-		System.out.println( "Interval: " + ImgLib2Util.printRealInterval( data.interval ) );
-		System.out.println( "RenderInterval: " + ImgLib2Util.printRealInterval( data.renderInterval ) );
+		data.printInfo();
 
 		return data;
 	}
@@ -228,10 +201,13 @@ A:			while ( in.ready() )
 		return coordinates;
 	}
 
-	public static RealInterval getInterval( final ArrayList< double[] > coord )
+	public static RealInterval getInterval( final Collection< double[] > coord )
 	{
-		final double[] min = coord.get( 0 ).clone();
-		final double[] max = coord.get( 0 ).clone();
+		if ( coord.isEmpty() )
+			return null;
+
+		final double[] min = coord.iterator().next().clone();
+		final double[] max = min.clone();
 
 		final int n = min.length;
 
