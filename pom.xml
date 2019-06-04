@@ -86,6 +86,10 @@
 			<id>scijava.public</id>
 			<url>https://maven.scijava.org/content/groups/public</url>
 		</repository>
+		<repository>
+				<id>saalfeld-lab-maven-repo</id>
+				<url>https://saalfeldlab.github.io/maven</url>
+			</repository>
 	</repositories>
 
 	<dependencies>
@@ -148,6 +152,18 @@
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
+		</dependency>
+
+		<!-- N5 dependencies -->
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5</artifactId>
+			<version>2.1.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-imglib2</artifactId>
+			<version>3.3.0</version>
 		</dependency>
 	</dependencies>
 
