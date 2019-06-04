@@ -2,7 +2,7 @@ package transform;
 
 import java.util.Collection;
 
-import importer.STData;
+import data.STData;
 import net.imglib2.util.Util;
 
 public class TransformCoordinates

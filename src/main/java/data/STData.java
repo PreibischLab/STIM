@@ -1,8 +1,9 @@
-package importer;
+package data;
 
 import java.util.HashMap;
 import java.util.List;
 
+import importer.Parser;
 import net.imglib2.EuclideanSpace;
 import net.imglib2.FinalRealInterval;
 import net.imglib2.Interval;
@@ -11,21 +12,23 @@ import net.imglib2.util.Util;
 import util.ImgLib2Util;
 import util.ImgLib2Util.SimpleStats;
 
-public class STData implements EuclideanSpace
+public class STData extends STDataMinimal implements EuclideanSpace
 {
-	public List< double[] > coordinates;
-	public HashMap< String, double[] > genes;
 	public SimpleStats distanceStats;
 	public RealInterval interval;
 	public Interval renderInterval;
 
 	public STData( final List< double[] > coordinates, final HashMap< String, double[] > genes )
 	{
-		this.coordinates = coordinates;
-		this.genes = genes;
+		super( coordinates, genes );
 
 		computeStatistics();
 		computeIntervals();
+	}
+
+	public STData( final STDataMinimal stdata )
+	{
+		this( stdata.coordinates, stdata.genes );
 	}
 
 	public void expandInterval( final double border )
@@ -58,7 +61,7 @@ public class STData implements EuclideanSpace
 
 	public void computeIntervals()
 	{
-		this.interval = Reader.getInterval( this.coordinates );
+		this.interval = Parser.getInterval( this.coordinates );
 		this.renderInterval = ImgLib2Util.roundRealInterval( this.interval );
 	}
 

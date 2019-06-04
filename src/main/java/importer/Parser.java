@@ -8,13 +8,19 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
+import org.jruby.RubyProcess.Sys;
+
+import data.STData;
 import net.imglib2.FinalRealInterval;
 import net.imglib2.RealInterval;
 
-public class Reader
+public class Parser
 {
-	public static STData read( final File locations, final File genes, final File geneNames, final double offset )
+	public static STData read( final File locations, final File genes, final File geneNames )
 	{
+		System.out.println( "Parsing " + locations.getName() + ", " + genes.getName() + ", " + geneNames.getName() );
+		long time = System.currentTimeMillis();
+
 		final ArrayList< double[] > coordinates = readCoordinates( locations );
 		System.out.println( "Read " + coordinates.size() + " coordinates." );
 
@@ -24,22 +30,27 @@ public class Reader
 		//for ( final String gene : data.genes.keySet() )
 		//	System.out.println( gene );
 
-		final HashMap< String, double[] > geneMap = Reader.readGenes( genes, geneNameList, coordinates.size(), 0 );
+		final HashMap< String, double[] > geneMap = Parser.readGenes( genes, geneNameList, coordinates.size() );
 		System.out.println( "Read " + geneMap.keySet().size() + " genes with " + coordinates.size() + " locations each." );
 
 		final STData data = new STData( coordinates, geneMap );
 
 		data.printInfo();
 
+		System.out.println( "Parsing took " + ( System.currentTimeMillis() - time ) + " ms." );
+
 		return data;
 	}
 
-	public static STData read( final File locations, final File genes, final double offset )
+	public static STData read( final File locations, final File genes )
 	{
-		final ArrayList< double[] > coordinates = Reader.readCoordinates( locations );
+		System.out.println( "Parsing " + locations.getName() + ", " + genes.getName() );
+		long time = System.currentTimeMillis();
+
+		final ArrayList< double[] > coordinates = Parser.readCoordinates( locations );
 		System.out.println( "Read " + coordinates.size() + " coordinates." );
 
-		final HashMap< String, double[] > geneMap = Reader.readGenes( genes, coordinates.size(), offset );
+		final HashMap< String, double[] > geneMap = Parser.readGenes( genes, coordinates.size() );
 		System.out.println( "Read " + geneMap.keySet().size() + " genes with " + coordinates.size() + " locations each." );
 
 		//for ( final String gene : data.genes.keySet() )
@@ -49,10 +60,12 @@ public class Reader
 
 		data.printInfo();
 
+		System.out.println( "Parsing took " + ( System.currentTimeMillis() - time ) + " ms." );
+
 		return data;
 	}
 
-	public static HashMap< String, double[] > readGenes( final File file, final List< String > geneNameList, final int numCoordinates, final double offset )
+	public static HashMap< String, double[] > readGenes( final File file, final List< String > geneNameList, final int numCoordinates )
 	{
 		final BufferedReader in = TextFileAccess.openFileRead( file );
 
@@ -78,7 +91,7 @@ public class Reader
 
 				for ( int i = 0; i < valueList.length; ++i )
 				{
-					final double v = Double.parseDouble( valueList[ i ] )*100000 + offset;
+					final double v = Double.parseDouble( valueList[ i ] );
 					vs[ i ] = v;
 
 					if ( isDrosophilaHack ) 
@@ -223,7 +236,7 @@ A:			while ( in.ready() )
 		return new FinalRealInterval( min, max );
 	}
 
-	public static HashMap< String, double[] > readGenes( final File file, final int numCoordinates, final double offset )
+	public static HashMap< String, double[] > readGenes( final File file, final int numCoordinates )
 	{
 		final BufferedReader in = TextFileAccess.openFileRead( file );
 
@@ -246,7 +259,7 @@ A:			while ( in.ready() )
 				final double[] v = new double[ numCoordinates ];
 
 				for ( int i = 0; i < numCoordinates; ++i )
-					v[ i ] = Double.parseDouble( loc[ i + 1 ] ) + offset;
+					v[ i ] = Double.parseDouble( loc[ i + 1 ] );
 
 				values.put( geneName, v );
 			}

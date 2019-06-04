@@ -3,6 +3,7 @@ package util;
 import java.util.ArrayList;
 import java.util.List;
 
+import data.STData;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
@@ -20,6 +21,7 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
+import transform.TransformIntensities;
 
 public class ImgLib2Util
 {
@@ -168,26 +170,12 @@ public class ImgLib2Util
 		return list;
 	}
 
-	public static Pair< Double, Double > minmax( final double[] values )
-	{
-		double min = values[ 0 ];
-		double max = values[ 0 ];
-
-		for ( final double v : values )
-		{
-			min = Math.min( min, v );
-			max = Math.max( max, v );
-		}
-
-		return new ValuePair< Double, Double >( min, max );
-	}
-
 	public static RealPointSampleList< UnsignedShortType > wrapUnsignedShort(
 			final List< double[] > coordinates,
 			final double[] values,
 			final double offset )
 	{
-		final Pair< Double, Double > minmax = minmax( values );
+		final Pair< Double, Double > minmax = TransformIntensities.minmax( values );
 
 		return wrapUnsignedShort( coordinates, values, minmax.getA(), minmax.getB(), offset );
 	}
@@ -227,7 +215,7 @@ public class ImgLib2Util
 			final double[] values,
 			final double offset )
 	{
-		final Pair< Double, Double > minmax = minmax( values );
+		final Pair< Double, Double > minmax = TransformIntensities.minmax( values );
 
 		return wrapUnsignedByte( coordinates, values, minmax.getA(), minmax.getB(), offset );
 	}

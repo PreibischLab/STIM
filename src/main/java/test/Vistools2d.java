@@ -1,29 +1,40 @@
 package test;
 
 import java.io.File;
+import java.io.IOException;
 
 import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
+import data.STData;
 import filter.Filters;
 import filter.GaussianFilterFactory;
 import filter.MedianFilterFactory;
 import filter.realrandomaccess.MedianRealRandomAccessible;
-import importer.Reader;
-import importer.STData;
+import importer.Parser;
+import io.JsonIO;
 import net.imglib2.RealPointSampleList;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.type.numeric.real.FloatType;
 import render.Render;
+import transform.TransformIntensities;
 import util.ImgLib2Util;
 
 public class Vistools2d
 {
-	public static void main( String[] args )
+	public static void main( String[] args ) throws IOException
 	{
-		final STData stdata = Reader.read(
+		/*final STData stdata = Parser.read(
 				new File( "/Users/spreibi/Documents/BIMSB/Publications/imglib2-st/patterns_examples_2d/locations.txt" ),
-				new File( "/Users/spreibi/Documents/BIMSB/Publications/imglib2-st/patterns_examples_2d/dge_normalized_small.txt" ),
-				1.0 );
+				new File( "/Users/spreibi/Documents/BIMSB/Publications/imglib2-st/patterns_examples_2d/dge_normalized_small.txt" ) );
+		*/
+
+		long time = System.currentTimeMillis();
+		final STData stdata = JsonIO.readJSON( new File( "/Users/spreibi/Documents/BIMSB/Publications/imglib2-st/patterns_examples_2d/full.json.zip" ) );
+		System.out.println( System.currentTimeMillis() - time + " ms." );
+
+		stdata.printInfo();
+
+		TransformIntensities.add( stdata, 1 );
 
 		final double displayRadius = stdata.distanceStats.median / 2.0;
 		final double medianRadius = stdata.distanceStats.median * 2.0;

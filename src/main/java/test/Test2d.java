@@ -8,7 +8,7 @@ import filter.Filters;
 import filter.MeanFilterFactory;
 import filter.MedianFilterFactory;
 import ij.ImageJ;
-import importer.Reader;
+import importer.Parser;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealInterval;
@@ -26,11 +26,11 @@ public class Test2d
 {
 	public static void main( String[] args )
 	{
-		final ArrayList< double[] > coordinates = Reader.readCoordinates( new File( "/Users/spreibi/Documents/BIMSB/Publications/imglib2-st/patterns_examples_2d/locations.txt" ) );
+		final ArrayList< double[] > coordinates = Parser.readCoordinates( new File( "/Users/spreibi/Documents/BIMSB/Publications/imglib2-st/patterns_examples_2d/locations.txt" ) );
 
 		System.out.println( "Loaded " + coordinates.size() + " coordinates." );
 
-		final RealInterval interval = Reader.getInterval( coordinates );
+		final RealInterval interval = Parser.getInterval( coordinates );
 		final Interval renderInterval = ImgLib2Util.roundRealInterval( interval );
 
 		System.out.println( "Interval: " + ImgLib2Util.printRealInterval( interval ) );
@@ -44,7 +44,7 @@ public class Test2d
 
 		System.out.println( "Interval: " + ImgLib2Util.printRealInterval( interval ) );
 
-		final HashMap< String, double[] > values = Reader.readGenes( new File("/Users/spreibi/Documents/BIMSB/Publications/imglib2-st/patterns_examples_2d/dge_normalized_small.txt" ), coordinates.size(), 0 );
+		final HashMap< String, double[] > values = Parser.readGenes( new File("/Users/spreibi/Documents/BIMSB/Publications/imglib2-st/patterns_examples_2d/dge_normalized_small.txt" ), coordinates.size() );
 
 		System.out.println( "Loaded: " + values.keySet().size() + " genes with " + coordinates.size() + " locations each." );
 
