@@ -68,7 +68,7 @@ public class STData extends STDataMinimal implements EuclideanSpace
 	@Override
 	public int numDimensions()
 	{
-		return interval.numDimensions();
+		return n;
 	}
 
 	public void printInfo()
@@ -79,5 +79,10 @@ public class STData extends STDataMinimal implements EuclideanSpace
 		System.out.println( "Max Distance: " + this.distanceStats.max );
 		System.out.println( "Interval: " + ImgLib2Util.printRealInterval( this.interval ) );
 		System.out.println( "RenderInterval: " + ImgLib2Util.printRealInterval( this.renderInterval ) );
+	}
+
+	public static STData createTestDataSet()
+	{
+		return new STData( STDataMinimal.createTestDataSet() );
 	}
 }

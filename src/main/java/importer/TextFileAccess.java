@@ -31,6 +31,20 @@ import java.io.PrintWriter;
 
 public class TextFileAccess 
 {
+	public static void recursiveDelete( final File file ) throws IOException
+	{
+		if ( file.isDirectory() )
+		{
+			final File[] entries = file.listFiles();
+			if ( entries != null )
+				for ( final File entry : entries)
+					recursiveDelete( entry );
+		}
+
+		if ( !file.delete() )
+			throw new IOException( "Failed to delete " + file );
+	}
+
 	public static BufferedReader openFileRead(final File file)
 	{
 		BufferedReader inputFile;

@@ -116,16 +116,7 @@ public class JsonIO
 
 	public static void main( String[] args ) throws IOException
 	{
-		final ArrayList< double[] > coordinates = new ArrayList<>();
-		coordinates.add( new double[] { -1, 1 } );
-		coordinates.add( new double[] { 2, 2 } );
-
-		final HashMap< String, double[] > geneMap = new HashMap<>();
-
-		geneMap.put( "gene1", new double[] { 1.1, 2.2 } );
-		geneMap.put( "gene2", new double[] { 14.1, 2324 } );
-
-		STData data = new STData( coordinates, geneMap );
+		STData data = STData.createTestDataSet();
 
 		final File jsonFile = new File( "data.json" );
 		writeAsJSON( data, jsonFile, false );
