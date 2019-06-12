@@ -8,6 +8,8 @@ import filter.Filters;
 import filter.MeanFilterFactory;
 import filter.MedianFilterFactory;
 import ij.ImageJ;
+import imglib2.ImgLib2Util;
+import imglib2.ImgLib2Util.SimpleStats;
 import importer.Parser;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
@@ -19,8 +21,6 @@ import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
 import render.Render;
-import util.ImgLib2Util;
-import util.ImgLib2Util.SimpleStats;
 
 public class Test2d
 {

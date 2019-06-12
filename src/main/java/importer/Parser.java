@@ -214,28 +214,6 @@ A:			while ( in.ready() )
 		return coordinates;
 	}
 
-	public static RealInterval getInterval( final Collection< double[] > coord )
-	{
-		if ( coord.isEmpty() )
-			return null;
-
-		final double[] min = coord.iterator().next().clone();
-		final double[] max = min.clone();
-
-		final int n = min.length;
-
-		for ( final double[] c : coord )
-		{
-			for ( int d = 0; d < n; ++d )
-			{
-				min[ d ] = Math.min( c[d], min[ d ] );
-				max[ d ] = Math.max( c[d], max[ d ] );
-			}
-		}
-
-		return new FinalRealInterval( min, max );
-	}
-
 	public static HashMap< String, double[] > readGenes( final File file, final int numCoordinates )
 	{
 		final BufferedReader in = TextFileAccess.openFileRead( file );

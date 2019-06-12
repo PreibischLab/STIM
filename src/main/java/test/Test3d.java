@@ -6,12 +6,12 @@ import java.util.HashMap;
 
 import filter.Filters;
 import filter.MedianFilterFactory;
+import imglib2.ImgLib2Util;
+import imglib2.ImgLib2Util.SimpleStats;
 import importer.Parser;
 import net.imglib2.RealPointSampleList;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Util;
-import util.ImgLib2Util;
-import util.ImgLib2Util.SimpleStats;
 
 public class Test3d
 {

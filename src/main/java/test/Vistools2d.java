@@ -10,6 +10,7 @@ import filter.Filters;
 import filter.GaussianFilterFactory;
 import filter.MedianFilterFactory;
 import filter.realrandomaccess.MedianRealRandomAccessible;
+import imglib2.ImgLib2Util;
 import importer.Parser;
 import io.JsonIO;
 import net.imglib2.RealPointSampleList;
@@ -17,7 +18,6 @@ import net.imglib2.RealRandomAccessible;
 import net.imglib2.type.numeric.real.FloatType;
 import render.Render;
 import transform.TransformIntensities;
-import util.ImgLib2Util;
 
 public class Vistools2d
 {

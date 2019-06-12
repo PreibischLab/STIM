@@ -1,88 +1,75 @@
 package data;
 
-import java.util.HashMap;
 import java.util.List;
 
-import importer.Parser;
-import net.imglib2.EuclideanSpace;
-import net.imglib2.FinalRealInterval;
-import net.imglib2.Interval;
-import net.imglib2.RealInterval;
-import net.imglib2.util.Util;
-import util.ImgLib2Util;
-import util.ImgLib2Util.SimpleStats;
+import net.imglib2.IterableRealInterval;
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.RealLocalizable;
+import net.imglib2.type.numeric.real.DoubleType;
 
-public class STData extends STDataMinimal implements EuclideanSpace
+public interface STData extends IterableRealInterval< RealLocalizable >
 {
-	public SimpleStats distanceStats;
-	public RealInterval interval;
-	public Interval renderInterval;
+	public IterableRealInterval< DoubleType > getExprData( final String geneName );
 
-	public STData( final List< double[] > coordinates, final HashMap< String, double[] > genes )
-	{
-		super( coordinates, genes );
+	/**
+	 * @return the number of sequenced locations
+	 */
+	public long numLocations();
 
-		computeStatistics();
-		computeIntervals();
-	}
+	/**
+	 * @return the number of genes 
+	 */
+	public long numGenes();
 
-	public STData( final STDataMinimal stdata )
-	{
-		this( stdata.coordinates, stdata.genes );
-	}
+	/**
+	 * @return a list of all gene names
+	 */
+	public List< String > getGeneNames();
 
-	public void expandInterval( final double border )
-	{
-		expandInterval( Util.getArrayFromValue( border, numDimensions() ) );
-	}
+	/**
+	 * Note: usually you do not need this datastructure, rather request a RealPointSampleList or 
+	 * 
+	 * @return the underlying 2d datastructure that holds all sequenced locations by index, size: [numLocations x numDimensions]
+	 */
+	public RandomAccessibleInterval< DoubleType > getLocations();
 
-	public void expandInterval( final double[] border )
-	{
-		final double min[] = new double[ numDimensions() ];
-		final double max[] = new double[ numDimensions() ];
+	/**
+	 * @return the underlying 2d datastructure that holds all expression values by index, size: [numGenes x numLocations]
+	 */
+	public RandomAccessibleInterval< DoubleType > getAllExprValues();
 
-		interval.realMin( min );
-		interval.realMax( max );
+	/**
+	 * @return a reference to the (modifyable) 1d vector that holds all expression values of a gene by index, size: [numLocations]
+	 */
+	public RandomAccessibleInterval< DoubleType > getExprValues( final String gene );
+	
+	/**
+	 * Non-virtual way to access all sequencing locations,
+	 * might copy the data in memory
+	 * 
+	 * index in the list corresponds to the getExpValues list
+	 * 
+	 * @return all locations, size of double[] corresponds to numDimensions()
+	 */
+	public List< double[] > getLocationsCopy();
 
-		for ( int d = 0; d < numDimensions(); ++d )
-		{
-			min[ d ] -= border[ d ];
-			max[ d ] += border[ d ];
-		}
+	/**
+	 * Non-virtual way to load all expression values for a certain gene,
+	 * might copy the data in memory
+	 * 
+	 * index in the list corresponds to the locations list
+	 * 
+	 * @param geneName - name of the gene
+	 * @return all expression values of a gene
+	 */
+	public double[] getExpValuesCopy( final String geneName );
 
-		this.interval = new FinalRealInterval( min, max );
-		this.renderInterval = ImgLib2Util.roundRealInterval( this.interval );
-	}
-
-	public void computeStatistics()
-	{
-		this.distanceStats = ImgLib2Util.distanceStats( this.coordinates );
-	}
-
-	public void computeIntervals()
-	{
-		this.interval = Parser.getInterval( this.coordinates );
-		this.renderInterval = ImgLib2Util.roundRealInterval( this.interval );
-	}
-
-	@Override
-	public int numDimensions()
-	{
-		return n;
-	}
-
-	public void printInfo()
-	{
-		System.out.println( "Median Distance: " + this.distanceStats.median );
-		System.out.println( "Average Distance: " + this.distanceStats.avg );
-		System.out.println( "Min Distance: " + this.distanceStats.min );
-		System.out.println( "Max Distance: " + this.distanceStats.max );
-		System.out.println( "Interval: " + ImgLib2Util.printRealInterval( this.interval ) );
-		System.out.println( "RenderInterval: " + ImgLib2Util.printRealInterval( this.renderInterval ) );
-	}
-
-	public static STData createTestDataSet()
-	{
-		return new STData( STDataMinimal.createTestDataSet() );
-	}
+	/**
+	 * Non-virtual way to set all expression values of a gene,
+	 * will overwrite existing values
+	 * 
+	 * @param geneName - name of the gene
+	 * @param values - the values of each sequençed location, index corresponds to the location index in getLocations or getLocationsCopy
+	 */
+	public void setExpValues( final String geneName, final double[] values );
 }

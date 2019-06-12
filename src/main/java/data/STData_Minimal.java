@@ -17,14 +17,14 @@ import net.imglib2.type.numeric.real.DoubleType;
  * @author spreibi
  *
  */
-public class STDataMinimal
+public class STData_Minimal
 {
 	public List< double[] > coordinates;
 	public HashMap< String, double[] > genes;
 
 	final int n;
 
-	public STDataMinimal( final List< double[] > coordinates, final HashMap< String, double[] > genes )
+	public STData_Minimal( final List< double[] > coordinates, final HashMap< String, double[] > genes )
 	{
 		this.coordinates = coordinates;
 		this.genes = genes;
