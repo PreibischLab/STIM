@@ -4,15 +4,11 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
-import org.jruby.RubyProcess.Sys;
-
 import data.STData;
-import net.imglib2.FinalRealInterval;
-import net.imglib2.RealInterval;
+import data.STDataText;
 
 public class Parser
 {
@@ -33,9 +29,9 @@ public class Parser
 		final HashMap< String, double[] > geneMap = Parser.readGenes( genes, geneNameList, coordinates.size() );
 		System.out.println( "Read " + geneMap.keySet().size() + " genes with " + coordinates.size() + " locations each." );
 
-		final STData data = new STData( coordinates, geneMap );
+		final STData data = new STDataText( coordinates, geneMap );
 
-		data.printInfo();
+		System.out.println( data );
 
 		System.out.println( "Parsing took " + ( System.currentTimeMillis() - time ) + " ms." );
 
@@ -56,9 +52,9 @@ public class Parser
 		//for ( final String gene : data.genes.keySet() )
 		//	System.out.println( gene );
 
-		final STData data = new STData( coordinates, geneMap );
+		final STData data = new STDataText( coordinates, geneMap );
 
-		data.printInfo();
+		System.out.println( data );
 
 		System.out.println( "Parsing took " + ( System.currentTimeMillis() - time ) + " ms." );
 

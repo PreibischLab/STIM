@@ -8,7 +8,6 @@ import java.util.Map;
 
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.RealInterval;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.cell.CellImgFactory;
@@ -23,57 +22,28 @@ import net.imglib2.type.numeric.real.DoubleType;
  * @author spreibi
  *
  */
-public class STDataText extends STDataAbstract
+public class STDataText extends STDataImgLib2
 {
-	private final Img< DoubleType > locations, exprValues;
-
-	private final ArrayList< String > geneNames;
-	private final HashMap< String, Integer > geneLookup;
-
-	private RealInterval realInterval;
-
 	public STDataText( final List< double[] > locations, final HashMap< String, double[] > exprValues )
 	{
-		super( locations.get( 0 ).length, locations.size(), exprValues.keySet().size() );
-
-		this.geneNames = new ArrayList<>( exprValues.keySet() );
-		Collections.sort( this.geneNames );
-
-		this.geneLookup = new HashMap<>();
-		for ( int i = 0; i < geneNames.size(); ++i )
-			this.geneLookup.put( this.geneNames.get( i ), i );
-
-		this.locations = locationsToImgLib2( locations );
-		this.exprValues = exprValuesToImgLib2( this.geneNames, exprValues );
-
-		this.realInterval = STDataStatistics.computeRealInterval( this );
+		super( create( locations, exprValues ) );
 	}
 
-	@Override
-	protected RealInterval getLocationRealInterval()
+	protected static STDataImgLib2Factory create( final List< double[] > locations, final HashMap< String, double[] > exprValues )
 	{
-		return realInterval;
-	}
+		final STDataImgLib2Factory factory = new STDataImgLib2Factory();
 
-	@Override
-	protected int getIndexForGene( final String gene )
-	{
-		return geneLookup.get( gene );
-	}
+		factory.geneNames = new ArrayList<>( exprValues.keySet() );
+		Collections.sort( factory.geneNames );
 
-	@Override
-	public ArrayList< String > getGeneNames() { return geneNames; }
+		factory.geneLookup = new HashMap<>();
+		for ( int i = 0; i < factory.geneNames.size(); ++i )
+			factory.geneLookup.put( factory.geneNames.get( i ), i );
 
-	@Override
-	public RandomAccessibleInterval< DoubleType > getAllExprValues()
-	{
-		return exprValues;
-	}
+		factory.locations = locationsToImgLib2( locations );
+		factory.exprValues = exprValuesToImgLib2( factory.geneNames, exprValues );
 
-	@Override
-	public RandomAccessibleInterval< DoubleType > getLocations()
-	{
-		return locations;
+		return factory;
 	}
 
 	/**
@@ -86,6 +56,17 @@ public class STDataText extends STDataAbstract
 		final int numLocations = locations.size();
 
 		final Img< DoubleType > img = ArrayImgs.doubles( new long[] { numLocations, n } );
+
+		setLocations( locations, img );
+
+		return img;
+	}
+
+	public static void setLocations( final List< double[] > locations, final RandomAccessibleInterval< DoubleType > img )
+	{
+		final int numLocations = (int)img.dimension( 0 );
+		final int n = (int)img.dimension( 1 );
+
 		// TODO: use cursor
 		final RandomAccess< DoubleType > ra = img.randomAccess();
 
@@ -104,8 +85,6 @@ public class STDataText extends STDataAbstract
 					ra.fwd( 1 );
 			}
 		}
-
-		return img;
 	}
 
 	/**

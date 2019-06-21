@@ -9,12 +9,11 @@ import java.util.concurrent.Executors;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
-import org.janelia.saalfeldlab.n5.RawCompression;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 
 import data.STData;
 import importer.TextFileAccess;
-import net.imglib2.img.Img;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.real.DoubleType;
 
 public class N5IO
@@ -39,14 +38,14 @@ public class N5IO
 
 		// save general parameters and genelist
 		n5.setAttribute("/", "dim", data.numDimensions() );
-		n5.setAttribute("/", "numCoordinates", data.numCoordinates() );
+		n5.setAttribute("/", "numCoordinates", data.numLocations() );
 		n5.setAttribute("/", "numGenes", data.numGenes() );
-		n5.setAttribute("/", "geneList", data.getGeneList() );
+		n5.setAttribute("/", "geneList", data.getGeneNames() );
 
 		final ExecutorService exec = Executors.newFixedThreadPool( Runtime.getRuntime().availableProcessors() );
 
-		final Img< DoubleType > coord = data.getCoordinates();
-		final Img< DoubleType > expr = data.getValues();
+		final RandomAccessibleInterval< DoubleType > coord = data.getLocations();
+		final RandomAccessibleInterval< DoubleType > expr = data.getAllExprValues();
 
 		System.out.println( "Saving N5 ... " );
 
@@ -59,7 +58,7 @@ public class N5IO
 
 		// save the values
 		// numGenes x numCoordinates, 1 block for 1 genes
-		N5Utils.save( expr, n5, "/expression", new int[]{ 16, (int)data.numCoordinates() }, compression, exec );
+		N5Utils.save( expr, n5, "/expression", new int[]{ 16, (int)data.numLocations() }, compression, exec );
 
 		System.out.println( "Saving N5 took " + ( System.currentTimeMillis() - time ) + " ms." );
 

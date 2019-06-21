@@ -1,43 +1,27 @@
 package data;
 
-import net.imglib2.FinalRealInterval;
-import net.imglib2.IterableRealInterval;
-import net.imglib2.RealCursor;
-import net.imglib2.RealInterval;
+import data.STDataUtils.DistanceStats;
 
 public class STDataStatistics
 {
-	public static RealInterval computeRealInterval( final IterableRealInterval< ? > coord )
+	public DistanceStats ds;
+
+	public STDataStatistics( final STData data )
 	{
-		if ( coord.size() == 0 )
-			return null;
-
-		final int n = coord.numDimensions();
-
-		final RealCursor< ? > cursor = coord.localizingCursor();
-		cursor.fwd();
-
-		final double[] min = new double[ n ];
-		final double[] max = min.clone();
-
-		cursor.localize( min );
-		cursor.localize( max );
-
-
-		while( cursor.hasNext() )
-		{
-			cursor.fwd();
-
-			for ( int d = 0; d < n; ++d )
-			{
-				final double pos = cursor.getDoublePosition( d );
-
-				min[ d ] = Math.min( pos, min[ d ] );
-				max[ d ] = Math.max( pos, max[ d ] );
-			}
-		}
-
-		return new FinalRealInterval( min, max );
+		this.ds = STDataUtils.distanceStats( data.getLocationKDTree() );
 	}
 
+	public double getMeanDistance() { return ds.avgDist; }
+	public double getMedianDistance() { return ds.medianDist; }
+	public double getMinDistance() { return ds.minDist; }
+	public double getMaxDistance() { return ds.maxDist; }
+
+	@Override
+	public String toString()
+	{
+		return "Median Distance: " + getMeanDistance() + "\n" +
+			"Mean Distance: " + getMeanDistance() + "\n" +
+			"Min Distance: " + getMinDistance() + "\n" +
+			"Max Distance: " + getMaxDistance();
+	}
 }

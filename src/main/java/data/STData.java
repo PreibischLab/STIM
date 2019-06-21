@@ -2,13 +2,21 @@ package data;
 
 import java.util.List;
 
+import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
+import net.imglib2.KDTree;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealLocalizable;
 import net.imglib2.type.numeric.real.DoubleType;
 
 public interface STData extends IterableRealInterval< RealLocalizable >
 {
+	public Interval getRenderInterval();
+	public Interval getRenderInterval( final long border );
+	public Interval getRenderInterval( final long[] border );
+
+	public KDTree< RealLocalizable > getLocationKDTree();
+	public KDTree< DoubleType > getExpValueKDTree( final String geneName );
 	public IterableRealInterval< DoubleType > getExprData( final String geneName );
 
 	/**
@@ -42,7 +50,7 @@ public interface STData extends IterableRealInterval< RealLocalizable >
 	 * @return a reference to the (modifyable) 1d vector that holds all expression values of a gene by index, size: [numLocations]
 	 */
 	public RandomAccessibleInterval< DoubleType > getExprValues( final String gene );
-	
+
 	/**
 	 * Non-virtual way to access all sequencing locations,
 	 * might copy the data in memory
@@ -52,6 +60,16 @@ public interface STData extends IterableRealInterval< RealLocalizable >
 	 * @return all locations, size of double[] corresponds to numDimensions()
 	 */
 	public List< double[] > getLocationsCopy();
+
+	/**
+	 * Non-virtual way to set all sequencing locations,
+	 * will overwrite existing values
+	 * 
+	 * index in the list corresponds to the getExpValues list
+	 * 
+	 * @param locations - list of locations
+	 */
+	public void setLocations( final List< double[] > locations );
 
 	/**
 	 * Non-virtual way to load all expression values for a certain gene,

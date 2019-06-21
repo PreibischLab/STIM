@@ -7,16 +7,17 @@ import net.imglib2.Sampler;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.view.Views;
 
-public class ExpValueRealCursor implements RealCursor< DoubleType >
+public class ExpValueRealCursor< T > implements RealCursor< T >
 {
-	final RandomAccessibleInterval< DoubleType > locations, values;
+	final RandomAccessibleInterval< DoubleType > locations;
+	final RandomAccessibleInterval< T > values;
 
 	final LocationRealCursor locationCursor;
-	final Cursor< DoubleType > valueCursor;
+	final Cursor< T > valueCursor;
 
 	public ExpValueRealCursor(
 			final RandomAccessibleInterval< DoubleType > locations,
-			final RandomAccessibleInterval< DoubleType > values )
+			final RandomAccessibleInterval< T > values )
 	{
 		this.locations = locations;
 		this.values = values;
@@ -26,7 +27,7 @@ public class ExpValueRealCursor implements RealCursor< DoubleType >
 	}
 
 	@Override
-	public DoubleType get()
+	public T get()
 	{
 		return valueCursor.get();
 	}
@@ -59,7 +60,7 @@ public class ExpValueRealCursor implements RealCursor< DoubleType >
 	}
 
 	@Override
-	public DoubleType next()
+	public T next()
 	{
 		fwd();
 		return get();
@@ -96,14 +97,14 @@ public class ExpValueRealCursor implements RealCursor< DoubleType >
 	}
 
 	@Override
-	public Sampler< DoubleType > copy()
+	public Sampler< T > copy()
 	{
 		return copyCursor();
 	}
 
 	@Override
-	public RealCursor< DoubleType > copyCursor()
+	public RealCursor< T > copyCursor()
 	{
-		return new ExpValueRealCursor( locations, values );
+		return new ExpValueRealCursor< T >( locations, values );
 	}
 }

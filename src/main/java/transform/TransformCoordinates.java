@@ -1,6 +1,6 @@
 package transform;
 
-import java.util.Collection;
+import java.util.List;
 
 import data.STData;
 import net.imglib2.util.Util;
@@ -9,45 +9,38 @@ public class TransformCoordinates
 {
 	public static void zeroMin( final STData data )
 	{
-		zeroMin( data.coordinates );
-		data.computeIntervals();
-	}
+		final int n = data.numDimensions();
+		final double[] min = new double[ n ];
+		data.realMin( min );
 
-	public static void zeroMin( final Collection< double[] > coordinates )
-	{
-		if ( coordinates.isEmpty() )
-			return;
+		final List< double[] > locations = data.getLocationsCopy();
 
-		final double[] firstElement = coordinates.iterator().next();
-		final int n = firstElement.length;
+		for ( int i = 0; i < locations.size(); ++i )
+		{
+			final double[] loc = locations.get( i );
 
-		final double[] min = firstElement.clone();
-
-		for ( final double[] coor : coordinates )
 			for ( int d = 0; d < n; ++d )
-				min[ d ] = Math.min( coor[ d ], min[ d ] );
+				loc[ d ] -= min[ d ];
+		}
 
-		for ( final double[] coor : coordinates )
-			for ( int d = 0; d < n; ++d )
-				coor[ d ] -= min[ d ];
+		data.setLocations( locations );
 	}
 
 	public static void translate( final STData data, final double[] vector )
 	{
-		translate( data.coordinates, vector );
-		data.computeIntervals();
-	}
+		final int n = data.numDimensions();
 
-	public static void translate( final Collection< double[] > coordinates, final double[] vector )
-	{
-		if ( coordinates.isEmpty() )
-			return;
+		final List< double[] > locations = data.getLocationsCopy();
 
-		final int n = vector.length;
+		for ( int i = 0; i < locations.size(); ++i )
+		{
+			final double[] loc = locations.get( i );
 
-		for ( final double[] coor : coordinates )
 			for ( int d = 0; d < n; ++d )
-				coor[ d ] += vector[ d ];
+				loc[ d ] += vector[ d ];
+		}
+
+		data.setLocations( locations );
 	}
 
 	public static void scale( final STData data, final double scale )
@@ -57,21 +50,18 @@ public class TransformCoordinates
 
 	public static void scale( final STData data, final double[] scale )
 	{
-		scale( data.coordinates, scale );
-		data.computeStatistics();
-		data.computeIntervals();
-	}
+		final int n = data.numDimensions();
 
-	public static void scale( final Collection< double[] > coordinates, final double[] scale )
-	{
-		if ( coordinates.isEmpty() )
-			return;
+		final List< double[] > locations = data.getLocationsCopy();
 
-		final int n = scale.length;
+		for ( int i = 0; i < locations.size(); ++i )
+		{
+			final double[] loc = locations.get( i );
 
-		for ( final double[] coor : coordinates )
 			for ( int d = 0; d < n; ++d )
-				coor[ d ] *= scale[ d ];
-	}
+				loc[ d ] *= scale[ d ];
+		}
 
+		data.setLocations( locations );
+	}
 }

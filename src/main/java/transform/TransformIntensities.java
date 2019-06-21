@@ -1,65 +1,50 @@
 package transform;
 
-import java.util.Collection;
-
 import data.STData;
+import imglib2.ImgLib2Util;
+import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
+import net.imglib2.view.Views;
 
 public class TransformIntensities
 {
 	public static void add( final STData data, final double value )
 	{
-		add( data.genes.values(), value );
+		for ( final DoubleType t : Views.iterable( data.getAllExprValues() ) )
+			t.set( t.get() + value );
 	}
 
-	public static void add( final Collection< double[] > data, final double value )
+	public static void add( final STData data, final String geneName, final double value )
 	{
-		for ( final double[] values : data )
-			for ( int i = 0; i < values.length; ++i )
-				values[ i ] += value;
+		for ( final DoubleType t : Views.iterable( data.getExprValues( geneName ) ) )
+			t.set( t.get() + value );
 	}
 
 	public static void mul( final STData data, final double value )
 	{
-		add( data.genes.values(), value );
+		for ( final DoubleType t : Views.iterable( data.getAllExprValues() ) )
+			t.set( t.get() * value );
 	}
 
-	public static void mul( final Collection< double[] > data, final double value )
+	public static void mul( final STData data, final String geneName, final double value )
 	{
-		for ( final double[] values : data )
-			for ( int i = 0; i < values.length; ++i )
-				values[ i ] *= value;
+		for ( final DoubleType t : Views.iterable( data.getExprValues( geneName ) ) )
+			t.set( t.get() * value );
 	}
 
 	public static Pair< Double, Double > minmax( final STData data )
 	{
-		double min = Double.MAX_VALUE;
-		double max = -Double.MAX_VALUE;
+		final Pair< DoubleType, DoubleType > minmax = ImgLib2Util.minmax( Views.iterable( data.getAllExprValues() ) );
 
-		for ( final double[] values : data.genes.values() )
-		{
-			final Pair< Double, Double > minmax = minmax( values );
-
-			min = Math.min( min, minmax.getA() );
-			max = Math.max( max, minmax.getB() );
-		}
-
-		return new ValuePair< Double, Double >( min, max );
+		return new ValuePair< Double, Double >( minmax.getA().get(), minmax.getB().get() );
 	}
 
-	public static Pair< Double, Double > minmax( final double[] values )
+	public static Pair< Double, Double > minmax( final STData data, final String geneName )
 	{
-		double min = values[ 0 ];
-		double max = values[ 0 ];
+		final Pair< DoubleType, DoubleType > minmax = ImgLib2Util.minmax( Views.iterable( data.getExprValues( geneName ) ) );
 
-		for ( final double v : values )
-		{
-			min = Math.min( min, v );
-			max = Math.max( max, v );
-		}
-
-		return new ValuePair< Double, Double >( min, max );
+		return new ValuePair< Double, Double >( minmax.getA().get(), minmax.getB().get() );
 	}
 
 }

@@ -9,15 +9,16 @@ import net.imglib2.RealInterval;
 import net.imglib2.RealPositionable;
 import net.imglib2.type.numeric.real.DoubleType;
 
-public class ExpValueRealIterable implements IterableRealInterval< DoubleType >
+public class ExpValueRealIterable< T > implements IterableRealInterval< T >
 {
-	final RandomAccessibleInterval< DoubleType > locations, values;
+	final RandomAccessibleInterval< DoubleType > locations;
+	final RandomAccessibleInterval< T > values;
 	final RealInterval realInterval;
 	final long lastIndex, size;
 
 	public ExpValueRealIterable(
 			final RandomAccessibleInterval< DoubleType > locations,
-			final RandomAccessibleInterval< DoubleType > values,
+			final RandomAccessibleInterval< T > values,
 			final RealInterval realInterval )
 	{
 		this.locations = locations;
@@ -28,9 +29,9 @@ public class ExpValueRealIterable implements IterableRealInterval< DoubleType >
 	}
 
 	@Override
-	public RealCursor< DoubleType > localizingCursor()
+	public RealCursor< T > localizingCursor()
 	{
-		return new ExpValueRealCursor( locations, values );
+		return new ExpValueRealCursor< T >( locations, values );
 	}
 
 	@Override
@@ -76,13 +77,13 @@ public class ExpValueRealIterable implements IterableRealInterval< DoubleType >
 	}
 
 	@Override
-	public Iterator< DoubleType > iterator()
+	public Iterator< T > iterator()
 	{
 		return localizingCursor();
 	}
 
 	@Override
-	public RealCursor< DoubleType > cursor()
+	public RealCursor< T > cursor()
 	{
 		return localizingCursor();
 	}
@@ -90,11 +91,11 @@ public class ExpValueRealIterable implements IterableRealInterval< DoubleType >
 	@Override
 	public long size()
 	{
-		return size();
+		return size;
 	}
 
 	@Override
-	public DoubleType firstElement()
+	public T firstElement()
 	{
 		return cursor().next();
 	}
