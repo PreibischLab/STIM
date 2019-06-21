@@ -15,7 +15,9 @@ import filter.realrandomaccess.MedianRealRandomAccessible;
 import imglib2.ImgLib2Util;
 import importer.Parser;
 import io.JsonIO;
+import net.imglib2.Cursor;
 import net.imglib2.IterableRealInterval;
+import net.imglib2.RealCursor;
 import net.imglib2.RealPointSampleList;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.type.numeric.real.DoubleType;
@@ -63,6 +65,14 @@ public class Vistools2d
 			System.out.println( i + ": " + Util.printCoordinates( locations.get( i ) ) + " >> " + values[ i ] );
 
 		final IterableRealInterval< DoubleType > data = stdata.getExprData( "Pcp4" );
+
+		final RealCursor< DoubleType > c = data.localizingCursor();
+		while ( c.hasNext() )
+		{
+			c.fwd();
+			System.out.println( c.getDoublePosition( 0 ) + ", " + c.getDoublePosition( 1 ) + " >> " + c.get().get() ); 
+		}
+
 		final IterableRealInterval< DoubleType > medianFiltered = Filters.filter( data, new MedianFilterFactory<>( outofbounds, medianRadius ) );//outofbounds, medianRadius );
 
 		final RealRandomAccessible< DoubleType > median = new MedianRealRandomAccessible<>( data, outofbounds, medianRadius );
