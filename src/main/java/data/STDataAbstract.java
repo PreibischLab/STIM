@@ -112,7 +112,7 @@ public abstract class STDataAbstract implements STData
 	@Override
 	public RandomAccessibleInterval< DoubleType > getExprValues( final String geneName )
 	{
-		return Views.hyperSlice( getAllExprValues(), 1, getIndexForGene( geneName ) );
+		return Views.hyperSlice( getAllExprValues(), 0, getIndexForGene( geneName ) );
 	}
 
 	@Override

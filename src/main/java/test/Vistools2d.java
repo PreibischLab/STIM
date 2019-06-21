@@ -55,6 +55,8 @@ public class Vistools2d
 		final DoubleType outofbounds = new DoubleType( 0 );
 
 		List< double[] > locations = stdata.getLocationsCopy();
+		System.out.println( "#locations: " + locations.size() );
+
 		double[] values = stdata.getExpValuesCopy( "Pcp4" );
 
 		for ( int i = 0; i < values.length; ++i )
