@@ -2,37 +2,42 @@ package io;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.GzipCompression;
+import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 
+import bdv.util.BdvFunctions;
+import bdv.util.BdvOptions;
 import data.STData;
+import data.STDataImgLib2;
+import data.STDataN5;
+import data.STDataStatistics;
+import filter.GaussianFilterFactory;
 import importer.TextFileAccess;
+import net.imglib2.IterableRealInterval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.real.DoubleType;
+import render.Render;
+import transform.TransformIntensities;
 
 public class N5IO
 {
-	public static void main( String[] args ) throws IOException, InterruptedException, ExecutionException
+	public static void writeN5( final STData data, final File n5path ) throws IOException, InterruptedException, ExecutionException
 	{
-		final File n5path = new File( "test.n5" );
-
-		System.out.println( "n5-path: " + n5path.getAbsolutePath() );
-
 		if ( n5path.exists() )
 			TextFileAccess.recursiveDelete( n5path );
 
-		STData data = 
-				//STData.createTestDataSet();
-				JsonIO.readJSON( new File( "/Users/spreibi/Documents/BIMSB/Publications/imglib2-st/patterns_examples_2d/full.json.zip" ) );
-
 		N5FSWriter n5 = new N5FSWriter( n5path.getAbsolutePath() );
 
+		
 		n5.createGroup("/coordinates");
 		n5.createGroup("/expression");
 
@@ -44,7 +49,7 @@ public class N5IO
 
 		final ExecutorService exec = Executors.newFixedThreadPool( Runtime.getRuntime().availableProcessors() );
 
-		final RandomAccessibleInterval< DoubleType > coord = data.getLocations();
+		final RandomAccessibleInterval< DoubleType > locations = data.getLocations();
 		final RandomAccessibleInterval< DoubleType > expr = data.getAllExprValues();
 
 		System.out.println( "Saving N5 ... " );
@@ -54,7 +59,7 @@ public class N5IO
 		final Compression compression = new GzipCompression( 6 ); // new RawCompression();
 
 		// save the coordinates
-		N5Utils.save( coord, n5, "/coordinates", new int[]{ 1024, data.numDimensions() }, compression, exec );
+		N5Utils.save( locations, n5, "/coordinates", new int[]{ 1024, data.numDimensions() }, compression, exec );
 
 		// save the values
 		// numGenes x numCoordinates, 1 block for 1 genes
@@ -63,5 +68,64 @@ public class N5IO
 		System.out.println( "Saving N5 took " + ( System.currentTimeMillis() - time ) + " ms." );
 
 		exec.shutdown();
+	}
+
+	public static STData readN5( final File n5path ) throws IOException
+	{
+		if ( !n5path.exists() )
+			throw new RuntimeException( "n5-path '' does not exist." );
+
+		N5FSReader n5 = new N5FSReader( n5path.getAbsolutePath() );
+
+		final int n = n5.getAttribute( "/", "dim", Integer.class );
+		final long numLocations = n5.getAttribute( "/", "numCoordinates", Long.class );
+		final long numGenes = n5.getAttribute( "/", "numGenes", Long.class );
+		final List< String > geneNameList = n5.getAttribute( "/", "geneList", List.class );
+
+		System.out.println(  n );
+		System.out.println(  numLocations );
+		System.out.println(  numGenes );
+
+		for ( final String s : geneNameList )
+			System.out.println( s);
+
+		final RandomAccessibleInterval< DoubleType > locations = N5Utils.openWithBoundedSoftRefCache( n5, "/coordinates", 100000000 );
+		final RandomAccessibleInterval< DoubleType > exprValues = N5Utils.openWithBoundedSoftRefCache( n5, "/expression", 100000000 );
+
+		final HashMap< String, Integer > geneLookup = new HashMap<>();
+
+		for ( int i = 0; i < geneNameList.size(); ++i )
+			geneLookup.put( geneNameList.get( i ), i );
+
+		return new STDataImgLib2( locations, exprValues, geneNameList, geneLookup );
+	}
+
+	public static void main( String[] args ) throws IOException, InterruptedException, ExecutionException
+	{
+		final File n5path = new File( "test.n5" );
+
+		System.out.println( "n5-path: " + n5path.getAbsolutePath() );
+
+		STData stdata = 
+				//STData.createTestDataSet();
+				JsonIO.readJSON( new File( "/Users/spreibi/Documents/BIMSB/Publications/imglib2-st/patterns_examples_2d/cut.json.zip" ) );
+
+		writeN5( stdata, n5path );
+
+		stdata = readN5( n5path );
+
+		final IterableRealInterval< DoubleType > data = stdata.getExprData( "Pcp4" );
+
+		final STDataStatistics stStats = new STDataStatistics( stdata );
+		TransformIntensities.add( stdata, 1 );
+
+		final double displayRadius = stStats.getMedianDistance() / 2.0;
+		double gaussRenderSigma = stStats.getMedianDistance() / 4; 
+		double gaussRenderRadius = displayRadius;
+		final DoubleType outofbounds = new DoubleType( 0 );
+
+		BdvFunctions.show( Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, false ) ), stdata.getRenderInterval(), "Pcp4_gauss1", BdvOptions.options().is2D() ).setDisplayRange( 0, 4 );
+
+
 	}
 }

@@ -26,7 +26,7 @@ public class STDataImgLib2 extends STDataAbstract
 	 */
 	private final RandomAccessibleInterval< DoubleType > exprValues;
 
-	private final ArrayList< String > geneNames;
+	private final List< String > geneNames;
 	private final HashMap< String, Integer > geneLookup;
 
 	private RealInterval realInterval;
@@ -34,7 +34,7 @@ public class STDataImgLib2 extends STDataAbstract
 	public static class STDataImgLib2Factory
 	{
 		public RandomAccessibleInterval< DoubleType > locations, exprValues;
-		public ArrayList< String > geneNames;
+		public List< String > geneNames;
 		public HashMap< String, Integer > geneLookup;
 	}
 
@@ -46,7 +46,7 @@ public class STDataImgLib2 extends STDataAbstract
 	public STDataImgLib2(
 			final RandomAccessibleInterval< DoubleType > locations,
 			final RandomAccessibleInterval< DoubleType > exprValues,
-			final ArrayList< String > geneNames,
+			final List< String > geneNames,
 			final HashMap< String, Integer > geneLookup )
 	{
 		super( (int)locations.dimension( 1 ), (int)locations.dimension( 0 ), (int)exprValues.dimension( 0 ) );
