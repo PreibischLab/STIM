@@ -12,20 +12,14 @@ import filter.Filters;
 import filter.GaussianFilterFactory;
 import filter.MedianFilterFactory;
 import filter.realrandomaccess.MedianRealRandomAccessible;
-import imglib2.ImgLib2Util;
-import importer.Parser;
 import io.JsonIO;
-import net.imglib2.Cursor;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.KDTree;
 import net.imglib2.RealCursor;
-import net.imglib2.RealLocalizable;
 import net.imglib2.RealPoint;
 import net.imglib2.RealPointSampleList;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.type.numeric.real.FloatType;
-import net.imglib2.util.Util;
 import render.Render;
 import transform.TransformIntensities;
 
@@ -67,11 +61,11 @@ public class Vistools2d
 		//for ( int i = 0; i < values.length; ++i )
 		//	System.out.println( i + ": " + Util.printCoordinates( locations.get( i ) ) + " >> " + values[ i ] );
 
-		RealPointSampleList< DoubleType > data2 = new RealPointSampleList<>( 2 );
+		RealPointSampleList< DoubleType > data2a = new RealPointSampleList<>( 2 );
 
-		data2.add( new RealPoint( 0,0 ), new DoubleType( 0 ) );
-		data2.add( new RealPoint( 1,1 ), new DoubleType( 1 ) );
-		data2.add( new RealPoint( 2,2 ), new DoubleType( 2 ) );
+		data2a.add( new RealPoint( 0,0 ), new DoubleType( 0 ) );
+		data2a.add( new RealPoint( 1,1 ), new DoubleType( 1 ) );
+		data2a.add( new RealPoint( 2,2 ), new DoubleType( 2 ) );
 
 		final IterableRealInterval< DoubleType > data = stdata.getExprData( "Pcp4" );
 
