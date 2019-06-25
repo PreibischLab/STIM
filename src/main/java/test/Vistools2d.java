@@ -2,7 +2,6 @@ package test;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
@@ -14,10 +13,6 @@ import filter.MedianFilterFactory;
 import filter.realrandomaccess.MedianRealRandomAccessible;
 import io.JsonIO;
 import net.imglib2.IterableRealInterval;
-import net.imglib2.KDTree;
-import net.imglib2.RealCursor;
-import net.imglib2.RealPoint;
-import net.imglib2.RealPointSampleList;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.type.numeric.real.DoubleType;
 import render.Render;
@@ -53,41 +48,8 @@ public class Vistools2d
 
 		final DoubleType outofbounds = new DoubleType( 0 );
 
-		List< double[] > locations = stdata.getLocationsCopy();
-		System.out.println( "#locations: " + locations.size() );
-
-		double[] values = stdata.getExpValuesCopy( "Pcp4" );
-
-		//for ( int i = 0; i < values.length; ++i )
-		//	System.out.println( i + ": " + Util.printCoordinates( locations.get( i ) ) + " >> " + values[ i ] );
-
-		RealPointSampleList< DoubleType > data2a = new RealPointSampleList<>( 2 );
-
-		data2a.add( new RealPoint( 0,0 ), new DoubleType( 0 ) );
-		data2a.add( new RealPoint( 1,1 ), new DoubleType( 1 ) );
-		data2a.add( new RealPoint( 2,2 ), new DoubleType( 2 ) );
-
 		final IterableRealInterval< DoubleType > data = stdata.getExprData( "Pcp4" );
 
-		final RealCursor< DoubleType > c0 = data.localizingCursor();
-
-		int i = 0;
-		//for ( int a = 0; a < 5; ++a )
-		{
-			final RealCursor< DoubleType > c1 = c0.copyCursor();
-			final RealCursor< DoubleType > c2 = new KDTree<>( data ).cursor();
-			
-			while ( c2.hasNext() )
-			{
-				//c1.fwd();
-				final DoubleType value = c2.next();
-				//System.out.println( i + " (cursor): " + c1.getDoublePosition( 0 ) + ", " + c1.getDoublePosition( 1 ) + " >> " + c1.get().get() ); 
-				System.out.println( i + " (kdtree): " + c2.getDoublePosition( 0 ) + ", " + c2.getDoublePosition( 1 ) + " >> " + c2.get().get() ); 
-				++i;
-			}
-		}
-
-		System.exit( 0 );
 		final IterableRealInterval< DoubleType > medianFiltered = Filters.filter( data, new MedianFilterFactory<>( outofbounds, medianRadius ) );//outofbounds, medianRadius );
 
 		final RealRandomAccessible< DoubleType > median = new MedianRealRandomAccessible<>( data, outofbounds, medianRadius );
