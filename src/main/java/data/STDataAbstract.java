@@ -80,6 +80,7 @@ public abstract class STDataAbstract implements STData
 	@Override
 	public IterableRealInterval< DoubleType > getExprData( final String geneName )
 	{
+		// TODO: use the entire values array so that the gene can be switched virtually
 		return new ExpValueRealIterable< DoubleType >(
 				getLocations(),
 				getExprValues( geneName ),
