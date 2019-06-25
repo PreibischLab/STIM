@@ -9,9 +9,6 @@ import net.imglib2.view.Views;
 
 public class ExpValueRealCursor< T > implements RealCursor< T >
 {
-	final RandomAccessibleInterval< DoubleType > locations;
-	final RandomAccessibleInterval< T > values;
-
 	final LocationRealCursor locationCursor;
 	final Cursor< T > valueCursor;
 
@@ -19,11 +16,14 @@ public class ExpValueRealCursor< T > implements RealCursor< T >
 			final RandomAccessibleInterval< DoubleType > locations,
 			final RandomAccessibleInterval< T > values )
 	{
-		this.locations = locations;
-		this.values = values;
-
 		this.locationCursor = new LocationRealCursor( locations );
 		this.valueCursor = Views.flatIterable( values ).cursor();
+	}
+
+	protected ExpValueRealCursor( final ExpValueRealCursor< T > realCursor )
+	{
+		this.locationCursor = realCursor.locationCursor.copyCursor();
+		this.valueCursor = realCursor.valueCursor.copyCursor();
 	}
 
 	@Override
@@ -105,6 +105,6 @@ public class ExpValueRealCursor< T > implements RealCursor< T >
 	@Override
 	public RealCursor< T > copyCursor()
 	{
-		return new ExpValueRealCursor< T >( locations, values );
+		return new ExpValueRealCursor< T >( this );
 	}
 }

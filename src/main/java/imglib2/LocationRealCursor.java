@@ -15,7 +15,6 @@ import net.imglib2.view.Views;
  */
 public class LocationRealCursor implements RealCursor< RealLocalizable >
 {
-	final RandomAccessibleInterval< DoubleType > locations;
 	final RandomAccess< DoubleType > ra;
 
 	final int n;
@@ -26,7 +25,6 @@ public class LocationRealCursor implements RealCursor< RealLocalizable >
 
 	public LocationRealCursor( final RandomAccessibleInterval< DoubleType > locations )
 	{
-		this.locations = locations;
 		this.ra = Views.extendZero( locations ).randomAccess();
 
 		this.n = (int)locations.dimension( 1 );
@@ -34,6 +32,15 @@ public class LocationRealCursor implements RealCursor< RealLocalizable >
 		this.lastIndex = locations.dimension( 0 ) - 1;
 
 		reset();
+	}
+
+	protected LocationRealCursor( final LocationRealCursor l )
+	{
+		this.ra = l.ra.copyRandomAccess();
+		this.n = l.numDimensions();
+		this.pos = l.pos.clone();
+		this.lastIndex = l.lastIndex;
+		this.index = l.index;
 	}
 
 	/**
@@ -138,8 +145,8 @@ public class LocationRealCursor implements RealCursor< RealLocalizable >
 	}
 
 	@Override
-	public RealCursor< RealLocalizable > copyCursor()
+	public LocationRealCursor copyCursor()
 	{
-		return new LocationRealCursor( locations );
+		return new LocationRealCursor( this );
 	}
 }
