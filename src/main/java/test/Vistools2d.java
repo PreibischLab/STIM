@@ -11,6 +11,7 @@ import filter.Filters;
 import filter.GaussianFilterFactory;
 import filter.MedianFilterFactory;
 import filter.realrandomaccess.MedianRealRandomAccessible;
+import imglib2.ImgLib2Util;
 import io.JsonIO;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RealRandomAccessible;
@@ -49,6 +50,7 @@ public class Vistools2d
 		final DoubleType outofbounds = new DoubleType( 0 );
 
 		final IterableRealInterval< DoubleType > data = stdata.getExprData( "Pcp4" );
+		//final IterableRealInterval< DoubleType > data = ImgLib2Util.copyIterableRealInterval( stdata.getExprData( "Pcp4" ) );
 
 		final IterableRealInterval< DoubleType > medianFiltered = Filters.filter( data, new MedianFilterFactory<>( outofbounds, medianRadius ) );//outofbounds, medianRadius );
 

@@ -2,9 +2,11 @@ package imglib2;
 
 import java.util.List;
 
+import net.imagej.ops.Ops.Copy.IterableInterval;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
+import net.imglib2.RealCursor;
 import net.imglib2.RealInterval;
 import net.imglib2.RealPoint;
 import net.imglib2.RealPointSampleList;
@@ -89,6 +91,25 @@ public class ImgLib2Util
 		}
 
 		return new FinalInterval( min, max );
+	}
+
+	
+	public static < T extends Type< T > > RealPointSampleList< T > copyIterableRealInterval(
+			final IterableRealInterval< T > data )
+	{
+		final RealPointSampleList< T > list =
+				new RealPointSampleList<>( data.numDimensions() );
+
+		final RealCursor< T > cursor = data.localizingCursor();
+
+		while ( cursor.hasNext() )
+		{
+			final T value = cursor.next();
+
+			list.add( new RealPoint( cursor ), value.copy() );
+		}
+
+		return list;
 	}
 
 	/*
