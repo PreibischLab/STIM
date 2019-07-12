@@ -62,7 +62,7 @@ public class N5IO
 
 		// save the values
 		// numGenes x numCoordinates, 1 block for 1 genes
-		N5Utils.save( expr, n5, "/expression", new int[]{ 16, 512 }, compression, exec );
+		N5Utils.save( expr, n5, "/expression", new int[]{ 16, 16384 }, compression, exec );
 
 		System.out.println( "Saving N5 took " + ( System.currentTimeMillis() - time ) + " ms." );
 
