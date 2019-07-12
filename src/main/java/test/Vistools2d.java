@@ -13,6 +13,7 @@ import filter.MedianFilterFactory;
 import filter.realrandomaccess.MedianRealRandomAccessible;
 import imglib2.ImgLib2Util;
 import io.JsonIO;
+import io.N5IO;
 import io.Path;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RealRandomAccessible;
@@ -27,7 +28,9 @@ public class Vistools2d
 		final String path = Path.getPath();
 
 		long time = System.currentTimeMillis();
-		final STData stdata = JsonIO.readJSON( new File( path + "/patterns_examples_2d/cut.json.zip" ) );
+		//final STData stdata = JsonIO.readJSON( new File( path + "/patterns_examples_2d/full.json.zip" ) );
+		final STData stdata = N5IO.readN5( new File( path + "patterns_examples_2d/small.n5" ) );
+		
 		System.out.println( System.currentTimeMillis() - time + " ms." );
 
 		System.out.println( stdata );

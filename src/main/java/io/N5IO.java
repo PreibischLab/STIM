@@ -37,11 +37,11 @@ public class N5IO
 
 		STData stdata = 
 				//STData.createTestDataSet();
-				JsonIO.readJSON( new File( Path.getPath() + "patterns_examples_2d/full.json.zip" ) );
+				JsonIO.readJSON( new File( Path.getPath() + "patterns_examples_2d/small.json.zip" ) );
 
 		System.out.println( "Loding Json took " + ( System.currentTimeMillis() - time ) + " ms." );
 
-		final File n5path = new File( Path.getPath() + "test.n5" );
+		final File n5path = new File( Path.getPath() + "patterns_examples_2d/small.n5" );
 		System.out.println( "n5-path: " + n5path.getAbsolutePath() );
 
 		// write N5
