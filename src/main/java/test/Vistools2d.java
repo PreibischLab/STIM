@@ -13,6 +13,7 @@ import filter.MedianFilterFactory;
 import filter.realrandomaccess.MedianRealRandomAccessible;
 import imglib2.ImgLib2Util;
 import io.JsonIO;
+import io.Path;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.type.numeric.real.DoubleType;
@@ -28,8 +29,10 @@ public class Vistools2d
 				new File( "/Users/spreibi/Documents/BIMSB/Publications/imglib2-st/patterns_examples_2d/dge_normalized_small.txt" ) );
 		*/
 
+		final String path = Path.getPath();
+
 		long time = System.currentTimeMillis();
-		final STData stdata = JsonIO.readJSON( new File( "/Users/spreibi/Documents/BIMSB/Publications/imglib2-st/patterns_examples_2d/cut.json.zip" ) );
+		final STData stdata = JsonIO.readJSON( new File( path + "/patterns_examples_2d/cut.json.zip" ) );
 		System.out.println( System.currentTimeMillis() - time + " ms." );
 
 		System.out.println( stdata );
