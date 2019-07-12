@@ -108,7 +108,7 @@ public class N5IO
 
 	public static void main( String[] args ) throws IOException, InterruptedException, ExecutionException
 	{
-		final File n5path = new File( "test.n5" );
+		final File n5path = new File( Path.getPath() + "test.n5" );
 
 		System.out.println( "n5-path: " + n5path.getAbsolutePath() );
 
@@ -118,7 +118,7 @@ public class N5IO
 
 		STData stdata = 
 				//STData.createTestDataSet();
-				JsonIO.readJSON( new File( "/Users/spreibi/Documents/BIMSB/Publications/imglib2-st/patterns_examples_2d/cut.json.zip" ) );
+				JsonIO.readJSON( new File( Path.getPath() + "patterns_examples_2d/full.json.zip" ) );
 
 		System.out.println( "Loding Json took " + ( System.currentTimeMillis() - time ) + " ms." );
 
