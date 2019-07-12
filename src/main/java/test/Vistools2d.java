@@ -24,11 +24,6 @@ public class Vistools2d
 {
 	public static void main( String[] args ) throws IOException
 	{
-		/*final STData stdata = Parser.read(
-				new File( "/Users/spreibi/Documents/BIMSB/Publications/imglib2-st/patterns_examples_2d/locations.txt" ),
-				new File( "/Users/spreibi/Documents/BIMSB/Publications/imglib2-st/patterns_examples_2d/dge_normalized_small.txt" ) );
-		*/
-
 		final String path = Path.getPath();
 
 		long time = System.currentTimeMillis();

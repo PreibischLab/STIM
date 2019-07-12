@@ -2,16 +2,43 @@ package importer;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import com.google.gson.JsonIOException;
+
 import data.STData;
 import data.STDataText;
+import io.Path;
 
 public class Parser
 {
+	public static void main( String[] args ) throws JsonIOException, UnsupportedEncodingException, FileNotFoundException, IOException
+	{
+		final String path = Path.getPath();
+
+		final STData fly3d = Parser.read(
+				new File( path + "/fly_3d_data/geometry.txt" ),
+				new File( path + "/fly_3d_data/sdge_1297_cells_3039_locations_84_markers.txt" ),
+				new File( path + "/fly_3d_data/gene_names.txt" ) );
+
+		final STData slideSeq = Parser.read(
+				new File( path + "/patterns_examples_2d/full_locations.txt" ),
+				new File( path + "/patterns_examples_2d/full_dge_normalized.txt" ) );
+
+		final STData slideSeqSmall = Parser.read(
+				new File( path + "/patterns_examples_2d/locations.txt" ),
+				new File( path + "/patterns_examples_2d/dge_normalized.txt" ) );
+
+		final STData slideSeqSmallCut = Parser.read(
+				new File( path + "/patterns_examples_2d/locations.txt" ),
+				new File( path + "/patterns_examples_2d/dge_normalized_cut.txt" ) );
+	}
+
 	public static STData read( final File locations, final File genes, final File geneNames )
 	{
 		System.out.println( "Parsing " + locations.getName() + ", " + genes.getName() + ", " + geneNames.getName() );

@@ -18,7 +18,6 @@ import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
 import data.STData;
 import data.STDataImgLib2;
-import data.STDataN5;
 import data.STDataStatistics;
 import filter.GaussianFilterFactory;
 import importer.TextFileAccess;
@@ -30,6 +29,43 @@ import transform.TransformIntensities;
 
 public class N5IO
 {
+	public static void main( String[] args ) throws IOException, InterruptedException, ExecutionException
+	{
+		// load from Json
+		System.out.println( "Loading Json ... " );
+		long time = System.currentTimeMillis();
+
+		STData stdata = 
+				//STData.createTestDataSet();
+				JsonIO.readJSON( new File( Path.getPath() + "patterns_examples_2d/full.json.zip" ) );
+
+		System.out.println( "Loding Json took " + ( System.currentTimeMillis() - time ) + " ms." );
+
+		final File n5path = new File( Path.getPath() + "test.n5" );
+		System.out.println( "n5-path: " + n5path.getAbsolutePath() );
+
+		// write N5
+		writeN5( stdata, n5path );
+
+		// load N5
+		stdata = readN5( n5path );
+
+		// display
+		final IterableRealInterval< DoubleType > data = stdata.getExprData( "Pcp4" );
+
+		final STDataStatistics stStats = new STDataStatistics( stdata );
+		TransformIntensities.add( stdata, 1 );
+
+		final double displayRadius = stStats.getMedianDistance() / 2.0;
+		double gaussRenderSigma = stStats.getMedianDistance() / 4; 
+		double gaussRenderRadius = displayRadius;
+		final DoubleType outofbounds = new DoubleType( 0 );
+
+		BdvFunctions.show( Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, false ) ), stdata.getRenderInterval(), "Pcp4_gauss1", BdvOptions.options().is2D() ).setDisplayRange( 0, 4 );
+
+
+	}
+
 	public static void writeN5( final STData data, final File n5path ) throws IOException, InterruptedException, ExecutionException
 	{
 		if ( n5path.exists() )
@@ -104,43 +140,5 @@ public class N5IO
 			geneLookup.put( geneNameList.get( i ), i );
 
 		return new STDataImgLib2( locations, exprValues, geneNameList, geneLookup );
-	}
-
-	public static void main( String[] args ) throws IOException, InterruptedException, ExecutionException
-	{
-		final File n5path = new File( Path.getPath() + "test.n5" );
-
-		System.out.println( "n5-path: " + n5path.getAbsolutePath() );
-
-		// load from Json
-		System.out.println( "Loading Json ... " );
-		long time = System.currentTimeMillis();
-
-		STData stdata = 
-				//STData.createTestDataSet();
-				JsonIO.readJSON( new File( Path.getPath() + "patterns_examples_2d/full.json.zip" ) );
-
-		System.out.println( "Loding Json took " + ( System.currentTimeMillis() - time ) + " ms." );
-
-		// write N5
-		writeN5( stdata, n5path );
-
-		// load N5
-		stdata = readN5( n5path );
-
-		// display
-		final IterableRealInterval< DoubleType > data = stdata.getExprData( "Pcp4" );
-
-		final STDataStatistics stStats = new STDataStatistics( stdata );
-		TransformIntensities.add( stdata, 1 );
-
-		final double displayRadius = stStats.getMedianDistance() / 2.0;
-		double gaussRenderSigma = stStats.getMedianDistance() / 4; 
-		double gaussRenderRadius = displayRadius;
-		final DoubleType outofbounds = new DoubleType( 0 );
-
-		BdvFunctions.show( Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, false ) ), stdata.getRenderInterval(), "Pcp4_gauss1", BdvOptions.options().is2D() ).setDisplayRange( 0, 4 );
-
-
 	}
 }

@@ -28,6 +28,24 @@ import net.imglib2.util.Util;
 
 public class JsonIO
 {
+	public static void main( String[] args ) throws IOException
+	{
+		STData data = STDataUtils.createTestDataSet();
+
+		final File jsonFile = new File( "data.json" );
+		writeAsJSON( data, jsonFile, false );
+
+		data = readJSON( jsonFile );
+
+		System.out.println( data );
+
+		for ( final double[] coord : data.getLocationsCopy() )
+			System.out.println( Util.printCoordinates( coord ) );
+
+		for ( final String gene : data.getGeneNames() )
+			System.out.println( gene + ": " + Util.printCoordinates( data.getExpValuesCopy( gene ) ) );
+	}
+
 	/** 
 	 * A simple object representation of STData values for saving/loading as JSon
 	 * 
@@ -130,23 +148,5 @@ public class JsonIO
 			e.printStackTrace( System.err );
 			return false;
 		}
-	}
-
-	public static void main( String[] args ) throws IOException
-	{
-		STData data = STDataUtils.createTestDataSet();
-
-		final File jsonFile = new File( "data.json" );
-		writeAsJSON( data, jsonFile, false );
-
-		data = readJSON( jsonFile );
-
-		System.out.println( data );
-
-		for ( final double[] coord : data.getLocationsCopy() )
-			System.out.println( Util.printCoordinates( coord ) );
-
-		for ( final String gene : data.getGeneNames() )
-			System.out.println( gene + ": " + Util.printCoordinates( data.getExpValuesCopy( gene ) ) );
 	}
 }
