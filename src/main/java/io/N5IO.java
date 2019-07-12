@@ -35,15 +35,14 @@ public class N5IO
 		if ( n5path.exists() )
 			TextFileAccess.recursiveDelete( n5path );
 
-		N5FSWriter n5 = new N5FSWriter( n5path.getAbsolutePath() );
+		final N5FSWriter n5 = new N5FSWriter( n5path.getAbsolutePath() );
 
-		
-		n5.createGroup("/coordinates");
+		n5.createGroup("/locations");
 		n5.createGroup("/expression");
 
 		// save general parameters and genelist
 		n5.setAttribute("/", "dim", data.numDimensions() );
-		n5.setAttribute("/", "numCoordinates", data.numLocations() );
+		n5.setAttribute("/", "numLocations", data.numLocations() );
 		n5.setAttribute("/", "numGenes", data.numGenes() );
 		n5.setAttribute("/", "geneList", data.getGeneNames() );
 
@@ -53,17 +52,17 @@ public class N5IO
 		final RandomAccessibleInterval< DoubleType > expr = data.getAllExprValues();
 
 		System.out.println( "Saving N5 ... " );
-
 		long time = System.currentTimeMillis();
 
 		final Compression compression = new GzipCompression( 6 ); // new RawCompression();
 
 		// save the coordinates
-		N5Utils.save( locations, n5, "/coordinates", new int[]{ 1024, data.numDimensions() }, compression, exec );
+		// numLocations x numDimensions
+		N5Utils.save( locations, n5, "/locations", new int[]{ 1024, data.numDimensions() }, compression, exec );
 
 		// save the values
 		// numGenes x numCoordinates, 1 block for 1 genes
-		N5Utils.save( expr, n5, "/expression", new int[]{ 16, (int)data.numLocations() }, compression, exec );
+		N5Utils.save( expr, n5, "/expression", new int[]{ 16, 512 }, compression, exec );
 
 		System.out.println( "Saving N5 took " + ( System.currentTimeMillis() - time ) + " ms." );
 
@@ -75,22 +74,29 @@ public class N5IO
 		if ( !n5path.exists() )
 			throw new RuntimeException( "n5-path '' does not exist." );
 
+		System.out.println( "Loading N5 ... " );
+		long time = System.currentTimeMillis();
+
 		N5FSReader n5 = new N5FSReader( n5path.getAbsolutePath() );
 
 		final int n = n5.getAttribute( "/", "dim", Integer.class );
-		final long numLocations = n5.getAttribute( "/", "numCoordinates", Long.class );
+		final long numLocations = n5.getAttribute( "/", "numLocations", Long.class );
 		final long numGenes = n5.getAttribute( "/", "numGenes", Long.class );
 		final List< String > geneNameList = n5.getAttribute( "/", "geneList", List.class );
 
-		System.out.println(  n );
-		System.out.println(  numLocations );
-		System.out.println(  numGenes );
+		/*
+		System.out.println( n );
+		System.out.println( numLocations );
+		System.out.println( numGenes );
 
 		for ( final String s : geneNameList )
 			System.out.println( s);
+		*/
 
-		final RandomAccessibleInterval< DoubleType > locations = N5Utils.openWithBoundedSoftRefCache( n5, "/coordinates", 100000000 );
+		final RandomAccessibleInterval< DoubleType > locations = N5Utils.open( n5, "/locations" );//.openWithBoundedSoftRefCache( n5, "/locations", 100000000 );
 		final RandomAccessibleInterval< DoubleType > exprValues = N5Utils.openWithBoundedSoftRefCache( n5, "/expression", 100000000 );
+
+		System.out.println( "Loading N5 took " + ( System.currentTimeMillis() - time ) + " ms." );
 
 		final HashMap< String, Integer > geneLookup = new HashMap<>();
 
@@ -106,14 +112,23 @@ public class N5IO
 
 		System.out.println( "n5-path: " + n5path.getAbsolutePath() );
 
+		// load from Json
+		System.out.println( "Loading Json ... " );
+		long time = System.currentTimeMillis();
+
 		STData stdata = 
 				//STData.createTestDataSet();
 				JsonIO.readJSON( new File( "/Users/spreibi/Documents/BIMSB/Publications/imglib2-st/patterns_examples_2d/cut.json.zip" ) );
 
+		System.out.println( "Loding Json took " + ( System.currentTimeMillis() - time ) + " ms." );
+
+		// write N5
 		writeN5( stdata, n5path );
 
+		// load N5
 		stdata = readN5( n5path );
 
+		// display
 		final IterableRealInterval< DoubleType > data = stdata.getExprData( "Pcp4" );
 
 		final STDataStatistics stStats = new STDataStatistics( stdata );
