@@ -166,6 +166,24 @@
 			<artifactId>n5-imglib2</artifactId>
 			<version>3.3.0</version>
 		</dependency>
+
+		<!-- CSV dependencies (just for testing on dauer data, remove later) -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-csv</artifactId>
+			<version>1.7</version>
+		</dependency>
+
+		<!-- WEKA dependencies -->
+		<dependency>
+			<groupId>nz.ac.waikato.cms.weka</groupId>
+			<artifactId>weka-dev</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.ujmp</groupId>
+			<artifactId>ujmp-mtj</artifactId>
+			<version>0.3.0</version>
+		</dependency>
 	</dependencies>
 
 </project>
