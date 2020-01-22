@@ -20,7 +20,6 @@ import data.STData;
 import data.STDataImgLib2;
 import data.STDataStatistics;
 import filter.GaussianFilterFactory;
-import importer.TextFileAccess;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.real.DoubleType;

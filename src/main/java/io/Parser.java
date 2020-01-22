@@ -1,4 +1,4 @@
-package importer;
+package io;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -14,8 +14,6 @@ import com.google.gson.JsonIOException;
 
 import data.STData;
 import data.STDataText;
-import io.N5IO;
-import io.Path;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 

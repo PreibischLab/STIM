@@ -20,7 +20,7 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
  * #L%
  */
-package importer;
+package io;
 
 import java.io.BufferedReader;
 import java.io.File;
