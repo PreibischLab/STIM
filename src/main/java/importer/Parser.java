@@ -8,19 +8,34 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import com.google.gson.JsonIOException;
 
 import data.STData;
 import data.STDataText;
+import io.N5IO;
 import io.Path;
+import net.imglib2.util.Pair;
+import net.imglib2.util.ValuePair;
 
 public class Parser
 {
-	public static void main( String[] args ) throws JsonIOException, UnsupportedEncodingException, FileNotFoundException, IOException
+	public static void main( String[] args ) throws JsonIOException, UnsupportedEncodingException, FileNotFoundException, IOException, InterruptedException, ExecutionException
 	{
 		final String path = Path.getPath();
 
+		final STData slideSeqOriginal = Parser.readSlideSeq(
+				new File( path + "/slide-seq/Puck_180531_22/BeadLocationsForR.csv" ),
+				new File( path + "/slide-seq/Puck_180531_22/MappedDGEForR.csv" ) );
+
+		final File n5path = new File( Path.getPath() + "/slide-seq/Puck_180531_22.n5" );
+		System.out.println( "n5-path: " + n5path.getAbsolutePath() );
+
+		// write N5
+		N5IO.writeN5( slideSeqOriginal, n5path );
+
+		/*
 		final STData fly3d = Parser.read(
 				new File( path + "/fly_3d_data/geometry.txt" ),
 				new File( path + "/fly_3d_data/sdge_1297_cells_3039_locations_84_markers.txt" ),
@@ -36,7 +51,27 @@ public class Parser
 
 		final STData slideSeqSmallCut = Parser.read(
 				new File( path + "/patterns_examples_2d/locations.txt" ),
-				new File( path + "/patterns_examples_2d/dge_normalized_cut.txt" ) );
+				new File( path + "/patterns_examples_2d/dge_normalized_cut.txt" ) ); */
+	}
+
+	public static STData readSlideSeq( final File beadLocations, final File reads )
+	{
+		System.out.println( "Parsing " + beadLocations.getName() + ", " + reads.getName() );
+
+		long time = System.currentTimeMillis();
+
+		final HashMap< String, double[] > coordinateMap = readSlideSeqCoordinates( beadLocations );
+		System.out.println( "Read " + coordinateMap.keySet().size() + " coordinates." );
+
+		final Pair< List< double[] >, HashMap< String, double[] > > geneData = readSlideSeqGenes( reads, coordinateMap );
+		System.out.println( "Read data for " + geneData.getB().keySet().size() + " genes." );
+
+		final STData data = new STDataText( geneData.getA(), geneData.getB() );
+		System.out.println( data );
+
+		System.out.println( "Parsing took " + ( System.currentTimeMillis() - time ) + " ms." );
+
+		return data;
 	}
 
 	public static STData read( final File locations, final File genes, final File geneNames )
@@ -157,6 +192,107 @@ public class Parser
 		}
 
 		return names;
+	}
+
+	public static Pair< List< double[] >, HashMap< String, double[] > > readSlideSeqGenes(
+			final File file,
+			final HashMap< String, double[] > coordinateMap )
+	{
+		final ArrayList< double[] > coordinates = new ArrayList<>();
+		final HashMap< String, double[] > geneMap = new HashMap<>();
+
+		final BufferedReader in = TextFileAccess.openFileRead( file );
+
+		try
+		{
+			int line = 0;
+
+			while ( in.ready() )
+			{
+				final String[] values = in.readLine().trim().split( "," );
+
+				if ( values.length - 1 != coordinateMap.keySet().size() )
+					throw new RuntimeException( "length of header inconsistent with number of coordinates: " + (values.length - 1) + " != " + coordinateMap.keySet().size() );
+
+				if ( line++ == 0 ) 
+				{
+					// header: Row,GACGCAAGAAACA,TTGGGAGAAAACT,GGTCTCAGAAACG, ...
+					for ( int i = 1; i < values.length; ++i )
+					{
+						final double[] coordinate = coordinateMap.get( values[ i ] );
+						if ( coordinate == null )
+							throw new RuntimeException( "barcode " + values[ i ] + " not present in file " + file.getName() );
+
+						coordinates.add( coordinate );
+					}
+				}
+				else
+				{
+					final String geneName = values[ 0 ];
+					final double[] exprValues = new double[ values.length - 1 ];
+
+					for ( int i = 1; i < values.length; ++i )
+						exprValues[ i - 1 ] = Double.parseDouble( values[ i ] );
+
+					geneMap.put( geneName, exprValues );
+				}
+			}
+
+			in.close();
+		}
+		catch (Exception e )
+		{
+			e.printStackTrace();
+			return null;
+		}
+
+		return new ValuePair<>( coordinates, geneMap );
+	}
+
+	public static HashMap< String, double[] > readSlideSeqCoordinates( final File file )
+	{
+		final HashMap< String, double[] > coordinates = new HashMap<>();
+
+		final BufferedReader in = TextFileAccess.openFileRead( file );
+
+		try
+		{
+			int line = 0;
+			int dim = -1;
+
+			while ( in.ready() )
+			{
+				final String s = in.readLine().trim();
+				
+				if ( line++ == 0 ) // header: barcodes,xcoord,ycoord
+					continue;
+
+				final String[] values = s.split( "," );
+
+				final String barcode = values[ 0 ];
+
+				if ( dim == -1 )
+					dim = values.length - 1;
+				else if ( dim != values.length - 1 )
+					throw new RuntimeException( "inconsistent dimensionality: " + s );
+
+				final double[] coordinate = new double[ dim ];
+				for ( int d = 0; d < coordinate.length; ++d )
+					coordinate[ d ] = Double.parseDouble( values[ d + 1 ] );
+
+				coordinates.put( barcode, coordinate );
+			}
+
+			in.close();
+		}
+		catch ( Exception e )
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
+
+		return coordinates;
 	}
 
 	public static ArrayList< double[] > readCoordinates( final File file )
