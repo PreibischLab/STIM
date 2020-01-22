@@ -17,13 +17,13 @@ import data.STDataText;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 
-public class Parser
+public class TextFileIO
 {
 	public static void main( String[] args ) throws JsonIOException, UnsupportedEncodingException, FileNotFoundException, IOException, InterruptedException, ExecutionException
 	{
 		final String path = Path.getPath();
 
-		final STData slideSeqOriginal = Parser.readSlideSeq(
+		final STData slideSeqOriginal = TextFileIO.readSlideSeq(
 				new File( path + "/slide-seq/Puck_180531_22/BeadLocationsForR.csv" ),
 				new File( path + "/slide-seq/Puck_180531_22/MappedDGEForR.csv" ) );
 
@@ -86,7 +86,7 @@ public class Parser
 		//for ( final String gene : data.genes.keySet() )
 		//	System.out.println( gene );
 
-		final HashMap< String, double[] > geneMap = Parser.readGenes( genes, geneNameList, coordinates.size() );
+		final HashMap< String, double[] > geneMap = TextFileIO.readGenes( genes, geneNameList, coordinates.size() );
 		System.out.println( "Read " + geneMap.keySet().size() + " genes with " + coordinates.size() + " locations each." );
 
 		final STData data = new STDataText( coordinates, geneMap );
@@ -103,10 +103,10 @@ public class Parser
 		System.out.println( "Parsing " + locations.getName() + ", " + genes.getName() );
 		long time = System.currentTimeMillis();
 
-		final ArrayList< double[] > coordinates = Parser.readCoordinates( locations );
+		final ArrayList< double[] > coordinates = TextFileIO.readCoordinates( locations );
 		System.out.println( "Read " + coordinates.size() + " coordinates." );
 
-		final HashMap< String, double[] > geneMap = Parser.readGenes( genes, coordinates.size() );
+		final HashMap< String, double[] > geneMap = TextFileIO.readGenes( genes, coordinates.size() );
 		System.out.println( "Read " + geneMap.keySet().size() + " genes with " + coordinates.size() + " locations each." );
 
 		//for ( final String gene : data.genes.keySet() )

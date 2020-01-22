@@ -11,7 +11,7 @@ import data.STDataStatistics;
 import imglib2.DoubleUnsignedShortConverter;
 import imglib2.ImgLib2Util;
 import io.N5IO;
-import io.Parser;
+import io.TextFileIO;
 import io.Path;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RealPointSampleList;
