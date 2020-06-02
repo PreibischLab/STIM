@@ -98,12 +98,11 @@ public class Pairwise
 		// for rendering a 16x (median distance), regular sampled pointcloud
 		//final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, stStats.getMedianDistance() * 2.0, stStats.getMedianDistance() / 2.0, true ) );
 
-		/*
+
 		BdvOptions options = BdvOptions.options().is2D().numRenderingThreads( Runtime.getRuntime().availableProcessors() );
 		BdvStackSource< ? > bdv = BdvFunctions.show( renderRRA, stdata.getRenderInterval(), gene, options );
 		bdv.setDisplayRange( 0.9, minmax.getB().get() );
 		bdv.setDisplayRangeBounds( 0, minmax.getB().get() );
-		*/
 
 		System.out.println( new Date(System.currentTimeMillis()) + ": Rendering interval " + Util.printInterval( interval ) + " with " + Threads.numThreads() + " threads ... " );
 

@@ -105,7 +105,7 @@ public class N5IO
 		exec.shutdown();
 	}
 
-	public static STData readN5( final File n5path ) throws IOException
+	public static STDataN5 readN5( final File n5path ) throws IOException
 	{
 		if ( !n5path.exists() )
 			throw new RuntimeException( "n5-path '' does not exist." );
