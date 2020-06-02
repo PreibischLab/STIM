@@ -3,10 +3,47 @@ package transform;
 import java.util.List;
 
 import data.STData;
+import filter.FilterFactory;
+import filter.Filters;
+import filter.MeanFilterFactory;
+import imglib2.SteppingIntervalIterator;
+import net.imglib2.FinalInterval;
+import net.imglib2.Interval;
+import net.imglib2.IterableRealInterval;
+import net.imglib2.type.numeric.RealType;
 import net.imglib2.util.Util;
 
 public class TransformCoordinates
 {
+	public static < T extends RealType< T > > IterableRealInterval< T > sample(
+			final IterableRealInterval< T > data,
+			final double distance )
+	{
+		return sample(
+				data,
+				Util.getArrayFromValue( (int)Math.round( Math.ceil( distance ) ), data.numDimensions() ),
+				new MeanFilterFactory<>( data.iterator().next().createVariable(), distance ) );
+	}
+
+	public static < S extends RealType< S >, T extends RealType< T > > IterableRealInterval< T > sample(
+			final IterableRealInterval< S > data,
+			final int[] steps,
+			final FilterFactory< S, T > filterFactory )
+	{
+		final long[] min = new long[ data.numDimensions() ];
+		final long[] max = new long[ data.numDimensions() ];
+
+		for ( int d = 0; d < min.length; ++d )
+		{
+			min[ d ] = Math.round( data.realMin( d ) );
+			max[ d ] = Math.round( data.realMax( d ) );
+		}
+
+		final Interval interval = new FinalInterval( min, max );
+
+		return Filters.filter( data, new SteppingIntervalIterator( interval, steps ), filterFactory );
+	}
+
 	public static void zeroMin( final STData data )
 	{
 		final int n = data.numDimensions();
