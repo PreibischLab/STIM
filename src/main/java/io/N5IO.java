@@ -18,6 +18,7 @@ import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
 import data.STData;
 import data.STDataImgLib2;
+import data.STDataN5;
 import data.STDataStatistics;
 import filter.GaussianFilterFactory;
 import net.imglib2.IterableRealInterval;
@@ -112,7 +113,7 @@ public class N5IO
 		System.out.println( "Loading N5 ... " );
 		long time = System.currentTimeMillis();
 
-		N5FSReader n5 = new N5FSReader( n5path.getAbsolutePath() );
+		final N5FSReader n5 = new N5FSReader( n5path.getAbsolutePath() );
 
 		final int n = n5.getAttribute( "/", "dim", Integer.class );
 		final long numLocations = n5.getAttribute( "/", "numLocations", Long.class );
@@ -138,6 +139,6 @@ public class N5IO
 		for ( int i = 0; i < geneNameList.size(); ++i )
 			geneLookup.put( geneNameList.get( i ), i );
 
-		return new STDataImgLib2( locations, exprValues, geneNameList, geneLookup );
+		return new STDataN5( locations, exprValues, geneNameList, geneLookup, n5, n5path );
 	}
 }

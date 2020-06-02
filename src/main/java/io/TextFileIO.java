@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -23,15 +24,23 @@ public class TextFileIO
 	{
 		final String path = Path.getPath();
 
-		final STData slideSeqOriginal = TextFileIO.readSlideSeq(
-				new File( path + "/slide-seq/Puck_180531_22/BeadLocationsForR.csv" ),
-				new File( path + "/slide-seq/Puck_180531_22/MappedDGEForR.csv" ) );
+		final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
 
-		final File n5path = new File( Path.getPath() + "/slide-seq/Puck_180531_22.n5" );
-		System.out.println( "n5-path: " + n5path.getAbsolutePath() );
+		for ( final String puck : pucks )
+		{
+			final STData slideSeqOriginal = TextFileIO.readSlideSeq(
+					new File( path + "/slide-seq/" + puck + "/BeadLocationsForR.csv" ),
+					new File( path + "/slide-seq/" + puck + "/MappedDGEForR.csv" ) );
+	
+			final File n5path = new File( Path.getPath() + "/slide-seq/" + puck + ".n5" );
 
-		// write N5
-		N5IO.writeN5( slideSeqOriginal, n5path );
+			System.out.println( new Date(System.currentTimeMillis()) + ": saving n5 '" + n5path.getAbsolutePath() + "'" );
+	
+			// write N5
+			N5IO.writeN5( slideSeqOriginal, n5path );
+		}
+
+		System.out.println( "done" );
 
 		/*
 		final STData fly3d = Parser.read(
