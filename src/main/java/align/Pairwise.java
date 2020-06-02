@@ -9,10 +9,20 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import bdv.util.BdvFunctions;
+import bdv.util.BdvOptions;
+import bdv.util.BdvStackSource;
 import data.STData;
 import data.STDataStatistics;
+import filter.DensityFilterFactory;
+import filter.FilterFactory;
+import filter.Filters;
 import filter.GaussianFilterFactory;
+import filter.MeanFilterFactory;
+import filter.MedianFilterFactory;
 import ij.ImageJ;
+import imglib2.ImgLib2Util;
+import imglib2.SteppingIntervalIterator;
 import io.N5IO;
 import io.Path;
 import net.imglib2.FinalInterval;
@@ -23,27 +33,31 @@ import net.imglib2.RealRandomAccessible;
 import net.imglib2.converter.Converter;
 import net.imglib2.converter.Converters;
 import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.iterator.IntervalIterator;
+import net.imglib2.multithreading.SimpleMultiThreading;
+import net.imglib2.realtransform.AffineTransform2D;
+import net.imglib2.realtransform.RealViews;
+import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
+import net.imglib2.view.Views;
 import render.Render;
 import util.Threads;
 
 public class Pairwise
 {
-	public static void display( final STData stdata, final STDataStatistics stStats, final String gene, final Interval commonInterval )
+	public static void display( final STData stdata, final STDataStatistics stStats, final String gene, final AffineTransform2D transform, final Interval commonInterval )
 	{
 		final double displayRadius = stStats.getMedianDistance() / 2.0;
-		final double medianRadius = stStats.getMedianDistance() * 2.0;
+		final double medianRadius = stStats.getMedianDistance() * 1.0;
 
-		final Interval interval = commonInterval == null ? stdata.getRenderInterval() : commonInterval;
+		final Interval interval = ImgLib2Util.transformInterval( commonInterval == null ? stdata.getRenderInterval() : commonInterval, transform );
 
 		System.out.println( "Mean distance: " + stStats.getMeanDistance());
 		System.out.println( "Median distance: " + stStats.getMedianDistance() );
 		System.out.println( "Max distance: " + stStats.getMaxDistance() );
-		System.out.println( "Interval: "  + Util.printInterval( stdata.getRenderInterval() ) );
-		System.out.println( "Render Interval: "  + Util.printInterval( interval ) );
 
 		// gauss crisp
 		double gaussRenderSigma = stStats.getMedianDistance();
@@ -51,41 +65,49 @@ public class Pairwise
 
 		final DoubleType outofbounds = new DoubleType( 0 );
 
-		//final IterableRealInterval< DoubleType > data = stdata.getExprData( gene );
+		IterableRealInterval< DoubleType > data = stdata.getExprData( gene );
 
-		final IterableRealInterval< DoubleType > data =
-				Converters.convert(
-						stdata.getExprData( gene ),
-						new Converter< DoubleType, DoubleType >()
-						{
-							@Override
-							public void convert( final DoubleType input, final DoubleType output )
-							{
-								output.set( input.get() + 1.0 );
-								
-							}
-						},
-						new DoubleType() );
+		data = Converters.convert(
+				data,
+				new Converter< DoubleType, DoubleType >()
+				{
+					@Override
+					public void convert( final DoubleType input, final DoubleType output )
+					{
+						output.set( input.get() + 1.0 );
+						
+					}
+				},
+				new DoubleType() );
 
-		double min = Double.MAX_VALUE;
-		double max = -Double.MAX_VALUE;
+		//data = sample( data, stStats.getMedianDistance() );
 
-		for ( final DoubleType t : data )
-		{
-			min = Math.min( min, t.get() );
-			max = Math.max( max, t.get() );
-		}
+		//data = Filters.filter( data, new DensityFilterFactory<>( new DoubleType(), medianRadius ) );
+		//data = Filters.filter( data, new MedianFilterFactory<>( outofbounds, medianRadius * 3 ) );
+		//data = Filters.filter( data, new MeanFilterFactory<>( outofbounds, medianRadius * 10 ) );
+		//data = Filters.filter( data, new GaussianFilterFactory<>( outofbounds, medianRadius * 2, stStats.getMedianDistance(), true ) );
 
-		System.out.println( "Min intensity: " + min );
-		System.out.println( "Max intensity: " + max );
+		final Pair< DoubleType, DoubleType > minmax = ImgLib2Util.minmax( data );
 
+		System.out.println( "Min intensity: " + minmax.getA() );
+		System.out.println( "Max intensity: " + minmax.getB() );
+
+		// for rendering the input pointcloud
 		final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, false ) );
-		//BdvFunctions.show( renderRRA, stdata.getRenderInterval(), gene, BdvOptions.options().is2D() ).setDisplayRange( 0, max );
 
-		System.out.println( new Date(System.currentTimeMillis()) + ": Rendering full resolution with " + Threads.numThreads() + " threads ... " );
+		// for rendering a 16x (median distance), regular sampled pointcloud
+		//final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, stStats.getMedianDistance() * 2.0, stStats.getMedianDistance() / 2.0, true ) );
 
-		final RandomAccessibleInterval< DoubleType > renderFull = Render.raster( renderRRA, interval );
-		ImageJFunctions.show( renderFull, Threads.createFixedExecutorService() ).setTitle( stdata.toString() );
+		/*
+		BdvOptions options = BdvOptions.options().is2D().numRenderingThreads( Runtime.getRuntime().availableProcessors() );
+		BdvStackSource< ? > bdv = BdvFunctions.show( renderRRA, stdata.getRenderInterval(), gene, options );
+		bdv.setDisplayRange( 0.9, minmax.getB().get() );
+		bdv.setDisplayRangeBounds( 0, minmax.getB().get() );
+		*/
+
+		System.out.println( new Date(System.currentTimeMillis()) + ": Rendering interval " + Util.printInterval( interval ) + " with " + Threads.numThreads() + " threads ... " );
+
+		ImageJFunctions.show( Views.interval( RealViews.affine( renderRRA, transform ), interval ), Threads.createFixedExecutorService() ).setTitle( stdata.toString() );
 
 		System.out.println( new Date(System.currentTimeMillis()) + ": Done..." );
 
@@ -158,8 +180,14 @@ public class Pairwise
 
 		new ImageJ();
 
+		final AffineTransform2D transform = new AffineTransform2D();
+		transform.scale( 0.25 );
+
 		for ( final Pair< STData, STDataStatistics > slide : slides )
-			display( slide.getA(), slide.getB(), "Pcp4", interval );
+		{
+			display( slide.getA(), slide.getB(), "Pcp4", transform, interval );
+			SimpleMultiThreading.threadHaltUnClean();
+		}
 
 		/*
 		final STData slide0 = N5IO.readN5( new File( path + "slide-seq/Puck_180531_22.n5" ) );
