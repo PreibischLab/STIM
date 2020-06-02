@@ -1,8 +1,5 @@
 package imglib2;
 
-import java.util.List;
-
-import net.imagej.ops.Ops.Copy.IterableInterval;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
@@ -10,17 +7,42 @@ import net.imglib2.RealCursor;
 import net.imglib2.RealInterval;
 import net.imglib2.RealPoint;
 import net.imglib2.RealPointSampleList;
+import net.imglib2.realtransform.AffineGet;
 import net.imglib2.type.Type;
-import net.imglib2.type.numeric.integer.UnsignedByteType;
-import net.imglib2.type.numeric.integer.UnsignedShortType;
-import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
-import transform.TransformIntensities;
 
 public class ImgLib2Util
 {
+	public static Interval transformInterval( final Interval interval, final AffineGet affine )
+	{
+		if ( affine == null )
+			return interval;
+
+		final double[] min = new double[ interval.numDimensions() ];
+		final double[] max = new double[ interval.numDimensions() ];
+
+		for ( int d = 0; d < min.length; ++d )
+		{
+			min[ d ] = interval.min( d );
+			max[ d ] = interval.max( d );
+		}
+
+		affine.apply( min, min );
+		affine.apply( max, max );
+
+		final long[] minL = new long[ min.length ];
+		final long[] maxL = new long[ max.length ];
+
+		for ( int d = 0; d < min.length; ++d )
+		{
+			minL[ d ] = Math.round( Math.floor( min[ d ] ) );
+			maxL[ d ] = Math.round( Math.ceil( max[ d ] ) );
+		}
+
+		return new FinalInterval( minL, maxL );
+	}
+
 	public static < T extends Comparable< T > & Type< T > > Pair< T, T > minmax( final Iterable< T > img )
 	{
 		final T min = img.iterator().next().copy();
