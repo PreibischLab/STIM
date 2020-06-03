@@ -1,14 +1,10 @@
 package render.gui;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
-
-import org.python.modules.synchronize;
 
 import align.Pairwise;
 import bdv.util.BdvFunctions;
@@ -40,11 +36,10 @@ public class RenderThread implements Runnable
 	protected final DoubleType outofbounds = new DoubleType( 0 );
 
 	protected final List< Pair< STData, STDataStatistics > > slides;
-	
-	//protected ArrayList< Pair< String, Integer > > displayItems;
-	
+
 	final Queue< Pair< String, Integer > > globalQueue = new ConcurrentLinkedQueue<>();
-	public boolean keepRunning = true;
+
+	public AtomicBoolean keepRunning = new AtomicBoolean( true );
 	public AtomicBoolean isSleeping = new AtomicBoolean( false );
 
 	public RenderThread( final List< Pair< STData, STDataStatistics > > slides )
@@ -58,7 +53,6 @@ public class RenderThread implements Runnable
 		bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
 	}
 
-	
 	@Override
 	public void run()
 	{
@@ -138,6 +132,8 @@ public class RenderThread implements Runnable
 				//System.out.println( "queue empty." );
 			}
 		}
-		while ( keepRunning );
+		while ( keepRunning.get() );
+
+		bdv.close();
 	}
 }

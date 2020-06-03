@@ -31,8 +31,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.swing.JFrame;
 
@@ -82,6 +80,7 @@ public class STDataExplorer
 
 	public void quit()
 	{
+		panel().renderThread.keepRunning.set( false );
 		frame.setVisible( false );
 		frame.dispose();
 	}
@@ -108,8 +107,5 @@ public class STDataExplorer
 		}
 
 		new STDataExplorer( slides );
-
-		//final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, false ) );
-
 	}
 }
