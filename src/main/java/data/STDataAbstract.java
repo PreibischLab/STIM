@@ -37,7 +37,6 @@ public abstract class STDataAbstract implements STData
 	}
 
 	protected abstract RealInterval getLocationRealInterval();
-	protected abstract int getIndexForGene( final String geneName );
 
 	@Override
 	public Interval getRenderInterval()

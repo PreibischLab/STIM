@@ -3,13 +3,18 @@ package data;
 import java.util.Iterator;
 import java.util.List;
 
+import imglib2.ExpValueRealIterable;
+import net.imglib2.Cursor;
+import net.imglib2.FinalRealInterval;
 import net.imglib2.Interval;
+import net.imglib2.IterableInterval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.KDTree;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealCursor;
 import net.imglib2.RealLocalizable;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.view.Views;
 
 public class NormalizingSTData implements STData
 {
@@ -27,11 +32,71 @@ public class NormalizingSTData implements STData
 		this.allExprValues = new NormalizingRandomAccessibleInterval( data.getAllExprValues() );
 	}
 
+	/*
+	 * overwritten methods
+	 */
+
 	@Override
 	public RandomAccessibleInterval< DoubleType > getAllExprValues()
 	{
 		return allExprValues;
 	}
+
+	@Override
+	public KDTree< DoubleType > getExpValueKDTree( String geneName )
+	{
+		return new KDTree<>( getExprData( geneName ) );
+	}
+
+	@Override
+	public IterableRealInterval< DoubleType > getExprData( String geneName )
+	{
+		// TODO: use the entire values array so that the gene can be switched virtually
+		return new ExpValueRealIterable< DoubleType >(
+				getLocations(),
+				getExprValues( geneName ),
+				new FinalRealInterval( this ) );
+	}
+
+	@Override
+	public RandomAccessibleInterval< DoubleType > getExprValues( String geneName )
+	{
+		return Views.hyperSlice( getAllExprValues(), 0, data.getIndexForGene( geneName ) );
+	}
+
+	@Override
+	public RandomAccessibleInterval< DoubleType > getExprValues( long locationIndex )
+	{
+		return Views.hyperSlice( getAllExprValues(), 1, locationIndex );
+	}
+
+	@Override
+	public double[] getExpValuesCopy( String geneName )
+	{
+		final IterableInterval< DoubleType > exprValues = Views.flatIterable( getExprValues( geneName ) );
+
+		final double[] exprValuesCopy = new double[ (int)exprValues.size() ];
+
+		final Cursor< DoubleType > cursor = exprValues.localizingCursor();
+
+		while ( cursor.hasNext() )
+		{
+			final DoubleType t = cursor.next();
+			exprValuesCopy[ cursor.getIntPosition( 0 ) ] = t.get();
+		}
+
+		return exprValuesCopy;
+	}
+
+	@Override
+	public void setExpValues( String geneName, double[] values )
+	{
+		throw new RuntimeException( "setting expression values not supported on virtual constructs." );
+	}
+
+	/*
+	 * delegated methods
+	 */
 
 	@Override
 	public RealCursor< RealLocalizable > cursor()
@@ -112,18 +177,6 @@ public class NormalizingSTData implements STData
 	}
 
 	@Override
-	public KDTree< DoubleType > getExpValueKDTree( String geneName )
-	{
-		return data.getExpValueKDTree( geneName );
-	}
-
-	@Override
-	public IterableRealInterval< DoubleType > getExprData( String geneName )
-	{
-		return data.getExprData( geneName );
-	}
-
-	@Override
 	public long numLocations()
 	{
 		return data.numLocations();
@@ -148,18 +201,6 @@ public class NormalizingSTData implements STData
 	}
 
 	@Override
-	public RandomAccessibleInterval< DoubleType > getExprValues( String gene )
-	{
-		return data.getExprValues( gene );
-	}
-
-	@Override
-	public RandomAccessibleInterval< DoubleType > getExprValues( long locationIndex )
-	{
-		return data.getExprValues( locationIndex );
-	}
-
-	@Override
 	public List< double[] > getLocationsCopy()
 	{
 		return data.getLocationsCopy();
@@ -172,14 +213,14 @@ public class NormalizingSTData implements STData
 	}
 
 	@Override
-	public double[] getExpValuesCopy( String geneName )
+	public String toString()
 	{
-		return data.getExpValuesCopy( geneName );
+		return data.toString();
 	}
 
 	@Override
-	public void setExpValues( String geneName, double[] values )
+	public int getIndexForGene( String geneName )
 	{
-		data.setExpValues( geneName, values );
+		return data.getIndexForGene( geneName );
 	}
 }

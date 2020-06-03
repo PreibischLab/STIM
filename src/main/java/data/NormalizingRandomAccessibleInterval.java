@@ -1,5 +1,7 @@
 package data;
 
+import java.util.Date;
+
 import net.imglib2.Cursor;
 import net.imglib2.Interval;
 import net.imglib2.Positionable;
@@ -31,7 +33,9 @@ public class NormalizingRandomAccessibleInterval implements RandomAccessibleInte
 		this.n = input.numDimensions();
 		this.input = input;
 		
-		this.sumsPerLocation = ArrayImgs.doubles( input.dimension( 0 ) ); // numGenes in size
+		this.sumsPerLocation = ArrayImgs.doubles( input.dimension( 1 ) ); // numLocations in size
+
+		init();
 	}
 
 	final protected void init()
@@ -41,17 +45,23 @@ public class NormalizingRandomAccessibleInterval implements RandomAccessibleInte
 
 		final Cursor< DoubleType > cursor = this.sumsPerLocation.cursor();
 
+		System.out.println( new Date( System.currentTimeMillis() ) + " Computing normalization sums for all genes and locations (TODO: multithreaded!) ... " );
+
+		System.out.println( input.dimension(  0 ) + " x " + input.dimension(  1  ) );
+
 		// for each location do
 		for ( long i = 0; i < numLocations; ++i )
 		{
 			final RealSum realSum = new RealSum( (int)numGenes );
 
 			// iterate and sum all gene expression values of that location
-			for ( final DoubleType t : Views.iterable( Views.hyperSlice( input, 0, i ) ) )
+			for ( final DoubleType t : Views.iterable( Views.hyperSlice( input, 1, i ) ) )
 				realSum.add( t.get() );
 
 			cursor.next().set( realSum.getSum() );
 		}
+
+		System.out.println( new Date( System.currentTimeMillis() ) + " done ... " );
 	}
 
 	@Override

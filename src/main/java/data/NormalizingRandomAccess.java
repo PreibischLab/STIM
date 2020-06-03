@@ -24,8 +24,8 @@ public class NormalizingRandomAccess implements RandomAccess< DoubleType >
 	{
 //		d_mn -> d_mn = log ( 10^5 * d_mn / sum_k(d_mk) + 1 )
 //
-//		d_{ij} is an entry of the matrix, with {i} denoting the
-//		cell/location and {j} the gene.
+//		d_{mn} is an entry of the matrix, with {n} denoting the
+//		cell/location and {m} the gene.
 //
 //		- cell means location, yes.
 //		- {k} is a dummy index, you just sum over it

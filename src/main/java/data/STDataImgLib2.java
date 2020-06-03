@@ -72,7 +72,7 @@ public class STDataImgLib2 extends STDataAbstract
 	}
 
 	@Override
-	protected int getIndexForGene( final String gene )
+	public int getIndexForGene( final String gene )
 	{
 		return geneLookup.get( gene );
 	}
