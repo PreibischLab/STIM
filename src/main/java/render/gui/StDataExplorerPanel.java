@@ -25,12 +25,16 @@ package render.gui;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -59,7 +63,8 @@ public class StDataExplorerPanel extends JPanel
 	private static final long serialVersionUID = -3767947754096099774L;
 
 	protected final List< Pair< STData, STDataStatistics > > slides;
-	protected final List< String > allGenes;
+	protected final List< String > allGenes, allGenesLowerCase;
+	protected final HashMap< String, Integer > geneToLocation;
 	protected final List< HashSet< String > > genesPresentPerCol;
 
 	protected JTable table;
@@ -84,11 +89,20 @@ public class StDataExplorerPanel extends JPanel
 		}
 
 		this.allGenes = new ArrayList<>( genes );
+		this.allGenesLowerCase = new ArrayList<>();
 
 		Collections.sort( allGenes );
 
-		initComponent( slides, allGenes );
+		this.geneToLocation = new HashMap<>();
 
+		for ( int i = 0; i < allGenes.size(); ++i )
+		{
+			final String lowerCase = allGenes.get( i ).toLowerCase();
+			geneToLocation.put( lowerCase, i );
+			allGenesLowerCase.add( lowerCase );
+		}
+
+		initComponent( slides, allGenes );
 
 		this.renderThread = new RenderThread( slides );
 		this.thread = new Thread( this.renderThread );
@@ -115,6 +129,9 @@ public class StDataExplorerPanel extends JPanel
 
 	public void update()
 	{
+		if ( table.getSelectedRowCount() == 0 || table.getSelectedColumnCount() == 0 )
+			return;
+
 		final int row = table.getSelectedRows()[ 0 ];
 		final int col = table.getSelectedColumns()[ 0 ];
 
@@ -174,10 +191,66 @@ public class StDataExplorerPanel extends JPanel
 		table.setFont( new Font( f.getName(), f.getStyle(), 11 ) );
 		
 		this.setLayout( new BorderLayout() );
-		this.label = new JLabel( "Search gene: " );
-		this.add( label, BorderLayout.NORTH );
-		this.add( new JTextField( "Pcp4" ), BorderLayout.NORTH );
-		this.add( new JScrollPane( table ), BorderLayout.CENTER );
+		this.label = new JLabel( "Search gene:" );
+		this.text = new JTextField( "" );
+		this.text.setPreferredSize( new Dimension( 200, 24 ) );
+		this.text.addKeyListener( new KeyListener()
+		{
+			@Override
+			public void keyTyped( KeyEvent e ) {}
+
+			@Override
+			public void keyReleased( KeyEvent e )
+			{
+				String input = text.getText().trim().toLowerCase();
+
+				final boolean startsWith;
+
+				if ( input.startsWith( "_" ) )
+				{
+					startsWith = true;
+					input = input.substring( 1, input.length() );
+				}
+				else
+				{
+					startsWith = false;
+				}
+
+				final String search = input;
+
+				if ( search.length() == 0 )
+					return;
+
+				for ( final String s : allGenesLowerCase )
+				{
+					if ( startsWith ? s.toLowerCase().startsWith( search ) : s.toLowerCase().contains( search ) )
+					{
+						final int row = geneToLocation.get( s );
+						System.out.println( search  + " >> " + s + " @ " + row  );
+
+						final int col;
+
+						if ( table.getSelectedColumnCount() == 0 )
+							col = 0;
+						else
+							col = table.getSelectedColumns()[ 0 ];
+
+						table.getColumnModel().getSelectionModel().setSelectionInterval( col, col );
+						table.getSelectionModel().setSelectionInterval( row, row );
+						table.scrollRectToVisible(new Rectangle(table.getCellRect(row, 0, true)));
+
+						break;
+					}
+				}
+			}
+
+			@Override
+			public void keyPressed( KeyEvent e ) {}
+		} );
+
+		this.add( label, BorderLayout.WEST );
+		this.add( text, BorderLayout.EAST );
+		this.add( new JScrollPane( table ), BorderLayout.SOUTH );
 
 		for ( int column = 0; column < tableModel.getColumnCount(); ++column )
 			table.getColumnModel().getColumn( column ).setPreferredWidth( 150 );

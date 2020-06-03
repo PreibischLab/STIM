@@ -90,7 +90,7 @@ public class RenderThread implements Runnable
 				}
 				while ( element != null );
 			}
-	
+
 			if ( lastElement != null )
 			{
 				final String gene = lastElement.getA();
@@ -111,15 +111,15 @@ public class RenderThread implements Runnable
 							}
 						},
 						new DoubleType() );
-		
+
 				final Pair< DoubleType, DoubleType > minmax = ImgLib2Util.minmax( data );
-		
+
 				// gauss crisp
 				double gaussRenderSigma = slide.getB().getMedianDistance();
 				double gaussRenderRadius = slide.getB().getMedianDistance() * 4;
-		
+
 				final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, false ) );
-		
+
 				BdvStackSource< ? > old = bdv;
 				bdv = BdvFunctions.show( renderRRA, interval, gene, options.addTo( old ) );
 				bdv.setDisplayRange( 0.9, minmax.getB().get() * 2 );
