@@ -296,27 +296,12 @@ public class StDataExplorerPanel extends JPanel
 			@Override
 			public void mouseClicked(MouseEvent e)
 			{
-				int row = table.rowAtPoint( e.getPoint() );
-				int col = table.columnAtPoint( e.getPoint() );
-
-				
-				
-
-				/*
-				if ( tableModel.getSelectedRow() == row && tableModel.getSelectedCol() == col )
-					tableModel.setSelected( -1, -1 );
-				else
-					tableModel.setSelected( row, col );
-
-				// update everything
-				final int sr = table.getSelectedRow();
-				tableModel.fireTableDataChanged();
-				table.setRowSelectionInterval( sr, sr );
-				*/
+				//int row = table.rowAtPoint( e.getPoint() );
+				//int col = table.columnAtPoint( e.getPoint() );
 			}
 		});
 
-		addPopupMenu( table );
+		//addPopupMenu( table );
 	}
 
 	protected static class MyRenderer extends DefaultTableCellRenderer
