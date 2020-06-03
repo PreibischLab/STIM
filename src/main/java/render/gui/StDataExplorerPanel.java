@@ -29,6 +29,9 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,32 +41,16 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 
-import align.Pairwise;
-import bdv.util.BdvFunctions;
-import bdv.util.BdvOptions;
-import bdv.util.BdvStackSource;
-import bdv.viewer.DisplayMode;
 import data.STData;
 import data.STDataStatistics;
-import filter.GaussianFilterFactory;
-import imglib2.ImgLib2Util;
-import net.imglib2.Interval;
-import net.imglib2.IterableRealInterval;
-import net.imglib2.RealRandomAccessible;
-import net.imglib2.converter.Converter;
-import net.imglib2.converter.Converters;
-import net.imglib2.img.array.ArrayImgs;
-import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
-import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
-import net.imglib2.view.Views;
-import render.Render;
 
 public class StDataExplorerPanel extends JPanel
 {
@@ -72,46 +59,59 @@ public class StDataExplorerPanel extends JPanel
 	private static final long serialVersionUID = -3767947754096099774L;
 
 	protected final List< Pair< STData, STDataStatistics > > slides;
-	protected final List< String > genes;
+	protected final List< String > allGenes;
+	protected final List< HashSet< String > > genesPresentPerCol;
 
 	protected JTable table;
 	protected STDataTableModel tableModel;
 	protected JLabel label;
+	protected JTextField text;
 
 	protected final RenderThread renderThread;
 	protected final Thread thread;
-	/*
-	protected final BdvOptions options;
-	protected BdvStackSource< ? > bdv = null;
-	protected final Interval interval;
-	protected final DoubleType outofbounds = new DoubleType( 0 );
-	*/
 
-	public StDataExplorerPanel( final List< Pair< STData, STDataStatistics > > slides, final List< String > genes )
+	public StDataExplorerPanel( final List< Pair< STData, STDataStatistics > > slides )
 	{
-		initComponent( slides, genes );
-
 		this.slides = slides;
-		this.genes = genes;
-		
+		this.genesPresentPerCol = new ArrayList<>();
+
+		final HashSet< String > genes = new HashSet<>();
+
+		for ( final Pair< STData, STDataStatistics > slide : slides )
+		{
+			genes.addAll( slide.getA().getGeneNames() );
+			genesPresentPerCol.add( new HashSet<>( slide.getA().getGeneNames() ) );
+		}
+
+		this.allGenes = new ArrayList<>( genes );
+
+		Collections.sort( allGenes );
+
+		initComponent( slides, allGenes );
+
+
 		this.renderThread = new RenderThread( slides );
 		this.thread = new Thread( this.renderThread );
 		this.thread.start();
-
-		/*
-		this.interval = Pairwise.getCommonInterval( slides.stream().map( pair -> pair.getA() ).collect( Collectors.toList() ) );
-		this.options = BdvOptions.options().is2D().numRenderingThreads( Runtime.getRuntime().availableProcessors() );
-		this.bdv = BdvFunctions.show( Views.extendZero( ArrayImgs.doubles( 1, 1 ) ), interval, "", options );
-		bdv.setDisplayRange( 0.9, 10 );
-		bdv.setDisplayRangeBounds( 0, maxRange );
-		bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
-		*/
 	}
 
 	public STDataTableModel getTableModel() { return tableModel; }
 	public JTable getTable() { return table; }
 
 	int lastRow = -1, lastCol = -1;
+
+	protected List< String > allGenes( final List< Pair< STData, STDataStatistics > > slides )
+	{
+		final HashSet< String > genes = new HashSet<>();
+
+		for ( final Pair< STData, STDataStatistics > slide : slides )
+			genes.addAll( slide.getA().getGeneNames() );
+
+		final ArrayList< String > geneList = new ArrayList<>( genes );
+		Collections.sort( geneList );
+
+		return geneList;
+	}
 
 	public void update()
 	{
@@ -131,58 +131,18 @@ public class StDataExplorerPanel extends JPanel
 
 		final String gene = (String)tableModel.getValueAt( row, col );
 
+		if ( !this.genesPresentPerCol.get( col ).contains( gene ) )
+			return;
+
 		// please render this one if you can
 		this.renderThread.globalQueue.add( new ValuePair<>( gene, col ) );
+
+		// wake thread up if sleeping
 		synchronized ( thread )
 		{
-			if ( renderThread.isSleeping )
+			if ( renderThread.isSleeping.getAndSet( false ) )
 				this.thread.interrupt();
 		}
-
-		/*
-		final Pair< STData, STDataStatistics > slide = slides.get( col );
-
-		System.out.println( "gene: " + gene );
-		System.out.println( "slide: " + slide.getA().toString() );
-
-		IterableRealInterval< DoubleType > data = slide.getA().getExprData( gene );
-
-		if ( data == null )
-		{
-			System.out.println( "gene " + gene + " does not exist for slide " + slide.getA().toString() );
-			return;
-		}
-
-		data = Converters.convert(
-				data,
-				new Converter< DoubleType, DoubleType >()
-				{
-					@Override
-					public void convert( final DoubleType input, final DoubleType output )
-					{
-						output.set( input.get() + 1.0 );
-					}
-				},
-				new DoubleType() );
-
-		final Pair< DoubleType, DoubleType > minmax = ImgLib2Util.minmax( data );
-
-		System.out.println( "Min intensity: " + minmax.getA() );
-		System.out.println( "Max intensity: " + minmax.getB() );
-
-		// gauss crisp
-		double gaussRenderSigma = slide.getB().getMedianDistance();
-		double gaussRenderRadius = slide.getB().getMedianDistance() * 4;
-
-		final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, false ) );
-
-		BdvStackSource< ? > old = bdv;
-		bdv = BdvFunctions.show( renderRRA, interval, gene, options.addTo( old ) );
-		bdv.setDisplayRange( 0.9, minmax.getB().get() * 2 );
-		bdv.setDisplayRangeBounds( 0, Math.max( maxRange, minmax.getB().get() * 10 ) );
-		bdv.setCurrent();
-		old.removeFromBdv();
-		*/
 	}
 
 	public void initComponent( final List< Pair< STData, STDataStatistics > > slides, final List< String > genes )
@@ -190,7 +150,8 @@ public class StDataExplorerPanel extends JPanel
 		tableModel = new STDataTableModel(
 				this,
 				slides.stream().map( pair -> pair.getA().toString() ).collect( Collectors.toList() ),
-				genes );
+				allGenes,
+				genesPresentPerCol );
 
 		table = new JTable();
 		table.setModel( tableModel );
@@ -213,8 +174,9 @@ public class StDataExplorerPanel extends JPanel
 		table.setFont( new Font( f.getName(), f.getStyle(), 11 ) );
 		
 		this.setLayout( new BorderLayout() );
-		this.label = new JLabel( "Selected gene: " );
+		this.label = new JLabel( "Search gene: " );
 		this.add( label, BorderLayout.NORTH );
+		this.add( new JTextField( "Pcp4" ), BorderLayout.NORTH );
 		this.add( new JScrollPane( table ), BorderLayout.CENTER );
 
 		for ( int column = 0; column < tableModel.getColumnCount(); ++column )
@@ -228,7 +190,6 @@ public class StDataExplorerPanel extends JPanel
 				if ( e.getValueIsAdjusting() )
 					return;
 
-				System.out.println( "A" );
 				update();
 			}
 		} );
@@ -240,8 +201,6 @@ public class StDataExplorerPanel extends JPanel
 				// Ignore extra messages.
 				if ( e.getValueIsAdjusting() )
 					return;
-
-				System.out.println( "B" );
 
 				update();
 			}

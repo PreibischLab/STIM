@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.python.modules.synchronize;
@@ -44,7 +45,7 @@ public class RenderThread implements Runnable
 	
 	final Queue< Pair< String, Integer > > globalQueue = new ConcurrentLinkedQueue<>();
 	public boolean keepRunning = true;
-	public boolean isSleeping = false; // TODO: ATOMIC
+	public AtomicBoolean isSleeping = new AtomicBoolean( false );
 
 	public RenderThread( final List< Pair< STData, STDataStatistics > > slides )
 	{
@@ -65,21 +66,25 @@ public class RenderThread implements Runnable
 		{
 			try
 			{
-				System.out.println("thread sleeping");
-				Thread.interrupted(); //clear
-				isSleeping = true;
-                Thread.sleep( 50000 );
-                System.out.println("thread woke up");
-            } catch (InterruptedException e) {
-                //Thread.currentThread().interrupt(); 
-                System.out.println("Thread interrupted" + e);
-            }
-			isSleeping = false;
+				Thread.interrupted();
+
+				isSleeping.set( true );
+
+				// avoid 
+				synchronized ( this )
+				{
+					Thread.sleep( 2000 );
+					isSleeping.set( false );
+				}
+			}
+			catch (InterruptedException e)
+			{
+				isSleeping.set( false );
+				Thread.interrupted();
+			}
 
 			Pair< String, Integer > lastElement = null;
 			Pair< String, Integer > element;
-	
-			int dropped = -1;
 
 			synchronized ( globalQueue )
 			{
@@ -88,28 +93,19 @@ public class RenderThread implements Runnable
 					element = globalQueue.poll();
 					if ( element != null )
 						lastElement = element;
-					++dropped;
 				}
 				while ( element != null );
 			}
 	
 			if ( lastElement != null )
 			{
-				System.out.println( "dropped: " + (dropped - 1) );
-
 				final String gene = lastElement.getA();
 				final Pair< STData, STDataStatistics > slide = slides.get( lastElement.getB() );
 
-				System.out.println( "gene: " + gene + " of slide: " + slide.getA().toString() );
+				System.out.println( "rendering gene: " + gene + " of slide: " + slide.getA().toString() );
 
 				IterableRealInterval< DoubleType > data = slide.getA().getExprData( gene );
-		
-				if ( data == null )
-				{
-					System.out.println( "gene " + gene + " does not exist for slide " + slide.getA().toString() );
-					return;
-				}
-		
+
 				data = Converters.convert(
 						data,
 						new Converter< DoubleType, DoubleType >()
@@ -139,10 +135,9 @@ public class RenderThread implements Runnable
 			}
 			else
 			{
-				System.out.println( "queue empty." );
+				//System.out.println( "queue empty." );
 			}
 		}
 		while ( keepRunning );
 	}
-
 }

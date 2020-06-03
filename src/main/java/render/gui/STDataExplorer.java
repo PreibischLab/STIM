@@ -30,19 +30,13 @@ import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
-import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.swing.JFrame;
 
-import org.stringtemplate.v4.compiler.STParser.element_return;
-
 import data.STData;
-import data.STDataN5;
 import data.STDataStatistics;
 import io.N5IO;
 import io.Path;
@@ -57,7 +51,7 @@ public class STDataExplorer
 	public STDataExplorer( final List< Pair< STData, STDataStatistics > > slides )
 	{
 		frame = new JFrame( "Interest Point Explorer" );
-		panel = new StDataExplorerPanel( slides, allGenes( slides ) );
+		panel = new StDataExplorerPanel( slides );
 		frame.add( panel, BorderLayout.CENTER );
 
 		frame.setSize( panel.getPreferredSize() );
@@ -80,19 +74,6 @@ public class STDataExplorer
 				e.getWindow().dispose();
 			}
 		});
-	}
-
-	protected List< String > allGenes( final List< Pair< STData, STDataStatistics > > slides )
-	{
-		final HashSet< String > genes = new HashSet<>();
-
-		for ( final Pair< STData, STDataStatistics > slide : slides )
-			genes.addAll( slide.getA().getGeneNames() );
-
-		final ArrayList< String > geneList = new ArrayList<>( genes );
-		Collections.sort( geneList );
-
-		return geneList;
 	}
 
 	public JFrame frame() { return frame; }

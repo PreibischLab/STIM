@@ -23,6 +23,7 @@
 package render.gui;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 import javax.swing.table.AbstractTableModel;
@@ -30,17 +31,23 @@ import javax.swing.table.AbstractTableModel;
 public class STDataTableModel extends AbstractTableModel
 {
 	private static final long serialVersionUID = -1263388435427674269L;
-
+ 
 	final List< String > columnNames;
 	final StDataExplorerPanel panel;
 
-	final List< String > genes;
+	final List< HashSet< String > > genesPresentPerCol;
+	final List< String > allGenes;
 
-	public STDataTableModel( final StDataExplorerPanel panel, final List< String > slideNames, final List< String > genes )
+	public STDataTableModel(
+			final StDataExplorerPanel panel,
+			final List< String > slideNames,
+			final List< String > allGenes,
+			final List< HashSet< String > > genesPresentPerCol )
 	{
 		this.columnNames = new ArrayList< String >();
 
-		this.genes = genes;
+		this.allGenes = allGenes;
+		this.genesPresentPerCol = genesPresentPerCol;
 		this.columnNames.addAll( slideNames );
 
 		this.panel = panel;
@@ -58,7 +65,7 @@ public class STDataTableModel extends AbstractTableModel
 	@Override
 	public int getRowCount()
 	{
-		return genes.size();
+		return allGenes.size();
 	}
 
 	@Override
@@ -76,7 +83,12 @@ public class STDataTableModel extends AbstractTableModel
 	@Override
 	public Object getValueAt( final int row, final int column )
 	{
-		return genes.get( row );
+		final String geneName = allGenes.get( row );
+		
+		if ( this.genesPresentPerCol.get( column ).contains( geneName ) )
+			return geneName;
+		else
+			return geneName + " [missing]";
 	}
 
 	@Override
