@@ -52,6 +52,11 @@ public interface STData extends IterableRealInterval< RealLocalizable >
 	public RandomAccessibleInterval< DoubleType > getExprValues( final String gene );
 
 	/**
+	 * @return a reference to the (modifyable) 1d vector that holds all expression values of a location, size: [numGenes]
+	 */
+	public RandomAccessibleInterval< DoubleType > getExprValues( final long locationIndex );
+
+	/**
 	 * Non-virtual way to access all sequencing locations,
 	 * might copy the data in memory
 	 * 

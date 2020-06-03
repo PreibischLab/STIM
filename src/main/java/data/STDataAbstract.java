@@ -117,6 +117,12 @@ public abstract class STDataAbstract implements STData
 	}
 
 	@Override
+	public RandomAccessibleInterval< DoubleType > getExprValues( final long locationIndex )
+	{
+		return Views.hyperSlice( getAllExprValues(), 1, locationIndex );
+	}
+
+	@Override
 	public List< double[] > getLocationsCopy()
 	{
 		final ArrayList< double[] > locations = new ArrayList<>();
