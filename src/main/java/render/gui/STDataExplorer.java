@@ -94,28 +94,6 @@ public class STDataExplorer
 
 	public static void main( String[] args ) throws IOException
 	{
-		final Queue<String> globalQueue = new ConcurrentLinkedQueue<>();
-		
-		globalQueue.add( "A" );
-		globalQueue.add( "B" );
-		globalQueue.add( "B" );
-		globalQueue.add( "B" );
-		globalQueue.add( "C" );
-
-		String lastElement = null;
-		String element;
-
-		do
-		{
-			element = globalQueue.poll();
-			if ( element != null )
-				lastElement = element;
-		}
-		while ( element != null );
-
-		System.out.println( lastElement + " " + globalQueue.size() );
-		//System.exit( 0 );
-		
 		final String path = Path.getPath();
 		final String[] pucks = new String[] { "Puck_180531_23", "Puck_180531_22" };
 
