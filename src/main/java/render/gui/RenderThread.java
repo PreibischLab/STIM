@@ -14,7 +14,6 @@ import bdv.viewer.DisplayMode;
 import data.STData;
 import data.STDataStatistics;
 import filter.GaussianFilterFactory;
-import imglib2.ImgLib2Util;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RealRandomAccessible;
@@ -28,7 +27,10 @@ import render.Render;
 
 public class RenderThread implements Runnable
 {
-	protected final static int maxRange = 100;
+	protected static double minRange = 0;
+	protected static double maxRange = 100;
+	protected static double min = 0.1;
+	protected static double max = 6;
 
 	protected final BdvOptions options;
 	protected BdvStackSource< ? > bdv = null;
@@ -48,8 +50,8 @@ public class RenderThread implements Runnable
 		this.interval = Pairwise.getCommonInterval( slides.stream().map( pair -> pair.getA() ).collect( Collectors.toList() ) );
 		this.options = BdvOptions.options().is2D().numRenderingThreads( Runtime.getRuntime().availableProcessors() );
 		this.bdv = BdvFunctions.show( Views.extendZero( ArrayImgs.doubles( 1, 1 ) ), interval, "", options );
-		bdv.setDisplayRange( 0.9, 10 );
-		bdv.setDisplayRangeBounds( 0, maxRange );
+		bdv.setDisplayRange( min, max );
+		bdv.setDisplayRangeBounds( minRange, maxRange );
 		bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
 	}
 
@@ -107,12 +109,13 @@ public class RenderThread implements Runnable
 							@Override
 							public void convert( final DoubleType input, final DoubleType output )
 							{
-								output.set( input.get() + 1.0 );
+								output.set( input.get() + 0.1 );
 							}
 						},
 						new DoubleType() );
 
-				final Pair< DoubleType, DoubleType > minmax = ImgLib2Util.minmax( data );
+				//final Pair< DoubleType, DoubleType > minmax = ImgLib2Util.minmax( data );
+				//System.out.println( minmax.getA() + " " + minmax.getB() );
 
 				// gauss crisp
 				double gaussRenderSigma = slide.getB().getMedianDistance();
@@ -122,8 +125,8 @@ public class RenderThread implements Runnable
 
 				BdvStackSource< ? > old = bdv;
 				bdv = BdvFunctions.show( renderRRA, interval, gene, options.addTo( old ) );
-				bdv.setDisplayRange( 0.9, minmax.getB().get() * 2 );
-				bdv.setDisplayRangeBounds( 0, Math.max( maxRange, minmax.getB().get() * 10 ) );
+				bdv.setDisplayRange( min, max );
+				bdv.setDisplayRangeBounds( minRange, maxRange );
 				bdv.setCurrent();
 				old.removeFromBdv();
 			}
