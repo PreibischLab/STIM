@@ -1,7 +1,6 @@
 package data;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -50,8 +49,7 @@ public class NormalizingRandomAccessibleInterval implements RandomAccessibleInte
 		final long numGenes = input.dimension( 0 );
 		final long numLocations = input.dimension( 1 );
 
-		System.out.println( new Date( System.currentTimeMillis() ) + " Computing normalization sums for all genes and locations ... " );
-		System.out.println( input.dimension( 0 ) + " [genes] x " + input.dimension(  1  ) + " [locations]" );
+		System.out.println( "Computing normalization sums for all genes (" + input.dimension( 0 ) + ") and locations (" + input.dimension( 1 ) + ") ... " );
 
 		/*
 		final Cursor< DoubleType > cursor = this.sumsPerLocation.cursor();
@@ -110,7 +108,6 @@ public class NormalizingRandomAccessibleInterval implements RandomAccessibleInte
 		}
 
 		executorService.shutdown();
-		System.out.println( new Date( System.currentTimeMillis() ) + " done ... " );
 	}
 
 	@Override
