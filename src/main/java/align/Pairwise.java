@@ -168,14 +168,14 @@ public class Pairwise
 		final String path = Path.getPath();
 
 		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
-		//final String[] pucks = new String[] { "Puck_180531_23" };
-		final String[] pucks = new String[] { "Puck_180602_20" };
+		final String[] pucks = new String[] { "Puck_180531_23" };
+		//final String[] pucks = new String[] { "Puck_180602_20" };
 
 		final ArrayList< Pair< STData, STDataStatistics > > slides = new ArrayList<>();
 
 		for ( final String puck : pucks )
 		{
-			final STData slide = new NormalizingSTData( N5IO.readN5( new File( path + "slide-seq/" + puck + ".n5" ) ) );
+			final STData slide = new NormalizingSTData( N5IO.readN5( new File( path + "slide-seq/" + puck + ".n5" ) ) ).copy();
 			final STDataStatistics stat = new STDataStatistics( slide );
 
 			slides.add(  new ValuePair<>( slide, stat ) );

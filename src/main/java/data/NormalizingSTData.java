@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import imglib2.ExpValueRealIterable;
+import imglib2.ImgLib2Util;
 import net.imglib2.Cursor;
 import net.imglib2.FinalRealInterval;
 import net.imglib2.Interval;
@@ -222,5 +223,11 @@ public class NormalizingSTData implements STData
 	public int getIndexForGene( String geneName )
 	{
 		return data.getIndexForGene( geneName );
+	}
+
+	@Override
+	public STData copy()
+	{
+		return ImgLib2Util.copy( this );
 	}
 }

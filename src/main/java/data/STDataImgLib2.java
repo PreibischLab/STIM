@@ -91,6 +91,4 @@ public class STDataImgLib2 extends STDataAbstract
 	{
 		return locations;
 	}
-
-
 }

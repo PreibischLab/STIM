@@ -2,6 +2,7 @@ package data;
 
 import java.util.List;
 
+import imglib2.ImgLib2Util;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.KDTree;
@@ -97,4 +98,14 @@ public interface STData extends IterableRealInterval< RealLocalizable >
 	 * @param values - the values of each sequençed location, index corresponds to the location index in getLocations or getLocationsCopy
 	 */
 	public void setExpValues( final String geneName, final double[] values );
+
+	/**
+	 * Creates a copy of the dataset that can be edited and resavd
+	 *
+	 * @return a copy of the STData object that holds all data in a writable form (e.g. ImgLib2 CellImg)
+	 */
+	default STData copy()
+	{
+		return ImgLib2Util.copy( this );
+	}
 }
