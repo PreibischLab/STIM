@@ -1,8 +1,14 @@
 package data;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
 
-import net.imglib2.Cursor;
 import net.imglib2.Interval;
 import net.imglib2.Positionable;
 import net.imglib2.RandomAccess;
@@ -13,6 +19,7 @@ import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.RealSum;
 import net.imglib2.view.Views;
+import util.Threads;
 
 public class NormalizingRandomAccessibleInterval implements RandomAccessibleInterval< DoubleType >
 {
@@ -43,11 +50,11 @@ public class NormalizingRandomAccessibleInterval implements RandomAccessibleInte
 		final long numGenes = input.dimension( 0 );
 		final long numLocations = input.dimension( 1 );
 
+		System.out.println( new Date( System.currentTimeMillis() ) + " Computing normalization sums for all genes and locations ... " );
+		System.out.println( input.dimension( 0 ) + " [genes] x " + input.dimension(  1  ) + " [locations]" );
+
+		/*
 		final Cursor< DoubleType > cursor = this.sumsPerLocation.cursor();
-
-		System.out.println( new Date( System.currentTimeMillis() ) + " Computing normalization sums for all genes and locations (TODO: multithreaded!) ... " );
-
-		System.out.println( input.dimension(  0 ) + " x " + input.dimension(  1  ) );
 
 		// for each location do
 		for ( long i = 0; i < numLocations; ++i )
@@ -60,7 +67,49 @@ public class NormalizingRandomAccessibleInterval implements RandomAccessibleInte
 
 			cursor.next().set( realSum.getSum() );
 		}
+		*/
 
+		final List< Callable< Void > > tasks = new ArrayList<>();
+		final AtomicLong nextLocation = new AtomicLong();
+
+		final int numThreads = Threads.numThreads();
+		final ExecutorService executorService = Threads.createFixedExecutorService( numThreads );
+
+		for ( int threadNum = 0; threadNum < numThreads; ++threadNum )
+		{
+			tasks.add( () -> {
+				final RandomAccess< DoubleType > randomAccess = sumsPerLocation.randomAccess();
+
+				// for each location do
+				for ( long i = nextLocation.getAndIncrement(); i < numLocations; i = nextLocation.getAndIncrement() )
+				{
+					final RealSum realSum = new RealSum( (int)numGenes );
+
+					// iterate and sum all gene expression values of that location
+					for ( final DoubleType t : Views.iterable( Views.hyperSlice( input, 1, i ) ) )
+						realSum.add( t.get() );
+
+					randomAccess.setPosition( i, 0 );
+					randomAccess.get().set( realSum.getSum() );
+				}
+
+				return null;
+			} );
+		}
+
+		try
+		{
+			final List< Future< Void > > futures = executorService.invokeAll( tasks );
+			for ( final Future< Void > future : futures )
+				future.get();
+		}
+		catch ( final InterruptedException | ExecutionException e )
+		{
+			e.printStackTrace();
+			throw new RuntimeException( e );
+		}
+
+		executorService.shutdown();
 		System.out.println( new Date( System.currentTimeMillis() ) + " done ... " );
 	}
 

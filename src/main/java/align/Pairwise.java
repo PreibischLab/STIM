@@ -105,8 +105,8 @@ public class Pairwise
 
 		BdvOptions options = BdvOptions.options().is2D().numRenderingThreads( Runtime.getRuntime().availableProcessors() );
 		BdvStackSource< ? > bdv = BdvFunctions.show( renderRRA, stdata.getRenderInterval(), gene, options );
-		bdv.setDisplayRange( 0.1, minmax.getB().get() );
-		bdv.setDisplayRangeBounds( 0, minmax.getB().get() );
+		bdv.setDisplayRange( 0.1, minmax.getB().get() * 2 );
+		bdv.setDisplayRangeBounds( 0, minmax.getB().get() * 8 );
 
 		System.out.println( new Date(System.currentTimeMillis()) + ": Rendering interval " + Util.printInterval( interval ) + " with " + Threads.numThreads() + " threads ... " );
 
@@ -167,7 +167,9 @@ public class Pairwise
 	{
 		final String path = Path.getPath();
 
-		final String[] pucks = new String[] { "Puck_180602_20" }; //, "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
+		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
+		//final String[] pucks = new String[] { "Puck_180531_23" };
+		final String[] pucks = new String[] { "Puck_180602_20" };
 
 		final ArrayList< Pair< STData, STDataStatistics > > slides = new ArrayList<>();
 
