@@ -36,7 +36,7 @@ public class N5IO
 		long time = System.currentTimeMillis();
 
 		STData stdata = 
-				//STData.createTestDataSet();
+				//STDataUtils.createTestDataSet();
 				JsonIO.readJSON( new File( Path.getPath() + "patterns_examples_2d/small.json.zip" ) );
 
 		System.out.println( "Loding Json took " + ( System.currentTimeMillis() - time ) + " ms." );
@@ -62,8 +62,6 @@ public class N5IO
 		final DoubleType outofbounds = new DoubleType( 0 );
 
 		BdvFunctions.show( Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, false ) ), stdata.getRenderInterval(), "Pcp4_gauss1", BdvOptions.options().is2D() ).setDisplayRange( 0, 4 );
-
-
 	}
 
 	public static void writeN5( final STData data, final File n5path ) throws IOException, InterruptedException, ExecutionException
@@ -100,7 +98,7 @@ public class N5IO
 		// numGenes x numCoordinates, 1 block for 1 genes
 		N5Utils.save( expr, n5, "/expression", new int[]{ 16, 16384 }, compression, exec );
 
-		System.out.println( "Saving N5 '" + n5path.getAbsolutePath() + "' took " + ( System.currentTimeMillis() - time ) + " ms." );
+		System.out.println( "Saving N5 '" + n5path.getName() + "' took " + ( System.currentTimeMillis() - time ) + " ms." );
 
 		exec.shutdown();
 	}
