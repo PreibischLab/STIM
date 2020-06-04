@@ -2,16 +2,10 @@ package io;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-
-import com.google.gson.JsonIOException;
 
 import data.STData;
 import data.STDataText;
@@ -20,47 +14,6 @@ import net.imglib2.util.ValuePair;
 
 public class TextFileIO
 {
-	public static void main( String[] args ) throws JsonIOException, UnsupportedEncodingException, FileNotFoundException, IOException, InterruptedException, ExecutionException
-	{
-		final String path = Path.getPath();
-
-		final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
-
-		for ( final String puck : pucks )
-		{
-			final STData slideSeqOriginal = TextFileIO.readSlideSeq(
-					new File( path + "/slide-seq/" + puck + "/BeadLocationsForR.csv" ),
-					new File( path + "/slide-seq/" + puck + "/MappedDGEForR.csv" ) );
-	
-			final File n5path = new File( Path.getPath() + "/slide-seq/" + puck + ".n5" );
-
-			System.out.println( new Date(System.currentTimeMillis()) + ": saving n5 '" + n5path.getAbsolutePath() + "'" );
-	
-			// write N5
-			N5IO.writeN5( slideSeqOriginal, n5path );
-		}
-
-		System.out.println( "done" );
-
-		/*
-		final STData fly3d = Parser.read(
-				new File( path + "/fly_3d_data/geometry.txt" ),
-				new File( path + "/fly_3d_data/sdge_1297_cells_3039_locations_84_markers.txt" ),
-				new File( path + "/fly_3d_data/gene_names.txt" ) );
-
-		final STData slideSeq = Parser.read(
-				new File( path + "/patterns_examples_2d/full_locations.txt" ),
-				new File( path + "/patterns_examples_2d/full_dge_normalized.txt" ) );
-
-		final STData slideSeqSmall = Parser.read(
-				new File( path + "/patterns_examples_2d/locations.txt" ),
-				new File( path + "/patterns_examples_2d/dge_normalized.txt" ) );
-
-		final STData slideSeqSmallCut = Parser.read(
-				new File( path + "/patterns_examples_2d/locations.txt" ),
-				new File( path + "/patterns_examples_2d/dge_normalized_cut.txt" ) ); */
-	}
-
 	public static STData readSlideSeq( final File beadLocations, final File reads )
 	{
 		System.out.println( "Parsing " + beadLocations.getName() + ", " + reads.getName() );

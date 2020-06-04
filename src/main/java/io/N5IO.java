@@ -17,13 +17,13 @@ import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
 import data.STData;
-import data.STDataImgLib2;
 import data.STDataN5;
 import data.STDataStatistics;
 import filter.GaussianFilterFactory;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.util.Util;
 import render.Render;
 import transform.TransformIntensities;
 
@@ -87,7 +87,7 @@ public class N5IO
 		final RandomAccessibleInterval< DoubleType > locations = data.getLocations();
 		final RandomAccessibleInterval< DoubleType > expr = data.getAllExprValues();
 
-		System.out.println( "Saving N5 ... " );
+		System.out.println( "Saving N5 '" + n5path.getAbsolutePath() + "' ... " );
 		long time = System.currentTimeMillis();
 
 		final Compression compression = new GzipCompression( 6 ); // new RawCompression();
@@ -100,7 +100,7 @@ public class N5IO
 		// numGenes x numCoordinates, 1 block for 1 genes
 		N5Utils.save( expr, n5, "/expression", new int[]{ 16, 16384 }, compression, exec );
 
-		System.out.println( "Saving N5 took " + ( System.currentTimeMillis() - time ) + " ms." );
+		System.out.println( "Saving N5 '" + n5path.getAbsolutePath() + "' took " + ( System.currentTimeMillis() - time ) + " ms." );
 
 		exec.shutdown();
 	}
@@ -108,9 +108,10 @@ public class N5IO
 	public static STDataN5 readN5( final File n5path ) throws IOException
 	{
 		if ( !n5path.exists() )
-			throw new RuntimeException( "n5-path '' does not exist." );
+			throw new RuntimeException( "n5-path '" + n5path.getAbsolutePath() + "' does not exist." );
 
-		System.out.println( "Loading N5 ... " );
+		System.out.println( "Loading N5 '" + n5path.getName() + "'... " );
+
 		long time = System.currentTimeMillis();
 
 		final N5FSReader n5 = new N5FSReader( n5path.getAbsolutePath() );
@@ -118,21 +119,33 @@ public class N5IO
 		final int n = n5.getAttribute( "/", "dim", Integer.class );
 		final long numLocations = n5.getAttribute( "/", "numLocations", Long.class );
 		final long numGenes = n5.getAttribute( "/", "numGenes", Long.class );
+
+		@SuppressWarnings("unchecked")
 		final List< String > geneNameList = n5.getAttribute( "/", "geneList", List.class );
 
-		/*
-		System.out.println( n );
-		System.out.println( numLocations );
-		System.out.println( numGenes );
-
-		for ( final String s : geneNameList )
-			System.out.println( s);
-		*/
-
 		final RandomAccessibleInterval< DoubleType > locations = N5Utils.open( n5, "/locations" );//.openWithBoundedSoftRefCache( n5, "/locations", 100000000 );
-		final RandomAccessibleInterval< DoubleType > exprValues = N5Utils.openWithBoundedSoftRefCache( n5, "/expression", 100000000 );
+		final RandomAccessibleInterval< DoubleType > exprValues = N5Utils.open( n5, "/expression" );
 
-		System.out.println( "Loading N5 took " + ( System.currentTimeMillis() - time ) + " ms." );
+		long[] dim1 = new long[ locations.numDimensions() ];
+		long[] dim2 = new long[ exprValues.numDimensions() ];
+		locations.dimensions( dim1 );
+		exprValues.dimensions( dim2 );
+
+		System.out.println( "N5 '" + n5path.getName() + "': dims=" + n + ", numLocations=" + numLocations + ", numGenes=" + numGenes + ", size(locations)=" + Util.printCoordinates( dim1 ) + ", size(exprValues)=" + Util.printCoordinates( dim2 ) );
+
+		if ( locations.dimension( 1 ) != n )
+			throw new IOException( "n (dimensionality) stored in the metadata does not match size of locations datastructure" );
+
+		if ( locations.dimension( 0 ) != numLocations )
+			throw new IOException( "numLoctions stored in the metadata does not match size of locations datastructure" );
+
+		if ( exprValues.dimension( 1 ) != numLocations )
+			throw new IOException( "numLoctions stored in the metadata does not match size of exprValues datastructure" );
+
+		if ( exprValues.dimension( 0 ) != numGenes )
+			throw new IOException( "numLoctions stored in the metadata does not match size of exprValues datastructure" );
+
+		System.out.println( "Loading N5 '" + n5path.getName() + "' took " + ( System.currentTimeMillis() - time ) + " ms." );
 
 		final HashMap< String, Integer > geneLookup = new HashMap<>();
 
