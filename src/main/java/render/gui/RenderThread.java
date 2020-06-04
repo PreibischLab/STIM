@@ -14,6 +14,7 @@ import bdv.viewer.DisplayMode;
 import data.STData;
 import data.STDataStatistics;
 import filter.GaussianFilterFactory;
+import filter.GaussianFilterFactory.WeightType;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RealRandomAccessible;
@@ -121,7 +122,7 @@ public class RenderThread implements Runnable
 				double gaussRenderSigma = slide.getB().getMedianDistance();
 				double gaussRenderRadius = slide.getB().getMedianDistance() * 4;
 
-				final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, false ) );
+				final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, WeightType.NONE ) );
 
 				BdvStackSource< ? > old = bdv;
 				bdv = BdvFunctions.show( renderRRA, interval, gene, options.addTo( old ) );

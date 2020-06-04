@@ -34,7 +34,6 @@ import java.util.List;
 
 import javax.swing.JFrame;
 
-import data.NormalizingSTData;
 import data.STData;
 import data.STDataStatistics;
 import io.N5IO;
@@ -101,7 +100,7 @@ public class STDataExplorer
 
 		for ( final String puck : pucks )
 		{
-			final STData slide = new NormalizingSTData( N5IO.readN5( new File( path + "slide-seq/" + puck + ".n5" ) ) );
+			final STData slide = /*new NormalizingSTData*/( N5IO.readN5( new File( path + "slide-seq/" + puck + "-normalized.n5" ) ) );
 			final STDataStatistics stat = new STDataStatistics( slide );
 
 			slides.add( new ValuePair<>( slide, stat ) );

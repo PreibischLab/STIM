@@ -1,5 +1,6 @@
 package filter;
 
+import filter.GaussianFilterFactory.WeightType;
 import net.imglib2.RealLocalizable;
 import net.imglib2.neighborsearch.RadiusNeighborSearch;
 import net.imglib2.type.numeric.RealType;
@@ -7,7 +8,7 @@ import net.imglib2.type.numeric.RealType;
 public class GaussianFilter< S extends RealType< S >, T extends RealType< T > > extends RadiusSearchFilter< S, T >
 {
 	final T outofbounds;
-	final boolean normalize;
+	final WeightType normalize;
 	final double two_sq_sigma;
 
 	public GaussianFilter(
@@ -15,7 +16,7 @@ public class GaussianFilter< S extends RealType< S >, T extends RealType< T > > 
 			final T outofbounds,
 			final double radius,
 			final double sigma,
-			final boolean normalize )
+			final WeightType normalize )
 	{
 		super( search, radius );
 
@@ -45,12 +46,14 @@ public class GaussianFilter< S extends RealType< S >, T extends RealType< T > > 
 
 				value += search.getSampler( i ).get().getRealDouble() * w;
 
-				if ( normalize )
+				if ( normalize == WeightType.BY_SUM_OF_WEIGHTS )
 					weight += w;
 			}
 
-			if ( normalize )
+			if ( normalize == WeightType.BY_SUM_OF_WEIGHTS )
 				output.setReal( value / weight );
+			else if ( normalize == WeightType.BY_SUM_OF_SAMPLES )
+				output.setReal( value / search.numNeighbors() );
 			else
 				output.setReal( value );
 		}

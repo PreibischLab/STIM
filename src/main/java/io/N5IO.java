@@ -20,6 +20,7 @@ import data.STData;
 import data.STDataN5;
 import data.STDataStatistics;
 import filter.GaussianFilterFactory;
+import filter.GaussianFilterFactory.WeightType;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.real.DoubleType;
@@ -61,7 +62,7 @@ public class N5IO
 		double gaussRenderRadius = displayRadius;
 		final DoubleType outofbounds = new DoubleType( 0 );
 
-		BdvFunctions.show( Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, false ) ), stdata.getRenderInterval(), "Pcp4_gauss1", BdvOptions.options().is2D() ).setDisplayRange( 0, 4 );
+		BdvFunctions.show( Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, WeightType.NONE ) ), stdata.getRenderInterval(), "Pcp4_gauss1", BdvOptions.options().is2D() ).setDisplayRange( 0, 4 );
 	}
 
 	public static void writeN5( final STData data, final File n5path ) throws IOException, InterruptedException, ExecutionException
