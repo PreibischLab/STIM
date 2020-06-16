@@ -1,5 +1,6 @@
 package imglib2;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Vector;
@@ -8,6 +9,9 @@ import java.util.concurrent.ExecutorService;
 
 import data.STData;
 import data.STDataImgLib2;
+import ij.ImagePlus;
+import ij.io.Opener;
+import ij.process.ImageProcessor;
 import net.imglib2.Cursor;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
@@ -21,14 +25,17 @@ import net.imglib2.RealPoint;
 import net.imglib2.RealPointSampleList;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
+import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.type.Type;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import util.Threads;
+import util.Threads.ImagePortion;
 
 public class ImgLib2Util
 {
@@ -233,7 +240,7 @@ public class ImgLib2Util
 	public static < T extends Type< T > > void copyImg( final RandomAccessibleInterval< T > input, final RandomAccessibleInterval< T > output, final ExecutorService service )
 	{
 		final long numPixels = Views.iterable( input ).size();
-		final Vector< ImagePortion > portions = divideIntoPortions( numPixels );
+		final Vector< ImagePortion > portions = Threads.divideIntoPortions( numPixels );
 		final ArrayList< Callable< Void > > tasks = new ArrayList< Callable< Void > >();
 
 		for ( final ImagePortion portion : portions )
@@ -249,7 +256,7 @@ public class ImgLib2Util
 			});
 		}
 
-		execTasks( tasks, service, "copy image" );
+		Threads.execTasks( tasks, service, "copy image" );
 	}
 
 	public static final < T extends Type< T > > void copyImg(
@@ -288,81 +295,67 @@ public class ImgLib2Util
 			}
 		}
 	}
-	public static final void execTasks( final ArrayList< Callable< Void > > tasks, final ExecutorService taskExecutor, final String jobDescription )
+
+	public static Img< FloatType > openAs32Bit( final File file )
 	{
-		try
-		{
-			// invokeAll() returns when all tasks are complete
-			taskExecutor.invokeAll( tasks );
-		}
-		catch ( final InterruptedException e )
-		{
-			System.out.println( "Failed to " + jobDescription + ": " + e );
-			e.printStackTrace();
-			return;
-		}
+		return openAs32Bit( file, new ArrayImgFactory< FloatType >( new FloatType( )) );
 	}
 
-	public static class ImagePortion
+	public static Img< FloatType > openAs32Bit( final File file, final ImgFactory< FloatType > factory )
 	{
-		public ImagePortion( final long startPosition, final long loopSize )
+		if ( !file.exists() )
+			throw new RuntimeException( "File '" + file.getAbsolutePath() + "' does not exisit." );
+
+		final ImagePlus imp = new Opener().openImage( file.getAbsolutePath() );
+
+		if ( imp == null )
+			throw new RuntimeException( "File '" + file.getAbsolutePath() + "' coult not be opened." );
+
+		final Img< FloatType > img;
+
+		if ( imp.getStack().getSize() == 1 )
 		{
-			this.startPosition = startPosition;
-			this.loopSize = loopSize;
-		}
-		
-		public long getStartPosition() { return startPosition; }
-		public long getLoopSize() { return loopSize; }
-		
-		protected long startPosition;
-		protected long loopSize;
-		
-		@Override
-		public String toString() { return "Portion [" + getStartPosition() + " ... " + ( getStartPosition() + getLoopSize() - 1 ) + " ]"; }
-	}
+			// 2d
+			img = factory.create( new int[]{ imp.getWidth(), imp.getHeight() } );
+			final ImageProcessor ip = imp.getProcessor();
 
-	public static final Vector<ImagePortion> divideIntoPortions( final long imageSize )
-	{
-		int numPortions;
-
-		if ( imageSize <= Threads.numThreads() )
-			numPortions = (int)imageSize;
-		else
-			numPortions = Math.max( Threads.numThreads(), (int)( imageSize / ( 64l*64l*64l ) ) );
-
-		//System.out.println( "nPortions for copy:" + numPortions );
-
-		final Vector<ImagePortion> portions = new Vector<ImagePortion>();
-
-		if ( imageSize == 0 )
-			return portions;
-
-		long threadChunkSize = imageSize / numPortions;
-
-		while ( threadChunkSize == 0 )
-		{
-			--numPortions;
-			threadChunkSize = imageSize / numPortions;
-		}
-
-		long threadChunkMod = imageSize % numPortions;
-
-		for ( int portionID = 0; portionID < numPortions; ++portionID )
-		{
-			// move to the starting position of the current thread
-			final long startPosition = portionID * threadChunkSize;
-
-			// the last thread may has to run longer if the number of pixels cannot be divided by the number of threads
-			final long loopSize;
-			if ( portionID == numPortions - 1 )
-				loopSize = threadChunkSize + threadChunkMod;
-			else
-				loopSize = threadChunkSize;
+			final Cursor< FloatType > c = img.localizingCursor();
 			
-			portions.add( new ImagePortion( startPosition, loopSize ) );
-		}
-		
-		return portions;
-	}
+			while ( c.hasNext() )
+			{
+				c.fwd();
 
+				final int x = c.getIntPosition( 0 );
+				final int y = c.getIntPosition( 1 );
+
+				c.get().set( ip.getf( x, y ) );
+			}
+		}
+		else
+		{
+			// >2d
+			img = factory.create( new int[]{ imp.getWidth(), imp.getHeight(), imp.getStack().getSize() } );
+
+			final Cursor< FloatType > c = img.localizingCursor();
+
+			// for efficiency reasons
+			final ArrayList< ImageProcessor > ips = new ArrayList< ImageProcessor >();
+
+			for ( int z = 0; z < imp.getStack().getSize(); ++z )
+				ips.add( imp.getStack().getProcessor( z + 1 ) );
+
+			while ( c.hasNext() )
+			{
+				c.fwd();
+
+				final int x = c.getIntPosition( 0 );
+				final int y = c.getIntPosition( 1 );
+				final int z = c.getIntPosition( 2 );
+
+				c.get().set( ips.get( z ).getf( x, y ) );
+			}
+		}
+
+		return img;
+	}
 }
