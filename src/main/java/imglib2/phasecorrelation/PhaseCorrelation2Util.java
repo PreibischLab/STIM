@@ -48,6 +48,8 @@ import net.imglib2.type.numeric.ComplexType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
+import net.imglib2.util.RealSum;
+import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import util.Threads;
@@ -731,11 +733,21 @@ public class PhaseCorrelation2Util {
 		// TODO: integral image?
 		double sum = 0.0;
 		long n = 0;
-		for (T pix: Views.iterable(img)){
-			sum += pix.getRealDouble();
-			n++;
+		for (T pix: Views.iterable(img))
+		{
+			final double v = pix.getRealDouble();
+			if ( v > 0 )
+			{
+				sum += pix.getRealDouble();
+				n++;
+			}
 		}
-		return sum/n;
+
+		System.out.println( "n: " + n );
+		if ( n > 0 )
+			return sum/n;
+		else
+			return 0;
 	}
 	
 	/*
@@ -745,36 +757,49 @@ public class PhaseCorrelation2Util {
 	 * @return
 	 */
 	public static <T extends RealType<T>, S extends RealType<S>> double getCorrelation (
-			final RandomAccessibleInterval<T> img1, final RandomAccessibleInterval<S> img2)
+			final RandomAccessibleInterval<T> img1, final RandomAccessibleInterval<S> img2, final long minOverlapPx)
 	{
-		final double m1 = getMean(img1);
-		final double m2 = getMean(img2);
-
 		// square sums
 		double sum11 = 0.0, sum22 = 0.0, sum12 = 0.0; 
 
-		final Cursor<T> c1 = Views.iterable(img1).cursor();
+		Cursor<T> c1 = Views.iterable(img1).localizingCursor();
+		RandomAccess<S> r2 = img2.randomAccess();
 
-		if (Views.iterable( img1 ).iterationOrder().equals( Views.iterable( img2 ).iterationOrder() ))
+		long n = 0;
+
+		RealSum sum1 = new RealSum();
+		RealSum sum2 = new RealSum();
+
+		while ( c1.hasNext() )
 		{
-			final Cursor< S > c2 = Views.iterable( img2 ).cursor();
-			while (c1.hasNext()){
-				final double c = c1.next().getRealDouble();
-				final double r = c2.next().getRealDouble();
+			final double c = c1.next().getRealDouble();
+			r2.setPosition(c1);
+			final double r = r2.get().getRealDouble();
 
-				sum11 += (c - m1) * (c - m1);
-				sum22 += (r - m2) * (r - m2);
-				sum12 += (c - m1) * (r - m2);
+			if ( c > 0 && r > 0 )
+			{
+				sum1.add( c );
+				sum2.add( r );
+				++n;
 			}
 		}
-		else
-		{
-			final RandomAccess<S> r2 = img2.randomAccess();
-			while (c1.hasNext()){
-				final double c = c1.next().getRealDouble();
-				r2.setPosition(c1);
-				final double r = r2.get().getRealDouble();
 
+		if ( n < Math.max( 1, minOverlapPx ) )
+			return 0;
+
+		final double m1 = sum1.getSum() / n;
+		final double m2 = sum1.getSum() / n;
+
+		c1 = Views.iterable(img1).localizingCursor();
+
+		while (c1.hasNext())
+		{
+			final double c = c1.next().getRealDouble();
+			r2.setPosition(c1);
+			final double r = r2.get().getRealDouble();
+
+			if ( c > 0 && r > 0 )
+			{
 				sum11 += (c - m1) * (c - m1);
 				sum22 += (r - m2) * (r - m2);
 				sum12 += (c - m1) * (r - m2);
@@ -789,7 +814,7 @@ public class PhaseCorrelation2Util {
 			/* if ( sum11 == sum22 && m1 == m2 )
 				return 1;
 			else */
-				return 0;
+			return 0;
 		}
 
 		return sum12 / Math.sqrt(sum11 * sum22);
@@ -803,7 +828,7 @@ public class PhaseCorrelation2Util {
 	 * @param shiftPeak
 	 * @return
 	 */
-	public static <T extends RealType<T>, S extends RealType<S>> RandomAccessibleInterval<FloatType> dummyFuse(RandomAccessibleInterval<T> img1, RandomAccessibleInterval<S> img2, PhaseCorrelationPeak2 shiftPeak, ExecutorService service)
+	public static <T extends RealType<T>, S extends RealType<S>> Pair< RandomAccessibleInterval<FloatType>, RandomAccessibleInterval<FloatType>> dummyFuse(RandomAccessibleInterval<T> img1, RandomAccessibleInterval<S> img2, PhaseCorrelationPeak2 shiftPeak, ExecutorService service)
 	{
 		long[] shift = new long[img1.numDimensions()];
 		shiftPeak.getShift().localize(shift);
@@ -824,9 +849,11 @@ public class PhaseCorrelation2Util {
 			max[i] = Math.max(maxImg1[i], maxImg2[i]);
 		}
 
-		RandomAccessibleInterval<FloatType> res = new ArrayImgFactory<FloatType>(new FloatType()).create(new FinalInterval(min, max));
-		copyRealImage(Views.iterable(img1), Views.translate(res, min), service);
-		copyRealImage(Views.iterable(Views.translate(img2, shift)), Views.translate(res, min), service);
-		return res;
+		RandomAccessibleInterval<FloatType> res1 = new ArrayImgFactory<FloatType>(new FloatType()).create(new FinalInterval(min, max));
+		RandomAccessibleInterval<FloatType> res2 = new ArrayImgFactory<FloatType>(new FloatType()).create(new FinalInterval(min, max));
+
+		copyRealImage(Views.iterable(img1), Views.translate(res1, min), service);
+		copyRealImage(Views.iterable(Views.translate(img2, shift)), Views.translate(res2, min), service);
+		return new ValuePair<>( res1, res2 );
 	}
 }

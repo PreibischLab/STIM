@@ -107,37 +107,6 @@ public class STDataExplorer
 		{
 			final STData slide = /*new NormalizingSTData*/( N5IO.readN5( new File( path + "slide-seq/" + puck + "-normalized.n5" ) ) );//.copy();
 
-			// TODO: highest stdev!
-			final ArrayList< Pair< String, Double > > sums = new ArrayList<>();
-			for ( final String gene : slide.getGeneNames() )
-			{
-				final RealSum sum = new RealSum();
-				for ( final DoubleType t : slide.getExprData( gene ) )
-					sum.add( t.get() );
-
-				final double avg = sum.getSum() / slide.numLocations();
-
-				final RealSum stdev = new RealSum();
-				for ( final DoubleType t : slide.getExprData( gene ) )
-					stdev.add( Math.pow( t.get() - avg , 2));
-
-				sums.add( new ValuePair<>( gene, Math.sqrt( stdev.getSum() / slide.numLocations() ) ) );
-			}
-
-			Collections.sort( sums, new Comparator< Pair< String, Double > >()
-			{
-				@Override
-				public int compare( Pair< String, Double > o1,
-						Pair< String, Double > o2 )
-				{
-					return o2.getB().compareTo( o1.getB() );
-				}
-			} );
-			
-			for ( int i = 0; i < 10; ++i )
-				System.out.println( sums.get( i ).getA() + ": " + sums.get( i ).getB() );
-			System.out.println();
-
 			final STDataStatistics stat = new STDataStatistics( slide );
 
 			slides.add( new ValuePair<>( slide, stat ) );

@@ -14,6 +14,7 @@ import ij.io.Opener;
 import ij.process.ImageProcessor;
 import net.imglib2.Cursor;
 import net.imglib2.FinalInterval;
+import net.imglib2.FinalRealInterval;
 import net.imglib2.Interval;
 import net.imglib2.IterableInterval;
 import net.imglib2.IterableRealInterval;
@@ -28,10 +29,13 @@ import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.realtransform.AffineGet;
+import net.imglib2.realtransform.AffineTransform2D;
+import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.Type;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
+import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import util.Threads;
@@ -71,6 +75,16 @@ public class ImgLib2Util
 		if ( affine == null )
 			return interval;
 
+		final RealInterval bounds;
+
+		if ( interval.numDimensions() == 2 )
+			bounds = estimateBounds2d( interval, affine );
+		else if ( interval.numDimensions() == 3 )
+			bounds = estimateBounds3d( interval, affine );
+		else
+			throw new RuntimeException( "dim=" + interval.numDimensions() + " not supported." );
+
+		/*
 		final double[] min = new double[ interval.numDimensions() ];
 		final double[] max = new double[ interval.numDimensions() ];
 
@@ -82,19 +96,154 @@ public class ImgLib2Util
 
 		affine.apply( min, min );
 		affine.apply( max, max );
+		*/
 
-		final long[] minL = new long[ min.length ];
-		final long[] maxL = new long[ max.length ];
+		final long[] minL = new long[ interval.numDimensions() ];
+		final long[] maxL = new long[ interval.numDimensions() ];
 
-		for ( int d = 0; d < min.length; ++d )
+		for ( int d = 0; d < minL.length; ++d )
 		{
-			minL[ d ] = Math.round( Math.floor( min[ d ] ) );
-			maxL[ d ] = Math.round( Math.ceil( max[ d ] ) );
+			minL[ d ] = Math.round( Math.floor( bounds.realMin( d ) /*min[ d ]*/ ) );
+			maxL[ d ] = Math.round( Math.ceil( bounds.realMax( d ) /*max[ d ]*/ ) );
 		}
 
 		return new FinalInterval( minL, maxL );
 	}
 
+	public static FinalRealInterval estimateBounds3d( final RealInterval interval, final AffineGet affine )
+	{
+		if ( interval.numDimensions() != 3 )
+			return null;
+
+		final double[] min = new double[ interval.numDimensions() ];
+		final double[] max = new double[ min.length ];
+		final double[] rMin = new double[ min.length ];
+		final double[] rMax = new double[ min.length ];
+		min[ 0 ] = interval.realMin( 0 );
+		min[ 1 ] = interval.realMin( 1 );
+		min[ 2 ] = interval.realMin( 2 );
+		max[ 0 ] = interval.realMax( 0 );
+		max[ 1 ] = interval.realMax( 1 );
+		max[ 2 ] = interval.realMax( 2 );
+		rMin[ 0 ] = rMin[ 1 ] = rMin[ 2 ] = Double.MAX_VALUE;
+		rMax[ 0 ] = rMax[ 1 ] = rMax[ 2 ] = -Double.MAX_VALUE;
+		for ( int d = 3; d < rMin.length; ++d )
+		{
+			rMin[ d ] = interval.realMin( d );
+			rMax[ d ] = interval.realMax( d );
+			min[ d ] = interval.realMin( d );
+			max[ d ] = interval.realMax( d );
+		}
+
+		final double[] f = new double[ 3 ];
+		final double[] g = new double[ 3 ];
+
+		affine.apply( min, g );
+		Util.min( rMin, g );
+		Util.max( rMax, g );
+
+		f[ 0 ] = max[ 0 ];
+		f[ 1 ] = min[ 1 ];
+		f[ 2 ] = min[ 2 ];
+		affine.apply( f, g );
+		Util.min( rMin, g );
+		Util.max( rMax, g );
+
+		f[ 0 ] = min[ 0 ];
+		f[ 1 ] = max[ 1 ];
+		f[ 2 ] = min[ 2 ];
+		affine.apply( f, g );
+		Util.min( rMin, g );
+		Util.max( rMax, g );
+
+		f[ 0 ] = max[ 0 ];
+		f[ 1 ] = max[ 1 ];
+		f[ 2 ] = min[ 2 ];
+		affine.apply( f, g );
+		Util.min( rMin, g );
+		Util.max( rMax, g );
+
+		f[ 0 ] = min[ 0 ];
+		f[ 1 ] = min[ 1 ];
+		f[ 2 ] = max[ 2 ];
+		affine.apply( f, g );
+		Util.min( rMin, g );
+		Util.max( rMax, g );
+
+		f[ 0 ] = max[ 0 ];
+		f[ 1 ] = min[ 1 ];
+		f[ 2 ] = max[ 2 ];
+		affine.apply( f, g );
+		Util.min( rMin, g );
+		Util.max( rMax, g );
+
+		f[ 0 ] = min[ 0 ];
+		f[ 1 ] = max[ 1 ];
+		f[ 2 ] = max[ 2 ];
+		affine.apply( f, g );
+		Util.min( rMin, g );
+		Util.max( rMax, g );
+
+		f[ 0 ] = max[ 0 ];
+		f[ 1 ] = max[ 1 ];
+		f[ 2 ] = max[ 2 ];
+		affine.apply( f, g );
+		Util.min( rMin, g );
+		Util.max( rMax, g );
+
+		return new FinalRealInterval( rMin, rMax );
+	}
+
+	public static FinalRealInterval estimateBounds2d( final RealInterval interval, final AffineGet affine )
+	{
+		if ( interval.numDimensions() != 2 )
+			return null;
+
+		final double[] min = new double[ interval.numDimensions() ];
+		final double[] max = new double[ min.length ];
+		final double[] rMin = new double[ min.length ];
+		final double[] rMax = new double[ min.length ];
+		min[ 0 ] = interval.realMin( 0 );
+		min[ 1 ] = interval.realMin( 1 );
+		max[ 0 ] = interval.realMax( 0 );
+		max[ 1 ] = interval.realMax( 1 );
+		rMin[ 0 ] = rMin[ 1 ] = Double.MAX_VALUE;
+		rMax[ 0 ] = rMax[ 1 ] = -Double.MAX_VALUE;
+		for ( int d = 2; d < rMin.length; ++d )
+		{
+			rMin[ d ] = interval.realMin( d );
+			rMax[ d ] = interval.realMax( d );
+			min[ d ] = interval.realMin( d );
+			max[ d ] = interval.realMax( d );
+		}
+
+		final double[] f = new double[ 3 ];
+		final double[] g = new double[ 3 ];
+
+		affine.apply( min, g );
+		Util.min( rMin, g );
+		Util.max( rMax, g );
+
+		f[ 0 ] = max[ 0 ];
+		f[ 1 ] = min[ 1 ];
+		affine.apply( f, g );
+		Util.min( rMin, g );
+		Util.max( rMax, g );
+
+		f[ 0 ] = min[ 0 ];
+		f[ 1 ] = max[ 1 ];
+		affine.apply( f, g );
+		Util.min( rMin, g );
+		Util.max( rMax, g );
+
+		f[ 0 ] = max[ 0 ];
+		f[ 1 ] = max[ 1 ];
+		affine.apply( f, g );
+		Util.min( rMin, g );
+		Util.max( rMax, g );
+
+		return new FinalRealInterval( rMin, rMax );
+	}
 	public static < T extends Comparable< T > & Type< T > > Pair< T, T > minmax( final Iterable< T > img )
 	{
 		final T min = img.iterator().next().copy();
