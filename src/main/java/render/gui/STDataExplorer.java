@@ -30,6 +30,9 @@ import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 
 import javax.swing.JFrame;
@@ -38,7 +41,9 @@ import data.STData;
 import data.STDataStatistics;
 import io.N5IO;
 import io.Path;
+import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
+import net.imglib2.util.RealSum;
 import net.imglib2.util.ValuePair;
 
 public class STDataExplorer
@@ -100,12 +105,67 @@ public class STDataExplorer
 
 		for ( final String puck : pucks )
 		{
-			final STData slide = /*new NormalizingSTData*/( N5IO.readN5( new File( path + "slide-seq/" + puck + "-normalized.n5" ) ) );
+			final STData slide = /*new NormalizingSTData*/( N5IO.readN5( new File( path + "slide-seq/" + puck + "-normalized.n5" ) ) );//.copy();
+
+			// TODO: highest stdev!
+			final ArrayList< Pair< String, Double > > sums = new ArrayList<>();
+			for ( final String gene : slide.getGeneNames() )
+			{
+				final RealSum sum = new RealSum();
+				for ( final DoubleType t : slide.getExprData( gene ) )
+					sum.add( t.get() );
+
+				final double avg = sum.getSum() / slide.numLocations();
+
+				final RealSum stdev = new RealSum();
+				for ( final DoubleType t : slide.getExprData( gene ) )
+					stdev.add( Math.pow( t.get() - avg , 2));
+
+				sums.add( new ValuePair<>( gene, Math.sqrt( stdev.getSum() / slide.numLocations() ) ) );
+			}
+
+			Collections.sort( sums, new Comparator< Pair< String, Double > >()
+			{
+				@Override
+				public int compare( Pair< String, Double > o1,
+						Pair< String, Double > o2 )
+				{
+					return o2.getB().compareTo( o1.getB() );
+				}
+			} );
+			
+			for ( int i = 0; i < 10; ++i )
+				System.out.println( sums.get( i ).getA() + ": " + sums.get( i ).getB() );
+			System.out.println();
+
 			final STDataStatistics stat = new STDataStatistics( slide );
 
 			slides.add( new ValuePair<>( slide, stat ) );
 		}
 
+		/*
+			mt-Rnr2: 98406.00148799573
+			Malat1: 57573.36309555761
+			Calm1: 51896.11190606482
+			Fth1: 50462.27704927554
+			mt-Cytb: 40567.66176993931
+			mt-Nd1: 38026.647857079464
+			Actb: 36143.7881367091 <<
+			Cst3: 35665.60488383998
+			Ubb: 33296.58213607102
+			Apoe: 32112.9165355219
+			
+			mt-Rnr2: 2.77292097770305
+			Malat1: 2.7092015887283845
+			Fth1: 2.579159459129725
+			Calm1: 2.5671422766341654
+			mt-Cytb: 2.4166567930779324
+			mt-Nd1: 2.354738505000795
+			Cst3: 2.3154520298436196
+			Actb: 2.280770607027878
+			Apoe: 2.2256420300803264
+			Ubb: 2.2035294179635043
+		 */
 		new STDataExplorer( slides );
 	}
 }
