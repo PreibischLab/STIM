@@ -1,5 +1,6 @@
 package render.gui;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -7,6 +8,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import align.Pairwise;
+import bdv.tools.brightness.ConverterSetup;
+import bdv.tools.brightness.MinMaxGroup;
+import bdv.tools.brightness.SetupAssignments;
 import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
@@ -125,8 +129,9 @@ public class RenderThread implements Runnable
 				final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, WeightType.NONE ) );
 
 				BdvStackSource< ? > old = bdv;
+
 				bdv = BdvFunctions.show( renderRRA, interval, gene, options.addTo( old ) );
-				bdv.setDisplayRange( min, max );
+				bdv.setDisplayRange( min, Math.max( max, getMaxDisplayRange( old ) ) );
 				bdv.setDisplayRangeBounds( minRange, maxRange );
 				bdv.setCurrent();
 				old.removeFromBdv();
@@ -139,5 +144,26 @@ public class RenderThread implements Runnable
 		while ( keepRunning.get() );
 
 		bdv.close();
+	}
+
+	public static double getMaxDisplayRange( BdvStackSource< ? > bdv )
+	{
+		if ( bdv == null || bdv.getConverterSetups().size() == 0 || bdv.getBdvHandle().getSetupAssignments().getMinMaxGroups().size() == 0 )
+			return 0;
+		
+		return bdv.getBdvHandle().getSetupAssignments().getMinMaxGroup( 
+				bdv.getConverterSetups().iterator().next() ).getMaxBoundedValue().getCurrentValue();
+		/*
+		final HashSet< MinMaxGroup > groups = new HashSet<>();
+		final SetupAssignments sa = bdv.getBdvHandle().getSetupAssignments();
+		for ( final ConverterSetup setup : bdv.getConverterSetups() )
+			groups.add( sa.getMinMaxGroup( setup ) );
+
+		for ( final MinMaxGroup group : groups )
+		{
+			group.getMinBoundedValue().setCurrentValue( min );
+			group.getMaxBoundedValue().setCurrentValue( max );
+		}
+		*/
 	}
 }
