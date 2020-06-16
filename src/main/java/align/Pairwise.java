@@ -9,23 +9,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import bdv.util.BdvFunctions;
-import bdv.util.BdvOptions;
-import bdv.util.BdvStackSource;
-import data.NormalizingSTData;
 import data.STData;
-import data.STDataAbstract;
 import data.STDataStatistics;
-import filter.DensityFilterFactory;
-import filter.FilterFactory;
-import filter.Filters;
 import filter.GaussianFilterFactory;
-import filter.MeanFilterFactory;
-import filter.MedianFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
 import ij.ImageJ;
 import imglib2.ImgLib2Util;
-import imglib2.SteppingIntervalIterator;
 import io.N5IO;
 import io.Path;
 import net.imglib2.FinalInterval;
@@ -36,23 +25,44 @@ import net.imglib2.RealRandomAccessible;
 import net.imglib2.converter.Converter;
 import net.imglib2.converter.Converters;
 import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.iterator.IntervalIterator;
 import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.realtransform.RealViews;
-import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import render.Render;
-import transform.TransformCoordinates;
 import util.Threads;
 
 public class Pairwise
 {
-	public static void display( final STData stdata, final STDataStatistics stStats, final String gene, final AffineTransform2D transform, final Interval commonInterval )
+	public static void align( final STData stdataA, final STData stdataB )
+	{
+		final STDataStatistics statA = new STDataStatistics( stdataA );
+		final STDataStatistics statB = new STDataStatistics( stdataB );
+
+		final Interval interval = getCommonInterval( stdataA, stdataB );
+
+		final AffineTransform2D transform = new AffineTransform2D();
+		transform.scale( 0.1 );
+
+		final String gene = "Fth1";
+
+		final RandomAccessibleInterval< DoubleType > imgA = display( stdataA, statA, gene, transform, interval );
+		final RandomAccessibleInterval< DoubleType > imgB = display( stdataB, statB, gene, transform, interval );
+
+		new ImageJ();
+
+		ImageJFunctions.show( imgA, Threads.createFixedExecutorService() ).setTitle( stdataA.toString() );
+		ImageJFunctions.show( imgB, Threads.createFixedExecutorService() ).setTitle( stdataB.toString() );
+
+		
+		//List< String > commonGeneNames = commonGeneNames( stdata1.getGeneNames(), stdata2.getGeneNames() );
+	}
+
+	public static RandomAccessibleInterval< DoubleType > display( final STData stdata, final STDataStatistics stStats, final String gene, final AffineTransform2D transform, final Interval commonInterval )
 	{
 		final double medianDistance = stStats.getMedianDistance() * 1.0;
 
@@ -102,18 +112,18 @@ public class Pairwise
 		// for rendering a 16x (median distance), regular sampled pointcloud
 		//final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, stStats.getMedianDistance() / 4.0, WeightType.NONE ) );
 
-		BdvOptions options = BdvOptions.options().is2D().numRenderingThreads( Runtime.getRuntime().availableProcessors() );
-		BdvStackSource< ? > bdv = BdvFunctions.show( renderRRA, stdata.getRenderInterval(), gene, options );
-		bdv.setDisplayRange( 0.1, minmax.getB().get() * 2 );
-		bdv.setDisplayRangeBounds( 0, minmax.getB().get() * 8 );
+		//BdvOptions options = BdvOptions.options().is2D().numRenderingThreads( Runtime.getRuntime().availableProcessors() );
+		//BdvStackSource< ? > bdv = BdvFunctions.show( renderRRA, stdata.getRenderInterval(), gene, options );
+		//bdv.setDisplayRange( 0.1, minmax.getB().get() * 2 );
+		//bdv.setDisplayRangeBounds( 0, minmax.getB().get() * 8 );
 
-		/*
 		System.out.println( new Date(System.currentTimeMillis()) + ": Rendering interval " + Util.printInterval( interval ) + " with " + Threads.numThreads() + " threads ... " );
-		ImageJFunctions.show( Views.interval( RealViews.affine( renderRRA, transform ), interval ), Threads.createFixedExecutorService() ).setTitle( stdata.toString() );
+		
+		final RandomAccessibleInterval< DoubleType > rendered = Views.interval( RealViews.affine( renderRRA, transform ), interval );
+		//ImageJFunctions.show( rendered, Threads.createFixedExecutorService() ).setTitle( stdata.toString() );
 		System.out.println( new Date(System.currentTimeMillis()) + ": Done..." );
-		*/
 
-		System.out.println();
+		return rendered;
 	}
 
 	public static List< String > commonGeneNames( final List< String > names0, final List< String > names1 )
@@ -126,6 +136,15 @@ public class Pairwise
 				commonGeneNames.add( name1 );
 
 		return commonGeneNames;
+	}
+
+	public static Interval getCommonInterval( final STData stDataA, final STData stDataB )
+	{
+		final ArrayList< STData > list = new ArrayList<>();
+		list.add( stDataA );
+		list.add( stDataB );
+
+		return getCommonInterval( list );
 	}
 
 	public static Interval getCommonInterval( final Collection< STData > slides )
@@ -163,8 +182,14 @@ public class Pairwise
 		final String path = Path.getPath();
 
 		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
-		final String[] pucks = new String[] { "Puck_180531_23" };
-		//final String[] pucks = new String[] { "Puck_180602_20" };
+		//final String[] pucks = new String[] { "Puck_180531_23" };
+		final String[] pucks = new String[] { "Puck_180531_23", "Puck_180531_22" };
+
+		align(
+				N5IO.readN5( new File( path + "slide-seq/" + pucks[ 0 ] + "-normalized.n5" ) ),
+				N5IO.readN5( new File( path + "slide-seq/" + pucks[ 1 ] + "-normalized.n5" ) ) );
+
+		SimpleMultiThreading.threadHaltUnClean();
 
 		final ArrayList< Pair< STData, STDataStatistics > > slides = new ArrayList<>();
 
