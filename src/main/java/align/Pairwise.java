@@ -41,6 +41,7 @@ import net.imglib2.realtransform.RealViews;
 import net.imglib2.type.numeric.complex.ComplexDoubleType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
@@ -57,7 +58,7 @@ public class Pairwise
 		final double[] ty = new double[ 360 ];
 	}
 
-	public static void align( final STData stdataA, final STData stdataB )
+	public static AffineTransform2D align( final STData stdataA, final STData stdataB )
 	{
 		final STDataStatistics statA = new STDataStatistics( stdataA );
 		final STDataStatistics statB = new STDataStatistics( stdataB );
@@ -66,7 +67,6 @@ public class Pairwise
 		final int topG = 50;
 		final int topN = 5;
 
-		/*
 		final ArrayList< Pair< String, Double > > listA = ExtractGeneLists.sortByStDevIntensity( stdataA );
 		final ArrayList< Pair< String, Double > > listB = ExtractGeneLists.sortByStDevIntensity( stdataB );
 
@@ -81,12 +81,14 @@ public class Pairwise
 
 		final List< String > genesToTest = commonGeneNames( genesA, genesB );
 		System.out.println( "testing " + genesToTest.size() + " genes." );
-		*/
+
+		/*
 		final List< String > genesToTest = new ArrayList<>();
 		genesToTest.add( "Hpca" );
 		genesToTest.add( "Fth1" );
 		genesToTest.add( "Ubb" );
 		genesToTest.add( "Pcp4" );
+		*/
 
 		final AffineTransform2D scalingTransform = new AffineTransform2D();
 		scalingTransform.scale( 0.025 );
@@ -170,6 +172,14 @@ public class Pairwise
 			System.out.println( i + "\t" + result.histogram[ i ] + "\t" + result.tx[ i ] + "\t" + result.ty[ i ] );
 		}
 
+		/*
+		// TODO: hack
+		int bestDegree = 293;
+		Result result = new Result();
+		result.tx[ bestDegree ] = -12.0;
+		result.ty[ bestDegree ] = -26;
+		*/
+
 		System.out.println( "Best degree = " + bestDegree + ": " + result.tx[ bestDegree ] + ", " + result.ty[ bestDegree ] );
 
 		// assemble a final affine transform that maps B to A in world coordinates
@@ -181,20 +191,26 @@ public class Pairwise
 		final Interval intervalA = ImgLib2Util.transformInterval( interval, scalingTransform );
 		final Interval intervalB = ImgLib2Util.transformInterval( interval, transformB );
 
-		System.out.println( "Interval A: " + Util.printInterval( intervalA ) );
-		System.out.println( "Interval B: " + Util.printInterval( intervalB ) );
+		//System.out.println( "Interval A: " + Util.printInterval( intervalA ) );
+		//System.out.println( "Interval B: " + Util.printInterval( intervalB ) );
 
 		final double tx = ( intervalA.realMin( 0 ) - intervalB.realMin( 0 ) ) + result.tx[ bestDegree ];
 		final double ty = ( intervalA.realMin( 1 ) - intervalB.realMin( 1 ) ) + result.ty[ bestDegree ];
 
 		// assemble the transform
 		final AffineTransform2D finalTransform = scalingTransform.copy();
-		finalTransform.rotate( bestDegree );
-		finalTransform.translate( tx, ty );
+
+		final AffineTransform2D rotation = new AffineTransform2D();
+		rotation.rotate( Math.toRadians( bestDegree ) );
+		finalTransform.preConcatenate( rotation );
+
+		final AffineTransform2D trans = new AffineTransform2D();
+		trans.translate( tx, ty );
+		finalTransform.preConcatenate( trans );
+
 		finalTransform.preConcatenate( scalingTransform.inverse() );
 
-		System.out.println( "Final transform: " + finalTransform );
-
+		/*
 		// visualize result for Calm1
 		final long[] shiftL = new long[ 2 ];
 		shiftL[ 0 ] = Math.round( result.tx[ bestDegree ] );
@@ -204,19 +220,19 @@ public class Pairwise
 		//shiftL[ 1 ] = Math.round( -23.01504033 );
 		//transformB.rotate( Math.toRadians( 289 ) );
 
-		final RandomAccessibleInterval< DoubleType > imgB = Views.zeroMin( display( stdataB, statB, "Calm1", ImgLib2Util.transformInterval( interval, transformB ), transformB ) );
-
-		new ImageJ();
-
 		Pair< RandomAccessibleInterval<FloatType>, RandomAccessibleInterval<FloatType>> res =
 				PhaseCorrelation2Util.dummyFuse(
 						Views.zeroMin( display( stdataA, statA, "Calm1", ImgLib2Util.transformInterval( interval, scalingTransform ), scalingTransform ) ),
-						imgB, new Point( shiftL ), serviceGlobal );
+						Views.zeroMin( display( stdataB, statB, "Calm1", ImgLib2Util.transformInterval( interval, transformB ), transformB ) ),
+						new Point( shiftL ), serviceGlobal );
 
 		ImageJFunctions.show(res.getA());
 		ImageJFunctions.show(res.getB());
+		*/
 
 		serviceGlobal.shutdown();
+
+		return finalTransform;
 	}
 
 	public static List< Pair< PhaseCorrelationPeak2, Double > > alignPairwise(
@@ -472,9 +488,28 @@ public class Pairwise
 		//final String[] pucks = new String[] { "Puck_180531_18", "Puck_180531_17" };
 
 
-		align(
-				N5IO.readN5( new File( path + "slide-seq/" + pucks[ 0 ] + "-normalized.n5" ) ),
-				N5IO.readN5( new File( path + "slide-seq/" + pucks[ 1 ] + "-normalized.n5" ) ) );
+		final STData stDataA = N5IO.readN5( new File( path + "slide-seq/" + pucks[ 0 ] + "-normalized.n5" ) );
+		final STData stDataB = N5IO.readN5( new File( path + "slide-seq/" + pucks[ 1 ] + "-normalized.n5" ) );
+
+		final AffineTransform2D finalTransform = align( stDataA, stDataB );
+
+		System.out.println( "final transform: " + finalTransform );
+
+		final Interval interval = getCommonInterval( stDataA, stDataB );
+
+		// visualize result using the global transform
+		final AffineTransform2D tA = new AffineTransform2D();
+		tA.scale( 0.1 );
+
+		final AffineTransform2D tB = finalTransform.copy();
+		tB.preConcatenate( tA );
+
+		final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tA ), 100 );
+
+		new ImageJ();
+
+		ImageJFunctions.show( display( stDataA, new STDataStatistics( stDataA ), "Calm1", finalInterval, tA ) );
+		ImageJFunctions.show( display( stDataB, new STDataStatistics( stDataB ), "Calm1", finalInterval, tB ) );
 
 		SimpleMultiThreading.threadHaltUnClean();
 
@@ -488,7 +523,7 @@ public class Pairwise
 			slides.add(  new ValuePair<>( slide, stat ) );
 		}
 
-		final Interval interval = getCommonInterval( slides.stream().map( pair -> pair.getA() ).collect( Collectors.toList() ) );
+		//final Interval interval = getCommonInterval( slides.stream().map( pair -> pair.getA() ).collect( Collectors.toList() ) );
 
 		new ImageJ();
 
