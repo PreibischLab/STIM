@@ -6,7 +6,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import analyze.ExtractGeneLists;
@@ -46,14 +50,23 @@ import util.Threads;
 
 public class Pairwise
 {
+	public static class Result
+	{
+		final double[] histogram = new double[ 360 ];
+		final double[] tx = new double[ 360 ];
+		final double[] ty = new double[ 360 ];
+	}
+
 	public static void align( final STData stdataA, final STData stdataB )
 	{
 		final STDataStatistics statA = new STDataStatistics( stdataA );
 		final STDataStatistics statB = new STDataStatistics( stdataB );
 
-		final int topG = 500;
+		final boolean doGradientDescent = true;
+		final int topG = 50;
 		final int topN = 5;
-/*
+
+		/*
 		final ArrayList< Pair< String, Double > > listA = ExtractGeneLists.sortByStDevIntensity( stdataA );
 		final ArrayList< Pair< String, Double > > listB = ExtractGeneLists.sortByStDevIntensity( stdataB );
 
@@ -66,79 +79,176 @@ public class Pairwise
 			genesB.add( listB.get( i ).getA() );
 		}
 
-		final List< String > genes = commonGeneNames( genesA, genesB );
-		System.out.println( "testing " + genes.size() + " genes." );
-
-*/
-	
+		final List< String > genesToTest = commonGeneNames( genesA, genesB );
+		System.out.println( "testing " + genesToTest.size() + " genes." );
+		*/
 		final List< String > genesToTest = new ArrayList<>();
 		genesToTest.add( "Hpca" );
 		genesToTest.add( "Fth1" );
 		genesToTest.add( "Ubb" );
 		genesToTest.add( "Pcp4" );
-		// TODO: select top N by stdev, get common ones
-
-		//final String gene = "Hpca";//"Fth1";//"Ubb";//"Pcp4";
-
-		final ExecutorService service = Threads.createFixedExecutorService();
 
 		final AffineTransform2D scalingTransform = new AffineTransform2D();
 		scalingTransform.scale( 0.025 );
 
 		final Interval interval = getCommonInterval( stdataA, stdataB );
 
-		final double[] histogram = new double[ 360 ];
+		final int numThreads = Threads.numThreads();
+		final ExecutorService serviceGlobal = Threads.createFixedExecutorService( numThreads );
 
-		for ( final String gene : genesToTest )
+		final List< Callable< Void > > tasks = new ArrayList<>();
+		final AtomicInteger nextGene = new AtomicInteger();
+
+		final Result result = new Result();
+
+		for ( int threadNum = 0; threadNum < numThreads; ++threadNum )
 		{
-			final List< Pair< PhaseCorrelationPeak2, Double > > alignParamList = alignPairwise( stdataA, statA, stdataB, statB, gene, topN, scalingTransform, interval, service );
+			tasks.add( () -> {
+				final ExecutorService serviceLocal = Threads.createFixedExecutorService( 1 );
 
-			for ( final Pair< PhaseCorrelationPeak2, Double > alignParam : alignParamList )
-				histogram[ (int)Math.round( alignParam.getB() ) ] += alignParam.getA().getCrossCorr();
+				for ( int i = nextGene.getAndIncrement(); i < genesToTest.size(); i = nextGene.getAndIncrement() )
+				{
+					final String gene = genesToTest.get( i );
 
-			final Pair< PhaseCorrelationPeak2, Double > alignParams = alignParamList.get( 0 );
-			System.out.println( "TOP ("+gene+"): " + alignParams.getB() + ", " + alignParams.getA().getCrossCorr() + ", " + Util.printCoordinates( alignParams.getA().getShift() ) );
-	
-			/*
-			// visualize result
-			final AffineTransform2D transformB = scalingTransform.copy();
-			transformB.rotate( Math.toRadians( alignParams.getB() ) );
-			final RandomAccessibleInterval< DoubleType > imgB = Views.zeroMin( display( stdataB, statB, gene, transformB, interval ) );
-			new ImageJ();
-	
-			Pair< RandomAccessibleInterval<FloatType>, RandomAccessibleInterval<FloatType>> res = PhaseCorrelation2Util.dummyFuse( Views.zeroMin( display( stdataA, statA, gene, scalingTransform, interval ) ), imgB, alignParams.getA(), service);
-			ImageJFunctions.show(res.getA());
-			ImageJFunctions.show(res.getB());
-			*/
+					final List< Pair< PhaseCorrelationPeak2, Double > > alignParamList = alignPairwise( stdataA, statA, stdataB, statB, gene, topN, doGradientDescent, scalingTransform, interval, serviceLocal );
+
+					for ( final Pair< PhaseCorrelationPeak2, Double > alignParams : alignParamList )
+					{
+						final int deg = (int)Math.round( alignParams.getB() ) % 360; // e.g. 359.6 should be 0
+						final double weight = alignParams.getA().getCrossCorr();
+
+						synchronized ( result )
+						{
+							result.histogram[ deg ] += weight;
+							result.tx[ deg ] += alignParams.getA().getShift().getDoublePosition( 0 ) * weight;
+							result.ty[ deg ] += alignParams.getA().getShift().getDoublePosition( 1 ) * weight;
+						}
+
+						System.out.println( "TOP ("+gene+"): " + alignParams.getB() + ", " + alignParams.getA().getCrossCorr() + ", " + Util.printCoordinates( alignParams.getA().getShift() ) );
+					}
+
+					System.out.println();
+
+					//final Pair< PhaseCorrelationPeak2, Double > alignParams = alignParamList.get( 0 );
+					//System.out.println( "TOP ("+gene+"): " + alignParams.getB() + ", " + alignParams.getA().getCrossCorr() + ", " + Util.printCoordinates( alignParams.getA().getShift() ) );			
+				}
+
+				serviceLocal.shutdown();
+
+				return null;
+			} );
+		}
+
+		try
+		{
+			final List< Future< Void > > futures = serviceGlobal.invokeAll( tasks );
+			for ( final Future< Void > future : futures )
+				future.get();
+		}
+		catch ( final InterruptedException | ExecutionException e )
+		{
+			e.printStackTrace();
+			throw new RuntimeException( e );
 		}
 
 		System.out.println( );
 
-		for ( int i = 0; i < histogram.length; ++i )
+		int bestDegree = -1;
+		double degreeWeight = 0;
+
+		for ( int i = 0; i < result.histogram.length; ++i )
 		{
-			System.out.println( i + "\t" + histogram[ i ] );
+			if ( result.histogram[ i ] > degreeWeight )
+			{
+				degreeWeight = result.histogram[ i ];
+				bestDegree = i;
+			}
+
+			result.tx[ i ] /= result.histogram[ i ];
+			result.ty[ i ] /= result.histogram[ i ];
+
+			System.out.println( i + "\t" + result.histogram[ i ] + "\t" + result.tx[ i ] + "\t" + result.ty[ i ] );
 		}
 
-		service.shutdown();
+		System.out.println( "Best degree = " + bestDegree + ": " + result.tx[ bestDegree ] + ", " + result.ty[ bestDegree ] );
 
+		// assemble a final affine transform that maps B to A in world coordinates
+
+		// we need the offsets (as zero-min is input to the PCM)
+		final AffineTransform2D transformB = scalingTransform.copy();
+		transformB.rotate( Math.toRadians( bestDegree ) );
+
+		final Interval intervalA = ImgLib2Util.transformInterval( interval, scalingTransform );
+		final Interval intervalB = ImgLib2Util.transformInterval( interval, transformB );
+
+		System.out.println( "Interval A: " + Util.printInterval( intervalA ) );
+		System.out.println( "Interval B: " + Util.printInterval( intervalB ) );
+
+		final double tx = ( intervalA.realMin( 0 ) - intervalB.realMin( 0 ) ) + result.tx[ bestDegree ];
+		final double ty = ( intervalA.realMin( 1 ) - intervalB.realMin( 1 ) ) + result.ty[ bestDegree ];
+
+		// assemble the transform
+		final AffineTransform2D finalTransform = scalingTransform.copy();
+		finalTransform.rotate( bestDegree );
+		finalTransform.translate( tx, ty );
+		finalTransform.preConcatenate( scalingTransform.inverse() );
+
+		System.out.println( "Final transform: " + finalTransform );
+
+		// visualize result for Calm1
+		final long[] shiftL = new long[ 2 ];
+		shiftL[ 0 ] = Math.round( result.tx[ bestDegree ] );
+		shiftL[ 1 ] = Math.round( result.ty[ bestDegree ] );
+
+		//shiftL[ 0 ] = Math.round( -11.63879058 );
+		//shiftL[ 1 ] = Math.round( -23.01504033 );
+		//transformB.rotate( Math.toRadians( 289 ) );
+
+		final RandomAccessibleInterval< DoubleType > imgB = Views.zeroMin( display( stdataB, statB, "Calm1", ImgLib2Util.transformInterval( interval, transformB ), transformB ) );
+
+		new ImageJ();
+
+		Pair< RandomAccessibleInterval<FloatType>, RandomAccessibleInterval<FloatType>> res =
+				PhaseCorrelation2Util.dummyFuse(
+						Views.zeroMin( display( stdataA, statA, "Calm1", ImgLib2Util.transformInterval( interval, scalingTransform ), scalingTransform ) ),
+						imgB, new Point( shiftL ), serviceGlobal );
+
+		ImageJFunctions.show(res.getA());
+		ImageJFunctions.show(res.getB());
+
+		serviceGlobal.shutdown();
 	}
 
-	public static List< Pair< PhaseCorrelationPeak2, Double > > alignPairwise( final STData stdataA, final STDataStatistics statA, final STData stdataB, final STDataStatistics statB, final String gene, final int topN, final AffineTransform2D scalingTransform,  final Interval interval, final ExecutorService service )
+	public static List< Pair< PhaseCorrelationPeak2, Double > > alignPairwise(
+			final STData stdataA, final STDataStatistics statA,
+			final STData stdataB, final STDataStatistics statB,
+			final String gene, final int topN,
+			final boolean doGradientDescent,
+			final AffineTransform2D scalingTransform,
+			final Interval interval,
+			final ExecutorService service )
 	{
 		final ArrayList< Pair< PhaseCorrelationPeak2, Double > > topPeaks = new ArrayList<>();
 
-		final AffineTransform2D transformA = scalingTransform.copy();
-		final RandomAccessibleInterval< DoubleType > imgA = ImgLib2Util.copyImg( Views.zeroMin( display( stdataA, statA, gene, transformA, interval ) ), new ArrayImgFactory<>( new DoubleType() ), service );
+		final RandomAccessibleInterval< DoubleType > imgA = ImgLib2Util.copyImg( display( stdataA, statA, gene, ImgLib2Util.transformInterval( interval, scalingTransform ), scalingTransform ), new ArrayImgFactory<>( new DoubleType() ), service );
 
 		// initial scouting
 		System.out.println( "Scouting: " + gene );
 
-		for ( int deg = 0; deg < 360; deg += 3 )
+		for ( int deg = 0; deg < 360; deg += 1 )
 		{
-			final PhaseCorrelationPeak2 shiftPeak = test( imgA, stdataB, statB, gene, interval, deg, scalingTransform, service );
+			final AffineTransform2D transformB = scalingTransform.copy();
+			transformB.rotate( Math.toRadians( deg ) );
+
+			final RandomAccessibleInterval< DoubleType > imgB = display( stdataB, statB, gene, ImgLib2Util.transformInterval( interval, transformB ), transformB );
+
+			final PhaseCorrelationPeak2 shiftPeak = testPair( Views.zeroMin( imgA ), Views.zeroMin( imgB ), service );
 			insertIntoList( topPeaks, topN, shiftPeak, deg );
 			//System.out.println( deg + ": " + shiftPeak.getCrossCorr() + ", " + Util.printCoordinates( shiftPeak.getShift() ) );
 		}
+
+		if ( !doGradientDescent )
+			return topPeaks;
 
 		// gradient descent for every inital Peak
 		System.out.println( "Gradient descent: " + gene );
@@ -157,26 +267,36 @@ public class Pairwise
 				{
 					updated = false;
 					double deg = bestPeak.getB();
-					
-	
-					PhaseCorrelationPeak2 shiftPeakA = test( imgA, stdataB, statB, gene, interval, deg + step, scalingTransform, service );
-	
-					if ( shiftPeakA.getCrossCorr() > bestPeak.getA().getCrossCorr() )
+
+					AffineTransform2D transformB = scalingTransform.copy();
+					transformB.rotate( Math.toRadians( deg + step ) );
+
+					PhaseCorrelationPeak2 shiftPeak = testPair( imgA, Views.zeroMin( display( stdataB, statB, gene, ImgLib2Util.transformInterval( interval, transformB ), transformB ) ), service );
+
+					if ( shiftPeak.getCrossCorr() > bestPeak.getA().getCrossCorr() )
 					{
 						updated = true;
-						bestPeak = new ValuePair< PhaseCorrelationPeak2, Double >( shiftPeakA, deg + step );
+						if ( deg + step >= 360 )
+							deg -= 360;
+						bestPeak = new ValuePair< PhaseCorrelationPeak2, Double >( shiftPeak, deg + step );
 					}
 
-					PhaseCorrelationPeak2 shiftPeakB = test( imgA, stdataB, statB, gene, interval, deg - step, scalingTransform, service );
+					transformB = scalingTransform.copy();
+					transformB.rotate( Math.toRadians( deg - step ) );
 
-					if ( shiftPeakB.getCrossCorr() > bestPeak.getA().getCrossCorr() )
+					shiftPeak = testPair( imgA, Views.zeroMin( display( stdataB, statB, gene, ImgLib2Util.transformInterval( interval, transformB ), transformB ) ), service );
+
+					if ( shiftPeak.getCrossCorr() > bestPeak.getA().getCrossCorr() )
 					{
 						updated = true;
-						bestPeak = new ValuePair< PhaseCorrelationPeak2, Double >( shiftPeakB, deg - step );
+						if ( deg - step < 0 )
+							deg += 360;
+						bestPeak = new ValuePair< PhaseCorrelationPeak2, Double >( shiftPeak, deg - step );
 					}
 				} while ( updated );
 			}
 
+			// How is it possible that only 4 locations are in here with topN == 5 (e.g. mt-Nd1)
 			insertIntoList( revisedTopPeaks, topN, bestPeak.getA(), bestPeak.getB() );
 		}
 
@@ -212,16 +332,8 @@ public class Pairwise
 		}
 	}
 
-	public static PhaseCorrelationPeak2 test( final RandomAccessibleInterval< DoubleType > imgA, final STData stdata, final STDataStatistics stat, final String gene, final Interval interval, final double degrees, final AffineTransform2D initialTransform, final ExecutorService service  )
+	public static PhaseCorrelationPeak2 testPair( final RandomAccessibleInterval< DoubleType > imgA, final RandomAccessibleInterval< DoubleType > imgB, final ExecutorService service  )
 	{
-		final AffineTransform2D transformB = initialTransform.copy();
-		transformB.rotate( Math.toRadians( degrees ) );
-
-		final RandomAccessibleInterval< DoubleType > imgB = Views.zeroMin( display( stdata, stat, gene, transformB, interval ) );
-
-		//ImageJFunctions.show( imgA, service ).setTitle( stdataA.toString() );
-		//ImageJFunctions.show( imgB, service ).setTitle( stdataB.toString() + " @ " + i + " deg"  );
-
 		RandomAccessibleInterval<DoubleType> pcm = PhaseCorrelation2.calculatePCM(
 				imgA, imgB,
 				new ArrayImgFactory<DoubleType>( new DoubleType() ),
@@ -239,13 +351,9 @@ public class Pairwise
 			final STData stdata,
 			final STDataStatistics stStats,
 			final String gene,
-			final AffineTransform2D transform,
-			final Interval commonInterval )
+			final Interval renderInterval,
+			final AffineTransform2D transform )
 	{
-		final double medianDistance = stStats.getMedianDistance() * 1.0;
-
-		final Interval interval = ImgLib2Util.transformInterval( commonInterval == null ? stdata.getRenderInterval() : commonInterval, transform );
-
 		//System.out.println( "Mean distance: " + stStats.getMeanDistance());
 		//System.out.println( "Median distance: " + stStats.getMedianDistance() );
 		//System.out.println( "Max distance: " + stStats.getMaxDistance() );
@@ -279,8 +387,7 @@ public class Pairwise
 		//data = Filters.filter( data, new MeanFilterFactory<>( outofbounds, medianDistance * 10 ) );
 		//data = Filters.filter( data, new GaussianFilterFactory<>( outofbounds, medianDistance * 2, stStats.getMedianDistance(), true ) );
 
-		final Pair< DoubleType, DoubleType > minmax = ImgLib2Util.minmax( data );
-
+		//final Pair< DoubleType, DoubleType > minmax = ImgLib2Util.minmax( data );
 		//System.out.println( "Min intensity: " + minmax.getA() );
 		//System.out.println( "Max intensity: " + minmax.getB() );
 
@@ -297,7 +404,7 @@ public class Pairwise
 
 		//System.out.println( new Date(System.currentTimeMillis()) + ": Rendering interval " + Util.printInterval( interval ) + " with " + Threads.numThreads() + " threads ... " );
 		
-		final RandomAccessibleInterval< DoubleType > rendered = Views.interval( RealViews.affine( renderRRA, transform ), interval );
+		final RandomAccessibleInterval< DoubleType > rendered = Views.interval( RealViews.affine( renderRRA, transform ), renderInterval );
 		//ImageJFunctions.show( rendered, Threads.createFixedExecutorService() ).setTitle( stdata.toString() );
 		//System.out.println( new Date(System.currentTimeMillis()) + ": Done..." );
 
@@ -390,7 +497,7 @@ public class Pairwise
 
 		for ( final Pair< STData, STDataStatistics > slide : slides )
 		{
-			display( slide.getA(), slide.getB(), "Pcp4", transform, interval );
+			display( slide.getA(), slide.getB(), "Pcp4", ImgLib2Util.transformInterval( interval, transform ), transform );
 			SimpleMultiThreading.threadHaltUnClean();
 		}
 
