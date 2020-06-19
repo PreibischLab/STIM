@@ -30,20 +30,33 @@ import java.util.concurrent.Executors;
 
 import ij.ImageJ;
 import imglib2.ImgLib2Util;
+import net.imglib2.Cursor;
 import net.imglib2.Dimensions;
 import net.imglib2.FinalInterval;
+import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.RealRandomAccess;
+import net.imglib2.algorithm.fft.FFTFunctions;
 import net.imglib2.algorithm.fft2.FFT;
 import net.imglib2.algorithm.fft2.FFTMethods;
+import net.imglib2.converter.ComplexPowerGLogFloatConverter;
+import net.imglib2.converter.Converter;
+import net.imglib2.converter.Converters;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.interpolation.randomaccess.NLinearInterpolatorFactory;
+import net.imglib2.multithreading.SimpleMultiThreading;
+import net.imglib2.realtransform.PolarToCartesianTransform2D;
+import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.ComplexType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.complex.ComplexFloatType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
+import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 
 public class PhaseCorrelation2 {
@@ -233,6 +246,20 @@ public class PhaseCorrelation2 {
 		PhaseCorrelationPeak2 res = getShift(pcm, img1, img2, 5, 0, true, false, service);
 		service.shutdown();
 		return res;
+	}
+
+	/**
+	 * Computes the generalized log of the power spectrum for a complex value
+	 * 
+	 * @author Stephan Preibisch
+	 */
+	public static class ComplexPowerGLogRealConverter< R extends ComplexType< R >, T extends RealType< T > > implements Converter< R, T >
+	{
+		@Override
+		public void convert( final R input, final T output )
+		{
+			output.setReal( Util.gLog( input.getPowerFloat(), 2 ) );
+		}
 	}
 
 	public static void main(String[] args) {

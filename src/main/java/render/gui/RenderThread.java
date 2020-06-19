@@ -1,22 +1,18 @@
 package render.gui;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-import align.Pairwise;
-import bdv.tools.brightness.ConverterSetup;
-import bdv.tools.brightness.MinMaxGroup;
-import bdv.tools.brightness.SetupAssignments;
 import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
 import data.STData;
 import data.STDataStatistics;
+import data.STDataUtils;
 import filter.GaussianFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
 import net.imglib2.Interval;
@@ -52,7 +48,7 @@ public class RenderThread implements Runnable
 	public RenderThread( final List< Pair< STData, STDataStatistics > > slides )
 	{
 		this.slides = slides;
-		this.interval = Pairwise.getCommonInterval( slides.stream().map( pair -> pair.getA() ).collect( Collectors.toList() ) );
+		this.interval = STDataUtils.getCommonInterval( slides.stream().map( pair -> pair.getA() ).collect( Collectors.toList() ) );
 		this.options = BdvOptions.options().is2D().numRenderingThreads( Runtime.getRuntime().availableProcessors() );
 		this.bdv = BdvFunctions.show( Views.extendZero( ArrayImgs.doubles( 1, 1 ) ), interval, "", options );
 		bdv.setDisplayRange( min, max );

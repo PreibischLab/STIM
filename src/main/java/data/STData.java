@@ -19,6 +19,7 @@ public interface STData extends IterableRealInterval< RealLocalizable >
 	public KDTree< RealLocalizable > getLocationKDTree();
 	public KDTree< DoubleType > getExpValueKDTree( final String geneName );
 	public IterableRealInterval< DoubleType > getExprData( final String geneName );
+	
 
 	int getIndexForGene( final String geneName );
 

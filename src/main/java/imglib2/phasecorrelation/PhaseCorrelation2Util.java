@@ -21,7 +21,9 @@
  */
 package imglib2.phasecorrelation;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Vector;
@@ -31,6 +33,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import ij.ImageJ;
+import imglib2.ImgLib2Util;
+import imglib2.phasecorrelation.PhaseCorrelation2.ComplexPowerGLogRealConverter;
 import net.imglib2.Cursor;
 import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
@@ -43,9 +48,21 @@ import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealPoint;
+import net.imglib2.RealRandomAccess;
+import net.imglib2.algorithm.fft2.FFT;
+import net.imglib2.algorithm.fft2.FFTMethods;
+import net.imglib2.converter.Converters;
+import net.imglib2.img.Img;
+import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.interpolation.randomaccess.NLinearInterpolatorFactory;
+import net.imglib2.multithreading.SimpleMultiThreading;
+import net.imglib2.realtransform.PolarToCartesianTransform2D;
+import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.ComplexType;
 import net.imglib2.type.numeric.RealType;
+import net.imglib2.type.numeric.complex.ComplexFloatType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.RealSum;
@@ -820,18 +837,18 @@ public class PhaseCorrelation2Util {
 		return sum12 / Math.sqrt(sum11 * sum22);
 	}
 
-	
-	/*
-	 * test stitching, create new image with img2 copied over img1 at the specified shift
-	 * @param img1
-	 * @param img2
-	 * @param shiftPeak
-	 * @return
-	 */
-	public static <T extends RealType<T>, S extends RealType<S>> Pair< RandomAccessibleInterval<FloatType>, RandomAccessibleInterval<FloatType>> dummyFuse(RandomAccessibleInterval<T> img1, RandomAccessibleInterval<S> img2, PhaseCorrelationPeak2 shiftPeak, ExecutorService service)
+
+	public static <T extends RealType<T>, S extends RealType<S>> Pair< RandomAccessibleInterval<FloatType>, RandomAccessibleInterval<FloatType>> dummyFuse(
+			RandomAccessibleInterval<T> img1, RandomAccessibleInterval<S> img2, PhaseCorrelationPeak2 shiftPeak, ExecutorService service)
 	{
+		return dummyFuse( img1, img2, shiftPeak.getShift(), service );
+	}
+
+	public static <T extends RealType<T>, S extends RealType<S>> Pair< RandomAccessibleInterval<FloatType>, RandomAccessibleInterval<FloatType>> dummyFuse(
+			RandomAccessibleInterval<T> img1, RandomAccessibleInterval<S> img2, Localizable shiftPeak, ExecutorService service)
+	{	
 		long[] shift = new long[img1.numDimensions()];
-		shiftPeak.getShift().localize(shift);
+		shiftPeak.localize(shift);
 		long[] minImg1 = new long[img1.numDimensions()];
 		long[] minImg2 = new long[img1.numDimensions()];
 		long[] maxImg1 = new long[img1.numDimensions()];
@@ -842,7 +859,7 @@ public class PhaseCorrelation2Util {
 		for (int i = 0; i < img1.numDimensions(); i++){
 			minImg1[i] = 0;
 			maxImg1[i] = img1.dimension(i) -1;
-			minImg2[i] = shiftPeak.getShift().getLongPosition(i);
+			minImg2[i] = shiftPeak.getLongPosition(i);
 			maxImg2[i] = img2.dimension(i) + minImg2[i] - 1;
 
 			min[i] =  Math.min(minImg1[i], minImg2[i]);
@@ -855,5 +872,76 @@ public class PhaseCorrelation2Util {
 		copyRealImage(Views.iterable(img1), Views.translate(res1, min), service);
 		copyRealImage(Views.iterable(Views.translate(img2, shift)), Views.translate(res2, min), service);
 		return new ValuePair<>( res1, res2 );
+	}
+
+	public static < C extends ComplexType< C >, T extends RealType< T > & NativeType< T > > Img< T > computePolarPowerSpectrum( final RandomAccessibleInterval< C > fft, final T type )
+	{
+		if ( fft.numDimensions() != 2 )
+			throw new RuntimeException( "Only dim=2 allowed." );
+
+		final RandomAccessibleInterval< T > power = Converters.convertRAI( fft, new ComplexPowerGLogRealConverter<>(), type );
+
+		final Img< T > polarImg = new ArrayImgFactory< T >( type ).create( 360, Math.min( power.dimension( 0 ), power.dimension( 1 ) ) ); //ArrayImgs.floats( 360, Math.min( power.dimension( 0 ), power.dimension( 1 ) ) );
+
+		final PolarToCartesianTransform2D polarTransform = new PolarToCartesianTransform2D();
+
+		// we need to mirror in x, then extend periodic
+		final long[] min = new long[ 2 ];
+		final long[] max = new long[ 2 ];
+
+		power.max( max );
+		min[ 0 ] = -max[ 0 ];
+
+		final RealRandomAccess< T > in = Views.interpolate( Views.extendPeriodic( Views.interval( Views.extendMirrorSingle( power ), min, max ) ), new NLinearInterpolatorFactory<>() ).realRandomAccess();
+		final Cursor< T > cursor = polarImg.localizingCursor();
+
+		final double[] source = new double[ 2 ];
+
+		while ( cursor.hasNext() )
+		{
+			final T t = cursor.next();
+
+			source[ 0 ] = cursor.getIntPosition( 1 );
+			source[ 1 ] = Math.toRadians( cursor.getIntPosition( 0 ) );
+
+			polarTransform.apply( source, source );
+
+			in.setPosition( source );
+			t.set( in.get() );
+		}
+
+		return polarImg;
+	}
+
+	public static void main(String[] args)
+	{
+		new ImageJ();
+
+		Img<FloatType> img1 = ImgLib2Util.openAs32Bit(new File("src/main/resources/img1.tif"));
+		Img<FloatType> img2 = ImgLib2Util.openAs32Bit(new File("src/main/resources/img2.tif"));
+
+		ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
+		int [] extension = new int[img1.numDimensions()];
+		Arrays.fill(extension, 10);
+		Dimensions extSize = PhaseCorrelation2Util.getExtendedSize(img1, img2, extension);
+		long[] paddedDimensions = new long[extSize.numDimensions()];
+		long[] fftSize = new long[extSize.numDimensions()];
+		FFTMethods.dimensionsRealToComplexFast(extSize, paddedDimensions, fftSize);
+
+		final ImgFactory< ComplexFloatType > fftFactory = new ArrayImgFactory<ComplexFloatType>( new ComplexFloatType() );
+		RandomAccessibleInterval<ComplexFloatType> fft1 = fftFactory.create(fftSize);
+		RandomAccessibleInterval<ComplexFloatType> fft2 = fftFactory.create(fftSize);
+
+		FFT.realToComplex(Views.interval(PhaseCorrelation2Util.extendImageByFactor(img1, extension), 
+				FFTMethods.paddingIntervalCentered(img1, new FinalInterval(paddedDimensions))), fft1, service);
+		FFT.realToComplex(Views.interval(PhaseCorrelation2Util.extendImageByFactor(img2, extension), 
+				FFTMethods.paddingIntervalCentered(img2, new FinalInterval(paddedDimensions))), fft2, service);
+
+		final RandomAccessibleInterval< FloatType > polar1 =  computePolarPowerSpectrum( fft1, new FloatType() );
+		final RandomAccessibleInterval< FloatType > polar2 =  computePolarPowerSpectrum( fft2, new FloatType() );
+
+		ImageJFunctions.show( polar1 );
+		ImageJFunctions.show( polar2 );
 	}
 }

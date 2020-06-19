@@ -9,24 +9,28 @@ import net.imglib2.view.Views;
 
 public class TransformIntensities
 {
+	@Deprecated
 	public static void add( final STData data, final double value )
 	{
 		for ( final DoubleType t : Views.iterable( data.getAllExprValues() ) )
 			t.set( t.get() + value );
 	}
 
+	@Deprecated
 	public static void add( final STData data, final String geneName, final double value )
 	{
 		for ( final DoubleType t : Views.iterable( data.getExprValues( geneName ) ) )
 			t.set( t.get() + value );
 	}
 
+	@Deprecated
 	public static void mul( final STData data, final double value )
 	{
 		for ( final DoubleType t : Views.iterable( data.getAllExprValues() ) )
 			t.set( t.get() * value );
 	}
 
+	@Deprecated
 	public static void mul( final STData data, final String geneName, final double value )
 	{
 		for ( final DoubleType t : Views.iterable( data.getExprValues( geneName ) ) )

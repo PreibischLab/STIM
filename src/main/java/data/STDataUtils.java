@@ -1,9 +1,14 @@
 package data;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 
+import net.imglib2.FinalInterval;
 import net.imglib2.FinalRealInterval;
+import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.KDTree;
 import net.imglib2.RealCursor;
@@ -18,6 +23,57 @@ public class STDataUtils
 	static class DistanceStats
 	{
 		public double avgDist, medianDist, minDist, maxDist;
+	}
+
+	public static List< String > commonGeneNames( final List< String > names0, final List< String > names1 )
+	{
+		final ArrayList< String > commonGeneNames = new ArrayList<>();
+		final HashSet< String > names0Hash = new HashSet<>( names0 );
+
+		for ( final String name1 : names1 )
+			if ( names0Hash.contains( name1 ) )
+				commonGeneNames.add( name1 );
+
+		return commonGeneNames;
+	}
+
+	public static Interval getCommonInterval( final STData stDataA, final STData stDataB )
+	{
+		final ArrayList< STData > list = new ArrayList<>();
+		list.add( stDataA );
+		list.add( stDataB );
+
+		return getCommonInterval( list );
+	}
+
+	public static Interval getCommonInterval( final Collection< STData > datasets )
+	{
+		long[] min = null, max = null;
+
+		for ( final STData dataset : datasets )
+		{
+			if ( min == null )
+			{
+				min = new long[ dataset.getRenderInterval().numDimensions() ];
+				max = new long[ dataset.getRenderInterval().numDimensions() ];
+				
+				dataset.getRenderInterval().min( min );
+				dataset.getRenderInterval().max( max );
+			}
+			else
+			{
+				for ( int d = 0; d < min.length; ++d )
+				{
+					min[ d ] = Math.min( min[ d ], dataset.getRenderInterval().min( d ) );
+					max[ d ] = Math.max( max[ d ], dataset.getRenderInterval().max( d ) );
+				}
+			}
+		}
+
+		if ( min != null )
+			return new FinalInterval( min, max );
+		else
+			return null;
 	}
 
 	public static < R extends RealLocalizable > DistanceStats distanceStats( final KDTree< R > tree )
