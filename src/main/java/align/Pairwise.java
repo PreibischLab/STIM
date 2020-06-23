@@ -392,8 +392,7 @@ public class Pairwise
 			final AffineTransform2D transformB = scalingTransform.copy();
 			transformB.rotate( Math.toRadians( deg ) );
 
-			// TODO: ImgLib2Util.copyImg(
-			final RandomAccessibleInterval< DoubleType > imgB = display( stdataB, statB, gene, ImgLib2Util.transformInterval( interval, transformB ), transformB );
+			final RandomAccessibleInterval< DoubleType > imgB = ImgLib2Util.copyImg( display( stdataB, statB, gene, ImgLib2Util.transformInterval( interval, transformB ), transformB ), new ArrayImgFactory<>( new DoubleType() ), service );
 
 			final PhaseCorrelationPeak2 shiftPeak = testPair( Views.zeroMin( imgA ), Views.zeroMin( imgB ), nHighest, service );
 			insertIntoList( topPeaks, topN, shiftPeak, deg );
