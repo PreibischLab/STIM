@@ -23,6 +23,7 @@ import imglib2.icp.NoSuitablePointsException;
 import imglib2.icp.PointMatchIdentification;
 import imglib2.icp.StDataPointMatchIdentification;
 import imglib2.phasecorrelation.PhaseCorrelation2;
+import imglib2.phasecorrelation.PhaseCorrelation2Util;
 import imglib2.phasecorrelation.PhaseCorrelationPeak2;
 import io.N5IO;
 import io.Path;
@@ -30,6 +31,7 @@ import mpicbg.models.AffineModel2D;
 import mpicbg.models.IllDefinedDataPointsException;
 import mpicbg.models.Model;
 import mpicbg.models.NotEnoughDataPointsException;
+import net.imglib2.Cursor;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RandomAccessibleInterval;
@@ -37,10 +39,14 @@ import net.imglib2.RealCursor;
 import net.imglib2.RealLocalizable;
 import net.imglib2.RealPoint;
 import net.imglib2.RealRandomAccessible;
+import net.imglib2.algorithm.gauss3.Gauss3;
 import net.imglib2.converter.Converter;
 import net.imglib2.converter.Converters;
+import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.realtransform.RealViews;
 import net.imglib2.type.numeric.complex.ComplexDoubleType;
@@ -61,9 +67,23 @@ public class Pairwise
 
 	public static class Result
 	{
-		final double[] histogram = new double[ 360 ];
-		final double[] tx = new double[ 360 ];
-		final double[] ty = new double[ 360 ];
+		final Img< DoubleType > histogram = ArrayImgs.doubles( 360 );
+		final Img< DoubleType > tx = ArrayImgs.doubles( 360 );
+		final Img< DoubleType > ty = ArrayImgs.doubles( 360 );
+
+		public Result copy()
+		{
+			final Result copy = new Result();
+
+			for ( int i = 0; i < histogram.dimension( 0 ); ++i )
+			{
+				copy.histogram.getAt( i ).set( this.histogram.getAt( i ) );
+				copy.tx.getAt( i ).set( this.tx.getAt( i ) );
+				copy.ty.getAt( i ).set( this.ty.getAt( i ) );
+			}
+
+			return copy;
+		}
 	}
 
 	/**
@@ -88,7 +108,9 @@ public class Pairwise
 
 		System.out.println( "listA (reference): " + listA.size() );
 
+		/*
 		// tmp
+		System.out.println( "listB (target) sampling: " + StDataPointMatchIdentification.sampling );
 		StDataPointMatchIdentification.sampling = 4.0;//Math.min( stStatsDataA.getMedianDistance(), stStatsDataB.getMedianDistance() ) / 2.0;
 		IterableRealInterval< DoubleType > dataB = TransformCoordinates.sample( stdataB.getExprData( genesToUse.get( 0 ) ), StDataPointMatchIdentification.sampling );
 		final RealCursor< DoubleType > c = dataB.localizingCursor();
@@ -98,12 +120,11 @@ public class Pairwise
 			c.fwd();
 			listB.add( new RealPoint( c ) );
 		}
-
-		//for ( final RealLocalizable p : stdataB )
-		//	listB.add( new RealPoint( p ) );
+		*/
+		for ( final RealLocalizable p : stdataB )
+			listB.add( new RealPoint( p ) );
 
 		System.out.println( "listB (target): " + listB.size() );
-		System.out.println( "listB (target) sampling: " + StDataPointMatchIdentification.sampling );
 
 		final double[] m = initialModel.getRowPackedCopy(); //a.m00, a.m01, a.m02, a.m10, a.m11, a.m12
 
@@ -183,6 +204,8 @@ public class Pairwise
 			final STData stdataA,
 			final STData stdataB,
 			final List< String > genesToTest,
+			final double scaling,
+			final int degreeSteps,
 			final int topN,
 			final boolean doGradientDescent  )
 	{
@@ -190,7 +213,7 @@ public class Pairwise
 		final STDataStatistics statB = new STDataStatistics( stdataB );
 
 		final AffineTransform2D scalingTransform = new AffineTransform2D();
-		scalingTransform.scale( 0.025 );
+		scalingTransform.scale( scaling );
 
 		final Interval interval = STDataUtils.getCommonInterval( stdataA, stdataB );
 
@@ -212,7 +235,7 @@ public class Pairwise
 					final String gene = genesToTest.get( i );
 
 					final List< Pair< PhaseCorrelationPeak2, Double > > alignParamList =
-							alignGenePairwise( stdataA, statA, stdataB, statB, gene, topN, doGradientDescent, scalingTransform, interval, serviceLocal );
+							alignGenePairwise( stdataA, statA, stdataB, statB, gene, degreeSteps, topN, doGradientDescent, scalingTransform, interval, serviceLocal );
 
 					for ( final Pair< PhaseCorrelationPeak2, Double > alignParams : alignParamList )
 					{
@@ -221,9 +244,9 @@ public class Pairwise
 
 						synchronized ( result )
 						{
-							result.histogram[ deg ] += weight;
-							result.tx[ deg ] += alignParams.getA().getShift().getDoublePosition( 0 ) * weight;
-							result.ty[ deg ] += alignParams.getA().getShift().getDoublePosition( 1 ) * weight;
+							result.histogram.getAt( deg ).add( new DoubleType( weight ) );
+							result.tx.getAt( deg ).add( new DoubleType( alignParams.getA().getShift().getDoublePosition( 0 ) * weight ) );
+							result.ty.getAt( deg ).add( new DoubleType( alignParams.getA().getShift().getDoublePosition( 1 ) * weight ) );
 						}
 
 						System.out.println( "TOP ("+gene+"): " + alignParams.getB() + ", " + alignParams.getA().getCrossCorr() + ", " + Util.printCoordinates( alignParams.getA().getShift() ) );
@@ -255,22 +278,9 @@ public class Pairwise
 
 		System.out.println( );
 
-		int bestDegree = -1;
-		double degreeWeight = 0;
-
-		for ( int i = 0; i < result.histogram.length; ++i )
-		{
-			if ( result.histogram[ i ] > degreeWeight )
-			{
-				degreeWeight = result.histogram[ i ];
-				bestDegree = i;
-			}
-
-			result.tx[ i ] /= result.histogram[ i ];
-			result.ty[ i ] /= result.histogram[ i ];
-
-			System.out.println( i + "\t" + result.histogram[ i ] + "\t" + result.tx[ i ] + "\t" + result.ty[ i ] );
-		}
+		Gauss3.gauss( 2, Views.extendPeriodic( result.histogram ), result.histogram );
+		Gauss3.gauss( 2, Views.extendPeriodic( result.tx ), result.tx );
+		Gauss3.gauss( 2, Views.extendPeriodic( result.ty ), result.ty );
 
 		/*
 		// TODO: hack
@@ -280,13 +290,37 @@ public class Pairwise
 		result.ty[ bestDegree ] = -23.01504033;
 		*/
 
-		System.out.println( "Best degree = " + bestDegree + ": " + result.tx[ bestDegree ] + ", " + result.ty[ bestDegree ] );
+		int bestDegreeGauss = -1;
+		double degreeWeightGauss = 0;
+
+		for ( int i = 0; i < result.histogram.dimension( 0 ); ++i )
+		{
+			final double weight = result.histogram.getAt( i ).get();
+	
+			if ( weight > degreeWeightGauss )
+			{
+				degreeWeightGauss = weight;
+				bestDegreeGauss = i;
+			}
+
+			final DoubleType tx = result.tx.getAt( i );
+			final DoubleType ty = result.ty.getAt( i );
+
+			tx.set( weight > 0 ? tx.get() / weight : 0.0 );
+			ty.set( weight > 0 ? ty.get() / weight : 0.0 );
+
+			System.out.println( i + "\t" + weight + "\t" + tx + "\t" + ty );
+		}
+
+		System.out.println( "Best degree gauss = " + bestDegreeGauss + ": " + result.tx.getAt( bestDegreeGauss ).get() + ", " + result.ty.getAt( bestDegreeGauss ).get() );
+
+
 
 		// assemble a final affine transform that maps B to A in world coordinates
 
 		// we need the offsets (as zero-min is input to the PCM)
 		final AffineTransform2D transformB = scalingTransform.copy();
-		transformB.rotate( Math.toRadians( bestDegree ) );
+		transformB.rotate( Math.toRadians( bestDegreeGauss ) );
 
 		final Interval intervalA = ImgLib2Util.transformInterval( interval, scalingTransform );
 		final Interval intervalB = ImgLib2Util.transformInterval( interval, transformB );
@@ -294,14 +328,14 @@ public class Pairwise
 		//System.out.println( "Interval A: " + Util.printInterval( intervalA ) );
 		//System.out.println( "Interval B: " + Util.printInterval( intervalB ) );
 
-		final double tx = ( intervalA.realMin( 0 ) - intervalB.realMin( 0 ) ) + result.tx[ bestDegree ];
-		final double ty = ( intervalA.realMin( 1 ) - intervalB.realMin( 1 ) ) + result.ty[ bestDegree ];
+		final double tx = ( intervalA.realMin( 0 ) - intervalB.realMin( 0 ) ) + result.tx.getAt( bestDegreeGauss ).get();
+		final double ty = ( intervalA.realMin( 1 ) - intervalB.realMin( 1 ) ) + result.ty.getAt( bestDegreeGauss ).get();
 
 		// assemble the transform
 		final AffineTransform2D finalTransform = scalingTransform.copy();
 
 		final AffineTransform2D rotation = new AffineTransform2D();
-		rotation.rotate( Math.toRadians( bestDegree ) );
+		rotation.rotate( Math.toRadians( bestDegreeGauss ) );
 		finalTransform.preConcatenate( rotation );
 
 		final AffineTransform2D trans = new AffineTransform2D();
@@ -338,7 +372,9 @@ public class Pairwise
 	public static List< Pair< PhaseCorrelationPeak2, Double > > alignGenePairwise(
 			final STData stdataA, final STDataStatistics statA,
 			final STData stdataB, final STDataStatistics statB,
-			final String gene, final int topN,
+			final String gene,
+			final int degreeSteps,
+			final int topN,
 			final boolean doGradientDescent,
 			final AffineTransform2D scalingTransform,
 			final Interval interval,
@@ -351,11 +387,12 @@ public class Pairwise
 		// initial scouting
 		System.out.println( "Scouting: " + gene );
 
-		for ( int deg = 0; deg < 360; deg += 1 )
+		for ( int deg = 0; deg < 360; deg += degreeSteps )
 		{
 			final AffineTransform2D transformB = scalingTransform.copy();
 			transformB.rotate( Math.toRadians( deg ) );
 
+			// TODO: ImgLib2Util.copyImg(
 			final RandomAccessibleInterval< DoubleType > imgB = display( stdataB, statB, gene, ImgLib2Util.transformInterval( interval, transformB ), transformB );
 
 			final PhaseCorrelationPeak2 shiftPeak = testPair( Views.zeroMin( imgA ), Views.zeroMin( imgB ), nHighest, service );
@@ -456,11 +493,12 @@ public class Pairwise
 				new ArrayImgFactory<ComplexDoubleType>( new ComplexDoubleType() ),
 				service );
 
+		//ImageJFunctions.show( pcm );
 		//List<PhaseCorrelationPeak2> peaks = PhaseCorrelation2Util.getPCMMaxima(pcm, service, 5, false );
 		//for ( final PhaseCorrelationPeak2 p : peaks )
 		//	System.out.println( "PCM: " + p.getPhaseCorr() + ", " + Util.printCoordinates( p.getPcmLocation() ) );
 
-		return PhaseCorrelation2.getShift(pcm, imgA, imgB, nHighest, 10000, false, false, service);// Threads.createFixedExecutorService( 1 ));
+		return PhaseCorrelation2.getShift(pcm, imgA, imgB, nHighest, 1000, false, false, service);// Threads.createFixedExecutorService( 1 ));
 	}
 
 	public static RandomAccessibleInterval< DoubleType > display(
@@ -542,22 +580,30 @@ public class Pairwise
 		final STData stDataB = N5IO.readN5( new File( path + "slide-seq/" + pucks[ 1 ] + "-normalized.n5" ) );
 
 
-		//final List< String > genesToTest = genesToTest( stDataA, stDataB, 50 );
+		final List< String > genesToTest = genesToTest( stDataA, stDataB, 50 );
+
+		/*
 		final List< String > genesToTest = new ArrayList<>();
 		genesToTest.add( "Calm1" );
+		genesToTest.add( "Calm2" );
 		genesToTest.add( "Hpca" );
 		genesToTest.add( "Fth1" );
 		genesToTest.add( "Ubb" );
 		genesToTest.add( "Pcp4" );
+		*/
 
+		long time = System.currentTimeMillis();
+		final AffineTransform2D pcmTransform = align( stDataA, stDataB, genesToTest, 0.01, 2, 3, true );
+		System.out.println( "time: " + (System.currentTimeMillis() - time ) / 1000 );
+		System.out.println( "PCM transform: " + pcmTransform );
+		System.exit( 0 );
 
-		//final AffineTransform2D pcmTransform = align( stDataA, stDataB, genesToTest, 5, true );
-
-		final AffineTransform2D pcmTransform = new AffineTransform2D();
-		pcmTransform.set( 0.32556815445715637, 0.945518575599317, -465.5516232, -0.945518575599317, 0.32556815445715637, 4399.3983868 ); // "Puck_180531_23", "Puck_180531_22"
+		//final AffineTransform2D pcmTransform = new AffineTransform2D();
+		//pcmTransform.set( 0.32556815445715637, 0.945518575599317, -465.5516232, -0.945518575599317, 0.32556815445715637, 4399.3983868 ); // "Puck_180531_23", "Puck_180531_22"
+		//pcmTransform.set( 0.24192189559966745, 0.9702957262759967, -199.37562080565206, -0.9702957262759967, 0.24192189559966745, 4602.7163253270855 );
 		System.out.println( "PCM transform: " + pcmTransform );
 
-		final AffineTransform2D icpTransform = alignICP( stDataA, stDataB, genesToTest, pcmTransform, 8.0, 100 );
+		final AffineTransform2D icpTransform = alignICP( stDataA, stDataB, genesToTest, pcmTransform, 20, 50 );
 		System.out.println( "ICP transform: " + icpTransform );
 
 
