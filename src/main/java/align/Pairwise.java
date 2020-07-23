@@ -195,12 +195,10 @@ public class Pairwise
 
 		final List< String > genesToTest = STDataUtils.commonGeneNames( genesA, genesB );
 
-		System.out.println( "testing " + genesToTest.size() + " genes." );
-
 		return genesToTest;
 	}
 
-	public static AffineTransform2D align(
+	public static Pair< AffineTransform2D, Double > align(
 			final STData stdataA,
 			final STData stdataB,
 			final List< String > genesToTest,
@@ -249,10 +247,10 @@ public class Pairwise
 							result.ty.getAt( deg ).add( new DoubleType( alignParams.getA().getShift().getDoublePosition( 1 ) * weight ) );
 						}
 
-						System.out.println( "TOP ("+gene+"): " + alignParams.getB() + ", " + alignParams.getA().getCrossCorr() + ", " + Util.printCoordinates( alignParams.getA().getShift() ) );
+						//System.out.println( "TOP ("+gene+"): " + alignParams.getB() + ", " + alignParams.getA().getCrossCorr() + ", " + Util.printCoordinates( alignParams.getA().getShift() ) );
 					}
 
-					System.out.println();
+					//System.out.println();
 
 					//final Pair< PhaseCorrelationPeak2, Double > alignParams = alignParamList.get( 0 );
 					//System.out.println( "TOP ("+gene+"): " + alignParams.getB() + ", " + alignParams.getA().getCrossCorr() + ", " + Util.printCoordinates( alignParams.getA().getShift() ) );			
@@ -275,8 +273,6 @@ public class Pairwise
 			e.printStackTrace();
 			throw new RuntimeException( e );
 		}
-
-		System.out.println( );
 
 		Gauss3.gauss( 2, Views.extendPeriodic( result.histogram ), result.histogram );
 		Gauss3.gauss( 2, Views.extendPeriodic( result.tx ), result.tx );
@@ -309,10 +305,10 @@ public class Pairwise
 			tx.set( weight > 0 ? tx.get() / weight : 0.0 );
 			ty.set( weight > 0 ? ty.get() / weight : 0.0 );
 
-			System.out.println( i + "\t" + weight + "\t" + tx + "\t" + ty );
+			//System.out.println( i + "\t" + weight + "\t" + tx + "\t" + ty );
 		}
 
-		System.out.println( "Best degree gauss = " + bestDegreeGauss + ": " + result.tx.getAt( bestDegreeGauss ).get() + ", " + result.ty.getAt( bestDegreeGauss ).get() );
+		//System.out.println( "Best degree gauss = " + bestDegreeGauss + ": " + result.tx.getAt( bestDegreeGauss ).get() + ", " + result.ty.getAt( bestDegreeGauss ).get() );
 
 
 
@@ -366,7 +362,7 @@ public class Pairwise
 
 		serviceGlobal.shutdown();
 
-		return finalTransform;
+		return new ValuePair<AffineTransform2D, Double>( finalTransform, degreeWeightGauss );
 	}
 
 	public static List< Pair< PhaseCorrelationPeak2, Double > > alignGenePairwise(
@@ -385,7 +381,7 @@ public class Pairwise
 		final RandomAccessibleInterval< DoubleType > imgA = ImgLib2Util.copyImg( display( stdataA, statA, gene, ImgLib2Util.transformInterval( interval, scalingTransform ), scalingTransform ), new ArrayImgFactory<>( new DoubleType() ), service );
 
 		// initial scouting
-		System.out.println( "Scouting: " + gene );
+		//System.out.println( "Scouting: " + gene );
 
 		for ( int deg = 0; deg < 360; deg += degreeSteps )
 		{
@@ -403,7 +399,7 @@ public class Pairwise
 			return topPeaks;
 
 		// gradient descent for every inital Peak
-		System.out.println( "Gradient descent: " + gene );
+		//System.out.println( "Gradient descent: " + gene );
 
 		final ArrayList< Pair< PhaseCorrelationPeak2, Double > > revisedTopPeaks = new ArrayList<>();
 
@@ -569,62 +565,72 @@ public class Pairwise
 	{
 		final String path = Path.getPath();
 
-		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
+		final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
 		//final String[] pucks = new String[] { "Puck_180531_23" };
-		final String[] pucks = new String[] { "Puck_180531_23", "Puck_180531_22" };
+		//final String[] pucks = new String[] { "Puck_180531_23", "Puck_180531_22" };
 		//final String[] pucks = new String[] { "Puck_180531_18", "Puck_180531_17" };
 
+		final ArrayList< STData > puckData = new ArrayList<STData>();
+		for ( final String puck : pucks )
+			puckData.add( N5IO.readN5( new File( path + "slide-seq/" + puck + "-normalized.n5" ) ).copy() );
+		
+		for ( int i = 0; i < pucks.length - 1; ++i )
+		{
+			for ( int j = i + 1; j < pucks.length; ++j )
+			{
+				final STData stDataA = puckData.get(i);
+				final STData stDataB = puckData.get(j);
+		
+				final List< String > genesToTest = genesToTest( stDataA, stDataB, 50 );
+		
+				/*
+				final List< String > genesToTest = new ArrayList<>();
+				genesToTest.add( "Calm1" );
+				genesToTest.add( "Calm2" );
+				genesToTest.add( "Hpca" );
+				genesToTest.add( "Fth1" );
+				genesToTest.add( "Ubb" );
+				genesToTest.add( "Pcp4" );
+				*/
+		
+				final Pair< AffineTransform2D, Double > result = align( stDataA, stDataB, genesToTest, 0.025, 2, 5, true );
+				final AffineTransform2D pcmTransform = result.getA();
+		
+				System.out.println( i + "\t" + j + "\t" + Math.abs( i - j ) + "\t" + genesToTest.size() + "\t" + result.getB() + "\t" + pcmTransform );
 
-		final STData stDataA = N5IO.readN5( new File( path + "slide-seq/" + pucks[ 0 ] + "-normalized.n5" ) );
-		final STData stDataB = N5IO.readN5( new File( path + "slide-seq/" + pucks[ 1 ] + "-normalized.n5" ) );
-
-
-		final List< String > genesToTest = genesToTest( stDataA, stDataB, 50 );
-
-		/*
-		final List< String > genesToTest = new ArrayList<>();
-		genesToTest.add( "Calm1" );
-		genesToTest.add( "Calm2" );
-		genesToTest.add( "Hpca" );
-		genesToTest.add( "Fth1" );
-		genesToTest.add( "Ubb" );
-		genesToTest.add( "Pcp4" );
-		*/
-
-		long time = System.currentTimeMillis();
-		final AffineTransform2D pcmTransform = align( stDataA, stDataB, genesToTest, 0.01, 2, 3, true );
-		System.out.println( "time: " + (System.currentTimeMillis() - time ) / 1000 );
-		System.out.println( "PCM transform: " + pcmTransform );
-		System.exit( 0 );
-
-		//final AffineTransform2D pcmTransform = new AffineTransform2D();
-		//pcmTransform.set( 0.32556815445715637, 0.945518575599317, -465.5516232, -0.945518575599317, 0.32556815445715637, 4399.3983868 ); // "Puck_180531_23", "Puck_180531_22"
-		//pcmTransform.set( 0.24192189559966745, 0.9702957262759967, -199.37562080565206, -0.9702957262759967, 0.24192189559966745, 4602.7163253270855 );
-		System.out.println( "PCM transform: " + pcmTransform );
-
-		final AffineTransform2D icpTransform = alignICP( stDataA, stDataB, genesToTest, pcmTransform, 20, 50 );
-		System.out.println( "ICP transform: " + icpTransform );
-
-
-
-		final Interval interval = STDataUtils.getCommonInterval( stDataA, stDataB );
-
-		// visualize result using the global transform
-		final AffineTransform2D tA = new AffineTransform2D();
-		tA.scale( 0.1 );
-
-		final AffineTransform2D tB_PCM = pcmTransform.copy();
-		tB_PCM.preConcatenate( tA );
-
-		final AffineTransform2D tB_ICP = icpTransform.copy();
-		tB_ICP.preConcatenate( tA );
-
-		final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tA ), 100 );
-
-		new ImageJ();
-
-		ImageJFunctions.show( display( stDataA, new STDataStatistics( stDataA ), "Calm1", finalInterval, tA ) );
-		ImageJFunctions.show( display( stDataB, new STDataStatistics( stDataB ), "Calm1", finalInterval, tB_PCM ) ).setTitle( "Calm1-PCM" );
-		ImageJFunctions.show( display( stDataB, new STDataStatistics( stDataB ), "Calm1", finalInterval, tB_ICP ) ).setTitle( "Calm1-ICP" );
+				if ( pucks.length != 2 )
+					continue;
+		
+				//final AffineTransform2D pcmTransform = new AffineTransform2D();
+				//pcmTransform.set( 0.32556815445715637, 0.945518575599317, -465.5516232, -0.945518575599317, 0.32556815445715637, 4399.3983868 ); // "Puck_180531_23", "Puck_180531_22"
+				//pcmTransform.set( 0.24192189559966745, 0.9702957262759967, -199.37562080565206, -0.9702957262759967, 0.24192189559966745, 4602.7163253270855 );
+				System.out.println( "PCM transform: " + pcmTransform );
+		
+				final AffineTransform2D icpTransform = alignICP( stDataA, stDataB, genesToTest, pcmTransform, 20, 50 );
+				System.out.println( "ICP transform: " + icpTransform );
+		
+		
+		
+				final Interval interval = STDataUtils.getCommonInterval( stDataA, stDataB );
+		
+				// visualize result using the global transform
+				final AffineTransform2D tA = new AffineTransform2D();
+				tA.scale( 0.1 );
+		
+				final AffineTransform2D tB_PCM = pcmTransform.copy();
+				tB_PCM.preConcatenate( tA );
+		
+				final AffineTransform2D tB_ICP = icpTransform.copy();
+				tB_ICP.preConcatenate( tA );
+		
+				final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tA ), 100 );
+		
+				new ImageJ();
+		
+				ImageJFunctions.show( display( stDataA, new STDataStatistics( stDataA ), "Calm1", finalInterval, tA ) );
+				ImageJFunctions.show( display( stDataB, new STDataStatistics( stDataB ), "Calm1", finalInterval, tB_PCM ) ).setTitle( "Calm1-PCM" );
+				ImageJFunctions.show( display( stDataB, new STDataStatistics( stDataB ), "Calm1", finalInterval, tB_ICP ) ).setTitle( "Calm1-ICP" );
+			}
+		}
 	}
 }
