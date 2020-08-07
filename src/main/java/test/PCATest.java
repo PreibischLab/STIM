@@ -10,7 +10,6 @@ import java.util.HashMap;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
-import org.jruby.RubyProcess.Sys;
 
 import weka.attributeSelection.PrincipalComponents;
 import weka.core.Attribute;
