@@ -541,7 +541,7 @@ public class Pairwise
 		//System.out.println( "Max intensity: " + minmax.getB() );
 
 		// for rendering the input pointcloud
-		final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderSigma, WeightType.NONE ) );
+		final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderSigma*4, WeightType.NONE ) );
 
 		// for rendering a 16x (median distance), regular sampled pointcloud
 		//final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, stStats.getMedianDistance() / 4.0, WeightType.NONE ) );
@@ -569,6 +569,7 @@ public class Pairwise
 		//final String[] pucks = new String[] { "Puck_180531_23" };
 		//final String[] pucks = new String[] { "Puck_180531_23", "Puck_180531_22" };
 		//final String[] pucks = new String[] { "Puck_180531_18", "Puck_180531_17" };
+		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18" };
 
 		final ArrayList< STData > puckData = new ArrayList<STData>();
 		for ( final String puck : pucks )
@@ -597,19 +598,19 @@ public class Pairwise
 				final AffineTransform2D pcmTransform = result.getA();
 		
 				System.out.println( i + "\t" + j + "\t" + Math.abs( i - j ) + "\t" + genesToTest.size() + "\t" + result.getB() + "\t" + pcmTransform );
-
-				if ( pucks.length != 2 )
-					continue;
 		
 				//final AffineTransform2D pcmTransform = new AffineTransform2D();
 				//pcmTransform.set( 0.32556815445715637, 0.945518575599317, -465.5516232, -0.945518575599317, 0.32556815445715637, 4399.3983868 ); // "Puck_180531_23", "Puck_180531_22"
 				//pcmTransform.set( 0.24192189559966745, 0.9702957262759967, -199.37562080565206, -0.9702957262759967, 0.24192189559966745, 4602.7163253270855 );
-				System.out.println( "PCM transform: " + pcmTransform );
+				//System.out.println( "PCM transform: " + pcmTransform );
 		
 				final AffineTransform2D icpTransform = alignICP( stDataA, stDataB, genesToTest, pcmTransform, 20, 50 );
-				System.out.println( "ICP transform: " + icpTransform );
+				//System.out.println( "ICP transform: " + icpTransform );
 		
+				System.out.println( i + "\t" + j + "\t" + Math.abs( i - j ) + "\t" + genesToTest.size() + "\t" + result.getB() + "\t" + pcmTransform + "\t" + icpTransform );
 		
+				if ( pucks.length != 2 )
+					continue;
 		
 				final Interval interval = STDataUtils.getCommonInterval( stDataA, stDataB );
 		
