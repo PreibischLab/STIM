@@ -581,7 +581,7 @@ public class Pairwise
 				final STData stDataA = puckData.get(i);
 				final STData stDataB = puckData.get(j);
 		
-				final List< String > genesToTest = genesToTest( stDataA, stDataB, 50 );
+				final List< String > genesToTest = genesToTest( stDataA, stDataB, 100 );
 		
 				/*
 				final List< String > genesToTest = new ArrayList<>();
@@ -593,7 +593,7 @@ public class Pairwise
 				genesToTest.add( "Pcp4" );
 				*/
 		
-				final Pair< AffineTransform2D, Double > result = align( stDataA, stDataB, genesToTest, 0.025, 2, 5, true );
+				final Pair< AffineTransform2D, Double > result = align( stDataA, stDataB, genesToTest, 0.05, 1, 5, true );
 				final AffineTransform2D pcmTransform = result.getA();
 		
 				System.out.println( i + "\t" + j + "\t" + Math.abs( i - j ) + "\t" + genesToTest.size() + "\t" + result.getB() + "\t" + pcmTransform );
