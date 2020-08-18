@@ -106,7 +106,7 @@ public class Pairwise
 		for ( final RealLocalizable p : stdataA )
 			listA.add( new RealPoint( p ) );
 
-		System.out.println( "listA (reference): " + listA.size() );
+		//System.out.println( "listA (reference): " + listA.size() );
 
 		/*
 		// tmp
@@ -124,7 +124,7 @@ public class Pairwise
 		for ( final RealLocalizable p : stdataB )
 			listB.add( new RealPoint( p ) );
 
-		System.out.println( "listB (target): " + listB.size() );
+		//System.out.println( "listB (target): " + listB.size() );
 
 		final double[] m = initialModel.getRowPackedCopy(); //a.m00, a.m01, a.m02, a.m10, a.m11, a.m12
 
@@ -149,7 +149,7 @@ public class Pairwise
 			}
 			catch ( Exception e )
 			{
-				System.out.println( "Failed with e: " + e );
+				//System.out.println( "Failed with e: " + e );
 				e.printStackTrace();
 				return null;
 			}
@@ -160,7 +160,7 @@ public class Pairwise
 			lastNumCorresponding = icp.getNumPointMatches();
 			lastAvgError = icp.getAverageError();
 			
-			System.out.println( i + ": " + icp.getNumPointMatches() + " matches, avg error [px] " + icp.getAverageError() + ", max error [px] " + icp.getMaximalError() );
+			//System.out.println( i + ": " + icp.getNumPointMatches() + " matches, avg error [px] " + icp.getAverageError() + ", max error [px] " + icp.getMaximalError() );
 		}
 		while ( !converged && ++i < maxIterations );
 
