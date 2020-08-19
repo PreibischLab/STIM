@@ -3,6 +3,7 @@ package align;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -573,7 +574,7 @@ public class Pairwise
 
 		final ArrayList< STData > puckData = new ArrayList<STData>();
 		for ( final String puck : pucks )
-			puckData.add( N5IO.readN5( new File( path + "slide-seq/" + puck + "-normalized.n5" ) ).copy() );
+			puckData.add( N5IO.readN5( new File( path + "slide-seq/" + puck + "-normalized.n5" ) )/*.copy()*/ );
 		
 		for ( int i = 0; i < pucks.length - 1; ++i )
 		{
@@ -582,7 +583,9 @@ public class Pairwise
 				final STData stDataA = puckData.get(i);
 				final STData stDataB = puckData.get(j);
 		
-				final List< String > genesToTest = genesToTest( stDataA, stDataB, 100 );
+				System.out.println( new Date( System.currentTimeMillis() ) + ": Finding genes" );
+
+				final List< String > genesToTest = genesToTest( stDataA, stDataB, 50 );
 		
 				/*
 				final List< String > genesToTest = new ArrayList<>();
@@ -593,25 +596,29 @@ public class Pairwise
 				genesToTest.add( "Ubb" );
 				genesToTest.add( "Pcp4" );
 				*/
-		
-				final Pair< AffineTransform2D, Double > result = align( stDataA, stDataB, genesToTest, 0.05, 1, 5, true );
+
+				System.out.println( new Date( System.currentTimeMillis() ) + ": Running correlation" );
+				final Pair< AffineTransform2D, Double > result = align( stDataA, stDataB, genesToTest, 0.025, 2, 5, true );
 				final AffineTransform2D pcmTransform = result.getA();
 		
-				System.out.println( i + "\t" + j + "\t" + Math.abs( i - j ) + "\t" + genesToTest.size() + "\t" + result.getB() + "\t" + pcmTransform );
+				//System.out.println( i + "\t" + j + "\t" + Math.abs( i - j ) + "\t" + genesToTest.size() + "\t" + result.getB() + "\t" + pcmTransform );
 
-				if ( pucks.length != 2 )
-					continue;
 		
 				//final AffineTransform2D pcmTransform = new AffineTransform2D();
 				//pcmTransform.set( 0.32556815445715637, 0.945518575599317, -465.5516232, -0.945518575599317, 0.32556815445715637, 4399.3983868 ); // "Puck_180531_23", "Puck_180531_22"
 				//pcmTransform.set( 0.24192189559966745, 0.9702957262759967, -199.37562080565206, -0.9702957262759967, 0.24192189559966745, 4602.7163253270855 );
 				//System.out.println( "PCM transform: " + pcmTransform );
-		
+
+				System.out.println( new Date( System.currentTimeMillis() ) + ": Running ICP" );
+
 				final AffineTransform2D icpTransform = alignICP( stDataA, stDataB, genesToTest, pcmTransform, 20, 50 );
 				//System.out.println( "ICP transform: " + icpTransform );
 		
 				System.out.println( i + "\t" + j + "\t" + Math.abs( i - j ) + "\t" + genesToTest.size() + "\t" + result.getB() + "\t" + pcmTransform + "\t" + icpTransform );
-		
+
+				if ( pucks.length != 2 )
+					continue;
+
 				final Interval interval = STDataUtils.getCommonInterval( stDataA, stDataB );
 		
 				// visualize result using the global transform

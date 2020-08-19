@@ -137,7 +137,7 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 			}
 		}
 
-		System.out.println("Assigned " + numMatches + " with avg error = " + (sumDiff.getSum() / numMatches ) );
+		//System.out.println("Assigned " + numMatches + " with avg error = " + (sumDiff.getSum() / numMatches ) );
 
 		return pointMatches;
 	}
