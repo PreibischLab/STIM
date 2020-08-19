@@ -598,6 +598,9 @@ public class Pairwise
 				final AffineTransform2D pcmTransform = result.getA();
 		
 				System.out.println( i + "\t" + j + "\t" + Math.abs( i - j ) + "\t" + genesToTest.size() + "\t" + result.getB() + "\t" + pcmTransform );
+
+				if ( pucks.length != 2 )
+					continue;
 		
 				//final AffineTransform2D pcmTransform = new AffineTransform2D();
 				//pcmTransform.set( 0.32556815445715637, 0.945518575599317, -465.5516232, -0.945518575599317, 0.32556815445715637, 4399.3983868 ); // "Puck_180531_23", "Puck_180531_22"
@@ -608,9 +611,6 @@ public class Pairwise
 				//System.out.println( "ICP transform: " + icpTransform );
 		
 				System.out.println( i + "\t" + j + "\t" + Math.abs( i - j ) + "\t" + genesToTest.size() + "\t" + result.getB() + "\t" + pcmTransform + "\t" + icpTransform );
-		
-				if ( pucks.length != 2 )
-					continue;
 		
 				final Interval interval = STDataUtils.getCommonInterval( stDataA, stDataB );
 		
