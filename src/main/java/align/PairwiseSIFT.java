@@ -221,10 +221,10 @@ public class PairwiseSIFT
 				final RigidModel2D model = new RigidModel2D();
 				final List< PointMatch > inliers = consensus( candidates, model, minNumInliers, maxEpsilon );
 
-				System.out.println( i + "\t" + j + "\t" + inliers.size() + "\t" + candidates.size() + "\t" + model );
+				// the model that maps J to I
+				System.out.println( i + "\t" + j + "\t" + inliers.size() + "\t" + candidates.size() + "\t" + GlobalOpt.modelToAffineTransform2D( model ).inverse() );
 
-				//GlobalOpt.visualizePair(stDataA, stDataB, GlobalOpt.modelToAffineTransform2D( model ), new AffineTransform2D() );
-				//	0	1	37	190	[3,3](AffineTransform[[0.215666176515943, -0.976467152702534, 420.68012621070784], [0.976467152702534, 0.215666176515943, -59.04550867632021]]) 15.674038433968013
+				//GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() );
 
 				//SimpleMultiThreading.threadHaltUnClean();
 				//impA.show();
