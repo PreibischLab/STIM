@@ -138,8 +138,8 @@ public class PairwiseSIFT
 			}
 		*/
 
-		final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
-		//final String[] pucks = new String[] { "Puck_180531_23", "Puck_180531_22" };
+		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
+		final String[] pucks = new String[] { "Puck_180531_23", "Puck_180531_22" };
 
 		final ArrayList< STData > puckData = new ArrayList<STData>();
 		for ( final String puck : pucks )
@@ -159,14 +159,14 @@ public class PairwiseSIFT
 
 				//System.out.println( new Date( System.currentTimeMillis() ) + ": Finding genes" );
 
-				//final List< String > genesToTest = Pairwise.genesToTest( stDataA, stDataB, 50 );
-				final List< String > genesToTest = new ArrayList<>();
+				final List< String > genesToTest = Pairwise.genesToTest( stDataA, stDataB, 50 );
+				/*final List< String > genesToTest = new ArrayList<>();
 				genesToTest.add( "Calm1" );
 				genesToTest.add( "Calm2" );
 				genesToTest.add( "Hpca" );
 				genesToTest.add( "Fth1" );
 				genesToTest.add( "Ubb" );
-				genesToTest.add( "Pcp4" );
+				genesToTest.add( "Pcp4" );*/
 
 				final AffineTransform2D tS = new AffineTransform2D();
 				tS.scale( scale );
@@ -178,6 +178,7 @@ public class PairwiseSIFT
 
 				ImagePlus impA = null, impB = null;
 
+				// TODO: multithreaded
 				for ( final String gene : genesToTest )
 				{
 					final RandomAccessibleInterval<DoubleType> imgA = Pairwise.display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tS );
@@ -224,7 +225,7 @@ public class PairwiseSIFT
 				// the model that maps J to I
 				System.out.println( i + "\t" + j + "\t" + inliers.size() + "\t" + candidates.size() + "\t" + GlobalOpt.modelToAffineTransform2D( model ).inverse() );
 
-				//GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() );
+				GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() );
 
 				//SimpleMultiThreading.threadHaltUnClean();
 				//impA.show();
