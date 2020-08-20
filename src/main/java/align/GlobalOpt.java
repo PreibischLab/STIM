@@ -21,6 +21,8 @@ import imglib2.ImgLib2Util;
 import io.N5IO;
 import io.Path;
 import io.TextFileAccess;
+import mpicbg.models.AbstractAffineModel2D;
+import mpicbg.models.AffineModel2D;
 import mpicbg.models.ErrorStatistic;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
@@ -49,7 +51,7 @@ public class GlobalOpt
 	{
 		// visualize result using the global transform
 		final AffineTransform2D tS = new AffineTransform2D();
-		tS.scale( 0.1 );
+		tS.scale( 0.05 );
 
 		final Interval interval = STDataUtils.getCommonInterval( data.stream().map( entry -> entry.getA() ).collect( Collectors.toList() ) );
 		final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tS ), 100 );
@@ -61,7 +63,7 @@ public class GlobalOpt
 			final AffineTransform2D tA = pair.getB().copy();
 			tA.preConcatenate( tS );
 
-			final RandomAccessibleInterval<DoubleType> vis = Pairwise.display( pair.getA(), new STDataStatistics( pair.getA() ), "Calm1", finalInterval, tA );
+			final RandomAccessibleInterval<DoubleType> vis = Pairwise.display( pair.getA(), new STDataStatistics( pair.getA() ), "Ubb", finalInterval, tA );
 
 			stack.addSlice(pair.getA().toString(), ImageJFunctions.wrapFloat( vis, new RealFloatConverter<>(), pair.getA().toString(), null ).getProcessor());
 		}
@@ -80,7 +82,7 @@ public class GlobalOpt
 
 		// visualize result using the global transform
 		final AffineTransform2D tS = new AffineTransform2D();
-		tS.scale( 0.1 );
+		tS.scale( 0.05 );
 
 		final AffineTransform2D tA = transformA.copy();
 		tA.preConcatenate( tS );
@@ -88,7 +90,7 @@ public class GlobalOpt
 		final AffineTransform2D tB = transformB.copy();
 		tB.preConcatenate( tS );
 
-		final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tA ), 100 );
+		final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tS ), 100 );
 
 		final ImageStack stack = new ImageStack( (int)finalInterval.dimension( 0 ), (int)finalInterval.dimension( 1 ) );
 
@@ -144,11 +146,13 @@ public class GlobalOpt
 		}
 	}
 
-	protected static ArrayList< Alignment > loadPairwiseAlignments( final String file )
+	protected static ArrayList< Alignment > loadPairwiseAlignments( final String file, final boolean loadICP )
 	{
 		final BufferedReader in = TextFileAccess.openFileRead( file );
 
 		final ArrayList< Alignment > alignments = new ArrayList<>();
+
+		final int modelEntry = loadICP ? 6 : 5;
 
 		try
 		{
@@ -161,7 +165,7 @@ public class GlobalOpt
 				align.i = Integer.parseInt( entries[ 0 ] );
 				align.j = Integer.parseInt( entries[ 1 ] );
 				align.quality = Double.parseDouble( entries[ 4 ] );
-				final String model = entries[ 5 ].substring( entries[ 5 ].indexOf( "(" ) + 1, entries[ 5 ].indexOf( ")" )  );
+				final String model = entries[ modelEntry ].substring( entries[ modelEntry ].indexOf( "(" ) + 1, entries[ modelEntry ].indexOf( ")" )  );
 
 				final String[] mXX = model.split( "," );
 				final double[] m = new double[ 6 ];
@@ -353,20 +357,33 @@ public class GlobalOpt
 		return new ValuePair<>( worstTile1, worstTile2 );
 	}
 
+	public static AffineTransform2D modelToAffineTransform2D( final AbstractAffineModel2D< ? > model )
+	{
+		//  m00, m10, m01, m11, m02, m12
+		final double[] array = new double[ 6 ];
+
+		model.toArray(array);
+
+		final AffineTransform2D t = new AffineTransform2D();
+		t.set( array[ 0 ], array[ 2 ], array[ 4 ], array[ 1 ], array[ 3 ], array[ 5 ] );
+
+		return t;
+	}
+
 	public static void main( String[] args ) throws IOException
 	{
 		new ImageJ();
 
-		final int debugA = 1;
-		final int debugB = 12;
+		final int debugA = 0;
+		int debugB = 4;
 
 		final String path = Path.getPath();
 
-		final ArrayList< Alignment > alignments = loadPairwiseAlignments( new File( path + "/slide-seq", "alignments2" ).getAbsolutePath() );
+		final ArrayList< Alignment > alignments = loadPairwiseAlignments( new File( path + "/slide-seq", "alignments2" ).getAbsolutePath(), false );
 
 		// the inverse transformations were stored, upsi
-		for ( final Alignment al : alignments )
-			al.t = al.t.inverse();
+		//for ( final Alignment al : alignments )
+		//	al.t = al.t.inverse();
 
 		final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
 
@@ -396,8 +413,19 @@ i=12: 0=0.20891249466281947 1=0.11195066945693335 2=0.12349217922514331 3=0.0042
 c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=1018.3643858073019 5=1244.0948936063103 6=1918.835171680812 7=1243.2553900055561 8=2550.2704505567276 9=250.05292046699788 10=2050.432852579864 11=755.2194098362946 12=1774.572922744189 
 
 		 */
+
+		final List< Pair< STData, AffineTransform2D > > initialdata = new ArrayList<>();
+
+		for ( int i = 0; i < puckData.size(); ++i )
+			initialdata.add( new ValuePair<>(puckData.get( i ), new AffineTransform2D()) );
+
+//		initialdata.add( new ValuePair<>( puckData.get( debugA ), new AffineTransform2D() ) );
+//		for ( debugB = debugA + 1; debugB < 11; ++debugB )
+//			initialdata.add( new ValuePair<>(puckData.get( debugB ), Alignment.getAlignment( alignments, debugA, debugB ).t ) );
+
+		visualizeList( initialdata );
 		//visualizePair( puckData.get( debugA ), puckData.get( debugB ), new AffineTransform2D(), Alignment.getAlignment( alignments, debugA, debugB ).t );
-		//SimpleMultiThreading.threadHaltUnClean();
+		SimpleMultiThreading.threadHaltUnClean();
 
 		final Interval interval = STDataUtils.getCommonInterval( puckData );
 
@@ -547,7 +575,7 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 			System.out.println( puckData.get( i ) + ": " + dataToTile.get( puckData.get( i ) ).getModel() );
 
 			final RigidModel2D model = dataToTile.get( puckData.get( i ) ).getModel();
-
+			/*
 			//  m00, m10, m01, m11, m02, m12
 			final double[] array = new double[ 6 ];
 
@@ -555,8 +583,8 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 
 			final AffineTransform2D t = new AffineTransform2D();
 			t.set( array[ 0 ], array[ 2 ], array[ 4 ], array[ 1 ], array[ 3 ], array[ 5 ] );
-
-			data.add( new ValuePair<>( puckData.get( i ), t ) );
+			*/
+			data.add( new ValuePair<>( puckData.get( i ), modelToAffineTransform2D( model ) ) );
 		}
 
 		visualizeList( data );
