@@ -2,6 +2,7 @@ package align;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -19,6 +20,7 @@ import ij.process.ImageProcessor;
 import imglib2.ImgLib2Util;
 import io.N5IO;
 import io.Path;
+import io.TextFileAccess;
 import mpicbg.ij.FeatureTransform;
 import mpicbg.ij.SIFT;
 import mpicbg.ij.util.Util;
@@ -277,6 +279,12 @@ public class PairwiseSIFT
 
 				// the model that maps J to I
 				System.out.println( i + "\t" + j + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + GlobalOpt.modelToAffineTransform2D( model ).inverse() );
+
+				final PrintWriter writer = TextFileAccess.openFileWrite( new File( i + "-" + j + ".pm.txt" ) );
+
+				for ( final PointMatch pm : inliers )
+					writer.println( net.imglib2.util.Util.printCoordinates( pm.getP1().getL() ) + "\t" + net.imglib2.util.Util.printCoordinates( pm.getP2().getL() ) );
+				writer.close();
 
 				//GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() );
 
