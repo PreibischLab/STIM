@@ -43,6 +43,7 @@ public class PairwiseSIFT
 			this.sift.fdBins = 8;
 			this.sift.steps = 10;
 			this.rod = 0.92f;
+			this.sift.minOctaveSize = 128;
 		}
 
 		final public FloatArray2DSIFT.Param sift = new FloatArray2DSIFT.Param();
@@ -138,8 +139,9 @@ public class PairwiseSIFT
 			}
 		*/
 
-		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
-		final String[] pucks = new String[] { "Puck_180531_23", "Puck_180531_22" };
+		final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
+		//final String[] pucks = new String[] { "Puck_180531_23", "Puck_180531_22" };
+		//final String[] pucks = new String[] { "Puck_180602_18", "Puck_180531_18" }; // 1-8
 
 		final ArrayList< STData > puckData = new ArrayList<STData>();
 		for ( final String puck : pucks )
@@ -148,7 +150,7 @@ public class PairwiseSIFT
 		// visualize using the global transform
 		final double scale = 0.05;
 		final double maxEpsilon = 300;
-		final int minNumInliers = 25;
+		final int minNumInliers = 50;
 
 		for ( int i = 0; i < pucks.length - 1; ++i )
 		{
@@ -216,7 +218,24 @@ public class PairwiseSIFT
 						}
 					}
 
-					candidates.addAll( candidatesTmp );
+					// prefilter the candidates
+					final List< PointMatch > inliers = consensus( candidatesTmp, new RigidModel2D(), 7, 500 );
+
+					// reset world coordinates
+					for ( final PointMatch pm : candidatesTmp )
+					{
+						final Point p1 = pm.getP1();
+						final Point p2 = pm.getP2();
+
+						for ( int d = 0; d < finalInterval.numDimensions(); ++d )
+						{
+							p1.getW()[ d ] = p1.getW()[ d ];
+							p2.getW()[ d ] = p2.getW()[ d ];
+						}
+					}
+
+					if ( inliers.size() > 0 )
+						candidates.addAll( inliers );
 				}
 
 				final RigidModel2D model = new RigidModel2D();
