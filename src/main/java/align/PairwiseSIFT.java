@@ -4,6 +4,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import data.STData;
 import data.STDataStatistics;
@@ -32,6 +37,7 @@ import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Intervals;
+import util.Threads;
 
 public class PairwiseSIFT
 {
@@ -152,6 +158,10 @@ public class PairwiseSIFT
 		final double maxEpsilon = 300;
 		final int minNumInliers = 50;
 
+		// multi-threading
+		final int numThreads = Threads.numThreads();
+		final ExecutorService serviceGlobal = Threads.createFixedExecutorService( numThreads );
+
 		for ( int i = 0; i < pucks.length - 1; ++i )
 		{
 			for ( int j = i + 1; j < pucks.length; ++j )
@@ -176,75 +186,99 @@ public class PairwiseSIFT
 				final Interval interval = STDataUtils.getCommonInterval( stDataA, stDataB );
 				final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tS ), 100 );
 
-				final List< PointMatch > candidates = new ArrayList<>();
+				final List< PointMatch > allCandidates = new ArrayList<>();
 
-				ImagePlus impA = null, impB = null;
+				final List< Callable< List< PointMatch > > > tasks = new ArrayList<>();
+				final AtomicInteger nextGene = new AtomicInteger();
 
-				// TODO: multithreaded
-				for ( final String gene : genesToTest )
+				for ( int threadNum = 0; threadNum < numThreads; ++threadNum )
 				{
-					final RandomAccessibleInterval<DoubleType> imgA = Pairwise.display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tS );
-					final RandomAccessibleInterval<DoubleType> imgB = Pairwise.display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tS );
-
-					impA = ImageJFunctions.wrapFloat( imgA, new RealFloatConverter<>(), "A_" + gene);
-					impB = ImageJFunctions.wrapFloat( imgB, new RealFloatConverter<>(), "B_" + gene );
-
-					final List< PointMatch > matchesAB = extractCandidates(impA.getProcessor(), impB.getProcessor() );
-					final List< PointMatch > matchesBA = extractCandidates(impB.getProcessor(), impA.getProcessor() );
-
-					//System.out.println( gene + " = " + matchesAB.size() );
-					//System.out.println( gene + " = " + matchesBA.size() );
-
-					if ( matchesAB.size() == 0 && matchesBA.size() == 0 )
-						continue;
-
-					final List< PointMatch > candidatesTmp = new ArrayList<>();
-
-					if ( matchesBA.size() > matchesAB.size() )
-						PointMatch.flip( matchesBA, candidatesTmp );
-					else
-						candidatesTmp.addAll( matchesAB );
-
-					// adjust the locations to the global coordinate system
-					for ( final PointMatch pm : candidatesTmp )
+					tasks.add( () ->
 					{
-						final Point p1 = pm.getP1();
-						final Point p2 = pm.getP2();
+						final List< PointMatch > allPerGeneInliers = new ArrayList<>();
 
-						for ( int d = 0; d < finalInterval.numDimensions(); ++d )
+						for ( int g = nextGene.getAndIncrement(); g < genesToTest.size(); g = nextGene.getAndIncrement() )
 						{
-							p1.getL()[ d ] = p1.getW()[ d ] = ( p1.getL()[ d ] + finalInterval.min( d ) ) / scale;
-							p2.getL()[ d ] = p2.getW()[ d ] = ( p2.getL()[ d ] + finalInterval.min( d ) ) / scale;
+							final String gene = genesToTest.get( g );
+
+							final RandomAccessibleInterval<DoubleType> imgA = Pairwise.display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tS );
+							final RandomAccessibleInterval<DoubleType> imgB = Pairwise.display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tS );
+
+							final ImagePlus impA = ImageJFunctions.wrapFloat( imgA, new RealFloatConverter<>(), "A_" + gene);
+							final ImagePlus impB = ImageJFunctions.wrapFloat( imgB, new RealFloatConverter<>(), "B_" + gene );
+
+							final List< PointMatch > matchesAB = extractCandidates(impA.getProcessor(), impB.getProcessor() );
+							final List< PointMatch > matchesBA = extractCandidates(impB.getProcessor(), impA.getProcessor() );
+
+							//System.out.println( gene + " = " + matchesAB.size() );
+							//System.out.println( gene + " = " + matchesBA.size() );
+
+							if ( matchesAB.size() == 0 && matchesBA.size() == 0 )
+								continue;
+
+							final List< PointMatch > candidatesTmp = new ArrayList<>();
+
+							if ( matchesBA.size() > matchesAB.size() )
+								PointMatch.flip( matchesBA, candidatesTmp );
+							else
+								candidatesTmp.addAll( matchesAB );
+
+							// adjust the locations to the global coordinate system
+							for ( final PointMatch pm : candidatesTmp )
+							{
+								final Point p1 = pm.getP1();
+								final Point p2 = pm.getP2();
+
+								for ( int d = 0; d < finalInterval.numDimensions(); ++d )
+								{
+									p1.getL()[ d ] = p1.getW()[ d ] = ( p1.getL()[ d ] + finalInterval.min( d ) ) / scale;
+									p2.getL()[ d ] = p2.getW()[ d ] = ( p2.getL()[ d ] + finalInterval.min( d ) ) / scale;
+								}
+							}
+
+							// prefilter the candidates
+							final List< PointMatch > inliers = consensus( candidatesTmp, new RigidModel2D(), 7, 500 );
+
+							// reset world coordinates
+							for ( final PointMatch pm : candidatesTmp )
+							{
+								final Point p1 = pm.getP1();
+								final Point p2 = pm.getP2();
+
+								for ( int d = 0; d < finalInterval.numDimensions(); ++d )
+								{
+									p1.getW()[ d ] = p1.getW()[ d ];
+									p2.getW()[ d ] = p2.getW()[ d ];
+								}
+							}
+
+							if ( inliers.size() > 0 )
+								allPerGeneInliers.addAll( inliers );
 						}
-					}
 
-					// prefilter the candidates
-					final List< PointMatch > inliers = consensus( candidatesTmp, new RigidModel2D(), 7, 500 );
+						return allPerGeneInliers;
+					});
+				}
 
-					// reset world coordinates
-					for ( final PointMatch pm : candidatesTmp )
-					{
-						final Point p1 = pm.getP1();
-						final Point p2 = pm.getP2();
-
-						for ( int d = 0; d < finalInterval.numDimensions(); ++d )
-						{
-							p1.getW()[ d ] = p1.getW()[ d ];
-							p2.getW()[ d ] = p2.getW()[ d ];
-						}
-					}
-
-					if ( inliers.size() > 0 )
-						candidates.addAll( inliers );
+				try
+				{
+					final List< Future< List< PointMatch > > > futures = serviceGlobal.invokeAll( tasks );
+					for ( final Future< List< PointMatch > > future : futures )
+						allCandidates.addAll( future.get() );
+				}
+				catch ( final InterruptedException | ExecutionException e )
+				{
+					e.printStackTrace();
+					throw new RuntimeException( e );
 				}
 
 				final RigidModel2D model = new RigidModel2D();
-				final List< PointMatch > inliers = consensus( candidates, model, minNumInliers, maxEpsilon );
+				final List< PointMatch > inliers = consensus( allCandidates, model, minNumInliers, maxEpsilon );
 
 				// the model that maps J to I
-				System.out.println( i + "\t" + j + "\t" + inliers.size() + "\t" + candidates.size() + "\t" + GlobalOpt.modelToAffineTransform2D( model ).inverse() );
+				System.out.println( i + "\t" + j + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + GlobalOpt.modelToAffineTransform2D( model ).inverse() );
 
-				GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() );
+				//GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() );
 
 				//SimpleMultiThreading.threadHaltUnClean();
 				//impA.show();
