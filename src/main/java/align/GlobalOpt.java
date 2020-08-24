@@ -22,7 +22,6 @@ import io.N5IO;
 import io.Path;
 import io.TextFileAccess;
 import mpicbg.models.AbstractAffineModel2D;
-import mpicbg.models.AffineModel2D;
 import mpicbg.models.ErrorStatistic;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
@@ -30,7 +29,6 @@ import mpicbg.models.RigidModel2D;
 import mpicbg.models.Tile;
 import mpicbg.models.TileConfiguration;
 import mpicbg.models.TileUtil;
-import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.RealFloatConverter;
@@ -42,8 +40,6 @@ import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
-import net.preibisch.legacy.io.IOFunctions;
-import net.preibisch.mvrecon.process.interestpointregistration.global.pointmatchcreating.QualityPointMatch;
 
 public class GlobalOpt
 {
@@ -73,7 +69,7 @@ public class GlobalOpt
 		imp.show();
 	}
 
-	public static void visualizePair( final STData stDataA, final STData stDataB, final AffineTransform2D transformA, final AffineTransform2D transformB )
+	public static ImagePlus visualizePair( final STData stDataA, final STData stDataB, final AffineTransform2D transformA, final AffineTransform2D transformB )
 	{
 		//final AffineTransform2D pcmTransform = new AffineTransform2D();
 		//pcmTransform.set( 0.43837114678907746, -0.8987940462991671, 5283.362652306015, 0.8987940462991671, 0.43837114678907746, -770.4745037840293 );
@@ -103,6 +99,8 @@ public class GlobalOpt
 		ImagePlus imp = new ImagePlus("all", stack );
 		imp.resetDisplayRange();
 		imp.show();
+
+		return imp;
 	}
 
 	public static double centerOfMassDistance( final STData dataA, final STData dataB, final AffineTransform2D transformA, final AffineTransform2D transformB )
@@ -238,9 +236,9 @@ public class GlobalOpt
 			{
 				int unaligned = tc.preAlign().size();
 				if ( unaligned > 0 )
-					IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): pre-aligned all tiles but " + unaligned );
+					System.out.println( "(" + new Date( System.currentTimeMillis() ) + "): pre-aligned all tiles but " + unaligned );
 				else
-					IOFunctions.println( "(" + new Date( System.currentTimeMillis() ) + "): prealigned all tiles" );
+					System.out.println( "(" + new Date( System.currentTimeMillis() ) + "): prealigned all tiles" );
 
 				TileUtil.optimizeConcurrently(
 						new ErrorStatistic( maxPlateauwidth + 1 ),  maxAllowedError, maxIterations, maxPlateauwidth, 1.0f,
@@ -327,7 +325,7 @@ public class GlobalOpt
 				q = Math.max( 0.01, q );
 
 				// TODO: QUALITY!!!
-				final double invScore = Math.pow( 1.01 - q, 1 ) * Math.sqrt( pm.getDistance() );// * Math.log10( connected );
+				final double invScore = /*Math.pow( 1.01 - q, 1 ) */ Math.sqrt( pm.getDistance() );// * Math.log10( connected );
 
 				//System.out.println( "invScore=" + invScore + " [dist=" + pm.getDistance() + ", quality=" + quality + ", connected=" + connected + "] to " + findGroup( t.findConnectedTile( pm ), map ) );
 
@@ -523,7 +521,6 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 
 		final TileConfiguration tileConfig = new TileConfiguration();
 
-		// new HashSet because all tiles link to their common group tile, which is therefore present more than once
 		tileConfig.addTiles( new HashSet<>( dataToTile.values() ) );
 		tileConfig.fixTile( dataToTile.get( puckData.get( 0 ) ) );
 
