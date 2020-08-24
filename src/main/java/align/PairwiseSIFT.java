@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -50,7 +51,7 @@ public class PairwiseSIFT
 			this.sift.fdSize = 8;
 			this.sift.fdBins = 8;
 			this.sift.steps = 10;
-			this.rod = 0.92f;
+			this.rod = 0.90f;
 			this.sift.minOctaveSize = 128;
 		}
 
@@ -59,12 +60,68 @@ public class PairwiseSIFT
 		/**
 		 * Closest/next closest neighbour distance ratio
 		 */
-		public float rod = 0.92f;
-
+		public float rod;
 	}
 
 	final static private Param p = new Param();
 
+	static public void matchFeatures(
+			final Collection< Feature > fs1,
+			final Collection< Feature > fs2,
+			final List< PointMatch > matches,
+			final float rod )
+	{
+		for ( final Feature f1 : fs1 )
+		{
+			Feature best = null;
+			double best_d = Double.MAX_VALUE;
+			double second_best_d = Double.MAX_VALUE;
+
+			for ( final Feature f2 : fs2 )
+			{
+				final double d = f1.descriptorDistance( f2 );
+				if ( d < best_d )
+				{
+					second_best_d = best_d;
+					best_d = d;
+					best = f2;
+				}
+				else if ( d < second_best_d )
+					second_best_d = d;
+			}
+
+			if ( best != null && second_best_d < Double.MAX_VALUE && best_d / second_best_d < rod )
+				matches.add(
+						new PointMatch(
+								new Point(
+										new double[] { f1.location[ 0 ], f1.location[ 1 ] } ),
+								new Point(
+										new double[] { best.location[ 0 ], best.location[ 1 ] } ),
+								best_d / second_best_d ) );
+		}
+
+		// now remove ambiguous matches
+		for ( int i = 0; i < matches.size(); )
+		{
+			boolean amb = false;
+			final PointMatch m = matches.get( i );
+			final double[] m_p2 = m.getP2().getL();
+			for ( int j = i + 1; j < matches.size(); )
+			{
+				final PointMatch n = matches.get( j );
+				final double[] n_p2 = n.getP2().getL();
+				if ( m_p2[ 0 ] == n_p2[ 0 ] && m_p2[ 1 ] == n_p2[ 1 ] )
+				{
+					amb = true;
+					matches.remove( j );
+				}
+				else ++j;
+			}
+			if ( amb )
+				matches.remove( i );
+			else ++i;
+		}
+	}
 	public static List< PointMatch > extractCandidates( final ImageProcessor ip1, final ImageProcessor ip2 )
 	{
 		final List< Feature > fs1 = new ArrayList< Feature >();
@@ -156,9 +213,10 @@ public class PairwiseSIFT
 			puckData.add( N5IO.readN5( new File( path + "slide-seq/" + puck + "-normalized.n5" ) )/*.copy()*/ );
 
 		// visualize using the global transform
-		final double scale = 0.05;
+		final double scale = 0.1;
 		final double maxEpsilon = 300;
-		final int minNumInliers = 50;
+		final int minNumInliers = 30;
+		final int minNumInliersPerGene = 9;
 
 		// multi-threading
 		final int numThreads = Threads.numThreads();
@@ -168,19 +226,27 @@ public class PairwiseSIFT
 		{
 			for ( int j = i + 1; j < pucks.length; ++j )
 			{
+				final int ki = i;
+				final int kj = j;
+
 				final STData stDataA = puckData.get(i);
 				final STData stDataB = puckData.get(j);
 
 				//System.out.println( new Date( System.currentTimeMillis() ) + ": Finding genes" );
 
 				final List< String > genesToTest = Pairwise.genesToTest( stDataA, stDataB, 50 );
+				//for ( final String gene : genesToTest )
+				//	System.out.println( gene );
 				/*final List< String > genesToTest = new ArrayList<>();
 				genesToTest.add( "Calm1" );
 				genesToTest.add( "Calm2" );
 				genesToTest.add( "Hpca" );
 				genesToTest.add( "Fth1" );
 				genesToTest.add( "Ubb" );
-				genesToTest.add( "Pcp4" );*/
+				genesToTest.add( "Pcp4" );
+				genesToTest.add( "Ckb" ); //mt-Nd1
+				// check out ROD!
+				*/
 
 				final AffineTransform2D tS = new AffineTransform2D();
 				tS.scale( scale );
@@ -202,6 +268,7 @@ public class PairwiseSIFT
 						for ( int g = nextGene.getAndIncrement(); g < genesToTest.size(); g = nextGene.getAndIncrement() )
 						{
 							final String gene = genesToTest.get( g );
+							//System.out.println( "current gene: " + gene );
 
 							final RandomAccessibleInterval<DoubleType> imgA = Pairwise.display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tS );
 							final RandomAccessibleInterval<DoubleType> imgB = Pairwise.display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tS );
@@ -225,6 +292,20 @@ public class PairwiseSIFT
 							else
 								candidatesTmp.addAll( matchesAB );
 
+							//final List< PointMatch > inliersTmp = consensus( candidatesTmp, new RigidModel2D(), minNumInliersPerGene, maxEpsilon*scale );
+							//System.out.println( "remaining points" );
+							
+							//for ( final PointMatch pm:inliersTmp )
+							//	System.out.println( pm.getWeight() );
+							/*
+							if ( gene.equals("Ckb"))
+							{
+							final List< PointMatch > inliersTmp = consensus( candidatesTmp, new RigidModel2D(), minNumInliersPerGene, maxEpsilon*scale );
+							impA.show();impA.resetDisplayRange();
+							impB.show();impB.resetDisplayRange();
+							visualizeInliers( impA, impB, inliersTmp );
+							}	*/
+
 							// adjust the locations to the global coordinate system
 							for ( final PointMatch pm : candidatesTmp )
 							{
@@ -239,7 +320,8 @@ public class PairwiseSIFT
 							}
 
 							// prefilter the candidates
-							final List< PointMatch > inliers = consensus( candidatesTmp, new RigidModel2D(), 7, 500 );
+							final RigidModel2D model = new RigidModel2D();
+							final List< PointMatch > inliers = consensus( candidatesTmp, model, minNumInliersPerGene, maxEpsilon );
 
 							// reset world coordinates
 							for ( final PointMatch pm : candidatesTmp )
@@ -255,7 +337,11 @@ public class PairwiseSIFT
 							}
 
 							if ( inliers.size() > 0 )
+							{
 								allPerGeneInliers.addAll( inliers );
+								System.out.println( ki + "-" + kj + ": " + inliers.size() + "/" + candidatesTmp.size() + ", " + gene );
+								//GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() ).setTitle( gene +"_" + inliers.size() );;
+							}
 						}
 
 						return allPerGeneInliers;
@@ -286,12 +372,8 @@ public class PairwiseSIFT
 					writer.println( net.imglib2.util.Util.printCoordinates( pm.getP1().getL() ) + "\t" + net.imglib2.util.Util.printCoordinates( pm.getP2().getL() ) );
 				writer.close();
 
-				//GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() );
-
+				GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() ).setTitle( i + "-" + j );
 				//SimpleMultiThreading.threadHaltUnClean();
-				//impA.show();
-				//impB.show();
-				//visualizeInliers( impA, impB, inliers );
 			}
 		}
 	}
