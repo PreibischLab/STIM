@@ -185,9 +185,9 @@
 			<version>0.3.0</version>
 		</dependency>
 		<dependency>
-			<groupId>net.preibisch</groupId>
-			<artifactId>multiview-reconstruction</artifactId>
-			<version>0.5.4</version>
+			<groupId>mpicbg</groupId>
+			<artifactId>mpicbg</artifactId>
+			<version>1.4.0</version>
 		</dependency>
 	</dependencies>
 
