@@ -226,6 +226,9 @@ public class PairwiseSIFT
 		{
 			for ( int j = i + 1; j < pucks.length; ++j )
 			{
+				if ( Math.abs( j - i ) > 2 )
+					continue;
+
 				final int ki = i;
 				final int kj = j;
 
