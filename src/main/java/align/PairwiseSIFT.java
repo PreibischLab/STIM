@@ -215,8 +215,8 @@ public class PairwiseSIFT
 		// visualize using the global transform
 		final double scale = 0.1;
 		final double maxEpsilon = 300;
-		final int minNumInliers = 30;
-		final int minNumInliersPerGene = 9;
+		final int minNumInliers = 12;
+		final int minNumInliersPerGene = 10;
 
 		// multi-threading
 		final int numThreads = Threads.numThreads();
@@ -237,7 +237,7 @@ public class PairwiseSIFT
 
 				//System.out.println( new Date( System.currentTimeMillis() ) + ": Finding genes" );
 
-				final List< String > genesToTest = Pairwise.genesToTest( stDataA, stDataB, 50 );
+				final List< String > genesToTest = Pairwise.genesToTest( stDataA, stDataB, 2000 );
 				//for ( final String gene : genesToTest )
 				//	System.out.println( gene );
 				/*final List< String > genesToTest = new ArrayList<>();
@@ -342,7 +342,7 @@ public class PairwiseSIFT
 							if ( inliers.size() > 0 )
 							{
 								allPerGeneInliers.addAll( inliers );
-								System.out.println( ki + "-" + kj + ": " + inliers.size() + "/" + candidatesTmp.size() + ", " + gene );
+								System.out.println( ki + "-" + kj + ": " + inliers.size() + "/" + candidatesTmp.size() + ", " + gene + ", " );
 								//GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() ).setTitle( gene +"_" + inliers.size() );;
 							}
 						}
@@ -373,9 +373,13 @@ public class PairwiseSIFT
 
 				for ( final PointMatch pm : inliers )
 					writer.println( net.imglib2.util.Util.printCoordinates( pm.getP1().getL() ) + "\t" + net.imglib2.util.Util.printCoordinates( pm.getP2().getL() ) );
+
+				writer.println( "DETAILS");
+				writer.println( i + "\t" + j + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + GlobalOpt.modelToAffineTransform2D( model ).inverse() );
+				writer.println( pucks[ i ]  + "\t" + pucks[ j ] );
 				writer.close();
 
-				GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() ).setTitle( i + "-" + j );
+				GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() ).setTitle( i + "-" + j + "-inliers-" + inliers.size() );
 				//SimpleMultiThreading.threadHaltUnClean();
 			}
 		}
