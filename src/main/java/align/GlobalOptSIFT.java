@@ -14,7 +14,9 @@ import ij.ImageJ;
 import io.N5IO;
 import io.Path;
 import io.TextFileAccess;
+import mpicbg.models.AffineModel2D;
 import mpicbg.models.ErrorStatistic;
+import mpicbg.models.InterpolatedAffineModel2D;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
 import mpicbg.models.RigidModel2D;
@@ -346,6 +348,12 @@ public class GlobalOptSIFT
 						modelA.preConcatenate( modelAInv );
 						// modelB maps B to A
 						modelB.preConcatenate( modelAInv );
+
+						final AffineModel2D affine = new AffineModel2D();
+						affine.set( modelB );
+
+						final InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > interpolated =
+								new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>( affine, modelB, 0.1 );
 
 						final Pair< RigidModel2D, List< PointMatch > > icpT =
 								ICPAlign.alignICP( puckData.get( i ), puckData.get( j ), matches.genes, modelB, tileConfig.getError() / 5.0, icpIteration );
