@@ -120,7 +120,7 @@ public class ICPAlign
 			// a.m00, a.m01, a.m02, a.m10, a.m11, a.m12
 			result.set( m[ 0 ], m[ 2 ], m[ 4 ], m[ 1 ], m[ 3 ], m[ 5 ] );
 			*/
-			return new ValuePair<>( model, icp.getPointMatches() );
+			return new ValuePair<>( model, new ArrayList<>( PointMatch.flip( icp.getPointMatches() ) ) );
 		}
 	}
 
