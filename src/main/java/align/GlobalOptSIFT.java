@@ -266,7 +266,7 @@ public class GlobalOptSIFT
 				500,
 				500,
 				3.0,
-				160,
+				200,
 				tileToIndex,
 				quality );
 
@@ -294,16 +294,16 @@ public class GlobalOptSIFT
 
 		final TileConfiguration tileConfigICP = new TileConfiguration();
 
-		for ( final Tile<?> t : dataToTile.values() )
-		{
-			for ( final Tile<?> s : dataToTile.values() )
-				t.removeConnectedTile( s );
+		final HashMap< STData, Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > > dataToTileICP = new HashMap<>();
+		final HashMap< Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > >, STData > tileToDataICP = new HashMap<>();
 
-			System.out.println( t.getMatches().size() + ", " + t.getConnectedTiles().size() );
+		for ( final STData stdata : dataToTile.keySet() )
+		{
+			final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tile =
+					new Tile<>( new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >( new AffineModel2D(), new RigidModel2D(), 0.1 ) );
+			dataToTileICP.put( stdata, tile );
+			tileToDataICP.put( tile, stdata );
 		}
-		
-		tileConfigICP.addTiles( new HashSet<>( dataToTile.values() ) );
-		tileConfigICP.fixTile( dataToTile.get( puckData.get( 0 ) ) );
 
 		for ( int i = 0; i < pucks.length - 1; ++i )
 		{
@@ -360,8 +360,8 @@ public class GlobalOptSIFT
 
 						if ( icpT.getB().size() > 0 )
 						{
-							final Tile< RigidModel2D > tileA = dataToTile.get( puckData.get( i ) );
-							final Tile< RigidModel2D > tileB = dataToTile.get( puckData.get( j ) );
+							final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileA = dataToTileICP.get( puckData.get( i ) );
+							final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileB = dataToTileICP.get( puckData.get( j ) );
 
 							System.out.println( "Connecting " + i + " to " + j + " with " + icpT.getB().size() + " inliers." ); 
 							tileA.connect( tileB, icpT.getB() );
@@ -382,9 +382,12 @@ public class GlobalOptSIFT
 			}
 		}
 
+		tileConfigICP.addTiles( new HashSet<>( dataToTileICP.values() ) );
+		tileConfigICP.fixTile( dataToTileICP.get( puckData.get( 0 ) ) );
+
 		try
 		{
-			tileConfig.preAlign();
+			tileConfigICP.preAlign();
 
 			TileUtil.optimizeConcurrently(
 				new ErrorStatistic( 500 + 1 ),
@@ -392,9 +395,9 @@ public class GlobalOptSIFT
 				3000,
 				500,
 				1.0,
-				tileConfig,
-				tileConfig.getTiles(),
-				tileConfig.getFixedTiles(),
+				tileConfigICP,
+				tileConfigICP.getTiles(),
+				tileConfigICP.getFixedTiles(),
 				30 );
 
 			System.out.println( " avg=" + tileConfig.getError() + ", min=" + tileConfig.getMinError() + ", max=" + tileConfig.getMaxError() );
