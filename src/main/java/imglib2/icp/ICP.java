@@ -136,7 +136,7 @@ public class ICP < P extends RealLocalizable >
 		final List< PointMatch > matches = pointMatchIdentifier.assignPointMatches( target, reference );
 		
 		/* remove ambigous correspondences */
-		//ambigousMatches = removeAmbigousMatches( matches );
+		ambigousMatches = removeAmbigousMatches( matches );
 
 		/* fit the model */
 		newModel.fit( matches );

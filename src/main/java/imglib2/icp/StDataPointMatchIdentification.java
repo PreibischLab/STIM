@@ -31,6 +31,7 @@ import data.STData;
 import mpicbg.models.PointMatch;
 import net.imglib2.KDTree;
 import net.imglib2.RealLocalizable;
+import net.imglib2.neighborsearch.KNearestNeighborSearchOnKDTree;
 import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
 import net.imglib2.neighborsearch.RadiusNeighborSearchOnKDTree;
 import net.imglib2.type.numeric.real.DoubleType;
@@ -103,22 +104,31 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 		final ArrayList< PointMatch > pointMatches = new ArrayList<>();
 
 		final KDTree< LinkedPoint< P > > kdTreeTarget = new KDTree<>( target, target );
-		final RadiusNeighborSearchOnKDTree< LinkedPoint< P > > nnSearchTarget = new RadiusNeighborSearchOnKDTree<>( kdTreeTarget );
+		//final RadiusNeighborSearchOnKDTree< LinkedPoint< P > > nnSearchTarget = new RadiusNeighborSearchOnKDTree<>( kdTreeTarget );
+		final KNearestNeighborSearchOnKDTree<LinkedPoint< P > > nnSearchTarget = new KNearestNeighborSearchOnKDTree<>( kdTreeTarget, 5 );
 
 		final RealSum sumDiff = new RealSum();
 		long numMatches = 0;
 
 		for ( final LinkedPoint< P > referencePoint : reference )
 		{
-			nnSearchTarget.search( referencePoint, distanceThresold, false );
+			//nnSearchTarget.search( referencePoint, distanceThresold, false );
+			nnSearchTarget.search( referencePoint );
 
 			double minDiff = Double.MAX_VALUE;
 			LinkedPoint< P > bestTargetPoint = null;
 			
-			for ( int i = 0; i < nnSearchTarget.numNeighbors(); ++i )
+			//for ( int i = 0; i < nnSearchTarget.numNeighbors(); ++i )
+			for ( int i = 0; i < nnSearchTarget.getK(); ++i )
 			{
-				final RealLocalizable targetLocation = nnSearchTarget.getPosition( i );
+				if ( nnSearchTarget.getDistance( i ) > distanceThresold )
+					continue;
+
 				final LinkedPoint< P > targetPoint = nnSearchTarget.getSampler( i ).get();
+				//wrong: transformed location - final RealLocalizable targetLocation = nnSearchTarget.getPosition( i );
+
+				// now we need the location of the original point for the transformed target point we found, because we look up the gene expression values there
+				final RealLocalizable targetLocation = targetPoint.getLinkedObject();
 
 				final double expDiff = difference( targetLocation, referencePoint );
 

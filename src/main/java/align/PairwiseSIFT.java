@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -122,7 +123,7 @@ public class PairwiseSIFT
 			else ++i;
 		}
 	}
-	public static List< PointMatch > extractCandidates( final ImageProcessor ip1, final ImageProcessor ip2 )
+	public static List< PointMatch > extractCandidates( final ImageProcessor ip1, final ImageProcessor ip2, final String gene )
 	{
 		final List< Feature > fs1 = new ArrayList< Feature >();
 		final List< Feature > fs2 = new ArrayList< Feature >();
@@ -136,7 +137,14 @@ public class PairwiseSIFT
 		final List< PointMatch > candidates = new ArrayList< PointMatch >();
 		FeatureTransform.matchFeatures( fs1, fs2, candidates, p.rod );
 
-		return candidates;
+		final List< PointMatch > candidatesST = new ArrayList< PointMatch >();
+		for ( final PointMatch pm : candidates )
+			candidatesST.add(
+					new PointMatch(
+							new PointST( pm.getP1().getL(), gene ),
+							new PointST( pm.getP2().getL(), gene ) ));
+
+		return candidatesST;
 	}
 
 	public static List< PointMatch > consensus( final List< PointMatch > candidates, final AbstractModel< ? > model, final int minNumInliers, final double maxEpsilon )
@@ -279,8 +287,8 @@ public class PairwiseSIFT
 							final ImagePlus impA = ImageJFunctions.wrapFloat( imgA, new RealFloatConverter<>(), "A_" + gene);
 							final ImagePlus impB = ImageJFunctions.wrapFloat( imgB, new RealFloatConverter<>(), "B_" + gene );
 
-							final List< PointMatch > matchesAB = extractCandidates(impA.getProcessor(), impB.getProcessor() );
-							final List< PointMatch > matchesBA = extractCandidates(impB.getProcessor(), impA.getProcessor() );
+							final List< PointMatch > matchesAB = extractCandidates(impA.getProcessor(), impB.getProcessor(), gene );
+							final List< PointMatch > matchesBA = extractCandidates(impB.getProcessor(), impA.getProcessor(), gene );
 
 							//System.out.println( gene + " = " + matchesAB.size() );
 							//System.out.println( gene + " = " + matchesBA.size() );
@@ -310,6 +318,7 @@ public class PairwiseSIFT
 							}	*/
 
 							// adjust the locations to the global coordinate system
+							// and store the gene name it came from
 							for ( final PointMatch pm : candidatesTmp )
 							{
 								final Point p1 = pm.getP1();
@@ -342,7 +351,7 @@ public class PairwiseSIFT
 							if ( inliers.size() > 0 )
 							{
 								allPerGeneInliers.addAll( inliers );
-								System.out.println( ki + "-" + kj + ": " + inliers.size() + "/" + candidatesTmp.size() + ", " + gene + ", " );
+								System.out.println( ki + "-" + kj + ": " + inliers.size() + "/" + candidatesTmp.size() + ", " + ((PointST)inliers.get( 0 ).getP1()).getGene() + ", " );
 								//GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() ).setTitle( gene +"_" + inliers.size() );;
 							}
 						}
@@ -369,6 +378,10 @@ public class PairwiseSIFT
 				// the model that maps J to I
 				System.out.println( i + "\t" + j + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + GlobalOpt.modelToAffineTransform2D( model ).inverse() );
 
+				final HashSet< String > genes = new HashSet< String >();
+				for ( final PointMatch pm : inliers )
+					genes.add( ((PointST)pm.getP1()).getGene() );
+					
 				final PrintWriter writer = TextFileAccess.openFileWrite( new File( i + "-" + j + ".pm.txt" ) );
 
 				for ( final PointMatch pm : inliers )
@@ -377,6 +390,10 @@ public class PairwiseSIFT
 				writer.println( "DETAILS");
 				writer.println( i + "\t" + j + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + GlobalOpt.modelToAffineTransform2D( model ).inverse() );
 				writer.println( pucks[ i ]  + "\t" + pucks[ j ] );
+
+				writer.println( "GENES");
+				for ( final String gene : genes )
+					writer.println( gene );
 				writer.close();
 
 				GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() ).setTitle( i + "-" + j + "-inliers-" + inliers.size() );

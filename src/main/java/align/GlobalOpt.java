@@ -43,7 +43,7 @@ import net.imglib2.util.ValuePair;
 
 public class GlobalOpt
 {
-	public static void visualizeList( final List< Pair< STData, AffineTransform2D > > data )
+	public static ImagePlus visualizeList( final List< Pair< STData, AffineTransform2D > > data )
 	{
 		// visualize result using the global transform
 		final AffineTransform2D tS = new AffineTransform2D();
@@ -67,6 +67,7 @@ public class GlobalOpt
 		ImagePlus imp = new ImagePlus("all", stack );
 		imp.resetDisplayRange();
 		imp.show();
+		return imp;
 	}
 
 	public static ImagePlus visualizePair( final STData stDataA, final STData stDataB, final AffineTransform2D transformA, final AffineTransform2D transformB )
@@ -325,7 +326,7 @@ public class GlobalOpt
 				q = Math.max( 0.01, q );
 
 				// TODO: QUALITY!!!
-				final double invScore = /*Math.pow( 1.01 - q, 1 ) */ Math.sqrt( pm.getDistance() );// * Math.log10( connected );
+				final double invScore = Math.pow( 1.01 - q, 4 ) * Math.sqrt( pm.getDistance() );// * Math.log10( connected );
 
 				//System.out.println( "invScore=" + invScore + " [dist=" + pm.getDistance() + ", quality=" + quality + ", connected=" + connected + "] to " + findGroup( t.findConnectedTile( pm ), map ) );
 
