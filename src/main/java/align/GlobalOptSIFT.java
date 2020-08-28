@@ -355,8 +355,8 @@ public class GlobalOptSIFT
 						final InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > interpolated =
 								new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>( affine, modelB, 0.1 );
 
-						final Pair< RigidModel2D, List< PointMatch > > icpT =
-								ICPAlign.alignICP( puckData.get( i ), puckData.get( j ), matches.genes, modelB, tileConfig.getError() / 5.0, icpIteration );
+						final Pair< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >, List< PointMatch > > icpT =
+								ICPAlign.alignICP( puckData.get( i ), puckData.get( j ), matches.genes, interpolated, tileConfig.getError() / 5.0, icpIteration );
 
 						if ( icpT.getB().size() > 0 )
 						{
@@ -413,7 +413,7 @@ public class GlobalOptSIFT
 			dataICP.add( new ValuePair<>( puckData.get( i ), GlobalOpt.modelToAffineTransform2D( dataToTile.get( puckData.get( i ) ).getModel() ) ) );
 		}
 
-		GlobalOpt.visualizeList( dataICP ).setTitle( "ICP" );
+		GlobalOpt.visualizeList( dataICP ).setTitle( "ICP-reg" );
 		
 		System.out.println( "Avg error: " + tileConfig.getError() );
 
