@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
+import align.ICPAlign;
 import data.STData;
 import mpicbg.models.PointMatch;
 import net.imglib2.KDTree;
@@ -104,32 +105,34 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 		final ArrayList< PointMatch > pointMatches = new ArrayList<>();
 
 		final KDTree< LinkedPoint< P > > kdTreeTarget = new KDTree<>( target, target );
-		//final RadiusNeighborSearchOnKDTree< LinkedPoint< P > > nnSearchTarget = new RadiusNeighborSearchOnKDTree<>( kdTreeTarget );
-		final KNearestNeighborSearchOnKDTree<LinkedPoint< P > > nnSearchTarget = new KNearestNeighborSearchOnKDTree<>( kdTreeTarget, 5 );
+		final RadiusNeighborSearchOnKDTree< LinkedPoint< P > > nnSearchTarget = new RadiusNeighborSearchOnKDTree<>( kdTreeTarget );
 
 		final RealSum sumDiff = new RealSum();
 		long numMatches = 0;
 
 		for ( final LinkedPoint< P > referencePoint : reference )
 		{
-			//nnSearchTarget.search( referencePoint, distanceThresold, false );
-			nnSearchTarget.search( referencePoint );
-
-			double minDiff = Double.MAX_VALUE;
-			LinkedPoint< P > bestTargetPoint = null;
+			// am I the brightest dot in the local neighborhood?
+			// this way we make sure it is a relative measure, map brightest point in the local neighborhood to the brightest point in the corresponding area
 			
-			//for ( int i = 0; i < nnSearchTarget.numNeighbors(); ++i )
-			for ( int i = 0; i < nnSearchTarget.getK(); ++i )
-			{
-				if ( nnSearchTarget.getDistance( i ) > distanceThresold )
-					continue;
+			nnSearchTarget.search( referencePoint, distanceThresold, false );
 
+			//double minDiff = Double.MAX_VALUE;
+			//LinkedPoint< P > bestTargetPoint = null;
+			
+			double maxBrightness = -Double.MAX_VALUE;
+			LinkedPoint< P > brightestPoint = null;
+			
+			// find the brightest point in a certain radius (we preselected the reference point to be the brightnest in a certain region)
+			for ( int i = 0; i < nnSearchTarget.numNeighbors(); ++i )
+			{
 				final LinkedPoint< P > targetPoint = nnSearchTarget.getSampler( i ).get();
 				//wrong: transformed location - final RealLocalizable targetLocation = nnSearchTarget.getPosition( i );
 
 				// now we need the location of the original point for the transformed target point we found, because we look up the gene expression values there
 				final RealLocalizable targetLocation = targetPoint.getLinkedObject();
 
+				/*
 				final double expDiff = difference( targetLocation, referencePoint );
 
 				if ( expDiff < minDiff )
@@ -137,14 +140,28 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 					minDiff = expDiff;
 					bestTargetPoint = targetPoint;
 				}
+				*/
+
+				final double sum = ICPAlign.computeSum( targetLocation, searchTarget );
+				if ( sum > maxBrightness )
+				{
+					maxBrightness = sum;
+					brightestPoint = targetPoint;
+				}
 			}
 
+			/*
 			if ( bestTargetPoint != null )
 			{
 				pointMatches.add( new PointMatch( bestTargetPoint, referencePoint ) );
 				sumDiff.add( minDiff );
 				++numMatches;
 			}
+			*/
+
+			if ( brightestPoint != null )
+				pointMatches.add( new PointMatch( brightestPoint, referencePoint ) );
+
 		}
 
 		//System.out.println("Assigned " + numMatches + " with avg error = " + (sumDiff.getSum() / numMatches ) );
