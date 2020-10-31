@@ -218,7 +218,7 @@ public class PairwiseSIFT
 
 		final ArrayList< STData > puckData = new ArrayList<STData>();
 		for ( final String puck : pucks )
-			puckData.add( N5IO.readN5( new File( path + "slide-seq/" + puck + "-normalized.n5" ) )/*.copy()*/ );
+			puckData.add( N5IO.readN5( new File( path + "slide-seq/" + puck + "-normalized-512.n5" ) )/*.copy()*/ );
 
 		// visualize using the global transform
 		final double scale = 0.1;

@@ -164,7 +164,7 @@ public class GlobalOptSIFT
 
 		final ArrayList< STData > puckData = new ArrayList<STData>();
 		for ( final String puck : pucks )
-			puckData.add( N5IO.readN5( new File( path + "slide-seq/" + puck + "-normalized.n5" ) ) );
+			puckData.add( N5IO.readN5( new File( path + "slide-seq/" + puck + "-normalized-512.n5" ) ) );
 
 		final HashMap< STData, Tile< RigidModel2D > > dataToTile = new HashMap<>();
 		final HashMap< Tile< RigidModel2D >, STData > tileToData = new HashMap<>();
