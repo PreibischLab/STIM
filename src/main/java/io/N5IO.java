@@ -84,7 +84,7 @@ public class N5IO
 		return n5;
 	}
 
-	public static N5FSWriter writeN5( final File n5path ) throws IOException
+	public static N5FSWriter openN5write( final File n5path ) throws IOException
 	{
 		if ( n5path == null )
 			throw new IOException( "no n5path. stopping." );
