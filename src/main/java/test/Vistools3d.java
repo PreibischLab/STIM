@@ -33,8 +33,8 @@ public class Vistools3d
 
 		long time = System.currentTimeMillis();
 
-		final STData stdata = N5IO.readN5( new File( path + "fly_3d_data/stdata_fly3d.n5" ) );
-		
+		final STData stdata = N5IO.readN5( new File( path + "examples.n5" ), "fly3d" );
+
 		System.out.println( System.currentTimeMillis() - time + " ms." );
 
 		System.out.println( stdata );

@@ -37,6 +37,8 @@ import java.util.List;
 
 import javax.swing.JFrame;
 
+import org.janelia.saalfeldlab.n5.N5FSReader;
+
 import data.STData;
 import data.STDataStatistics;
 import io.N5IO;
@@ -102,10 +104,12 @@ public class STDataExplorer
 		final String[] pucks = new String[] { "Puck_180531_23", "Puck_180531_22" };
 
 		final ArrayList< Pair< STData, STDataStatistics > > slides = new ArrayList<>();
+		final N5FSReader n5 = N5IO.openN5( new File( path + "slide-seq-normalized-gzip3.n5" ) );
+		// final List< String > pucks = N5IO.listAllDatasets( n5 );
 
 		for ( final String puck : pucks )
 		{
-			final STData slide = /*new NormalizingSTData*/( N5IO.readN5( new File( path + "slide-seq/" + puck + "-normalized.n5" ) ) );//.copy();
+			final STData slide = /*new NormalizingSTData*/( N5IO.readN5( n5, puck ) );//.copy();
 
 			final STDataStatistics stat = new STDataStatistics( slide );
 

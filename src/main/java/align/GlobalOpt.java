@@ -11,6 +11,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.janelia.saalfeldlab.n5.N5FSReader;
+
 import data.STData;
 import data.STDataStatistics;
 import data.STDataUtils;
@@ -384,15 +386,18 @@ public class GlobalOpt
 		//for ( final Alignment al : alignments )
 		//	al.t = al.t.inverse();
 
-		final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
+		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
 
-		for ( final Alignment align : alignments )
-			if ( align.i < pucks.length && align.j < pucks.length )
-				System.out.println( align.i + "-" + align.j + ": " + align.t );
+		final N5FSReader n5 = N5IO.openN5( new File( path + "slide-seq-normalized-gzip3.n5" ) );
+		final List< String > pucks = N5IO.listAllDatasets( n5 );
 
 		final ArrayList< STData > puckData = new ArrayList<STData>();
 		for ( final String puck : pucks )
-			puckData.add( N5IO.readN5( new File( path + "slide-seq/" + puck + "-normalized.n5" ) ) );
+			puckData.add( N5IO.readN5( n5, puck ) );
+
+		for ( final Alignment align : alignments )
+			if ( align.i < pucks.size() && align.j < pucks.size() )
+				System.out.println( align.i + "-" + align.j + ": " + align.t );
 
 		/*
 i=0: 0=0.0 1=0.024038337709212782 2=0.24492487553469394 3=0.1518118833959881 4=0.7241020145787477 5=0.1306794304704525 6=0.15222925121638156 7=0.15483774054692553 8=0.132491429163626 9=0.17711581870553708 10=0.08701363466375361 11=0.2045784760110544 12=0.20891249466281947 
@@ -433,13 +438,13 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 		final HashMap< Tile< RigidModel2D >, Integer > tileToIndex = new HashMap<>();
 
 		// for accessing the quality later
-		final double[][] quality = new double[pucks.length][pucks.length];
+		final double[][] quality = new double[pucks.size()][pucks.size()];
 		double maxQuality = -Double.MAX_VALUE;
 		double minQuality = Double.MAX_VALUE;
 
-		for ( int i = 0; i < pucks.length - 1; ++i )
+		for ( int i = 0; i < pucks.size() - 1; ++i )
 		{
-			for ( int j = i + 1; j < pucks.length; ++j )
+			for ( int j = i + 1; j < pucks.size(); ++j )
 			{
 				final Alignment align = Alignment.getAlignment( alignments, i, j );
 
@@ -496,11 +501,11 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 		System.out.println( "minQ: " + minQuality );
 		System.out.println( "maxQ: " + maxQuality );
 
-		for ( int i = 0; i < pucks.length; ++i )
+		for ( int i = 0; i < pucks.size(); ++i )
 		{
 			System.out.print( "i=" + i + ": " );
 
-			for ( int j = 0; j < pucks.length; ++j )
+			for ( int j = 0; j < pucks.size(); ++j )
 			{
 				if ( i == j || quality[ i ][ j ] < minQuality )
 					quality[ i ][ j ] = 0.0;
@@ -512,12 +517,12 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 			System.out.println();
 		}
 
-		System.out.println( dataToTile.keySet().size() + " / " + pucks.length );
-		System.out.println( tileToData.keySet().size() + " / " + pucks.length );
+		System.out.println( dataToTile.keySet().size() + " / " + pucks.size() );
+		System.out.println( tileToData.keySet().size() + " / " + pucks.size() );
 
 		//System.exit( 0 );
 
-		for ( int i = 0; i < pucks.length; ++i )
+		for ( int i = 0; i < pucks.size(); ++i )
 			System.out.println( puckData.get( i ) + ": " + dataToTile.get( puckData.get( i ) ) );
 
 		final TileConfiguration tileConfig = new TileConfiguration();
@@ -568,7 +573,7 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 
 		final List< Pair< STData, AffineTransform2D > > data = new ArrayList<>();
 
-		for ( int i = 0; i < pucks.length; ++i )
+		for ( int i = 0; i < pucks.size(); ++i )
 		{
 			System.out.println( puckData.get( i ) + ": " + dataToTile.get( puckData.get( i ) ).getModel() );
 

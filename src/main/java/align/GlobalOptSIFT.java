@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+import org.janelia.saalfeldlab.n5.N5FSReader;
+
 import align.GlobalOpt.Alignment;
 import data.STData;
 import ij.ImageJ;
@@ -160,24 +162,27 @@ public class GlobalOptSIFT
 		final String path = Path.getPath();
 		final String siftMatchesPath = path + "/slide-seq/sift_3_pm";
 
-		final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
+		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
+
+		final N5FSReader n5 = N5IO.openN5( new File( path + "slide-seq-normalized-gzip3.n5" ) );
+		final List< String > pucks = N5IO.listAllDatasets( n5 );
 
 		final ArrayList< STData > puckData = new ArrayList<STData>();
 		for ( final String puck : pucks )
-			puckData.add( N5IO.readN5( new File( path + "slide-seq/" + puck + "-normalized-512.n5" ) ) );
+			puckData.add( N5IO.readN5( n5, puck ) );
 
 		final HashMap< STData, Tile< RigidModel2D > > dataToTile = new HashMap<>();
 		final HashMap< Tile< RigidModel2D >, STData > tileToData = new HashMap<>();
 		final HashMap< Tile< RigidModel2D >, Integer > tileToIndex = new HashMap<>();
 
 		// for accessing the quality later
-		final double[][] quality = new double[pucks.length][pucks.length];
+		final double[][] quality = new double[pucks.size()][pucks.size()];
 		double maxQuality = -Double.MAX_VALUE;
 		double minQuality = Double.MAX_VALUE;
 
-		for ( int i = 0; i < pucks.length - 1; ++i )
+		for ( int i = 0; i < pucks.size() - 1; ++i )
 		{
-			for ( int j = i + 1; j < pucks.length; ++j )
+			for ( int j = i + 1; j < pucks.size(); ++j )
 			{
 				final Matches matches = loadMatches( siftMatchesPath, i, j );
 
@@ -228,11 +233,11 @@ public class GlobalOptSIFT
 		System.out.println( "minQ: " + minQuality );
 		System.out.println( "maxQ: " + maxQuality );
 
-		for ( int i = 0; i < pucks.length; ++i )
+		for ( int i = 0; i < pucks.size(); ++i )
 		{
 			System.out.print( "i=" + i + ": " );
 
-			for ( int j = 0; j < pucks.length; ++j )
+			for ( int j = 0; j < pucks.size(); ++j )
 			{
 				if ( i == j || quality[ i ][ j ] < minQuality )
 					quality[ i ][ j ] = 0.0;
@@ -244,12 +249,12 @@ public class GlobalOptSIFT
 			System.out.println();
 		}
 
-		System.out.println( dataToTile.keySet().size() + " / " + pucks.length );
-		System.out.println( tileToData.keySet().size() + " / " + pucks.length );
+		System.out.println( dataToTile.keySet().size() + " / " + pucks.size() );
+		System.out.println( tileToData.keySet().size() + " / " + pucks.size() );
 
 		//System.exit( 0 );
 
-		for ( int i = 0; i < pucks.length; ++i )
+		for ( int i = 0; i < pucks.size(); ++i )
 			System.out.println( puckData.get( i ) + ": " + dataToTile.get( puckData.get( i ) ) );
 
 		final TileConfiguration tileConfig = new TileConfiguration();
@@ -276,7 +281,7 @@ public class GlobalOptSIFT
 		
 		final List< Pair< STData, AffineTransform2D > > data = new ArrayList<>();
 
-		for ( int i = 0; i < pucks.length; ++i )
+		for ( int i = 0; i < pucks.size(); ++i )
 		{
 			System.out.println( puckData.get( i ) + ": " + dataToTile.get( puckData.get( i ) ).getModel() );
 			data.add( new ValuePair<>( puckData.get( i ), GlobalOpt.modelToAffineTransform2D( dataToTile.get( puckData.get( i ) ).getModel() ) ) );
@@ -306,9 +311,9 @@ public class GlobalOptSIFT
 			tileToDataICP.put( tile, stdata );
 		}
 
-		for ( int i = 0; i < pucks.length - 1; ++i )
+		for ( int i = 0; i < pucks.size() - 1; ++i )
 		{
-			for ( int j = i + 1; j < pucks.length; ++j )
+			for ( int j = i + 1; j < pucks.size(); ++j )
 			{
 				final Matches matches = loadMatches( siftMatchesPath, i, j );
 
@@ -411,7 +416,7 @@ public class GlobalOptSIFT
 
 		final List< Pair< STData, AffineTransform2D > > dataICP = new ArrayList<>();
 
-		for ( int i = 0; i < pucks.length; ++i )
+		for ( int i = 0; i < pucks.size(); ++i )
 		{
 			System.out.println( puckData.get( i ) + ": " + dataToTile.get( puckData.get( i ) ).getModel() );
 			dataICP.add( new ValuePair<>( puckData.get( i ), GlobalOpt.modelToAffineTransform2D( dataToTile.get( puckData.get( i ) ).getModel() ) ) );

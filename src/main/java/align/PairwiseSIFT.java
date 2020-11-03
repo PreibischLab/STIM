@@ -13,6 +13,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.janelia.saalfeldlab.n5.N5FSReader;
+
 import data.STData;
 import data.STDataStatistics;
 import data.STDataUtils;
@@ -212,13 +214,16 @@ public class PairwiseSIFT
 			}
 		*/
 
-		final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
+		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
 		//final String[] pucks = new String[] { "Puck_180531_23", "Puck_180531_22" };
 		//final String[] pucks = new String[] { "Puck_180602_18", "Puck_180531_18" }; // 1-8
 
+		final N5FSReader n5 = N5IO.openN5( new File( path + "slide-seq-normalized-gzip3.n5" ) );
+		final List< String > pucks = N5IO.listAllDatasets( n5 );
+
 		final ArrayList< STData > puckData = new ArrayList<STData>();
 		for ( final String puck : pucks )
-			puckData.add( N5IO.readN5( new File( path + "slide-seq/" + puck + "-normalized-512.n5" ) )/*.copy()*/ );
+			puckData.add( N5IO.readN5( n5, puck ) );
 
 		// visualize using the global transform
 		final double scale = 0.1;
@@ -230,9 +235,9 @@ public class PairwiseSIFT
 		final int numThreads = Threads.numThreads();
 		final ExecutorService serviceGlobal = Threads.createFixedExecutorService( numThreads );
 
-		for ( int i = 0; i < pucks.length - 1; ++i )
+		for ( int i = 0; i < pucks.size() - 1; ++i )
 		{
-			for ( int j = i + 1; j < pucks.length; ++j )
+			for ( int j = i + 1; j < pucks.size(); ++j )
 			{
 				if ( Math.abs( j - i ) > 2 )
 					continue;
@@ -389,7 +394,7 @@ public class PairwiseSIFT
 
 				writer.println( "DETAILS");
 				writer.println( i + "\t" + j + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + GlobalOpt.modelToAffineTransform2D( model ).inverse() );
-				writer.println( pucks[ i ]  + "\t" + pucks[ j ] );
+				writer.println( pucks.get( i )  + "\t" + pucks.get( j ) );
 
 				writer.println( "GENES");
 				for ( final String gene : genes )

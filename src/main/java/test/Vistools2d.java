@@ -28,8 +28,8 @@ public class Vistools2d
 
 		long time = System.currentTimeMillis();
 		//final STData stdata = JsonIO.readJSON( new File( path + "/patterns_examples_2d/full.json.zip" ) );
-		final STData stdata = N5IO.readN5( new File( path + "patterns_examples_2d/small.n5" ) );
-		
+		final STData stdata = N5IO.readN5( new File( path + "examples.n5" ), "slideSeqSmall" );
+
 		System.out.println( System.currentTimeMillis() - time + " ms." );
 
 		System.out.println( stdata );
