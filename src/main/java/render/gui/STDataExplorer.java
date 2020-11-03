@@ -104,7 +104,7 @@ public class STDataExplorer
 		final String[] pucks = new String[] { "Puck_180531_23", "Puck_180531_22" };
 
 		final ArrayList< Pair< STData, STDataStatistics > > slides = new ArrayList<>();
-		final N5FSReader n5 = N5IO.openN5( new File( path + "slide-seq-normalized-gzip3.n5" ) );
+		final N5FSReader n5 = N5IO.openN5( new File( path + "slide-seq-normalized.n5" ) );
 		// final List< String > pucks = N5IO.listAllDatasets( n5 );
 
 		for ( final String puck : pucks )
