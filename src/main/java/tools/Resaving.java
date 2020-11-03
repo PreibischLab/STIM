@@ -77,7 +77,7 @@ public class Resaving
 
 		final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
 
-		final N5FSWriter n5 = N5IO.createN5( new File( path + "slide-seq-from-txt.n5" ) );
+		final N5FSWriter n5 = N5IO.createN5( new File( path + "slide-seq.n5" ) );
 
 		for ( final String puck : pucks )
 		{
@@ -97,10 +97,10 @@ public class Resaving
 		final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
 
 		System.out.println( path );
-		System.exit(0 );
-		final N5FSWriter n5gzip6 = N5IO.createN5( new File( path + "slide-seq-normalized-gzip6.n5" ) );
+
+		//final N5FSWriter n5gzip6 = N5IO.createN5( new File( path + "slide-seq-normalized-gzip6.n5" ) );
 		final N5FSWriter n5gzip3 = N5IO.createN5( new File( path + "slide-seq-normalized-gzip3.n5" ) );
-		final N5FSWriter n5raw = N5IO.createN5( new File( path + "slide-seq-normalized-raw.n5" ) );
+		//final N5FSWriter n5raw = N5IO.createN5( new File( path + "slide-seq-normalized-raw.n5" ) );
 
 		for ( final String puck : pucks )
 		{
@@ -110,9 +110,9 @@ public class Resaving
 			//final STData data = STDataUtils.createTestDataSet();
 			//final STData data = JsonIO.readJSON( new File( Path.getPath() + "patterns_examples_2d/small.json.zip" ) );
 
-			N5IO.writeN5( n5gzip6, puck, data, new GzipCompression( 6 ) );
+			//N5IO.writeN5( n5gzip6, puck, data, new GzipCompression( 6 ) );
 			N5IO.writeN5( n5gzip3, puck, data, new GzipCompression( 3 ) );
-			N5IO.writeN5( n5raw, puck, data, new RawCompression() );
+			//N5IO.writeN5( n5raw, puck, data, new RawCompression() );
 		}
 
 		System.out.println( "done" );
