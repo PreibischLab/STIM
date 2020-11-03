@@ -13,7 +13,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.janelia.saalfeldlab.n5.DataType;
+import org.janelia.saalfeldlab.n5.DatasetAttributes;
+import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5FSReader;
+import org.janelia.saalfeldlab.n5.N5FSWriter;
+import org.janelia.saalfeldlab.n5.N5Writer;
 
 import data.STData;
 import data.STDataStatistics;
@@ -149,9 +154,9 @@ public class PairwiseSIFT
 		return candidatesST;
 	}
 
-	public static List< PointMatch > consensus( final List< PointMatch > candidates, final AbstractModel< ? > model, final int minNumInliers, final double maxEpsilon )
+	public static ArrayList< PointMatch > consensus( final List< PointMatch > candidates, final AbstractModel< ? > model, final int minNumInliers, final double maxEpsilon )
 	{
-		final List< PointMatch > inliers = new ArrayList< PointMatch >();
+		final ArrayList< PointMatch > inliers = new ArrayList< PointMatch >();
 
 		boolean modelFound;
 
@@ -218,12 +223,20 @@ public class PairwiseSIFT
 		//final String[] pucks = new String[] { "Puck_180531_23", "Puck_180531_22" };
 		//final String[] pucks = new String[] { "Puck_180602_18", "Puck_180531_18" }; // 1-8
 
-		final N5FSReader n5 = N5IO.openN5( new File( path + "slide-seq-normalized-gzip3.n5" ) );
+		final File n5File = new File( path + "slide-seq-normalized.n5" );
+		final N5FSReader n5 = N5IO.openN5( n5File );
 		final List< String > pucks = N5IO.listAllDatasets( n5 );
 
 		final ArrayList< STData > puckData = new ArrayList<STData>();
 		for ( final String puck : pucks )
 			puckData.add( N5IO.readN5( n5, puck ) );
+
+		// clear the alignment metadata
+		final String matchesGroupName = n5.groupPath( "/", "matches" );
+		final N5FSWriter n5Writer = N5IO.openN5write( n5File );
+		if (n5.exists(matchesGroupName))
+			n5Writer.remove( matchesGroupName );
+		n5Writer.createGroup( matchesGroupName );
 
 		// visualize using the global transform
 		final double scale = 0.1;
@@ -247,6 +260,9 @@ public class PairwiseSIFT
 
 				final STData stDataA = puckData.get(i);
 				final STData stDataB = puckData.get(j);
+
+				final String puckA = pucks.get( i );
+				final String puckB = pucks.get( j );
 
 				//System.out.println( new Date( System.currentTimeMillis() ) + ": Finding genes" );
 
@@ -378,8 +394,8 @@ public class PairwiseSIFT
 				}
 
 				final RigidModel2D model = new RigidModel2D();
-				final List< PointMatch > inliers = consensus( allCandidates, model, minNumInliers, maxEpsilon );
-
+				final ArrayList< PointMatch > inliers = consensus( allCandidates, model, minNumInliers, maxEpsilon );
+				
 				// the model that maps J to I
 				System.out.println( i + "\t" + j + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + GlobalOpt.modelToAffineTransform2D( model ).inverse() );
 
@@ -401,9 +417,32 @@ public class PairwiseSIFT
 					writer.println( gene );
 				writer.close();
 
+				final String pairwiseGroupName = n5.groupPath( "/", "matches", i + "-" + j );
+				final N5FSWriter n5WriterLocal = N5IO.openN5write( n5File );
+				n5WriterLocal.createDataset(
+						pairwiseGroupName,
+						new long[] {1},
+						new int[] {1},
+						DataType.OBJECT,
+						new GzipCompression());
+
+				n5WriterLocal.setAttribute( pairwiseGroupName, "i", puckA );
+				n5WriterLocal.setAttribute( pairwiseGroupName, "j", puckB );
+				n5WriterLocal.setAttribute( pairwiseGroupName, "inliers", inliers.size() );
+				n5WriterLocal.setAttribute( pairwiseGroupName, "candidates", allCandidates.size() );
+				n5WriterLocal.setAttribute( pairwiseGroupName, "model", GlobalOpt.modelToAffineTransform2D( model ).inverse().getRowPackedCopy() ); // the model that maps J to I
+				n5WriterLocal.setAttribute( pairwiseGroupName, "genes", genes );
+
+				n5WriterLocal.writeSerializedBlock(
+						inliers,
+						pairwiseGroupName,
+						n5Writer.getDatasetAttributes( pairwiseGroupName ),
+						new long[]{0});
+
 				GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() ).setTitle( i + "-" + j + "-inliers-" + inliers.size() );
 				//SimpleMultiThreading.threadHaltUnClean();
 			}
 		}
+		System.out.println("done.");
 	}
 }
