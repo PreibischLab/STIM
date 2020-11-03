@@ -84,6 +84,19 @@ public class N5IO
 		return n5;
 	}
 
+	public static N5FSWriter writeN5( final File n5path ) throws IOException
+	{
+		if ( n5path == null )
+			throw new IOException( "no n5path. stopping." );
+
+		if ( !n5path.exists() )
+			throw new IOException( n5path.getAbsolutePath() + " does not exist, cannot open for writing." );
+
+		final N5FSWriter n5 = new N5FSWriter( n5path.getAbsolutePath() );
+
+		return n5;
+	}
+
 	public static void writeN5(
 			final N5FSWriter n5,
 			final String datasetName,
@@ -122,7 +135,7 @@ public class N5IO
 		datasets.add( datasetName );
 
 		n5.setAttribute("/", "numDatasets", datasets.size() );
-		n5.setAttribute("/", "datasets", new ArrayList<>() );
+		n5.setAttribute("/", "datasets", datasets );
 
 		// write the group
 		n5.createGroup( groupName );
