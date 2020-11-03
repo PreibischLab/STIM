@@ -99,7 +99,7 @@ public class Resaving
 		System.out.println( path );
 
 		//final N5FSWriter n5gzip6 = N5IO.createN5( new File( path + "slide-seq-normalized-gzip6.n5" ) );
-		final N5FSWriter n5gzip3 = N5IO.createN5( new File( path + "slide-seq-normalized-gzip3.n5" ) );
+		final N5FSWriter n5gzip3 = N5IO.createN5( new File( path + "slide-seq-normalized.n5" ) );
 		//final N5FSWriter n5raw = N5IO.createN5( new File( path + "slide-seq-normalized-raw.n5" ) );
 
 		for ( final String puck : pucks )
