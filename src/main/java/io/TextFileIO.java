@@ -315,7 +315,7 @@ A:			while ( in.ready() )
 					}
 					catch ( NumberFormatException e )
 					{
-						System.out.println( "Error parsing line: " + line + ": " + e );
+						System.out.println( "Error parsing line (continuing with next line): " + line + ": " + e );
 						continue A;
 					}
 				}
