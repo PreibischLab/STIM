@@ -7,10 +7,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 
-import align.GlobalOpt.Alignment;
 import data.STData;
 import ij.ImageJ;
 import io.N5IO;
@@ -25,7 +26,6 @@ import mpicbg.models.RigidModel2D;
 import mpicbg.models.Tile;
 import mpicbg.models.TileConfiguration;
 import mpicbg.models.TileUtil;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
@@ -57,6 +57,53 @@ public class GlobalOptSIFT
 		}
 	}
 
+	@SuppressWarnings("unchecked")
+	protected static Matches loadMatches( final N5FSReader n5, final int puckA, final int puckB )
+	{
+		final Matches matches = new Matches();
+
+		final String pairwiseGroupName = n5.groupPath( "/", "matches", puckA + "-" + puckB );
+
+		if ( !n5.exists( pairwiseGroupName ) )
+			return matches;
+
+		try
+		{
+			matches.puckA = puckA;
+			matches.puckB = puckB;
+			matches.puckAName = n5.getAttribute( pairwiseGroupName, "i", String.class );
+			matches.puckBName = n5.getAttribute( pairwiseGroupName, "j", String.class );
+			matches.numInliers = n5.getAttribute( pairwiseGroupName, "inliers", Integer.class );
+			matches.numCandidates = n5.getAttribute( pairwiseGroupName, "candidates", Integer.class );
+			matches.t = new AffineTransform2D();
+			matches.t.set( n5.getAttribute( pairwiseGroupName, "model", double[].class ) );
+
+			matches.genes = new HashSet<String>( n5.getAttribute( pairwiseGroupName, "genes", List.class ) );
+
+			final DatasetAttributes datasetAttributes = n5.getDatasetAttributes( pairwiseGroupName );
+			matches.inliers = n5.readSerializedBlock( pairwiseGroupName, datasetAttributes, new long[]{0} );
+
+			// reset world coordinates
+			for ( final PointMatch pm : matches.inliers )
+			{
+				for ( int d = 0; d < pm.getP1().getL().length; ++d )
+				{
+					pm.getP1().getW()[ d ] = pm.getP1().getL()[ d ];
+					pm.getP2().getW()[ d ] = pm.getP2().getL()[ d ];
+				}
+			}
+		}
+		catch (Exception e)
+		{
+			System.out.println( "error reading: " + pairwiseGroupName + " from " + n5.getBasePath() + ": " + e );
+			e.printStackTrace();
+			return new Matches();
+		}
+
+		return matches;
+	}
+
+	/*
 	protected static Matches loadMatches( final String path, final int puckA, final int puckB )
 	{
 		final Matches matches = new Matches();
@@ -156,15 +203,16 @@ public class GlobalOptSIFT
 
 		return matches;
 	}
+	*/
 
 	public static void main( String[] args ) throws IOException
 	{
 		final String path = Path.getPath();
-		final String siftMatchesPath = path + "/slide-seq/sift_3_pm";
+		//final String siftMatchesPath = path + "/slide-seq/sift_3_pm";
 
 		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
 
-		final N5FSReader n5 = N5IO.openN5( new File( path + "slide-seq-normalized-gzip3.n5" ) );
+		final N5FSReader n5 = N5IO.openN5( new File( path + "slide-seq-normalized.n5" ) );
 		final List< String > pucks = N5IO.listAllDatasets( n5 );
 
 		final ArrayList< STData > puckData = new ArrayList<STData>();
@@ -184,7 +232,7 @@ public class GlobalOptSIFT
 		{
 			for ( int j = i + 1; j < pucks.size(); ++j )
 			{
-				final Matches matches = loadMatches( siftMatchesPath, i, j );
+				final Matches matches = loadMatches( n5, i, j );//loadMatches( siftMatchesPath, i, j );
 
 				quality[ i ][ j ] = quality[ j ][ i ] = matches.quality();
 
@@ -315,7 +363,7 @@ public class GlobalOptSIFT
 		{
 			for ( int j = i + 1; j < pucks.size(); ++j )
 			{
-				final Matches matches = loadMatches( siftMatchesPath, i, j );
+				final Matches matches = loadMatches( n5, i, j ); //loadMatches( siftMatchesPath, i, j );
 
 				// they were connected and we use the genes that RANSAC filtered
 				if ( matches.genes.size() > 0 )
