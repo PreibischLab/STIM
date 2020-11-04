@@ -250,7 +250,7 @@ public class GlobalOptSIFT
 		// perform ICP refinement
 		//
 		final int icpIteration = 100;
-		final double lambda = 0.0;
+		final double lambda = 0.1;
 
 		final TileConfiguration tileConfigICP = new TileConfiguration();
 
@@ -316,7 +316,7 @@ public class GlobalOptSIFT
 								new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>( affine, modelB, lambda );
 
 						final Pair< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >, List< PointMatch > > icpT =
-								ICPAlign.alignICP( puckData.get( i ), puckData.get( j ), matches.genes, interpolated, tileConfig.getError() / 4.0, icpIteration );
+								ICPAlign.alignICP( puckData.get( i ), puckData.get( j ), matches.genes, interpolated, tileConfig.getError() / 10.0, icpIteration );
 
 						if ( icpT.getB().size() > 0 )
 						{
