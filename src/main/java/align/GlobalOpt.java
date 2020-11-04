@@ -24,7 +24,9 @@ import io.N5IO;
 import io.Path;
 import io.TextFileAccess;
 import mpicbg.models.AbstractAffineModel2D;
+import mpicbg.models.Affine2D;
 import mpicbg.models.ErrorStatistic;
+import mpicbg.models.InterpolatedAffineModel2D;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
 import mpicbg.models.RigidModel2D;
@@ -358,7 +360,7 @@ public class GlobalOpt
 		return new ValuePair<>( worstTile1, worstTile2 );
 	}
 
-	public static AffineTransform2D modelToAffineTransform2D( final AbstractAffineModel2D< ? > model )
+	public static AffineTransform2D modelToAffineTransform2D( final Affine2D< ? > model )
 	{
 		//  m00, m10, m01, m11, m02, m12
 		final double[] array = new double[ 6 ];
