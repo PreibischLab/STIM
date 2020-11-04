@@ -304,16 +304,16 @@ public class GlobalOptSIFT
 						final RigidModel2D modelB = dataToTile.get( puckData.get( j ) ).getModel().copy();
 						final RigidModel2D modelAInv = modelA.createInverse();
 
-						// modelA is the identity transform
+						// modelA is the identity transform after applying its own inverse
 						modelA.preConcatenate( modelAInv );
 						// modelB maps B to A
 						modelB.preConcatenate( modelAInv );
 
-						final AffineModel2D affine = new AffineModel2D();
-						affine.set( modelB );
+						final AffineModel2D affineB = new AffineModel2D();
+						affineB.set( modelB );
 
 						final InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > interpolated =
-								new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>( affine, modelB, lambda );
+								new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>( affineB, modelB, lambda );
 
 						final Pair< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >, List< PointMatch > > icpT =
 								ICPAlign.alignICP( puckData.get( i ), puckData.get( j ), matches.genes, interpolated, tileConfig.getError() / 10.0, icpIteration );
@@ -376,7 +376,7 @@ public class GlobalOptSIFT
 
 			final String groupName = n5.groupPath( pucks.get( i ) );
 			n5Writer.setAttribute( groupName, "model_icp", transform.getRowPackedCopy() );
-			n5Writer.setAttribute( groupName, "transform", transform.getRowPackedCopy() ); // will be overwritten by ICP later
+			n5Writer.setAttribute( groupName, "transform", transform.getRowPackedCopy() ); // overwritten
 
 			System.out.println( puckData.get( i ) + ": " + transform );
 
