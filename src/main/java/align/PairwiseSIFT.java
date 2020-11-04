@@ -402,20 +402,6 @@ public class PairwiseSIFT
 				final HashSet< String > genes = new HashSet< String >();
 				for ( final PointMatch pm : inliers )
 					genes.add( ((PointST)pm.getP1()).getGene() );
-					
-				final PrintWriter writer = TextFileAccess.openFileWrite( new File( i + "-" + j + ".pm.txt" ) );
-
-				for ( final PointMatch pm : inliers )
-					writer.println( net.imglib2.util.Util.printCoordinates( pm.getP1().getL() ) + "\t" + net.imglib2.util.Util.printCoordinates( pm.getP2().getL() ) );
-
-				writer.println( "DETAILS");
-				writer.println( i + "\t" + j + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + GlobalOpt.modelToAffineTransform2D( model ).inverse() );
-				writer.println( pucks.get( i )  + "\t" + pucks.get( j ) );
-
-				writer.println( "GENES");
-				for ( final String gene : genes )
-					writer.println( gene );
-				writer.close();
 
 				final String pairwiseGroupName = n5.groupPath( "/", "matches", i + "-" + j );
 				final N5FSWriter n5WriterLocal = N5IO.openN5write( n5File );
