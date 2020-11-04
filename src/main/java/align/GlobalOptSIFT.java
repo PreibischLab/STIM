@@ -11,6 +11,7 @@ import java.util.Set;
 
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5FSReader;
+import org.janelia.saalfeldlab.n5.N5FSWriter;
 
 import data.STData;
 import ij.ImageJ;
@@ -109,7 +110,8 @@ public class GlobalOptSIFT
 
 		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
 
-		final N5FSReader n5 = N5IO.openN5( new File( path + "slide-seq-normalized.n5" ) );
+		final File n5Path = new File( path + "slide-seq-normalized.n5" );
+		final N5FSReader n5 = N5IO.openN5( n5Path );
 		final List< String > pucks = N5IO.listAllDatasets( n5 );
 
 		final ArrayList< STData > puckData = new ArrayList<STData>();
@@ -223,13 +225,20 @@ public class GlobalOptSIFT
 		for ( final Pair< Tile< ? >, Tile< ? > > removed : removedInconsistentPairs )
 			System.out.println( "Removed " + tileToIndex.get( removed.getA() ) + " to " + tileToIndex.get( removed.getB() ) + " (" + tileToData.get( removed.getA() ) + " to " + tileToData.get( removed.getB() ) + ")" );
 
-		
 		final List< Pair< STData, AffineTransform2D > > data = new ArrayList<>();
+
+		final N5FSWriter n5Writer = N5IO.openN5write( n5Path );
 
 		for ( int i = 0; i < pucks.size(); ++i )
 		{
-			System.out.println( puckData.get( i ) + ": " + dataToTile.get( puckData.get( i ) ).getModel() );
-			data.add( new ValuePair<>( puckData.get( i ), GlobalOpt.modelToAffineTransform2D( dataToTile.get( puckData.get( i ) ).getModel() ) ) );
+			final AffineTransform2D transform = GlobalOpt.modelToAffineTransform2D( dataToTile.get( puckData.get( i ) ).getModel() );
+
+			final String groupName = n5.groupPath( pucks.get( i ) );
+			n5Writer.setAttribute( groupName, "model_sift", transform.getRowPackedCopy() );
+			n5Writer.setAttribute( groupName, "transform", transform.getRowPackedCopy() ); // will be overwritten by ICP later
+
+			System.out.println( puckData.get( i ) + ": " + transform );
+			data.add( new ValuePair<>( puckData.get( i ), transform ) );
 		}
 
 		new ImageJ();
@@ -363,8 +372,15 @@ public class GlobalOptSIFT
 
 		for ( int i = 0; i < pucks.size(); ++i )
 		{
-			System.out.println( puckData.get( i ) + ": " + dataToTile.get( puckData.get( i ) ).getModel() );
-			dataICP.add( new ValuePair<>( puckData.get( i ), GlobalOpt.modelToAffineTransform2D( dataToTile.get( puckData.get( i ) ).getModel() ) ) );
+			final AffineTransform2D transform = GlobalOpt.modelToAffineTransform2D( dataToTileICP.get( puckData.get( i ) ).getModel() );
+
+			final String groupName = n5.groupPath( pucks.get( i ) );
+			n5Writer.setAttribute( groupName, "model_icp", transform.getRowPackedCopy() );
+			n5Writer.setAttribute( groupName, "transform", transform.getRowPackedCopy() ); // will be overwritten by ICP later
+
+			System.out.println( puckData.get( i ) + ": " + transform );
+
+			dataICP.add( new ValuePair<>( puckData.get( i ), transform ) );
 		}
 
 		GlobalOpt.visualizeList( dataICP ).setTitle( "ICP-reg" );
