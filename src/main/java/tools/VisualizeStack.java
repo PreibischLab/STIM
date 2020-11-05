@@ -98,7 +98,7 @@ public class VisualizeStack
 		final DoubleType outofbounds = new DoubleType( 0 );
 
 		// gauss crisp
-		double gaussRenderSigma = puckDataStatistics.get( 0 ).getMedianDistance();
+		double gaussRenderSigma = puckDataStatistics.get( 0 ).getMedianDistance() / 1.5;
 		double gaussRenderRadius = puckDataStatistics.get( 0 ).getMedianDistance() * 4;
 
 		final RealRandomAccessible< DoubleType > renderRRA = Render.render( stack, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, WeightType.NONE ) );
@@ -114,7 +114,6 @@ public class VisualizeStack
 		bdv.setDisplayRangeBounds( minRange, maxRange );
 		bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
 		bdv.setCurrent();
-
 	}
 
 	public static void main( String[] args ) throws IOException
