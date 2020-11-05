@@ -284,7 +284,7 @@ public class IntensityAdjustment
 		}
 
 		final double maxDistance = 10;
-		final int maxMatches = 10;
+		final int maxMatches = 300;
 
 		final HashMap< Integer, AffineModel1D > models = adjustIntensities( n5, pucks, puckData, transforms, maxDistance, maxMatches );
 
