@@ -81,11 +81,13 @@ public class ICPAlign
 			if ( radiusSearchRef.numNeighbors() == 1 )
 				continue;
 
+			// sum across all genes
 			final double myBrightness = computeSum( radiusSearchRef.getSampler( 0 ).get(), searchReference );
 			boolean isBrightest = true;
 
 			for ( int i = 1; i < radiusSearchRef.numNeighbors(); ++i )
 			{
+				// sum across all genes
 				final double otherBrightness = computeSum( radiusSearchRef.getSampler( i ).get(), searchReference );
 
 				if ( otherBrightness > myBrightness )
@@ -95,7 +97,7 @@ public class ICPAlign
 				}
 			}
 
-			if ( isBrightest )
+			if ( isBrightest && myBrightness > 0 )
 				listAFiltered.add( p );
 		}
 

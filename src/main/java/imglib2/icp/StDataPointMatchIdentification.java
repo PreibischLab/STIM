@@ -159,7 +159,7 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 			}
 			*/
 
-			if ( brightestPoint != null )
+			if ( brightestPoint != null && maxBrightness > 0 )
 				pointMatches.add( new PointMatch( brightestPoint, referencePoint ) );
 
 		}
