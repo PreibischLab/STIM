@@ -18,22 +18,20 @@ import data.STDataUtils;
 import filter.GaussianFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
 import imglib2.StackedIterableRealInterval;
+import imglib2.TransformedIterableRealInterval;
 import io.N5IO;
 import io.Path;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
-import net.imglib2.KDTree;
 import net.imglib2.RealCursor;
+import net.imglib2.RealPoint;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.Sampler;
-import net.imglib2.converter.Converter;
 import net.imglib2.converter.Converters;
-import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.realtransform.AffineTransform2D;
-import net.imglib2.realtransform.RealViews;
+import net.imglib2.realtransform.RealTransform;
 import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.view.Views;
 import render.Render;
 
 public class VisualizeStack
@@ -71,21 +69,30 @@ public class VisualizeStack
 		bdv.setCurrent();
 	}
 
-	public static void render3d( final ArrayList< STData > puckData, final ArrayList< STDataStatistics > puckDataStatistics )
+
+
+	public static void render3d( final ArrayList< STData > puckData, final ArrayList< STDataStatistics > puckDataStatistics, final ArrayList< AffineTransform2D > transforms )
 	{
 		final String gene = "Ubb";
 		final ArrayList< IterableRealInterval< DoubleType > > slices = new ArrayList<>();
 
 		for ( int i = 0; i < puckData.size(); ++i )
 		{
-			slices.add(
+			IterableRealInterval< DoubleType > data = 
 					Converters.convert(
 							puckData.get( i ).getExprData( gene ),
 							(a,b) -> b.set( a.get() + 0.1 ),
-							new DoubleType() ) );
+							new DoubleType() );
+
+			if ( transforms != null )
+				data = new TransformedIterableRealInterval<>(
+						data,
+						transforms.get( i ) );
+
+			slices.add( data );
 		}
 
-		final double spacing = puckDataStatistics.get( 0 ).getMedianDistance();
+		final double spacing = puckDataStatistics.get( 0 ).getMedianDistance() * 2;
 		final StackedIterableRealInterval< DoubleType > stack = new StackedIterableRealInterval<>( slices, spacing );
 
 		final DoubleType outofbounds = new DoubleType( 0 );
@@ -135,6 +142,6 @@ public class VisualizeStack
 		//render2d( puckData, puckDataStatistics );
 
 		// 3d
-		render3d( puckData, puckDataStatistics );
+		render3d( puckData, puckDataStatistics, transforms );
 	}
 }
