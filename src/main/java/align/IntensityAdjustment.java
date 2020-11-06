@@ -121,9 +121,9 @@ public class IntensityAdjustment
 		final HashMap< Integer, AffineModel1D > models =
 				globalOpt(
 						intensityMatches,
-						new InterpolatedAffineModel1D<AffineModel1D, TranslationModel1D >( new AffineModel1D(), new TranslationModel1D(), 0.1 ),
+						new InterpolatedAffineModel1D<AffineModel1D, TranslationModel1D >( new AffineModel1D(), new TranslationModel1D(), 0.9 ),
 						//new AffineModel1D(),
-						//new TranslationModel1D();
+						//new TranslationModel1D(),
 						0.01,
 						1000 ); 
 
@@ -283,7 +283,7 @@ public class IntensityAdjustment
 			transforms.add( t );
 		}
 
-		final double maxDistance = 10;
+		final double maxDistance = 20;
 		final int maxMatches = 300;
 
 		final HashMap< Integer, AffineModel1D > models = adjustIntensities( n5, pucks, puckData, transforms, maxDistance, maxMatches );

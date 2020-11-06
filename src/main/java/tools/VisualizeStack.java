@@ -3,7 +3,6 @@ package tools;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import org.janelia.saalfeldlab.n5.N5FSReader;
@@ -24,13 +23,10 @@ import io.Path;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
-import net.imglib2.RealCursor;
-import net.imglib2.RealPoint;
 import net.imglib2.RealRandomAccessible;
-import net.imglib2.Sampler;
 import net.imglib2.converter.Converters;
+import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
-import net.imglib2.realtransform.RealTransform;
 import net.imglib2.type.numeric.real.DoubleType;
 import render.Render;
 
@@ -69,19 +65,27 @@ public class VisualizeStack
 		bdv.setCurrent();
 	}
 
-
-
-	public static void render3d( final ArrayList< STData > puckData, final ArrayList< STDataStatistics > puckDataStatistics, final ArrayList< AffineTransform2D > transforms )
+	public static void render3d(
+			final ArrayList< STData > puckData,
+			final ArrayList< STDataStatistics > puckDataStatistics,
+			final ArrayList< AffineTransform2D > transforms,
+			final ArrayList< AffineTransform > intensityTransforms )
 	{
 		final String gene = "Ubb";
 		final ArrayList< IterableRealInterval< DoubleType > > slices = new ArrayList<>();
 
 		for ( int i = 0; i < puckData.size(); ++i )
 		{
+			final AffineTransform intensityTransform = intensityTransforms.get( i );
+			final double m00 = intensityTransform.getRowPackedCopy()[ 0 ];
+			final double m01 = intensityTransform.getRowPackedCopy()[ 1 ];
+
+			System.out.println( m00 + ", " + m01 );
+
 			IterableRealInterval< DoubleType > data = 
 					Converters.convert(
 							puckData.get( i ).getExprData( gene ),
-							(a,b) -> b.set( a.get() + 0.1 ),
+							(a,b) -> b.set( a.get() * m00 + m01 + 0.1 ),
 							new DoubleType() );
 
 			if ( transforms != null )
@@ -92,13 +96,13 @@ public class VisualizeStack
 			slices.add( data );
 		}
 
-		final double spacing = puckDataStatistics.get( 0 ).getMedianDistance() * 2;
+		final double spacing = puckDataStatistics.get( 0 ).getMedianDistance() * 1;
 		final StackedIterableRealInterval< DoubleType > stack = new StackedIterableRealInterval<>( slices, spacing );
 
 		final DoubleType outofbounds = new DoubleType( 0 );
 
 		// gauss crisp
-		double gaussRenderSigma = puckDataStatistics.get( 0 ).getMedianDistance() / 1.5;
+		double gaussRenderSigma = puckDataStatistics.get( 0 ).getMedianDistance() / 1.0;
 		double gaussRenderRadius = puckDataStatistics.get( 0 ).getMedianDistance() * 4;
 
 		final RealRandomAccessible< DoubleType > renderRRA = Render.render( stack, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, WeightType.NONE ) );
@@ -126,6 +130,7 @@ public class VisualizeStack
 		final ArrayList< STData > puckData = new ArrayList<>();
 		final ArrayList< STDataStatistics > puckDataStatistics = new ArrayList<>();
 		final ArrayList< AffineTransform2D > transforms = new ArrayList<>();
+		final ArrayList< AffineTransform > intensityTransforms = new ArrayList<>();
 
 		for ( final String puck : pucks )
 		{
@@ -135,12 +140,17 @@ public class VisualizeStack
 			final AffineTransform2D t = new AffineTransform2D();
 			t.set( n5.getAttribute( n5.groupPath( puck ), "transform", double[].class ) );
 			transforms.add( t );
+
+			final AffineTransform i = new AffineTransform( 1 );
+			double[] values =  n5.getAttribute( n5.groupPath( puck ), "intensity_transform", double[].class );
+			i.set( values[ 0 ], values[ 1 ] );
+			intensityTransforms.add( i );
 		}
 
 		// 2d
 		//render2d( puckData, puckDataStatistics );
 
 		// 3d
-		render3d( puckData, puckDataStatistics, transforms );
+		render3d( puckData, puckDataStatistics, transforms, intensityTransforms );
 	}
 }
