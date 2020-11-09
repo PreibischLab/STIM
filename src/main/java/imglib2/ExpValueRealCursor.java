@@ -1,11 +1,11 @@
 package imglib2;
 
 import net.imglib2.Cursor;
+import net.imglib2.IterableInterval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealCursor;
 import net.imglib2.Sampler;
 import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.view.Views;
 
 public class ExpValueRealCursor< T > implements RealCursor< T >
 {
@@ -14,10 +14,12 @@ public class ExpValueRealCursor< T > implements RealCursor< T >
 
 	public ExpValueRealCursor(
 			final RandomAccessibleInterval< DoubleType > locations,
-			final RandomAccessibleInterval< T > values )
+			final IterableInterval< T > iterable )
 	{
 		this.locationCursor = new LocationRealCursor( locations );
-		this.valueCursor = Views.flatIterable( values ).cursor();
+
+		// we need a special hyperslice or cursor here that returns a different part of the big 2d RAI 
+		this.valueCursor = iterable.localizingCursor();
 	}
 
 	protected ExpValueRealCursor( final ExpValueRealCursor< T > realCursor )

@@ -55,7 +55,8 @@ public class NormalizingSTData implements STData
 		// TODO: use the entire values array so that the gene can be switched virtually
 		return new ExpValueRealIterable< DoubleType >(
 				getLocations(),
-				getExprValues( geneName ),
+				getAllExprValues(),
+				data.getIndexForGene( geneName ),
 				new FinalRealInterval( this ) );
 	}
 

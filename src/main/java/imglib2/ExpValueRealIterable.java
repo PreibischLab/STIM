@@ -8,6 +8,7 @@ import net.imglib2.RealCursor;
 import net.imglib2.RealInterval;
 import net.imglib2.RealPositionable;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.view.Views;
 
 public class ExpValueRealIterable< T > implements IterableRealInterval< T >
 {
@@ -15,10 +16,12 @@ public class ExpValueRealIterable< T > implements IterableRealInterval< T >
 	final RandomAccessibleInterval< T > values;
 	final RealInterval realInterval;
 	final long lastIndex, size;
+	long valueIndex;
 
 	public ExpValueRealIterable(
 			final RandomAccessibleInterval< DoubleType > locations,
 			final RandomAccessibleInterval< T > values,
+			final long valueIndex, //getIndexForGene( geneName )
 			final RealInterval realInterval )
 	{
 		this.locations = locations;
@@ -26,12 +29,27 @@ public class ExpValueRealIterable< T > implements IterableRealInterval< T >
 		this.realInterval = realInterval;
 		this.size = locations.dimension( 0 );
 		this.lastIndex = locations.dimension( 0 ) - 1;
+		this.valueIndex = valueIndex;
 	}
+
+	/**
+	 * @return the current gene that is being rendered - STData.getIndexForGene( geneName )
+	 */
+	public long getValueIndex() { return valueIndex; }
+
+	/**
+	 * Set which gene is currently being rendered
+	 * @param valueIndex - the index of the gene - STData.getIndexForGene( geneName )
+	 */
+	public void setValueIndex( final long valueIndex ) { this.valueIndex = valueIndex; }
 
 	@Override
 	public RealCursor< T > localizingCursor()
 	{
-		return new ExpValueRealCursor< T >( locations, values );
+		return new ExpValueRealCursor< T >(
+				locations,
+				new SwitchableGeneVector<>( this ) );
+				//Views.flatIterable( Views.hyperSlice( values, 0, valueIndex ) ) );
 	}
 
 	@Override
