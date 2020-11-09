@@ -10,7 +10,6 @@ import net.imglib2.FinalRealInterval;
 import net.imglib2.Interval;
 import net.imglib2.IterableInterval;
 import net.imglib2.IterableRealInterval;
-import net.imglib2.KDTree;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealCursor;
 import net.imglib2.RealLocalizable;
@@ -43,11 +42,19 @@ public class NormalizingSTData implements STData
 		return allExprValues;
 	}
 
+	/*
 	@Override
 	public KDTree< DoubleType > getExpValueKDTree( String geneName )
 	{
 		return new KDTree<>( getExprData( geneName ) );
 	}
+
+	@Override
+	public KDTree< RealLocalizable > getLocationKDTree()
+	{
+		return data.getLocationKDTree();
+	}
+	*/
 
 	@Override
 	public IterableRealInterval< DoubleType > getExprData( String geneName )
@@ -170,12 +177,6 @@ public class NormalizingSTData implements STData
 	public Interval getRenderInterval( long[] border )
 	{
 		return data.getRenderInterval( border );
-	}
-
-	@Override
-	public KDTree< RealLocalizable > getLocationKDTree()
-	{
-		return data.getLocationKDTree();
 	}
 
 	@Override

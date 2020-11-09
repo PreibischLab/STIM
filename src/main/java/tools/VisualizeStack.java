@@ -13,12 +13,15 @@ import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
 import data.STData;
+import data.STDataImgLib2;
 import data.STDataN5;
 import data.STDataStatistics;
 import data.STDataUtils;
+import filter.Filters;
 import filter.GaussianFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
-import ij.ImageJ;
+import filter.MeanFilterFactory;
+import filter.MedianFilterFactory;
 import imglib2.ExpValueRealIterable;
 import imglib2.StackedIterableRealInterval;
 import imglib2.TransformedIterableRealInterval;
@@ -27,39 +30,46 @@ import io.Path;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
-import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.converter.Converters;
-import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
-import net.imglib2.realtransform.RealViews;
 import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.view.Views;
 import render.Render;
-import util.Threads;
 
 public class VisualizeStack
 {
 	protected static double minRange = 0;
 	protected static double maxRange = 100;
 	protected static double min = 0.1;
-	protected static double max = 16;
+	protected static double max = 25;
 
-	public static void render2d( final STData puckData, final STDataStatistics puckDataStatistics, final AffineTransform2D transform, final AffineTransform intensityTransform )
+	public static RealRandomAccessible< DoubleType > getRendered(
+			final STData puckData,
+			final String gene,
+			final STDataStatistics puckDataStatistics,
+			final AffineTransform2D transform,
+			final AffineTransform intensityTransform )
 	{
-		final String gene = "Ubb";
-		final DoubleType outofbounds = new DoubleType( 0 );
+		return getRendered(puckData, gene, puckDataStatistics, transform, intensityTransform, 0, 0 );
+	}
 
+	public static RealRandomAccessible< DoubleType > getRendered(
+			final STData puckData,
+			final String gene,
+			final STDataStatistics puckDataStatistics,
+			final AffineTransform2D transform,
+			final AffineTransform intensityTransform,
+			final double medianRadius,
+			final double gaussRadius )
+	{
 		final double m00 = intensityTransform.getRowPackedCopy()[ 0 ];
 		final double m01 = intensityTransform.getRowPackedCopy()[ 1 ];
 
-		final ExpValueRealIterable< DoubleType > expr = ((STDataN5)puckData).getExprData( gene );
-
 		IterableRealInterval< DoubleType > data =
 				Converters.convert(
-						expr,
+						 puckData.getExprData( gene ),
 						(a,b) -> b.set( a.get() * m00 + m01 + 0.1 ),
 						new DoubleType() );
 
@@ -70,9 +80,25 @@ public class VisualizeStack
 
 		// gauss crisp
 		double gaussRenderSigma = puckDataStatistics.getMedianDistance();
-		double gaussRenderRadius = puckDataStatistics.getMedianDistance() * 4;
 
-		final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, WeightType.NONE ) );
+		// filter the iterable
+		if ( medianRadius > 0 )
+			data = Filters.filter( data, new MedianFilterFactory<>( new DoubleType( 0 ), medianRadius ) );
+
+		if ( gaussRadius > 0 )
+			data = Filters.filter( data, new GaussianFilterFactory<>( new DoubleType( 0 ), gaussRadius,  WeightType.BY_SUM_OF_WEIGHTS ) );
+
+		//return Render.renderNN( data );
+		//return Render.renderNN( data, new DoubleType( 0 ), gaussRenderRadius );
+		//return Render.render( data, new MeanFilterFactory<>( new DoubleType( 0 ), 2 * gaussRenderSigma ) );
+		//return Render.render( data, new MedianFilterFactory<>( new DoubleType( 0 ), 2 * gaussRenderSigma ) );
+		return Render.render( data, new GaussianFilterFactory<>( new DoubleType( 0 ), 4 * gaussRenderSigma, gaussRenderSigma, WeightType.NONE ) );
+	}
+
+	public static void render2d( final STData puckData, final STDataStatistics puckDataStatistics, final AffineTransform2D transform, final AffineTransform intensityTransform )
+	{
+		final String gene = "Ubb";
+		final RealRandomAccessible< DoubleType > renderRRA = getRendered( puckData, gene, puckDataStatistics, transform, intensityTransform );
 
 		final Interval interval = puckData.getRenderInterval();
 		final BdvOptions options = BdvOptions.options().is2D().numRenderingThreads( Runtime.getRuntime().availableProcessors() );
@@ -81,16 +107,16 @@ public class VisualizeStack
 		new ImageJ();
 		final RandomAccessibleInterval< DoubleType > rendered = Views.interval( Views.raster( renderRRA ), interval );
 		ImageJFunctions.show( rendered, Threads.createFixedExecutorService() );
-		final int geneIndex = puckData.getIndexForGene( "Calm1" );
+		final int geneIndex = puckData.getIndexForGene( "Pcp4" );
 		expr.setValueIndex( geneIndex );
 		ImageJFunctions.show( rendered, Threads.createFixedExecutorService() );
-		SimpleMultiThreading.threadHaltUnClean();
+		//SimpleMultiThreading.threadHaltUnClean();
 		*/
 
 		BdvStackSource<?> bdv = BdvFunctions.show( renderRRA, interval, gene, options/*.addTo( old )*/ );
 		bdv.setDisplayRange( min, max );
 		bdv.setDisplayRangeBounds( minRange, maxRange );
-		bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
+		//bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
 		bdv.setCurrent();
 
 		final List< String > genesToTest = new ArrayList<>();
@@ -102,25 +128,34 @@ public class VisualizeStack
 		genesToTest.add( "Pcp4" );
 
 		final Random rnd = new Random();
+		double medianRadius = 0;
+		double gaussRadius = 0;
+
 		do
 		{
-			SimpleMultiThreading.threadWait( 10000 );
-			final String showGene = genesToTest.get( rnd.nextInt( genesToTest.size() ) );
-			System.out.println( showGene );
+			SimpleMultiThreading.threadWait( 500 );
 
-			for ( int i = 0; i < puckData.size(); ++i )
-			{
-				final int geneIndex = puckData.getIndexForGene( showGene );
-				expr.setValueIndex( geneIndex );
-			}
+			if ( medianRadius < 30 )
+				medianRadius += 3;
+
+			if ( gaussRadius < 0 )
+				gaussRadius += 3;
+
+			String showGene = genesToTest.get( rnd.nextInt( genesToTest.size() ) );
+			showGene = gene;
+			System.out.println( showGene + ", " + medianRadius + ", " + gaussRadius );
 
 			BdvStackSource<?> old = bdv;
-			bdv = BdvFunctions.show( renderRRA, interval, gene, options.addTo( old ) );
+			bdv = BdvFunctions.show(
+					getRendered( puckData, showGene, puckDataStatistics, transform, intensityTransform, medianRadius, gaussRadius ),
+					interval,
+					showGene,
+					options.addTo( old ) );
 			bdv.setDisplayRange( min, max );
 			bdv.setDisplayRangeBounds( minRange, maxRange );
-			bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
+
 			old.removeFromBdv();
-			bdv.setCurrent();
+
 		} while ( System.currentTimeMillis() > 0 );
 
 	}
@@ -182,36 +217,6 @@ public class VisualizeStack
 		bdv.setDisplayRangeBounds( minRange, maxRange );
 		bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
 		bdv.setCurrent();
-
-		final List< String > genesToTest = new ArrayList<>();
-		genesToTest.add( "Calm1" );
-		genesToTest.add( "Calm2" );
-		genesToTest.add( "Hpca" );
-		genesToTest.add( "Fth1" );
-		genesToTest.add( "Ubb" );
-		genesToTest.add( "Pcp4" );
-
-		final Random rnd = new Random();
-		do
-		{
-			SimpleMultiThreading.threadWait( 10000 );
-			final String showGene = genesToTest.get( rnd.nextInt( genesToTest.size() ) );
-			System.out.println( showGene );
-
-			for ( int i = 0; i < puckData.size(); ++i )
-			{
-				final int geneIndex = puckData.get( i ).getIndexForGene( showGene );
-				exprDates.get( i ).setValueIndex( geneIndex );
-			}
-
-			BdvStackSource<?> old = bdv;
-			bdv = BdvFunctions.show( renderRRA, interval, gene, options.addTo( old ) );
-			bdv.setDisplayRange( min, max );
-			bdv.setDisplayRangeBounds( minRange, maxRange );
-			bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
-			old.removeFromBdv();
-			bdv.setCurrent();
-		} while ( System.currentTimeMillis() > 0 );
 	}
 
 	public static void main( String[] args ) throws IOException

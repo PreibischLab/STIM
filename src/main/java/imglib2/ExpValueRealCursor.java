@@ -14,12 +14,12 @@ public class ExpValueRealCursor< T > implements RealCursor< T >
 
 	public ExpValueRealCursor(
 			final RandomAccessibleInterval< DoubleType > locations,
-			final IterableInterval< T > iterable )
+			final IterableInterval< T > values )
 	{
 		this.locationCursor = new LocationRealCursor( locations );
 
 		// we need a special hyperslice or cursor here that returns a different part of the big 2d RAI 
-		this.valueCursor = iterable.localizingCursor();
+		this.valueCursor = values.localizingCursor();
 	}
 
 	protected ExpValueRealCursor( final ExpValueRealCursor< T > realCursor )

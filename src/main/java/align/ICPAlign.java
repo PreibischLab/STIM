@@ -68,7 +68,7 @@ public class ICPAlign
 		final HashMap< String, NearestNeighborSearchOnKDTree< DoubleType > > searchReference = new HashMap<>();
 		
 		for ( final String gene : genesToUse )
-			searchReference.put( gene, new NearestNeighborSearchOnKDTree<>( stdataA.getExpValueKDTree( gene ) ) );
+			searchReference.put( gene, new NearestNeighborSearchOnKDTree<>( new KDTree<>( stdataA.getExprData( gene ) ) ) );
 
 		final KDTree< RealPoint > kdTreeRef = new KDTree< RealPoint >( listA, listA );
 		final RadiusNeighborSearchOnKDTree< RealPoint > radiusSearchRef = new RadiusNeighborSearchOnKDTree<>( kdTreeRef );

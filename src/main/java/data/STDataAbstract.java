@@ -11,8 +11,6 @@ import net.imglib2.FinalInterval;
 import net.imglib2.FinalRealInterval;
 import net.imglib2.Interval;
 import net.imglib2.IterableInterval;
-import net.imglib2.IterableRealInterval;
-import net.imglib2.KDTree;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealCursor;
 import net.imglib2.RealInterval;
@@ -87,6 +85,7 @@ public abstract class STDataAbstract implements STData
 				new FinalRealInterval( this ) );
 	}
 
+	/*
 	@Override
 	public KDTree< DoubleType > getExpValueKDTree( final String geneName )
 	{
@@ -100,6 +99,7 @@ public abstract class STDataAbstract implements STData
 		// TODO: save tree
 		return new KDTree<>( this );
 	}
+	*/
 
 	@Override
 	public int numDimensions() { return n; }

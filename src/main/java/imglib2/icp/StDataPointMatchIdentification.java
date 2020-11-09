@@ -63,9 +63,9 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 
 		for ( final String gene : genes )
 		{
-			searchReference.put( gene, new NearestNeighborSearchOnKDTree<>( stDataReference.getExpValueKDTree( gene ) ) );
+			searchReference.put( gene, new NearestNeighborSearchOnKDTree<>( new KDTree<>( stDataReference.getExprData( gene ) ) ) );
 
-			searchTarget.put( gene, new NearestNeighborSearchOnKDTree<>( stDataTarget.getExpValueKDTree( gene ) ) );
+			searchTarget.put( gene, new NearestNeighborSearchOnKDTree<>( new KDTree<>( stDataTarget.getExprData( gene ) ) ) );
 			// regularly sample the reference dataset
 			//searchTarget.put( gene, new NearestNeighborSearchOnKDTree<>( new KDTree<>( TransformCoordinates.sample( stDataTarget.getExprData( gene ), sampling ) ) ) );
 		}

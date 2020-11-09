@@ -5,7 +5,6 @@ import java.util.List;
 import imglib2.ImgLib2Util;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
-import net.imglib2.KDTree;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealLocalizable;
 import net.imglib2.type.numeric.real.DoubleType;
@@ -16,8 +15,8 @@ public interface STData extends IterableRealInterval< RealLocalizable >
 	public Interval getRenderInterval( final long border );
 	public Interval getRenderInterval( final long[] border );
 
-	public KDTree< RealLocalizable > getLocationKDTree();
-	public KDTree< DoubleType > getExpValueKDTree( final String geneName );
+	//public KDTree< RealLocalizable > getLocationKDTree();
+	//public KDTree< DoubleType > getExpValueKDTree( final String geneName );
 	public IterableRealInterval< DoubleType > getExprData( final String geneName );
 	
 

@@ -51,20 +51,10 @@ public class StackedIterableRealIntervalRealCursor< T > implements RealCursor< T
 	@Override
 	public double getDoublePosition( final int d )
 	{
-		try
-		{
 		if ( d == n - 1)
 			return pos * spacing;
 		else
 			return currentCursor.getDoublePosition( d );
-		}
-		catch ( Exception e ) {
-			e.printStackTrace();
-			System.out.println( pos );
-			System.out.println( currentCursor );
-			System.exit( 0 );
-			return 0;
-		}
 	}
 
 	@Override

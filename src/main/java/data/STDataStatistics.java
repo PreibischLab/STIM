@@ -1,6 +1,7 @@
 package data;
 
 import data.STDataUtils.DistanceStats;
+import net.imglib2.KDTree;
 
 public class STDataStatistics
 {
@@ -8,7 +9,7 @@ public class STDataStatistics
 
 	public STDataStatistics( final STData data )
 	{
-		this.ds = STDataUtils.distanceStats( data.getLocationKDTree() );
+		this.ds = STDataUtils.distanceStats( new KDTree<>( data ) );
 	}
 
 	public double getMeanDistance() { return ds.avgDist; }
