@@ -35,6 +35,7 @@ import net.imglib2.converter.Converters;
 import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
+import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.real.DoubleType;
 import render.Render;
 
@@ -52,7 +53,7 @@ public class VisualizeStack
 			final AffineTransform2D transform,
 			final AffineTransform intensityTransform )
 	{
-		return getRendered(puckData, gene, puckDataStatistics, transform, intensityTransform, 0, 0 );
+		return getRendered(puckData, gene, puckDataStatistics, transform, intensityTransform, 0, 0, 0 );
 	}
 
 	public static RealRandomAccessible< DoubleType > getRendered(
@@ -62,7 +63,8 @@ public class VisualizeStack
 			final AffineTransform2D transform,
 			final AffineTransform intensityTransform,
 			final double medianRadius,
-			final double gaussRadius )
+			final double gaussRadius,
+			final double avgRadius )
 	{
 		final double m00 = intensityTransform.getRowPackedCopy()[ 0 ];
 		final double m01 = intensityTransform.getRowPackedCopy()[ 1 ];
@@ -88,6 +90,9 @@ public class VisualizeStack
 		if ( gaussRadius > 0 )
 			data = Filters.filter( data, new GaussianFilterFactory<>( new DoubleType( 0 ), gaussRadius,  WeightType.BY_SUM_OF_WEIGHTS ) );
 
+		if ( avgRadius > 0 )
+			data = Filters.filter( data, new MeanFilterFactory<>( new DoubleType( 0 ), avgRadius ) );
+
 		//return Render.renderNN( data );
 		//return Render.renderNN( data, new DoubleType( 0 ), gaussRenderRadius );
 		//return Render.render( data, new MeanFilterFactory<>( new DoubleType( 0 ), 2 * gaussRenderSigma ) );
@@ -101,7 +106,7 @@ public class VisualizeStack
 		final RealRandomAccessible< DoubleType > renderRRA = getRendered( puckData, gene, puckDataStatistics, transform, intensityTransform );
 
 		final Interval interval = puckData.getRenderInterval();
-		final BdvOptions options = BdvOptions.options().is2D().numRenderingThreads( Runtime.getRuntime().availableProcessors() );
+		final BdvOptions options = BdvOptions.options().is2D().numRenderingThreads( Runtime.getRuntime().availableProcessors() / 2 );
 
 		/*
 		new ImageJ();
@@ -113,9 +118,10 @@ public class VisualizeStack
 		//SimpleMultiThreading.threadHaltUnClean();
 		*/
 
-		BdvStackSource<?> bdv = BdvFunctions.show( renderRRA, interval, gene, options/*.addTo( old )*/ );
+		BdvStackSource<?> bdv = BdvFunctions.show( renderRRA, interval, gene, options );
 		bdv.setDisplayRange( min, max );
 		bdv.setDisplayRangeBounds( minRange, maxRange );
+		//bdv.setColor( new ARGBType( ARGBType.rgba( 255, 0, 0, 0 ) ) );
 		//bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
 		bdv.setCurrent();
 
@@ -130,24 +136,28 @@ public class VisualizeStack
 		final Random rnd = new Random();
 		double medianRadius = 0;
 		double gaussRadius = 0;
+		double avgRadius = 0;
 
 		do
 		{
 			SimpleMultiThreading.threadWait( 500 );
 
-			if ( medianRadius < 30 )
+			if ( medianRadius < 100 )
 				medianRadius += 3;
 
 			if ( gaussRadius < 0 )
 				gaussRadius += 3;
 
+			if ( avgRadius < 0 )
+				avgRadius += 3;
+
 			String showGene = genesToTest.get( rnd.nextInt( genesToTest.size() ) );
 			showGene = gene;
-			System.out.println( showGene + ", " + medianRadius + ", " + gaussRadius );
+			System.out.println( showGene + ", " + medianRadius + ", " + gaussRadius + ", " + avgRadius );
 
 			BdvStackSource<?> old = bdv;
 			bdv = BdvFunctions.show(
-					getRendered( puckData, showGene, puckDataStatistics, transform, intensityTransform, medianRadius, gaussRadius ),
+					getRendered( puckData, showGene, puckDataStatistics, transform, intensityTransform, medianRadius, gaussRadius, avgRadius ),
 					interval,
 					showGene,
 					options.addTo( old ) );
