@@ -40,7 +40,7 @@ public class Render
 	public static < S, T > RealRandomAccessible< T > render( final IterableRealInterval< S > data, final RadiusSearchFilterFactory< S, T > filterFactory )
 	{
 		return Views.interpolate(
-				new FilteredMaxDistanceSearchOnKDTree< S, T >(
+				new FilteringRadiusSearchOnKDTree< S, T >(
 						new KDTree<> ( data ),
 						filterFactory ),
 				new IntegratingNeighborSearchInterpolatorFactory< T >() );

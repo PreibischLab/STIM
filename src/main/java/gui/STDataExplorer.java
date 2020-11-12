@@ -20,7 +20,7 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
  * #L%
  */
-package render.gui;
+package gui;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;

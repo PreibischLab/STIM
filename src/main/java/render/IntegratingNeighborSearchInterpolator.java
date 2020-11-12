@@ -3,6 +3,13 @@ package render;
 import net.imglib2.RealPoint;
 import net.imglib2.RealRandomAccess;
 
+/**
+ * A RealRandomAccessible for the {@link IntegratingNeighborSearch} interface
+ * 
+ * @author spreibi
+ *
+ * @param <T>
+ */
 public class IntegratingNeighborSearchInterpolator < T > extends RealPoint implements RealRandomAccess< T >
 {
 	final protected IntegratingNeighborSearch< T > search;

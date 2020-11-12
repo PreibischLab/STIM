@@ -5,9 +5,9 @@ import net.imglib2.RealLocalizable;
 import net.imglib2.Sampler;
 
 /**
- * Integrating Nearest-neighbor search in an Euclidean space. The interface describes
- * implementations that perform the search for a specified value and provide
- * access to that value.
+ * Integrating neighbor search in an Euclidean space. The interface describes
+ * implementations that perform the search (and potential filtering) around a
+ * specific location and provide access to that value.
  * 
  * @author Stephan Preibisch
  */

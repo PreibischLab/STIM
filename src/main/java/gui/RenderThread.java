@@ -1,4 +1,4 @@
-package render.gui;
+package gui;
 
 import java.util.List;
 import java.util.Queue;

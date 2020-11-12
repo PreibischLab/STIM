@@ -7,7 +7,7 @@ import net.imglib2.RealLocalizable;
 import net.imglib2.Sampler;
 import util.SimpleSampler;
 
-public class FilteredMaxDistanceSearchOnKDTree< S, T > implements IntegratingNeighborSearch< T >
+public class FilteringRadiusSearchOnKDTree< S, T > implements IntegratingNeighborSearch< T >
 {
 	protected final int n;
 	final KDTree< S > tree;
@@ -15,7 +15,7 @@ public class FilteredMaxDistanceSearchOnKDTree< S, T > implements IntegratingNei
 	final RadiusSearchFilterFactory< S, T > filterFactory;
 	final Filter< T > filter;
 
-	public FilteredMaxDistanceSearchOnKDTree(
+	public FilteringRadiusSearchOnKDTree(
 			final KDTree< S > tree,
 			final RadiusSearchFilterFactory< S, T > filterFactory )
 	{
@@ -45,8 +45,8 @@ public class FilteredMaxDistanceSearchOnKDTree< S, T > implements IntegratingNei
 	}
 
 	@Override
-	public FilteredMaxDistanceSearchOnKDTree< S, T > copy()
+	public FilteringRadiusSearchOnKDTree< S, T > copy()
 	{
-		return new FilteredMaxDistanceSearchOnKDTree< S, T >( tree, filterFactory );
+		return new FilteringRadiusSearchOnKDTree< S, T >( tree, filterFactory );
 	}
 }
