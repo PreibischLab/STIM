@@ -43,88 +43,10 @@ public class VisualizeStack
 	protected static double min = 0.1;
 	protected static double max = 25;
 
-	public static RealRandomAccessible< DoubleType > getRendered(
-			final STDataAssembly stdata,
-			final String gene )
-	{
-		return getRendered( stdata, gene, 0, 0, 0 );
-	}
-
-	public static IterableRealInterval< DoubleType > getRealIterable(
-			final STDataAssembly stdata,
-			final String gene )
-	{
-		return getRealIterable(stdata, gene, 0, 0, 0 );
-	}
-	
-	public static RealRandomAccessible< DoubleType > getRendered(
-			final STDataAssembly stdata,
-			final String gene,
-			final double medianRadius,
-			final double gaussRadius,
-			final double avgRadius )
-	{
-		final IterableRealInterval< DoubleType > data = getRealIterable( stdata, gene, medianRadius, gaussRadius, avgRadius );
-
-		// gauss crisp
-		double gaussRenderSigma = stdata.statistics().getMedianDistance();
-
-		//return Render.renderNN( data );
-		//return Render.renderNN( data, new DoubleType( 0 ), gaussRenderRadius );
-		//return Render.render( data, new MeanFilterFactory<>( new DoubleType( 0 ), 2 * gaussRenderSigma ) );
-		//return Render.render( data, new MedianFilterFactory<>( new DoubleType( 0 ), 2 * gaussRenderSigma ) );
-		return Render.render( data, new GaussianFilterFactory<>( new DoubleType( 0 ), 4 * gaussRenderSigma, gaussRenderSigma, WeightType.NONE ) );
-	}
-
-	public static IterableRealInterval< DoubleType > getRealIterable(
-			final STDataAssembly stdata,
-			final String gene,
-			final double medianRadius,
-			final double gaussRadius,
-			final double avgRadius )
-	{
-		IterableRealInterval< DoubleType > data;
-
-		if ( stdata.intensityTransform().isIdentity())
-		{
-			data = Converters.convert(
-						stdata.data().getExprData( gene ),
-						(a,b) -> b.set( a.get() + 0.1 ),
-						new DoubleType() );
-		}
-		else
-		{
-			final double m00 = stdata.intensityTransform().getRowPackedCopy()[ 0 ];
-			final double m01 = stdata.intensityTransform().getRowPackedCopy()[ 1 ];
-
-			data = Converters.convert(
-						stdata.data().getExprData( gene ),
-						(a,b) -> b.set( a.get() * m00 + m01 + 0.1 ),
-						new DoubleType() );
-		}
-
-		if ( !stdata.transform().isIdentity() )
-			data = new TransformedIterableRealInterval<>(
-					data,
-					stdata.transform() );
-
-		// filter the iterable
-		if ( medianRadius > 0 )
-			data = Filters.filter( data, new MedianFilterFactory<>( new DoubleType( 0 ), medianRadius ) );
-
-		if ( gaussRadius > 0 )
-			data = Filters.filter( data, new GaussianFilterFactory<>( new DoubleType( 0 ), gaussRadius, WeightType.BY_SUM_OF_WEIGHTS ) );
-
-		if ( avgRadius > 0 )
-			data = Filters.filter( data, new MeanFilterFactory<>( new DoubleType( 0 ), avgRadius ) );
-
-		return data;
-	}
-
 	public static void render2d( final STDataAssembly stdata )
 	{
 		final String gene = "Ubb";
-		final RealRandomAccessible< DoubleType > renderRRA = getRendered( stdata, gene );
+		final RealRandomAccessible< DoubleType > renderRRA = Render.getRealRandomAccessible( stdata, gene );
 
 		final Interval interval =
 				STDataUtils.getIterableInterval(
@@ -183,7 +105,7 @@ public class VisualizeStack
 
 			BdvStackSource<?> old = bdv;
 			bdv = BdvFunctions.show(
-					getRendered( stdata, showGene, medianRadius, gaussRadius, avgRadius ),
+					Render.getRealRandomAccessible( stdata, showGene, medianRadius, gaussRadius, avgRadius ),
 					interval,
 					showGene,
 					options.addTo( old ) );
@@ -204,7 +126,7 @@ public class VisualizeStack
 		final ArrayList< IterableRealInterval< DoubleType > > slices = new ArrayList<>();
 
 		for ( int i = 0; i < stdata.size(); ++i )
-			slices.add( getRealIterable( stdata.get( i ), gene ) );
+			slices.add( Render.getRealIterable( stdata.get( i ), gene ) );
 
 		final double medianDistance = stdata.get( 0 ).statistics().getMedianDistance();
 

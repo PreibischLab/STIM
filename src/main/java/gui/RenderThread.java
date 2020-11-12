@@ -18,6 +18,7 @@ import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
+import render.Render;
 import tools.VisualizeStack;
 
 public class RenderThread implements Runnable
@@ -100,7 +101,7 @@ public class RenderThread implements Runnable
 
 				System.out.println( "rendering gene: " + gene + " of slide: " + slide.data().toString() );
 
-				final RealRandomAccessible< DoubleType > renderRRA = VisualizeStack.getRendered( slide, gene );
+				final RealRandomAccessible< DoubleType > renderRRA = Render.getRealRandomAccessible( slide, gene );
 
 				/*
 				IterableRealInterval< DoubleType > data = slide.getA().getExprData( gene );
