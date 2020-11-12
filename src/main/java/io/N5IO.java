@@ -224,8 +224,8 @@ public class N5IO
 		@SuppressWarnings("unchecked")
 		final List< String > geneNameList = n5.getAttribute( groupName, "geneList", List.class );
 
-		final RandomAccessibleInterval< DoubleType > locations = N5Utils.open( n5, n5.groupPath( datasetName, "locations" ) );//.openWithBoundedSoftRefCache( n5, "/locations", 100000000 );
-		final RandomAccessibleInterval< DoubleType > exprValues = N5Utils.open( n5, n5.groupPath( datasetName, "expression" ) );
+		final RandomAccessibleInterval< DoubleType > locations = N5Utils.open( n5, n5.groupPath( datasetName, "locations" ) ); // size: [numLocations x numDimensions]
+		final RandomAccessibleInterval< DoubleType > exprValues = N5Utils.open( n5, n5.groupPath( datasetName, "expression" ) ); // size: [numGenes x numLocations]
 
 		long[] dim1 = new long[ locations.numDimensions() ];
 		long[] dim2 = new long[ exprValues.numDimensions() ];
