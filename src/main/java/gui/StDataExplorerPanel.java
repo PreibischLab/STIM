@@ -60,9 +60,9 @@ public class StDataExplorerPanel extends JPanel
 {
 	protected final static int maxRange = 100;
 
-	private static final long serialVersionUID = -3767947754096099774L;
+	private static final long serialVersionUID = -3767947154096099774L;
 
-	protected final List< Pair< STData, STDataStatistics > > slides;
+	protected final List< STDataAssembly > slides;
 	protected final List< String > allGenes, allGenesLowerCase;
 	protected final HashMap< String, Integer > geneToLocation;
 	protected final List< HashSet< String > > genesPresentPerCol;
@@ -75,17 +75,17 @@ public class StDataExplorerPanel extends JPanel
 	protected final RenderThread renderThread;
 	protected final Thread thread;
 
-	public StDataExplorerPanel( final List< Pair< STData, STDataStatistics > > slides )
+	public StDataExplorerPanel( final List< STDataAssembly > slides )
 	{
 		this.slides = slides;
 		this.genesPresentPerCol = new ArrayList<>();
 
 		final HashSet< String > genes = new HashSet<>();
 
-		for ( final Pair< STData, STDataStatistics > slide : slides )
+		for ( final STDataAssembly slide : slides )
 		{
-			genes.addAll( slide.getA().getGeneNames() );
-			genesPresentPerCol.add( new HashSet<>( slide.getA().getGeneNames() ) );
+			genes.addAll( slide.data().getGeneNames() );
+			genesPresentPerCol.add( new HashSet<>( slide.data().getGeneNames() ) );
 		}
 
 		this.allGenes = new ArrayList<>( genes );
@@ -162,11 +162,11 @@ public class StDataExplorerPanel extends JPanel
 		}
 	}
 
-	public void initComponent( final List< Pair< STData, STDataStatistics > > slides, final List< String > genes )
+	public void initComponent( final List< STDataAssembly > slides, final List< String > genes )
 	{
 		tableModel = new STDataTableModel(
 				this,
-				slides.stream().map( pair -> pair.getA().toString() ).collect( Collectors.toList() ),
+				slides.stream().map( slide -> slide.data().toString() ).collect( Collectors.toList() ),
 				allGenes,
 				genesPresentPerCol );
 

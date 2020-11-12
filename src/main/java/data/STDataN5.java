@@ -13,6 +13,7 @@ public class STDataN5 extends STDataImgLib2
 {
 	N5FSReader n5Reader;
 	File n5path;
+	String datasetName;
 
 	public STDataN5(
 			final RandomAccessibleInterval< DoubleType > locations,
@@ -20,27 +21,30 @@ public class STDataN5 extends STDataImgLib2
 			final List< String > geneNames,
 			final HashMap< String, Integer > geneLookup,
 			final N5FSReader n5Reader,
-			final File n5path )
+			final File n5path,
+			final String datasetName )
 	{
 		super( locations, exprValues, geneNames, geneLookup );
 
 		this.n5Reader = n5Reader;
 		this.n5path = n5path;
+		this.datasetName = datasetName;
 	}
 
-	public STDataN5( final STDataImgLib2Factory factory, final N5FSReader n5Reader, final File n5path )
+	public STDataN5( final STDataImgLib2Factory factory, final N5FSReader n5Reader, final File n5path, final String datasetName )
 	{
-		this( factory.locations, factory.exprValues, factory.geneNames, factory.geneLookup, n5Reader, n5path );
+		this( factory.locations, factory.exprValues, factory.geneNames, factory.geneLookup, n5Reader, n5path, datasetName );
 	}
 
 	public File n5Path() { return n5path; }
 	public N5FSReader n5Reader() { return n5Reader; }
+	public String datasetName() { return datasetName; }
 
 	@Override
 	public String toString()
 	{
-		if ( n5path != null )
-			return n5path.getName();
+		if ( datasetName != null )
+			return datasetName;
 		else
 			return super.toString();
 	}

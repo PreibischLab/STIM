@@ -10,45 +10,44 @@ import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
-import data.STData;
-import data.STDataStatistics;
 import data.STDataUtils;
-import filter.GaussianFilterFactory;
-import filter.GaussianFilterFactory.WeightType;
+import imglib2.TransformedIterableRealInterval;
 import net.imglib2.Interval;
-import net.imglib2.IterableRealInterval;
 import net.imglib2.RealRandomAccessible;
-import net.imglib2.converter.Converter;
-import net.imglib2.converter.Converters;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
-import render.Render;
+import tools.VisualizeStack;
 
 public class RenderThread implements Runnable
 {
 	protected static double minRange = 0;
-	protected static double maxRange = 100;
+	protected static double maxRange = 200;
 	protected static double min = 0.1;
-	protected static double max = 6;
+	protected static double max = 15;
 
 	protected final BdvOptions options;
 	protected BdvStackSource< ? > bdv = null;
 	protected final Interval interval;
 	protected final DoubleType outofbounds = new DoubleType( 0 );
 
-	protected final List< Pair< STData, STDataStatistics > > slides;
+	protected final List< STDataAssembly > slides;
 
 	final Queue< Pair< String, Integer > > globalQueue = new ConcurrentLinkedQueue<>();
 
 	public AtomicBoolean keepRunning = new AtomicBoolean( true );
 	public AtomicBoolean isSleeping = new AtomicBoolean( false );
 
-	public RenderThread( final List< Pair< STData, STDataStatistics > > slides )
+	public RenderThread( final List< STDataAssembly > slides )
 	{
 		this.slides = slides;
-		this.interval = STDataUtils.getCommonInterval( slides.stream().map( pair -> pair.getA() ).collect( Collectors.toList() ) );
+		this.interval =
+				STDataUtils.getCommonIterableInterval(
+						slides.stream().map(
+								pair -> new TransformedIterableRealInterval<>( pair.data(), pair.transform() ) )
+						.collect( Collectors.toList() ) );
+
 		this.options = BdvOptions.options().is2D().numRenderingThreads( Runtime.getRuntime().availableProcessors() );
 		this.bdv = BdvFunctions.show( Views.extendZero( ArrayImgs.doubles( 1, 1 ) ), interval, "", options );
 		bdv.setDisplayRange( min, max );
@@ -97,10 +96,13 @@ public class RenderThread implements Runnable
 			if ( lastElement != null )
 			{
 				final String gene = lastElement.getA();
-				final Pair< STData, STDataStatistics > slide = slides.get( lastElement.getB() );
+				final STDataAssembly slide = slides.get( lastElement.getB() );
 
-				System.out.println( "rendering gene: " + gene + " of slide: " + slide.getA().toString() );
+				System.out.println( "rendering gene: " + gene + " of slide: " + slide.data().toString() );
 
+				final RealRandomAccessible< DoubleType > renderRRA = VisualizeStack.getRendered( slide, gene );
+
+				/*
 				IterableRealInterval< DoubleType > data = slide.getA().getExprData( gene );
 
 				data = Converters.convert(
@@ -123,6 +125,7 @@ public class RenderThread implements Runnable
 				double gaussRenderRadius = slide.getB().getMedianDistance() * 4;
 
 				final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, WeightType.NONE ) );
+				*/
 
 				BdvStackSource< ? > old = bdv;
 

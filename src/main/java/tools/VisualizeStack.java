@@ -12,8 +12,6 @@ import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
-import data.STData;
-import data.STDataImgLib2;
 import data.STDataN5;
 import data.STDataStatistics;
 import data.STDataUtils;
@@ -22,7 +20,7 @@ import filter.GaussianFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
 import filter.MeanFilterFactory;
 import filter.MedianFilterFactory;
-import imglib2.ExpValueRealIterable;
+import gui.STDataAssembly;
 import imglib2.StackedIterableRealInterval;
 import imglib2.TransformedIterableRealInterval;
 import io.N5IO;
@@ -35,7 +33,6 @@ import net.imglib2.converter.Converters;
 import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
-import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.real.DoubleType;
 import render.Render;
 
@@ -47,51 +44,30 @@ public class VisualizeStack
 	protected static double max = 25;
 
 	public static RealRandomAccessible< DoubleType > getRendered(
-			final STData puckData,
-			final String gene,
-			final STDataStatistics puckDataStatistics,
-			final AffineTransform2D transform,
-			final AffineTransform intensityTransform )
+			final STDataAssembly stdata,
+			final String gene )
 	{
-		return getRendered(puckData, gene, puckDataStatistics, transform, intensityTransform, 0, 0, 0 );
+		return getRendered( stdata, gene, 0, 0, 0 );
 	}
 
+	public static IterableRealInterval< DoubleType > getRealIterable(
+			final STDataAssembly stdata,
+			final String gene )
+	{
+		return getRealIterable(stdata, gene, 0, 0, 0 );
+	}
+	
 	public static RealRandomAccessible< DoubleType > getRendered(
-			final STData puckData,
+			final STDataAssembly stdata,
 			final String gene,
-			final STDataStatistics puckDataStatistics,
-			final AffineTransform2D transform,
-			final AffineTransform intensityTransform,
 			final double medianRadius,
 			final double gaussRadius,
 			final double avgRadius )
 	{
-		final double m00 = intensityTransform.getRowPackedCopy()[ 0 ];
-		final double m01 = intensityTransform.getRowPackedCopy()[ 1 ];
-
-		IterableRealInterval< DoubleType > data =
-				Converters.convert(
-						 puckData.getExprData( gene ),
-						(a,b) -> b.set( a.get() * m00 + m01 + 0.1 ),
-						new DoubleType() );
-
-		if ( transform != null )
-			data = new TransformedIterableRealInterval<>(
-					data,
-					transform );
+		final IterableRealInterval< DoubleType > data = getRealIterable( stdata, gene, medianRadius, gaussRadius, avgRadius );
 
 		// gauss crisp
-		double gaussRenderSigma = puckDataStatistics.getMedianDistance();
-
-		// filter the iterable
-		if ( medianRadius > 0 )
-			data = Filters.filter( data, new MedianFilterFactory<>( new DoubleType( 0 ), medianRadius ) );
-
-		if ( gaussRadius > 0 )
-			data = Filters.filter( data, new GaussianFilterFactory<>( new DoubleType( 0 ), gaussRadius,  WeightType.BY_SUM_OF_WEIGHTS ) );
-
-		if ( avgRadius > 0 )
-			data = Filters.filter( data, new MeanFilterFactory<>( new DoubleType( 0 ), avgRadius ) );
+		double gaussRenderSigma = stdata.statistics().getMedianDistance();
 
 		//return Render.renderNN( data );
 		//return Render.renderNN( data, new DoubleType( 0 ), gaussRenderRadius );
@@ -100,12 +76,62 @@ public class VisualizeStack
 		return Render.render( data, new GaussianFilterFactory<>( new DoubleType( 0 ), 4 * gaussRenderSigma, gaussRenderSigma, WeightType.NONE ) );
 	}
 
-	public static void render2d( final STData puckData, final STDataStatistics puckDataStatistics, final AffineTransform2D transform, final AffineTransform intensityTransform )
+	public static IterableRealInterval< DoubleType > getRealIterable(
+			final STDataAssembly stdata,
+			final String gene,
+			final double medianRadius,
+			final double gaussRadius,
+			final double avgRadius )
+	{
+		IterableRealInterval< DoubleType > data;
+
+		if ( stdata.intensityTransform().isIdentity())
+		{
+			data = Converters.convert(
+						stdata.data().getExprData( gene ),
+						(a,b) -> b.set( a.get() + 0.1 ),
+						new DoubleType() );
+		}
+		else
+		{
+			final double m00 = stdata.intensityTransform().getRowPackedCopy()[ 0 ];
+			final double m01 = stdata.intensityTransform().getRowPackedCopy()[ 1 ];
+
+			data = Converters.convert(
+						stdata.data().getExprData( gene ),
+						(a,b) -> b.set( a.get() * m00 + m01 + 0.1 ),
+						new DoubleType() );
+		}
+
+		if ( !stdata.transform().isIdentity() )
+			data = new TransformedIterableRealInterval<>(
+					data,
+					stdata.transform() );
+
+		// filter the iterable
+		if ( medianRadius > 0 )
+			data = Filters.filter( data, new MedianFilterFactory<>( new DoubleType( 0 ), medianRadius ) );
+
+		if ( gaussRadius > 0 )
+			data = Filters.filter( data, new GaussianFilterFactory<>( new DoubleType( 0 ), gaussRadius, WeightType.BY_SUM_OF_WEIGHTS ) );
+
+		if ( avgRadius > 0 )
+			data = Filters.filter( data, new MeanFilterFactory<>( new DoubleType( 0 ), avgRadius ) );
+
+		return data;
+	}
+
+	public static void render2d( final STDataAssembly stdata )
 	{
 		final String gene = "Ubb";
-		final RealRandomAccessible< DoubleType > renderRRA = getRendered( puckData, gene, puckDataStatistics, transform, intensityTransform );
+		final RealRandomAccessible< DoubleType > renderRRA = getRendered( stdata, gene );
 
-		final Interval interval = puckData.getRenderInterval();
+		final Interval interval =
+				STDataUtils.getIterableInterval(
+						new TransformedIterableRealInterval<>(
+								stdata.data(),
+								stdata.transform() ) );
+
 		final BdvOptions options = BdvOptions.options().is2D().numRenderingThreads( Runtime.getRuntime().availableProcessors() / 2 );
 
 		/*
@@ -157,7 +183,7 @@ public class VisualizeStack
 
 			BdvStackSource<?> old = bdv;
 			bdv = BdvFunctions.show(
-					getRendered( puckData, showGene, puckDataStatistics, transform, intensityTransform, medianRadius, gaussRadius, avgRadius ),
+					getRendered( stdata, showGene, medianRadius, gaussRadius, avgRadius ),
 					interval,
 					showGene,
 					options.addTo( old ) );
@@ -170,58 +196,34 @@ public class VisualizeStack
 
 	}
 
-	public static void render3d(
-			final ArrayList< STData > puckData,
-			final ArrayList< STDataStatistics > puckDataStatistics,
-			final ArrayList< AffineTransform2D > transforms,
-			final ArrayList< AffineTransform > intensityTransforms )
+	public static void render3d( final List< STDataAssembly > stdata )
 	{
 		final String gene = "Ubb";
-		final ArrayList< IterableRealInterval< DoubleType > > slices = new ArrayList<>();
-		final ArrayList< ExpValueRealIterable< DoubleType > > exprDates = new ArrayList<>();
-
-		for ( int i = 0; i < puckData.size(); ++i )
-		{
-			final AffineTransform intensityTransform = intensityTransforms.get( i );
-			final double m00 = intensityTransform.getRowPackedCopy()[ 0 ];
-			final double m01 = intensityTransform.getRowPackedCopy()[ 1 ];
-
-			System.out.println( m00 + ", " + m01 );
-
-			// store the ExpValueRealIterables
-			exprDates.add( ((STDataN5)puckData.get( i )).getExprData( gene ) );
-			
-			IterableRealInterval< DoubleType > data = 
-					Converters.convert(
-							exprDates.get( exprDates.size() - 1 ), //puckData.get( i ).getExprData( gene ),
-							(a,b) -> b.set( a.get() * m00 + m01 + 0.1 ),
-							new DoubleType() );
-
-			if ( transforms != null )
-				data = new TransformedIterableRealInterval<>(
-						data,
-						transforms.get( i ) );
-
-			slices.add( data );
-		}
-
-		final double spacing = puckDataStatistics.get( 0 ).getMedianDistance() * 1;
-		final StackedIterableRealInterval< DoubleType > stack = new StackedIterableRealInterval<>( slices, spacing );
-
 		final DoubleType outofbounds = new DoubleType( 0 );
 
+		final ArrayList< IterableRealInterval< DoubleType > > slices = new ArrayList<>();
+
+		for ( int i = 0; i < stdata.size(); ++i )
+			slices.add( getRealIterable( stdata.get( i ), gene ) );
+
+		final double medianDistance = stdata.get( 0 ).statistics().getMedianDistance();
+
 		// gauss crisp
-		double gaussRenderSigma = puckDataStatistics.get( 0 ).getMedianDistance() * 1.0;
-		//double gaussRenderRadius = puckDataStatistics.get( 0 ).getMedianDistance() * 4;
+		double gaussRenderSigma = medianDistance * 1.0;
+		//double gaussRenderRadius = medianDistance * 4;
+
+		final double spacing = medianDistance * 1;
+
+		final Interval interval2d = STDataUtils.getCommonIterableInterval( slices );
+		final long[] minI = new long[] { interval2d.min( 0 ), interval2d.min( 1 ), 0 - Math.round( Math.ceil( gaussRenderSigma * 3 ) ) };
+		final long[] maxI = new long[] { interval2d.max( 0 ), interval2d.max( 1 ), Math.round( ( stdata.size() - 1 ) * spacing ) + Math.round( Math.ceil( gaussRenderSigma * 3 ) ) };
+		final Interval interval = new FinalInterval( minI, maxI );
+
+		final StackedIterableRealInterval< DoubleType > stack = new StackedIterableRealInterval<>( slices, spacing );
 
 		final RealRandomAccessible< DoubleType > renderRRA = Render.render( stack, new GaussianFilterFactory<>( outofbounds, gaussRenderSigma, WeightType.NONE ) );
 
-		final Interval interval2d = STDataUtils.getCommonInterval( puckData );
-		final long[] minI = new long[] { interval2d.min( 0 ), interval2d.min( 1 ), 0 };
-		final long[] maxI = new long[] { interval2d.max( 0 ), interval2d.max( 1 ), Math.round( ( puckData.size() ) * spacing ) };
-		final Interval interval = new FinalInterval( minI, maxI );
-		final BdvOptions options = BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() );
-
+		final BdvOptions options = BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() / 2 );
 		BdvStackSource<?> bdv = BdvFunctions.show( renderRRA, interval, gene, options/*.addTo( old )*/ );
 		bdv.setDisplayRange( min, max );
 		bdv.setDisplayRangeBounds( minRange, maxRange );
@@ -236,29 +238,26 @@ public class VisualizeStack
 		final N5FSReader n5 = N5IO.openN5( n5Path );
 		final List< String > pucks = N5IO.listAllDatasets( n5 );
 
-		final ArrayList< STData > puckData = new ArrayList<>();
-		final ArrayList< STDataStatistics > puckDataStatistics = new ArrayList<>();
-		final ArrayList< AffineTransform2D > transforms = new ArrayList<>();
-		final ArrayList< AffineTransform > intensityTransforms = new ArrayList<>();
+		final ArrayList< STDataAssembly > puckData = new ArrayList<>();
 
 		for ( final String puck : pucks )
 		{
-			puckData.add( N5IO.readN5( n5, puck ) );
-			puckDataStatistics.add( new STDataStatistics( puckData.get( puckData.size() - 1) ) );
+			final STDataN5 data = N5IO.readN5( n5, puck );
+			final STDataStatistics stats = new STDataStatistics( data );
 
 			final AffineTransform2D t = new AffineTransform2D();
 			t.set( n5.getAttribute( n5.groupPath( puck ), "transform", double[].class ) );
-			transforms.add( t );
 
 			final AffineTransform i = new AffineTransform( 1 );
 			double[] values =  n5.getAttribute( n5.groupPath( puck ), "intensity_transform", double[].class );
 			i.set( values[ 0 ], values[ 1 ] );
-			intensityTransforms.add( i );
+
+			puckData.add( new STDataAssembly( data, stats, t, i ) );
 		}
 
 		if ( puckData.size() >= 1 )
-			render2d( puckData.get( 0 ), puckDataStatistics.get( 0 ), transforms.get( 0 ), intensityTransforms.get( 0 ) );
+			render2d( puckData.get( 0 ) );
 		else
-			render3d( puckData, puckDataStatistics, transforms, intensityTransforms );
+			render3d( puckData );
 	}
 }

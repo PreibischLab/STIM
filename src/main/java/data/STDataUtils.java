@@ -46,6 +46,61 @@ public class STDataUtils
 		return getCommonInterval( list );
 	}
 
+	public static Interval getCommonIterableInterval( final Collection< ? extends RealInterval > datasets )
+	{
+		double[] min = null, max = null;
+
+		for ( final RealInterval dataset : datasets )
+		{
+			if ( min == null )
+			{
+				min = new double[ dataset.numDimensions() ];
+				max = new double[ dataset.numDimensions() ];
+				
+				dataset.realMin( min );
+				dataset.realMax( max );
+			}
+			else
+			{
+				for ( int d = 0; d < min.length; ++d )
+				{
+					min[ d ] = Math.min( min[ d ], dataset.realMin( d ) );
+					max[ d ] = Math.max( max[ d ], dataset.realMax( d ) );
+				}
+			}
+		}
+
+		if ( min != null )
+		{
+			final long[] minL = new long[ min.length ];
+			final long[] maxL = new long[ max.length ];
+
+			for ( int d = 0; d < minL.length; ++d )
+			{
+				minL[ d ] = Math.round( Math.floor( min[ d ] ) );
+				maxL[ d ] = Math.round( Math.ceil( max[ d ] ) );
+			}
+
+			return new FinalInterval( minL, maxL );
+		}
+		else
+			return null;
+	}
+
+	public static Interval getIterableInterval( final RealInterval dataset )
+	{
+		final long[] minL = new long[ dataset.numDimensions() ];
+		final long[] maxL = new long[ dataset.numDimensions() ];
+
+		for ( int d = 0; d < minL.length; ++d )
+		{
+			minL[ d ] = Math.round( Math.floor( dataset.realMin( d ) ) );
+			maxL[ d ] = Math.round( Math.ceil( dataset.realMax( d ) ) );
+		}
+
+		return new FinalInterval( minL, maxL );
+	}
+
 	public static Interval getCommonInterval( final Collection< STData > datasets )
 	{
 		long[] min = null, max = null;

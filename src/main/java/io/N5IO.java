@@ -254,7 +254,7 @@ public class N5IO
 		for ( int i = 0; i < geneNameList.size(); ++i )
 			geneLookup.put( geneNameList.get( i ), i );
 
-		return new STDataN5( locations, exprValues, geneNameList, geneLookup, n5, new File( n5.getBasePath() ) );
+		return new STDataN5( locations, exprValues, geneNameList, geneLookup, n5, new File( n5.getBasePath() ), datasetName );
 	}
 
 	public static ArrayList< STDataN5 > readN5All( final File n5path ) throws IOException

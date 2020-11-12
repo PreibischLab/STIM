@@ -30,10 +30,8 @@ import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 import javax.swing.JFrame;
 
@@ -43,17 +41,15 @@ import data.STData;
 import data.STDataStatistics;
 import io.N5IO;
 import io.Path;
-import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.util.Pair;
-import net.imglib2.util.RealSum;
-import net.imglib2.util.ValuePair;
+import net.imglib2.realtransform.AffineTransform;
+import net.imglib2.realtransform.AffineTransform2D;
 
 public class STDataExplorer
 {
 	final JFrame frame;
 	final StDataExplorerPanel panel;
 
-	public STDataExplorer( final List< Pair< STData, STDataStatistics > > slides )
+	public STDataExplorer( final List< STDataAssembly > slides )
 	{
 		frame = new JFrame( "Interest Point Explorer" );
 		panel = new StDataExplorerPanel( slides );
@@ -101,19 +97,32 @@ public class STDataExplorer
 	public static void main( String[] args ) throws IOException
 	{
 		final String path = Path.getPath();
-		final String[] pucks = new String[] { "Puck_180531_23", "Puck_180531_22" };
+		//final String[] pucks = new String[] { "Puck_180531_23", "Puck_180531_22" };
 
-		final ArrayList< Pair< STData, STDataStatistics > > slides = new ArrayList<>();
 		final N5FSReader n5 = N5IO.openN5( new File( path + "slide-seq-normalized.n5" ) );
+		final List< String > pucks = N5IO.listAllDatasets( n5 );
+
+		final ArrayList< STDataAssembly > slides = new ArrayList<>();
 		// final List< String > pucks = N5IO.listAllDatasets( n5 );
 
 		for ( final String puck : pucks )
 		{
 			final STData slide = /*new NormalizingSTData*/( N5IO.readN5( n5, puck ) );//.copy();
-
 			final STDataStatistics stat = new STDataStatistics( slide );
 
-			slides.add( new ValuePair<>( slide, stat ) );
+			final String groupPath = n5.groupPath( puck );
+			final Set< String > attributes = n5.listAttributes( groupPath ).keySet();
+
+			final AffineTransform2D t = new AffineTransform2D();
+
+			if ( attributes.contains( "transform" ))
+				t.set( n5.getAttribute( n5.groupPath( puck ), "transform", double[].class ) );
+
+			final AffineTransform i = new AffineTransform( 1 );
+			double[] values =  n5.getAttribute( n5.groupPath( puck ), "intensity_transform", double[].class );
+			i.set( values[ 0 ], values[ 1 ] );
+
+			slides.add( new STDataAssembly( slide, stat, t, i  ) );
 		}
 
 		/*
