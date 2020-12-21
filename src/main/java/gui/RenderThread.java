@@ -19,10 +19,12 @@ import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
 import render.Render;
-import tools.VisualizeStack;
 
 public class RenderThread implements Runnable
 {
+	protected static int medianFilter = 0;
+	protected static int gaussFactor = 1;
+
 	protected static double minRange = 0;
 	protected static double maxRange = 200;
 	protected static double min = 0.1;
@@ -101,32 +103,7 @@ public class RenderThread implements Runnable
 
 				System.out.println( "rendering gene: " + gene + " of slide: " + slide.data().toString() );
 
-				final RealRandomAccessible< DoubleType > renderRRA = Render.getRealRandomAccessible( slide, gene );
-
-				/*
-				IterableRealInterval< DoubleType > data = slide.getA().getExprData( gene );
-
-				data = Converters.convert(
-						data,
-						new Converter< DoubleType, DoubleType >()
-						{
-							@Override
-							public void convert( final DoubleType input, final DoubleType output )
-							{
-								output.set( input.get() + 0.1 );
-							}
-						},
-						new DoubleType() );
-
-				//final Pair< DoubleType, DoubleType > minmax = ImgLib2Util.minmax( data );
-				//System.out.println( minmax.getA() + " " + minmax.getB() );
-
-				// gauss crisp
-				double gaussRenderSigma = slide.getB().getMedianDistance();
-				double gaussRenderRadius = slide.getB().getMedianDistance() * 4;
-
-				final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, WeightType.NONE ) );
-				*/
+				final RealRandomAccessible< DoubleType > renderRRA = Render.getRealRandomAccessible( slide, gene, gaussFactor, medianFilter, 0.0, 0.0 );
 
 				BdvStackSource< ? > old = bdv;
 

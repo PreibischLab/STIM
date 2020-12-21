@@ -105,7 +105,7 @@ public class VisualizeStack
 
 			BdvStackSource<?> old = bdv;
 			bdv = BdvFunctions.show(
-					Render.getRealRandomAccessible( stdata, showGene, medianRadius, gaussRadius, avgRadius ),
+					Render.getRealRandomAccessible( stdata, showGene, 1.0, medianRadius, gaussRadius, avgRadius ),
 					interval,
 					showGene,
 					options.addTo( old ) );

@@ -39,6 +39,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
@@ -58,8 +59,6 @@ import net.imglib2.util.ValuePair;
 
 public class StDataExplorerPanel extends JPanel
 {
-	protected final static int maxRange = 100;
-
 	private static final long serialVersionUID = -3767947154096099774L;
 
 	protected final List< STDataAssembly > slides;
@@ -71,6 +70,9 @@ public class StDataExplorerPanel extends JPanel
 	protected STDataTableModel tableModel;
 	protected JLabel label;
 	protected JTextField text;
+	protected JCheckBox visualization;
+
+	protected VisualizationOptionsFrame visFrame = null;
 
 	protected final RenderThread renderThread;
 	protected final Thread thread;
@@ -113,6 +115,7 @@ public class StDataExplorerPanel extends JPanel
 	public JTable getTable() { return table; }
 
 	int lastRow = -1, lastCol = -1;
+	boolean forceUpdate = false;
 
 	protected List< String > allGenes( final List< Pair< STData, STDataStatistics > > slides )
 	{
@@ -136,7 +139,7 @@ public class StDataExplorerPanel extends JPanel
 		final int col = table.getSelectedColumns()[ 0 ];
 
 		// row and col changed at the same time, both listeners fire
-		if ( row == lastRow && col == lastCol )
+		if ( !forceUpdate && row == lastRow && col == lastCol )
 		{
 			return;
 		}
@@ -185,11 +188,10 @@ public class StDataExplorerPanel extends JPanel
 		for ( int column = 0; column < tableModel.getColumnCount(); ++column )
 			table.getColumnModel().getColumn( column ).setCellRenderer( myRenderer );
 
-		table.setPreferredScrollableViewportSize( new Dimension( 300, 400 ) );
+		table.setPreferredScrollableViewportSize( new Dimension( 650, 400 ) );
 		final Font f = table.getFont();
-		
 		table.setFont( new Font( f.getName(), f.getStyle(), 11 ) );
-		
+
 		this.setLayout( new BorderLayout() );
 		this.label = new JLabel( "Search gene:" );
 		this.text = new JTextField( "" );
@@ -248,9 +250,31 @@ public class StDataExplorerPanel extends JPanel
 			public void keyPressed( KeyEvent e ) {}
 		} );
 
+		this.visualization = new JCheckBox( "Visualization Options" );
+		this.visualization.addActionListener(
+				e ->
+				{
+					if ( this.visualization.isSelected() )
+					{
+						this.visFrame = new VisualizationOptionsFrame( this );
+					}
+					else
+					{
+						if ( this.visFrame.isVisible() )
+							this.visFrame.dispose();
+					}
+				} );
+
 		this.add( label, BorderLayout.WEST );
-		this.add( text, BorderLayout.EAST );
+		this.add( text, BorderLayout.CENTER );
+
+		this.add( visualization, BorderLayout.EAST );
+
 		this.add( new JScrollPane( table ), BorderLayout.SOUTH );
+
+		// ensure that the cells are not made smaller to match the size,
+		// which introduces horizontal scrollbars if nessecary
+		table.setAutoResizeMode( JTable.AUTO_RESIZE_OFF );
 
 		for ( int column = 0; column < tableModel.getColumnCount(); ++column )
 			table.getColumnModel().getColumn( column ).setPreferredWidth( 150 );

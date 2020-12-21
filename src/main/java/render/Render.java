@@ -26,7 +26,7 @@ public class Render
 			final STDataAssembly stdata,
 			final String gene )
 	{
-		return getRealRandomAccessible( stdata, gene, 0, 0, 0 );
+		return getRealRandomAccessible( stdata, gene, 1.0, 0, 0, 0 );
 	}
 
 	public static IterableRealInterval< DoubleType > getRealIterable(
@@ -39,6 +39,7 @@ public class Render
 	public static RealRandomAccessible< DoubleType > getRealRandomAccessible(
 			final STDataAssembly stdata,
 			final String gene,
+			final double renderSigmaFactor,
 			final double medianRadius,
 			final double gaussRadius,
 			final double avgRadius )
@@ -46,13 +47,13 @@ public class Render
 		final IterableRealInterval< DoubleType > data = getRealIterable( stdata, gene, medianRadius, gaussRadius, avgRadius );
 
 		// gauss crisp
-		double gaussRenderSigma = stdata.statistics().getMedianDistance();
+		double gaussRenderSigma = stdata.statistics().getMedianDistance() * renderSigmaFactor;
 
 		//return Render.renderNN( data );
 		//return Render.renderNN( data, new DoubleType( 0 ), gaussRenderRadius );
 		//return Render.render( data, new MeanFilterFactory<>( new DoubleType( 0 ), 2 * gaussRenderSigma ) );
 		//return Render.render( data, new MedianFilterFactory<>( new DoubleType( 0 ), 2 * gaussRenderSigma ) );
-		return Render.render( data, new GaussianFilterFactory<>( new DoubleType( 0 ), 4 * gaussRenderSigma, gaussRenderSigma, WeightType.NONE ) );
+		return Render.render( data, new GaussianFilterFactory<>( new DoubleType( 0 ), gaussRenderSigma, WeightType.NONE ) );
 	}
 
 	public static IterableRealInterval< DoubleType > getRealIterable(
