@@ -11,6 +11,9 @@ public class GaussianFilter< S extends RealType< S >, T extends RealType< T > > 
 	final WeightType normalize;
 	final double two_sq_sigma;
 
+	final double thresholdMax = 0.5;
+	final double thresholdMin = 0.001;
+
 	public GaussianFilter(
 			final RadiusNeighborSearch< S > search,
 			final T outofbounds,
@@ -46,16 +49,46 @@ public class GaussianFilter< S extends RealType< S >, T extends RealType< T > > 
 
 				value += search.getSampler( i ).get().getRealDouble() * w;
 
-				if ( normalize == WeightType.BY_SUM_OF_WEIGHTS )
+				if ( normalize == WeightType.BY_SUM_OF_WEIGHTS || normalize == WeightType.PARTIAL_BY_SUM_OF_WEIGHTS )
 					weight += w;
 			}
 
-			if ( normalize == WeightType.BY_SUM_OF_WEIGHTS )
+			if ( normalize == WeightType.PARTIAL_BY_SUM_OF_WEIGHTS )
+			{
+				if ( weight > thresholdMax )
+					output.setReal( value / weight );
+				else if ( weight <= thresholdMax && weight >= thresholdMin )
+				{
+					final double a = Math.sin( ( ( weight - thresholdMin ) / ( thresholdMax - thresholdMin ) ) * Math.PI/2 );
+					final double b = 1.0 - a;
+
+					output.setReal( a * ( value / weight ) + b * value );
+				}
+				else
+					output.setReal( value );
+			}
+			else if ( normalize == WeightType.BY_SUM_OF_WEIGHTS )
 				output.setReal( value / weight );
 			else if ( normalize == WeightType.BY_SUM_OF_SAMPLES )
 				output.setReal( value / search.numNeighbors() );
 			else
 				output.setReal( value );
+		}
+	}
+
+	public static void main( String[] arg )
+	{
+		double thresholdMax = 0.8;
+		double thresholdMin = 0.2;
+
+		for ( double dist = 0.2; dist <= 0.8; dist += 0.1 )
+		{
+
+			double reWeight = ( ( dist - thresholdMin ) / ( thresholdMax - thresholdMin ) ) * Math.PI/2;
+			double a = Math.sin( reWeight );
+			double b = 1.0 - a;
+
+			System.out.println( dist + " " + reWeight + " " +  a + " " + b );
 		}
 	}
 }

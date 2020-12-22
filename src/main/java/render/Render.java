@@ -53,7 +53,7 @@ public class Render
 		//return Render.renderNN( data, new DoubleType( 0 ), gaussRenderRadius );
 		//return Render.render( data, new MeanFilterFactory<>( new DoubleType( 0 ), 2 * gaussRenderSigma ) );
 		//return Render.render( data, new MedianFilterFactory<>( new DoubleType( 0 ), 2 * gaussRenderSigma ) );
-		return Render.render( data, new GaussianFilterFactory<>( new DoubleType( 0 ), gaussRenderSigma, WeightType.NONE ) );
+		return Render.render( data, new GaussianFilterFactory<>( new DoubleType( 0 ), gaussRenderSigma, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS ) );
 	}
 
 	public static IterableRealInterval< DoubleType > getRealIterable(
