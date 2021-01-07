@@ -1,11 +1,12 @@
 package render;
 
+import java.util.List;
+
+import filter.FilterFactory;
 import filter.Filters;
 import filter.GaussianFilterFactory;
-import filter.MeanFilterFactory;
-import filter.MedianFilterFactory;
-import filter.RadiusSearchFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
+import filter.RadiusSearchFilterFactory;
 import gui.STDataAssembly;
 import imglib2.TransformedIterableRealInterval;
 import net.imglib2.Interval;
@@ -26,25 +27,23 @@ public class Render
 			final STDataAssembly stdata,
 			final String gene )
 	{
-		return getRealRandomAccessible( stdata, gene, 1.0, 0, 0, 0 );
+		return getRealRandomAccessible( stdata, gene, 1.0, null );
 	}
 
 	public static IterableRealInterval< DoubleType > getRealIterable(
 			final STDataAssembly stdata,
 			final String gene )
 	{
-		return getRealIterable(stdata, gene, 0, 0, 0 );
+		return getRealIterable(stdata, gene, null );
 	}
 	
 	public static RealRandomAccessible< DoubleType > getRealRandomAccessible(
 			final STDataAssembly stdata,
 			final String gene,
 			final double renderSigmaFactor,
-			final double medianRadius,
-			final double gaussRadius,
-			final double avgRadius )
+			final List< FilterFactory< DoubleType, DoubleType > > filterFactorys )
 	{
-		final IterableRealInterval< DoubleType > data = getRealIterable( stdata, gene, medianRadius, gaussRadius, avgRadius );
+		final IterableRealInterval< DoubleType > data = getRealIterable( stdata, gene, filterFactorys );
 
 		// gauss crisp
 		double gaussRenderSigma = stdata.statistics().getMedianDistance() * renderSigmaFactor;
@@ -59,9 +58,7 @@ public class Render
 	public static IterableRealInterval< DoubleType > getRealIterable(
 			final STDataAssembly stdata,
 			final String gene,
-			final double medianRadius,
-			final double gaussRadius,
-			final double avgRadius )
+			final List< FilterFactory< DoubleType, DoubleType > > filterFactorys )
 	{
 		IterableRealInterval< DoubleType > data;
 
@@ -89,6 +86,11 @@ public class Render
 					stdata.transform() );
 
 		// filter the iterable
+		if ( filterFactorys != null )
+			for ( final FilterFactory<DoubleType, DoubleType> filterFactory : filterFactorys )
+				data = Filters.filter( data, filterFactory );
+
+		/*
 		if ( medianRadius > 0 )
 			data = Filters.filter( data, new MedianFilterFactory<>( new DoubleType( 0 ), medianRadius ) );
 
@@ -97,7 +99,7 @@ public class Render
 
 		if ( avgRadius > 0 )
 			data = Filters.filter( data, new MeanFilterFactory<>( new DoubleType( 0 ), avgRadius ) );
-
+		*/
 		return data;
 	}
 

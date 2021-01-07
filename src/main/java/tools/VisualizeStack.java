@@ -28,8 +28,11 @@ import data.STData;
 import data.STDataN5;
 import data.STDataStatistics;
 import data.STDataUtils;
+import filter.FilterFactory;
 import filter.GaussianFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
+import filter.MeanFilterFactory;
+import filter.MedianFilterFactory;
 import gui.STDataAssembly;
 import ij.ImageJ;
 import imglib2.StackedIterableRealInterval;
@@ -58,12 +61,14 @@ public class VisualizeStack
 
 	public static void render2d( final STDataAssembly stdata )
 	{
-		double medianRadius = 0;
-		double gaussRadius = 0;
-		double avgRadius = 0;
+		final List< FilterFactory< DoubleType, DoubleType > > filterFactorys = new ArrayList<>();
+
+		//filterFactorys.add( new MedianFilterFactory<>( new DoubleType( 0 ), 50.0 ) );
+		//filterFactorys.add( new GaussianFilterFactory<>( new DoubleType( 0 ), 50.0, WeightType.BY_SUM_OF_WEIGHTS ) );
+		//filterFactorys.add( new MeanFilterFactory<>( new DoubleType( 0 ), 50.0 ) );
 
 		final String gene = "Calm2";
-		final RealRandomAccessible< DoubleType > renderRRA = Render.getRealRandomAccessible( stdata, gene, 1.0, medianRadius, gaussRadius, avgRadius );
+		final RealRandomAccessible< DoubleType > renderRRA = Render.getRealRandomAccessible( stdata, gene, 1.0, filterFactorys );
 
 		final Interval interval =
 				STDataUtils.getIterableInterval(

@@ -1,5 +1,6 @@
 package gui;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -11,6 +12,8 @@ import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
 import data.STDataUtils;
+import filter.FilterFactory;
+import filter.MedianFilterFactory;
 import imglib2.TransformedIterableRealInterval;
 import net.imglib2.Interval;
 import net.imglib2.RealRandomAccessible;
@@ -103,7 +106,12 @@ public class RenderThread implements Runnable
 
 				System.out.println( "rendering gene: " + gene + " of slide: " + slide.data().toString() );
 
-				final RealRandomAccessible< DoubleType > renderRRA = Render.getRealRandomAccessible( slide, gene, gaussFactor, medianFilter, 0.0, 0.0 );
+				final List< FilterFactory< DoubleType, DoubleType > > filterFactorys = new ArrayList<>();
+
+				if ( medianFilter > 0 )
+					filterFactorys.add( new MedianFilterFactory<>( new DoubleType( 0 ), medianFilter ) );
+
+				final RealRandomAccessible< DoubleType > renderRRA = Render.getRealRandomAccessible( slide, gene, gaussFactor, filterFactorys );
 
 				BdvStackSource< ? > old = bdv;
 
