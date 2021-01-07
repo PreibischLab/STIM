@@ -1,26 +1,37 @@
 package tools;
 
+import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
-import org.janelia.saalfeldlab.n5.N5FSReader;
+import javax.swing.ActionMap;
+import javax.swing.InputMap;
 
+import org.janelia.saalfeldlab.n5.N5FSReader;
+import org.scijava.ui.behaviour.KeyStrokeAdder;
+import org.scijava.ui.behaviour.io.InputTriggerConfig;
+import org.scijava.ui.behaviour.io.InputTriggerDescription;
+import org.scijava.ui.behaviour.util.AbstractNamedAction;
+
+import align.GlobalOpt;
+import align.Pairwise;
 import bdv.util.BdvFunctions;
+import bdv.util.BdvHandle;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
+import data.STData;
 import data.STDataN5;
 import data.STDataStatistics;
 import data.STDataUtils;
-import filter.Filters;
 import filter.GaussianFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
-import filter.MeanFilterFactory;
-import filter.MedianFilterFactory;
 import gui.STDataAssembly;
+import ij.ImageJ;
 import imglib2.StackedIterableRealInterval;
 import imglib2.TransformedIterableRealInterval;
 import io.N5IO;
@@ -29,24 +40,30 @@ import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RealRandomAccessible;
-import net.imglib2.converter.Converters;
 import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.util.Pair;
+import net.imglib2.util.ValuePair;
 import render.Render;
+import tools.BDVFlyThrough.CallbackBDV;
 
 public class VisualizeStack
 {
 	protected static double minRange = 0;
 	protected static double maxRange = 100;
 	protected static double min = 0.1;
-	protected static double max = 25;
+	protected static double max = 5.5;
 
 	public static void render2d( final STDataAssembly stdata )
 	{
-		final String gene = "Ubb";
-		final RealRandomAccessible< DoubleType > renderRRA = Render.getRealRandomAccessible( stdata, gene );
+		double medianRadius = 0;
+		double gaussRadius = 0;
+		double avgRadius = 0;
+
+		final String gene = "Calm2";
+		final RealRandomAccessible< DoubleType > renderRRA = Render.getRealRandomAccessible( stdata, gene, 1.0, medianRadius, gaussRadius, avgRadius );
 
 		final Interval interval =
 				STDataUtils.getIterableInterval(
@@ -82,10 +99,7 @@ public class VisualizeStack
 		genesToTest.add( "Pcp4" );
 
 		final Random rnd = new Random();
-		double medianRadius = 0;
-		double gaussRadius = 0;
-		double avgRadius = 0;
-
+/*
 		do
 		{
 			SimpleMultiThreading.threadWait( 500 );
@@ -115,14 +129,11 @@ public class VisualizeStack
 			old.removeFromBdv();
 
 		} while ( System.currentTimeMillis() > 0 );
-
+*/
 	}
 
-	public static void render3d( final List< STDataAssembly > stdata )
+	public static Pair< RealRandomAccessible< DoubleType >, Interval > createStack( final List< STDataAssembly > stdata, final String gene, final DoubleType outofbounds )
 	{
-		final String gene = "Ubb";
-		final DoubleType outofbounds = new DoubleType( 0 );
-
 		final ArrayList< IterableRealInterval< DoubleType > > slices = new ArrayList<>();
 
 		for ( int i = 0; i < stdata.size(); ++i )
@@ -134,7 +145,7 @@ public class VisualizeStack
 		double gaussRenderSigma = medianDistance * 1.0;
 		//double gaussRenderRadius = medianDistance * 4;
 
-		final double spacing = medianDistance * 1;
+		final double spacing = medianDistance * 2;
 
 		final Interval interval2d = STDataUtils.getCommonIterableInterval( slices );
 		final long[] minI = new long[] { interval2d.min( 0 ), interval2d.min( 1 ), 0 - Math.round( Math.ceil( gaussRenderSigma * 3 ) ) };
@@ -143,14 +154,169 @@ public class VisualizeStack
 
 		final StackedIterableRealInterval< DoubleType > stack = new StackedIterableRealInterval<>( slices, spacing );
 
-		final RealRandomAccessible< DoubleType > renderRRA = Render.render( stack, new GaussianFilterFactory<>( outofbounds, gaussRenderSigma, WeightType.NONE ) );
+		return new ValuePair<>( Render.render( stack, new GaussianFilterFactory<>( outofbounds, gaussRenderSigma*1.5, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS ) ), interval );
+	}
+
+	public static void render3d( final List< STDataAssembly > stdata )
+	{
+		final List< String > genesToTest = new ArrayList<>();
+		genesToTest.add( "Actb" );
+		genesToTest.add( "Ubb" );
+		genesToTest.add( "Hpca" );
+		genesToTest.add( "Calm2" );
+		genesToTest.add( "Mbp" );
+		genesToTest.add( "Fth1" );
+		genesToTest.add( "Pcp4" );
+		genesToTest.add( "Ptgds" );
+		genesToTest.add( "Ttr" );
+		genesToTest.add( "Calm1" );
+		genesToTest.add( "Fkbp1a" );
+
+		final DoubleType outofbounds = new DoubleType( 0 );
+
+		final Pair< RealRandomAccessible< DoubleType >, Interval > stack = createStack( stdata, genesToTest.get( 0 ), outofbounds );
+		final Interval interval = stack.getB();
 
 		final BdvOptions options = BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() / 2 );
-		BdvStackSource<?> bdv = BdvFunctions.show( renderRRA, interval, gene, options/*.addTo( old )*/ );
-		bdv.setDisplayRange( min, max );
-		bdv.setDisplayRangeBounds( minRange, maxRange );
-		bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
-		bdv.setCurrent();
+		BdvStackSource< ? > source = BdvFunctions.show( stack.getA(), interval, genesToTest.get( 0 ), options/*.addTo( old )*/ );
+		source.setDisplayRange( min, max );
+		source.setDisplayRangeBounds( minRange, maxRange );
+		source.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
+		source.setCurrent();
+
+		final Random rnd = new Random( 34 );
+
+		setupRecordMovie(
+				source.getBdvHandle(),
+				(i, oldSource) ->
+				{
+					if ( i % 20 == 0 && i <= 220 )
+					{
+						int newGene = ( i == 220 ) ? 0 : i / 20; //rnd.nextInt( genesToTest.size() );
+						
+						System.out.println( "Rendering: " + genesToTest.get( newGene ) );
+						BdvStackSource<?> newSource = BdvFunctions.show( createStack( stdata, genesToTest.get( newGene ), outofbounds ).getA(), interval, genesToTest.get( newGene ), options );
+						newSource.setDisplayRange( min, max );
+						newSource.setDisplayRangeBounds( minRange, maxRange );
+						newSource.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
+
+						if ( oldSource != null )
+							oldSource.close();
+
+						return newSource;
+					}
+					else
+					{
+						return oldSource;
+					}
+				} );
+	}
+
+	public static void setupRecordMovie( final BdvHandle bdvHandle, final CallbackBDV callback )
+	{
+		final ActionMap ksActionMap = new ActionMap();
+		final InputMap ksInputMap = new InputMap();
+
+		// default input trigger config, disables "control button1" drag in bdv
+		// (collides with default of "move annotation")
+		final InputTriggerConfig config = new InputTriggerConfig(
+				Arrays.asList(
+						new InputTriggerDescription[]{
+								new InputTriggerDescription(
+										new String[]{"not mapped"}, "drag rotate slow", "bdv")}));
+
+		final KeyStrokeAdder ksKeyStrokeAdder = config.keyStrokeAdder(ksInputMap, "persistence");
+
+		new AbstractNamedAction( "Record movie" )
+		{
+			private static final long serialVersionUID = 3640052275162419689L;
+
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				new Thread( ()-> BDVFlyThrough.record( callback ) ).start();
+			}
+
+			public void register() {
+				put(ksActionMap);
+				ksKeyStrokeAdder.put(name(), "ctrl R" );
+			}
+		}.register();
+
+		new AbstractNamedAction( "Add Current Viewer Transform" )
+		{
+			private static final long serialVersionUID = 3620052275162419689L;
+
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				BDVFlyThrough.addCurrentViewerTransform( bdvHandle.getViewerPanel() );
+			}
+
+			public void register() {
+				put(ksActionMap);
+				ksKeyStrokeAdder.put(name(), "ctrl A" );
+			}
+		}.register();
+
+		new AbstractNamedAction( "Clear All Viewer Transforms" )
+		{
+			private static final long serialVersionUID = 3620052275162419689L;
+
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				BDVFlyThrough.clearAllViewerTransform();
+			}
+
+			public void register() {
+				put(ksActionMap);
+				ksKeyStrokeAdder.put(name(), "ctrl X" );
+			}
+		}.register();
+
+		bdvHandle.getKeybindings().addActionMap("persistence", ksActionMap);
+		bdvHandle.getKeybindings().addInputMap("persistence", ksInputMap);
+		/*
+		if ( arg0.getKeyChar() == 's' )
+			if (bdvRunning)
+				new Thread( new Runnable()
+				{
+					@Override
+					public void run()
+					{ BDVFlyThrough.record( bdvPopup().bdv ); }
+				} ).start();
+			else
+				IOFunctions.println("Please open BigDataViewer to record a fly-through or add keypoints.");
+
+		if ( arg0.getKeyChar() == 'a' )
+			if (bdvRunning)
+				BDVFlyThrough.addCurrentViewerTransform( bdvPopup().bdv );
+			else
+				IOFunctions.println("Please open BigDataViewer to record a fly-through or add keypoints.");
+
+		if ( arg0.getKeyChar() == 'x' )
+			BDVFlyThrough.clearAllViewerTransform();
+		*/
+	}
+
+	public static void visualizeIJ( final ArrayList< STDataAssembly > puckData )
+	{
+		new ImageJ();
+
+		List< Pair< STData, AffineTransform2D > > data = new ArrayList<>();
+
+		for ( final STDataAssembly stDataAssembly : puckData )
+			data.add( new ValuePair<STData, AffineTransform2D>( stDataAssembly.data(), new AffineTransform2D() ) );
+
+		GlobalOpt.visualizeList( data ).setTitle( "unaligned" );
+
+		data = new ArrayList<>();
+
+		for ( final STDataAssembly stDataAssembly : puckData )
+			data.add( new ValuePair<STData, AffineTransform2D>( stDataAssembly.data(), stDataAssembly.transform() ) );
+
+		GlobalOpt.visualizeList( data ).setTitle( "aligned" );
 	}
 
 	public static void main( String[] args ) throws IOException
@@ -172,12 +338,14 @@ public class VisualizeStack
 
 			final AffineTransform i = new AffineTransform( 1 );
 			double[] values =  n5.getAttribute( n5.groupPath( puck ), "intensity_transform", double[].class );
-			i.set( values[ 0 ], values[ 1 ] );
+			i.set( 1,0);//values[ 0 ], values[ 1 ] );
 
 			puckData.add( new STDataAssembly( data, stats, t, i ) );
 		}
 
-		if ( puckData.size() >= 1 )
+		//visualizeIJ( puckData );
+
+		if ( puckData.size() == 1 )
 			render2d( puckData.get( 0 ) );
 		else
 			render3d( puckData );
