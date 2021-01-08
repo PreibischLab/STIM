@@ -17,50 +17,32 @@ import analyze.ExtractGeneLists;
 import data.STData;
 import data.STDataStatistics;
 import data.STDataUtils;
-import filter.GaussianFilterFactory;
-import filter.GaussianFilterFactory.WeightType;
 import ij.ImageJ;
 import imglib2.ImgLib2Util;
 import imglib2.icp.ICP;
-import imglib2.icp.NoSuitablePointsException;
 import imglib2.icp.PointMatchIdentification;
 import imglib2.icp.StDataPointMatchIdentification;
 import imglib2.phasecorrelation.PhaseCorrelation2;
-import imglib2.phasecorrelation.PhaseCorrelation2Util;
 import imglib2.phasecorrelation.PhaseCorrelationPeak2;
 import io.N5IO;
 import io.Path;
 import mpicbg.models.AffineModel2D;
-import mpicbg.models.IllDefinedDataPointsException;
-import mpicbg.models.Model;
-import mpicbg.models.NotEnoughDataPointsException;
-import net.imglib2.Cursor;
 import net.imglib2.Interval;
-import net.imglib2.IterableRealInterval;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.RealCursor;
 import net.imglib2.RealLocalizable;
 import net.imglib2.RealPoint;
-import net.imglib2.RealRandomAccessible;
 import net.imglib2.algorithm.gauss3.Gauss3;
-import net.imglib2.converter.Converter;
-import net.imglib2.converter.Converters;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform2D;
-import net.imglib2.realtransform.RealViews;
 import net.imglib2.type.numeric.complex.ComplexDoubleType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
-import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
-import render.Render;
-import transform.TransformCoordinates;
 import util.Threads;
 
 public class Pairwise
@@ -381,7 +363,8 @@ public class Pairwise
 	{
 		final ArrayList< Pair< PhaseCorrelationPeak2, Double > > topPeaks = new ArrayList<>();
 
-		final RandomAccessibleInterval< DoubleType > imgA = ImgLib2Util.copyImg( display( stdataA, statA, gene, ImgLib2Util.transformInterval( interval, scalingTransform ), scalingTransform ), new ArrayImgFactory<>( new DoubleType() ), service );
+		final RandomAccessibleInterval< DoubleType > imgA = ImgLib2Util.copyImg(
+				AlignTools.display( stdataA, statA, gene, ImgLib2Util.transformInterval( interval, scalingTransform ), scalingTransform ), new ArrayImgFactory<>( new DoubleType() ), service );
 
 		// initial scouting
 		//System.out.println( "Scouting: " + gene );
@@ -391,7 +374,8 @@ public class Pairwise
 			final AffineTransform2D transformB = scalingTransform.copy();
 			transformB.rotate( Math.toRadians( deg ) );
 
-			final RandomAccessibleInterval< DoubleType > imgB = ImgLib2Util.copyImg( display( stdataB, statB, gene, ImgLib2Util.transformInterval( interval, transformB ), transformB ), new ArrayImgFactory<>( new DoubleType() ), service );
+			final RandomAccessibleInterval< DoubleType > imgB = ImgLib2Util.copyImg(
+					AlignTools.display( stdataB, statB, gene, ImgLib2Util.transformInterval( interval, transformB ), transformB ), new ArrayImgFactory<>( new DoubleType() ), service );
 
 			final PhaseCorrelationPeak2 shiftPeak = testPair( Views.zeroMin( imgA ), Views.zeroMin( imgB ), nHighest, service );
 			insertIntoList( topPeaks, topN, shiftPeak, deg );
@@ -422,7 +406,8 @@ public class Pairwise
 					AffineTransform2D transformB = scalingTransform.copy();
 					transformB.rotate( Math.toRadians( deg + step ) );
 
-					PhaseCorrelationPeak2 shiftPeak = testPair( imgA, Views.zeroMin( display( stdataB, statB, gene, ImgLib2Util.transformInterval( interval, transformB ), transformB ) ), nHighest, service );
+					PhaseCorrelationPeak2 shiftPeak = testPair( imgA, Views.zeroMin(
+							AlignTools.display( stdataB, statB, gene, ImgLib2Util.transformInterval( interval, transformB ), transformB ) ), nHighest, service );
 
 					if ( shiftPeak.getCrossCorr() > bestPeak.getA().getCrossCorr() )
 					{
@@ -435,7 +420,8 @@ public class Pairwise
 					transformB = scalingTransform.copy();
 					transformB.rotate( Math.toRadians( deg - step ) );
 
-					shiftPeak = testPair( imgA, Views.zeroMin( display( stdataB, statB, gene, ImgLib2Util.transformInterval( interval, transformB ), transformB ) ), nHighest, service );
+					shiftPeak = testPair( imgA, Views.zeroMin(
+							AlignTools.display( stdataB, statB, gene, ImgLib2Util.transformInterval( interval, transformB ), transformB ) ), nHighest, service );
 
 					if ( shiftPeak.getCrossCorr() > bestPeak.getA().getCrossCorr() )
 					{
@@ -498,71 +484,6 @@ public class Pairwise
 
 		return PhaseCorrelation2.getShift(pcm, imgA, imgB, nHighest, 1000, false, false, service);// Threads.createFixedExecutorService( 1 ));
 	}
-
-	public static RandomAccessibleInterval< DoubleType > display(
-			final STData stdata,
-			final STDataStatistics stStats,
-			final String gene,
-			final Interval renderInterval,
-			final AffineTransform2D transform )
-	{
-		//System.out.println( "Mean distance: " + stStats.getMeanDistance());
-		//System.out.println( "Median distance: " + stStats.getMedianDistance() );
-		//System.out.println( "Max distance: " + stStats.getMaxDistance() );
-
-		// gauss crisp
-		double gaussRenderSigma = stStats.getMedianDistance();
-
-		final DoubleType outofbounds = new DoubleType( 0 );
-
-		IterableRealInterval< DoubleType > data = stdata.getExprData( gene );
-
-		data = Converters.convert(
-				data,
-				new Converter< DoubleType, DoubleType >()
-				{
-					@Override
-					public void convert( final DoubleType input, final DoubleType output )
-					{
-						output.set( input.get() + 0.1 );
-						
-					}
-				},
-				new DoubleType() );
-
-		// TODO: this might all make more sense after normalization now, yay!
-
-		//data = TransformCoordinates.sample( data, stStats.getMedianDistance() );
-
-		//data = Filters.filter( data, new DensityFilterFactory<>( new DoubleType(), medianDistance ) );
-		//data = Filters.filter( data, new MedianFilterFactory<>( outofbounds, medianDistance * 2 ) );
-		//data = Filters.filter( data, new MeanFilterFactory<>( outofbounds, medianDistance * 10 ) );
-		//data = Filters.filter( data, new GaussianFilterFactory<>( outofbounds, medianDistance * 2, stStats.getMedianDistance(), true ) );
-
-		//final Pair< DoubleType, DoubleType > minmax = ImgLib2Util.minmax( data );
-		//System.out.println( "Min intensity: " + minmax.getA() );
-		//System.out.println( "Max intensity: " + minmax.getB() );
-
-		// for rendering the input pointcloud
-		final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderSigma*4, WeightType.NONE ) );
-
-		// for rendering a 16x (median distance), regular sampled pointcloud
-		//final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, stStats.getMedianDistance() / 4.0, WeightType.NONE ) );
-
-		//BdvOptions options = BdvOptions.options().is2D().numRenderingThreads( Runtime.getRuntime().availableProcessors() );
-		//BdvStackSource< ? > bdv = BdvFunctions.show( renderRRA, stdata.getRenderInterval(), gene, options );
-		//bdv.setDisplayRange( 0.1, minmax.getB().get() * 2 );
-		//bdv.setDisplayRangeBounds( 0, minmax.getB().get() * 8 );
-
-		//System.out.println( new Date(System.currentTimeMillis()) + ": Rendering interval " + Util.printInterval( interval ) + " with " + Threads.numThreads() + " threads ... " );
-		
-		final RandomAccessibleInterval< DoubleType > rendered = Views.interval( RealViews.affine( renderRRA, transform ), renderInterval );
-		//ImageJFunctions.show( rendered, Threads.createFixedExecutorService() ).setTitle( stdata.toString() );
-		//System.out.println( new Date(System.currentTimeMillis()) + ": Done..." );
-
-		return rendered;
-	}
-
 
 	public static void main( String[] args ) throws IOException
 	{
@@ -640,9 +561,9 @@ public class Pairwise
 		
 				new ImageJ();
 		
-				ImageJFunctions.show( display( stDataA, new STDataStatistics( stDataA ), "Calm1", finalInterval, tA ) );
-				ImageJFunctions.show( display( stDataB, new STDataStatistics( stDataB ), "Calm1", finalInterval, tB_PCM ) ).setTitle( "Calm1-PCM" );
-				ImageJFunctions.show( display( stDataB, new STDataStatistics( stDataB ), "Calm1", finalInterval, tB_ICP ) ).setTitle( "Calm1-ICP" );
+				ImageJFunctions.show( AlignTools.display( stDataA, new STDataStatistics( stDataA ), "Calm1", finalInterval, tA ) );
+				ImageJFunctions.show( AlignTools.display( stDataB, new STDataStatistics( stDataB ), "Calm1", finalInterval, tB_PCM ) ).setTitle( "Calm1-PCM" );
+				ImageJFunctions.show( AlignTools.display( stDataB, new STDataStatistics( stDataB ), "Calm1", finalInterval, tB_ICP ) ).setTitle( "Calm1-ICP" );
 			}
 		}
 	}

@@ -47,67 +47,6 @@ import net.imglib2.util.ValuePair;
 
 public class GlobalOpt
 {
-	public static ImagePlus visualizeList( final List< Pair< STData, AffineTransform2D > > data )
-	{
-		// visualize result using the global transform
-		final AffineTransform2D tS = new AffineTransform2D();
-		tS.scale( 0.05 );
-
-		final Interval interval = STDataUtils.getCommonInterval( data.stream().map( entry -> entry.getA() ).collect( Collectors.toList() ) );
-		final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tS ), 100 );
-
-		final ImageStack stack = new ImageStack( (int)finalInterval.dimension( 0 ), (int)finalInterval.dimension( 1 ) );
-
-		for ( Pair< STData, AffineTransform2D > pair : data )
-		{
-			final AffineTransform2D tA = pair.getB().copy();
-			tA.preConcatenate( tS );
-
-			final RandomAccessibleInterval<DoubleType> vis = Pairwise.display( pair.getA(), new STDataStatistics( pair.getA() ), "Ubb", finalInterval, tA );
-
-			stack.addSlice(pair.getA().toString(), ImageJFunctions.wrapFloat( vis, new RealFloatConverter<>(), pair.getA().toString(), null ).getProcessor());
-		}
-
-		ImagePlus imp = new ImagePlus("all", stack );
-		imp.resetDisplayRange();
-		imp.show();
-		return imp;
-	}
-
-	public static ImagePlus visualizePair( final STData stDataA, final STData stDataB, final AffineTransform2D transformA, final AffineTransform2D transformB )
-	{
-		//final AffineTransform2D pcmTransform = new AffineTransform2D();
-		//pcmTransform.set( 0.43837114678907746, -0.8987940462991671, 5283.362652306015, 0.8987940462991671, 0.43837114678907746, -770.4745037840293 );
-
-		final Interval interval = STDataUtils.getCommonInterval( stDataA, stDataB );
-
-		// visualize result using the global transform
-		final AffineTransform2D tS = new AffineTransform2D();
-		tS.scale( 0.05 );
-
-		final AffineTransform2D tA = transformA.copy();
-		tA.preConcatenate( tS );
-
-		final AffineTransform2D tB = transformB.copy();
-		tB.preConcatenate( tS );
-
-		final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tS ), 100 );
-
-		final ImageStack stack = new ImageStack( (int)finalInterval.dimension( 0 ), (int)finalInterval.dimension( 1 ) );
-
-		final RandomAccessibleInterval<DoubleType> visA = Pairwise.display( stDataA, new STDataStatistics( stDataA ), "Calm1", finalInterval, tA );
-		final RandomAccessibleInterval<DoubleType> visB = Pairwise.display( stDataB, new STDataStatistics( stDataB ), "Calm1", finalInterval, tB );
-
-		stack.addSlice(stDataA.toString(), ImageJFunctions.wrapFloat( visA, new RealFloatConverter<>(), stDataA.toString(), null ).getProcessor());
-		stack.addSlice(stDataB.toString(), ImageJFunctions.wrapFloat( visB, new RealFloatConverter<>(), stDataB.toString(), null ).getProcessor());
-
-		ImagePlus imp = new ImagePlus("all", stack );
-		imp.resetDisplayRange();
-		imp.show();
-
-		return imp;
-	}
-
 	public static double centerOfMassDistance( final STData dataA, final STData dataB, final AffineTransform2D transformA, final AffineTransform2D transformB )
 	{
 		final Interval intervalA = dataA.getRenderInterval();
@@ -360,19 +299,6 @@ public class GlobalOpt
 		return new ValuePair<>( worstTile1, worstTile2 );
 	}
 
-	public static AffineTransform2D modelToAffineTransform2D( final Affine2D< ? > model )
-	{
-		//  m00, m10, m01, m11, m02, m12
-		final double[] array = new double[ 6 ];
-
-		model.toArray(array);
-
-		final AffineTransform2D t = new AffineTransform2D();
-		t.set( array[ 0 ], array[ 2 ], array[ 4 ], array[ 1 ], array[ 3 ], array[ 5 ] );
-
-		return t;
-	}
-
 	public static void main( String[] args ) throws IOException
 	{
 		new ImageJ();
@@ -429,7 +355,7 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 //		for ( debugB = debugA + 1; debugB < 11; ++debugB )
 //			initialdata.add( new ValuePair<>(puckData.get( debugB ), Alignment.getAlignment( alignments, debugA, debugB ).t ) );
 
-		visualizeList( initialdata );
+		AlignTools.visualizeList( initialdata );
 		//visualizePair( puckData.get( debugA ), puckData.get( debugB ), new AffineTransform2D(), Alignment.getAlignment( alignments, debugA, debugB ).t );
 		SimpleMultiThreading.threadHaltUnClean();
 
@@ -589,10 +515,10 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 			final AffineTransform2D t = new AffineTransform2D();
 			t.set( array[ 0 ], array[ 2 ], array[ 4 ], array[ 1 ], array[ 3 ], array[ 5 ] );
 			*/
-			data.add( new ValuePair<>( puckData.get( i ), modelToAffineTransform2D( model ) ) );
+			data.add( new ValuePair<>( puckData.get( i ), AlignTools.modelToAffineTransform2D( model ) ) );
 		}
 
-		visualizeList( data );
+		AlignTools.visualizeList( data );
 		/*
 		final RigidModel2D modelA = dataToTile.get( puckData.get( debugA ) ).getModel();
 		final RigidModel2D modelB = dataToTile.get( puckData.get( debugB ) ).getModel();

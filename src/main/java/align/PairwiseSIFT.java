@@ -302,8 +302,8 @@ public class PairwiseSIFT
 							final String gene = genesToTest.get( g );
 							//System.out.println( "current gene: " + gene );
 
-							final RandomAccessibleInterval<DoubleType> imgA = Pairwise.display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tS );
-							final RandomAccessibleInterval<DoubleType> imgB = Pairwise.display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tS );
+							final RandomAccessibleInterval<DoubleType> imgA = AlignTools.display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tS );
+							final RandomAccessibleInterval<DoubleType> imgB = AlignTools.display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tS );
 
 							final ImagePlus impA = ImageJFunctions.wrapFloat( imgA, new RealFloatConverter<>(), "A_" + gene);
 							final ImagePlus impB = ImageJFunctions.wrapFloat( imgB, new RealFloatConverter<>(), "B_" + gene );
@@ -397,7 +397,7 @@ public class PairwiseSIFT
 				final ArrayList< PointMatch > inliers = consensus( allCandidates, model, minNumInliers, maxEpsilon );
 				
 				// the model that maps J to I
-				System.out.println( i + "\t" + j + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + GlobalOpt.modelToAffineTransform2D( model ).inverse() );
+				System.out.println( i + "\t" + j + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + AlignTools.modelToAffineTransform2D( model ).inverse() );
 
 				final HashSet< String > genes = new HashSet< String >();
 				for ( final PointMatch pm : inliers )
@@ -416,7 +416,7 @@ public class PairwiseSIFT
 				n5WriterLocal.setAttribute( pairwiseGroupName, "j", puckB );
 				n5WriterLocal.setAttribute( pairwiseGroupName, "inliers", inliers.size() );
 				n5WriterLocal.setAttribute( pairwiseGroupName, "candidates", allCandidates.size() );
-				n5WriterLocal.setAttribute( pairwiseGroupName, "model", GlobalOpt.modelToAffineTransform2D( model ).inverse().getRowPackedCopy() ); // the model that maps J to I
+				n5WriterLocal.setAttribute( pairwiseGroupName, "model", AlignTools.modelToAffineTransform2D( model ).inverse().getRowPackedCopy() ); // the model that maps J to I
 				n5WriterLocal.setAttribute( pairwiseGroupName, "genes", genes );
 
 				n5WriterLocal.writeSerializedBlock(
@@ -425,7 +425,7 @@ public class PairwiseSIFT
 						n5Writer.getDatasetAttributes( pairwiseGroupName ),
 						new long[]{0});
 
-				GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() ).setTitle( i + "-" + j + "-inliers-" + inliers.size() );
+				AlignTools.visualizePair(stDataA, stDataB, new AffineTransform2D(), AlignTools.modelToAffineTransform2D( model ).inverse() ).setTitle( i + "-" + j + "-inliers-" + inliers.size() );
 				//SimpleMultiThreading.threadHaltUnClean();
 			}
 		}

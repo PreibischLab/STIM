@@ -231,7 +231,7 @@ public class GlobalOptSIFT
 
 		for ( int i = 0; i < pucks.size(); ++i )
 		{
-			final AffineTransform2D transform = GlobalOpt.modelToAffineTransform2D( dataToTile.get( puckData.get( i ) ).getModel() );
+			final AffineTransform2D transform = AlignTools.modelToAffineTransform2D( dataToTile.get( puckData.get( i ) ).getModel() );
 
 			final String groupName = n5.groupPath( pucks.get( i ) );
 			n5Writer.setAttribute( groupName, "model_sift", transform.getRowPackedCopy() );
@@ -242,7 +242,7 @@ public class GlobalOptSIFT
 		}
 
 		new ImageJ();
-		GlobalOpt.visualizeList( data );
+		AlignTools.visualizeList( data );
 		
 		System.out.println( "Avg error: " + tileConfig.getError() );
 
@@ -372,7 +372,7 @@ public class GlobalOptSIFT
 
 		for ( int i = 0; i < pucks.size(); ++i )
 		{
-			final AffineTransform2D transform = GlobalOpt.modelToAffineTransform2D( dataToTileICP.get( puckData.get( i ) ).getModel() );
+			final AffineTransform2D transform = AlignTools.modelToAffineTransform2D( dataToTileICP.get( puckData.get( i ) ).getModel() );
 
 			final String groupName = n5.groupPath( pucks.get( i ) );
 			n5Writer.setAttribute( groupName, "model_icp", transform.getRowPackedCopy() );
@@ -383,7 +383,7 @@ public class GlobalOptSIFT
 			dataICP.add( new ValuePair<>( puckData.get( i ), transform ) );
 		}
 
-		GlobalOpt.visualizeList( dataICP ).setTitle( "ICP-reg" );
+		AlignTools.visualizeList( dataICP ).setTitle( "ICP-reg" );
 		
 		System.out.println( "Avg error: " + tileConfig.getError() );
 
