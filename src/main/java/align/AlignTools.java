@@ -30,6 +30,9 @@ import render.Render;
 
 public class AlignTools
 {
+	// used for example visualizations
+	// e.g. "Actb", "Ubb", "Hpca", "Calm2", "Mbp", "Fth1", "Pcp4", "Ptgds", "Ttr", "Calm1", "Fkbp1a"
+	public static String defaultGene = "Mbp";
 
 	public static RandomAccessibleInterval< DoubleType > display(
 			final STData stdata,
@@ -76,7 +79,7 @@ public class AlignTools
 		//System.out.println( "Max intensity: " + minmax.getB() );
 
 		// for rendering the input pointcloud
-		final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderSigma*4, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS ) );
+		final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderSigma*2, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS ) );
 
 		// for rendering a 16x (median distance), regular sampled pointcloud
 		//final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, stStats.getMedianDistance() / 4.0, WeightType.NONE ) );
@@ -116,8 +119,8 @@ public class AlignTools
 
 		final ImageStack stack = new ImageStack( (int)finalInterval.dimension( 0 ), (int)finalInterval.dimension( 1 ) );
 
-		final RandomAccessibleInterval<DoubleType> visA = display( stDataA, new STDataStatistics( stDataA ), "Calm1", finalInterval, tA );
-		final RandomAccessibleInterval<DoubleType> visB = display( stDataB, new STDataStatistics( stDataB ), "Calm1", finalInterval, tB );
+		final RandomAccessibleInterval<DoubleType> visA = display( stDataA, new STDataStatistics( stDataA ), defaultGene, finalInterval, tA );
+		final RandomAccessibleInterval<DoubleType> visB = display( stDataB, new STDataStatistics( stDataB ), defaultGene, finalInterval, tB );
 
 		stack.addSlice(stDataA.toString(), ImageJFunctions.wrapFloat( visA, new RealFloatConverter<>(), stDataA.toString(), null ).getProcessor());
 		stack.addSlice(stDataB.toString(), ImageJFunctions.wrapFloat( visB, new RealFloatConverter<>(), stDataB.toString(), null ).getProcessor());
@@ -145,7 +148,7 @@ public class AlignTools
 			final AffineTransform2D tA = pair.getB().copy();
 			tA.preConcatenate( tS );
 
-			final RandomAccessibleInterval<DoubleType> vis = display( pair.getA(), new STDataStatistics( pair.getA() ), "Ubb", finalInterval, tA );
+			final RandomAccessibleInterval<DoubleType> vis = display( pair.getA(), new STDataStatistics( pair.getA() ), defaultGene, finalInterval, tA );
 
 			stack.addSlice(pair.getA().toString(), ImageJFunctions.wrapFloat( vis, new RealFloatConverter<>(), pair.getA().toString(), null ).getProcessor());
 		}
