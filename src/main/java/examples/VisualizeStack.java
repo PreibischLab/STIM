@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 
 import javax.swing.ActionMap;
 import javax.swing.InputMap;
@@ -55,7 +54,7 @@ public class VisualizeStack
 	protected static double min = 0.1;
 	protected static double max = 5.5;
 
-	public static void render2d( final STDataAssembly stdata )
+	public static BdvStackSource<?> render2d( final STDataAssembly stdata )
 	{
 		final List< FilterFactory< DoubleType, DoubleType > > filterFactorys = new ArrayList<>();
 
@@ -74,16 +73,6 @@ public class VisualizeStack
 
 		final BdvOptions options = BdvOptions.options().is2D().numRenderingThreads( Runtime.getRuntime().availableProcessors() / 2 );
 
-		/*
-		new ImageJ();
-		final RandomAccessibleInterval< DoubleType > rendered = Views.interval( Views.raster( renderRRA ), interval );
-		ImageJFunctions.show( rendered, Threads.createFixedExecutorService() );
-		final int geneIndex = puckData.getIndexForGene( "Pcp4" );
-		expr.setValueIndex( geneIndex );
-		ImageJFunctions.show( rendered, Threads.createFixedExecutorService() );
-		//SimpleMultiThreading.threadHaltUnClean();
-		*/
-
 		BdvStackSource<?> bdv = BdvFunctions.show( renderRRA, interval, gene, options );
 		bdv.setDisplayRange( min, max );
 		bdv.setDisplayRangeBounds( minRange, maxRange );
@@ -91,46 +80,72 @@ public class VisualizeStack
 		//bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
 		bdv.setCurrent();
 
-		final List< String > genesToTest = new ArrayList<>();
-		genesToTest.add( "Calm1" );
-		genesToTest.add( "Calm2" );
-		genesToTest.add( "Hpca" );
-		genesToTest.add( "Fth1" );
-		genesToTest.add( "Ubb" );
-		genesToTest.add( "Pcp4" );
+		return bdv;
+	}
 
-		final Random rnd = new Random();
-/*
-		do
-		{
-			SimpleMultiThreading.threadWait( 500 );
+	public static BdvStackSource< ? > render3d( final List< STDataAssembly > stdata )
+	{
+		final DoubleType outofbounds = new DoubleType( 0 );
 
-			if ( medianRadius < 100 )
-				medianRadius += 3;
+		final Pair< RealRandomAccessible< DoubleType >, Interval > stack = createStack( stdata, "Hpca", outofbounds );
+		final Interval interval = stack.getB();
 
-			if ( gaussRadius < 0 )
-				gaussRadius += 3;
+		final BdvOptions options = BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() );
+		BdvStackSource< ? > source = BdvFunctions.show( stack.getA(), interval, "Hpca", options );
+		source.setDisplayRange( min, max );
+		source.setDisplayRangeBounds( minRange, maxRange );
+		source.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
+		source.setCurrent();
 
-			if ( avgRadius < 0 )
-				avgRadius += 3;
+		return source;
+	}
 
-			String showGene = genesToTest.get( rnd.nextInt( genesToTest.size() ) );
-			showGene = gene;
-			System.out.println( showGene + ", " + medianRadius + ", " + gaussRadius + ", " + avgRadius );
+	public static void renderMovie3d( final List< STDataAssembly > stdata, final BdvStackSource< ? > source )
+	{
+		final List< String > genesToVisualize = new ArrayList<>();
+		genesToVisualize.add( "Actb" );
+		genesToVisualize.add( "Ubb" );
+		genesToVisualize.add( "Hpca" );
+		genesToVisualize.add( "Calm2" );
+		genesToVisualize.add( "Mbp" );
+		genesToVisualize.add( "Fth1" );
+		genesToVisualize.add( "Pcp4" );
+		genesToVisualize.add( "Ptgds" );
+		genesToVisualize.add( "Ttr" );
+		genesToVisualize.add( "Calm1" );
+		genesToVisualize.add( "Fkbp1a" );
 
-			BdvStackSource<?> old = bdv;
-			bdv = BdvFunctions.show(
-					Render.getRealRandomAccessible( stdata, showGene, 1.0, medianRadius, gaussRadius, avgRadius ),
-					interval,
-					showGene,
-					options.addTo( old ) );
-			bdv.setDisplayRange( min, max );
-			bdv.setDisplayRangeBounds( minRange, maxRange );
+		final DoubleType outofbounds = new DoubleType( 0 );
 
-			old.removeFromBdv();
+		setupRecordMovie(
+				source,
+				(i, oldSource) ->
+				{
+					if ( i % 20 == 0 && i <= 220 )
+					{
+						final int newGeneIndex = ( i == 220 ) ? 0 : i / 20;
 
-		} while ( System.currentTimeMillis() > 0 );
-*/
+						final Pair< RealRandomAccessible< DoubleType >, Interval > stack = 
+								createStack( stdata, genesToVisualize.get( newGeneIndex ), outofbounds );
+
+						BdvStackSource<?> newSource =
+								BdvFunctions.show(
+										stack.getA(),
+										stack.getB(),
+										genesToVisualize.get( newGeneIndex ),
+										BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() ) );
+						newSource.setDisplayRange( min, max );
+						newSource.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
+
+						if ( oldSource != null )
+							oldSource.close();
+
+						return newSource;
+					}
+					else
+					{
+						return oldSource;
+					} } );
 	}
 
 	public static Pair< RealRandomAccessible< DoubleType >, Interval > createStack( final List< STDataAssembly > stdata, final String gene, final DoubleType outofbounds )
@@ -156,61 +171,6 @@ public class VisualizeStack
 		final StackedIterableRealInterval< DoubleType > stack = new StackedIterableRealInterval<>( slices, spacing );
 
 		return new ValuePair<>( Render.render( stack, new GaussianFilterFactory<>( outofbounds, gaussRenderSigma*1.5, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS ) ), interval );
-	}
-
-	public static void render3d( final List< STDataAssembly > stdata )
-	{
-		final List< String > genesToTest = new ArrayList<>();
-		genesToTest.add( "Actb" );
-		genesToTest.add( "Ubb" );
-		genesToTest.add( "Hpca" );
-		genesToTest.add( "Calm2" );
-		genesToTest.add( "Mbp" );
-		genesToTest.add( "Fth1" );
-		genesToTest.add( "Pcp4" );
-		genesToTest.add( "Ptgds" );
-		genesToTest.add( "Ttr" );
-		genesToTest.add( "Calm1" );
-		genesToTest.add( "Fkbp1a" );
-
-		final DoubleType outofbounds = new DoubleType( 0 );
-
-		final Pair< RealRandomAccessible< DoubleType >, Interval > stack = createStack( stdata, genesToTest.get( 0 ), outofbounds );
-		final Interval interval = stack.getB();
-
-		final BdvOptions options = BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() / 2 );
-		BdvStackSource< ? > source = BdvFunctions.show( stack.getA(), interval, genesToTest.get( 0 ), options/*.addTo( old )*/ );
-		source.setDisplayRange( min, max );
-		source.setDisplayRangeBounds( minRange, maxRange );
-		source.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
-		source.setCurrent();
-
-		final Random rnd = new Random( 34 );
-
-		setupRecordMovie(
-				source,
-				(i, oldSource) ->
-				{
-					if ( i % 20 == 0 && i <= 220 )
-					{
-						int newGene = ( i == 220 ) ? 0 : i / 20; //rnd.nextInt( genesToTest.size() );
-						
-						System.out.println( "Rendering: " + genesToTest.get( newGene ) );
-						BdvStackSource<?> newSource = BdvFunctions.show( createStack( stdata, genesToTest.get( newGene ), outofbounds ).getA(), interval, genesToTest.get( newGene ), options );
-						newSource.setDisplayRange( min, max );
-						newSource.setDisplayRangeBounds( minRange, maxRange );
-						newSource.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
-
-						if ( oldSource != null )
-							oldSource.close();
-
-						return newSource;
-					}
-					else
-					{
-						return oldSource;
-					}
-				} );
 	}
 
 	public static void setupRecordMovie( final BdvStackSource<?> bdvSource, final CallbackBDV callback )
@@ -328,6 +288,9 @@ public class VisualizeStack
 		if ( puckData.size() == 1 )
 			render2d( puckData.get( 0 ) );
 		else
-			render3d( puckData );
+		{
+			BdvStackSource< ? > bdv = render3d( puckData );
+			renderMovie3d( puckData, bdv);
+		}
 	}
 }
