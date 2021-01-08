@@ -1,4 +1,4 @@
-package tools;
+package examples;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,7 +25,7 @@ import render.Render;
 import transform.TransformCoordinates;
 import transform.TransformIntensities;
 
-public class Vistools3d
+public class VolumetricRendering
 {
 	public static void main( String[] args ) throws IOException
 	{

@@ -1,4 +1,4 @@
-package tools;
+package examples;
 
 import java.awt.event.ActionEvent;
 import java.io.File;
@@ -17,10 +17,8 @@ import org.scijava.ui.behaviour.io.InputTriggerConfig;
 import org.scijava.ui.behaviour.io.InputTriggerDescription;
 import org.scijava.ui.behaviour.util.AbstractNamedAction;
 
-import align.GlobalOpt;
-import align.Pairwise;
+import align.AlignTools;
 import bdv.util.BdvFunctions;
-import bdv.util.BdvHandle;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
@@ -31,8 +29,6 @@ import data.STDataUtils;
 import filter.FilterFactory;
 import filter.GaussianFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
-import filter.MeanFilterFactory;
-import filter.MedianFilterFactory;
 import gui.STDataAssembly;
 import ij.ImageJ;
 import imglib2.StackedIterableRealInterval;
@@ -43,13 +39,13 @@ import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RealRandomAccessible;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import render.Render;
+import tools.BDVFlyThrough;
 import tools.BDVFlyThrough.CallbackBDV;
 
 public class VisualizeStack
@@ -192,7 +188,7 @@ public class VisualizeStack
 		final Random rnd = new Random( 34 );
 
 		setupRecordMovie(
-				source.getBdvHandle(),
+				source,
 				(i, oldSource) ->
 				{
 					if ( i % 20 == 0 && i <= 220 )
@@ -217,7 +213,7 @@ public class VisualizeStack
 				} );
 	}
 
-	public static void setupRecordMovie( final BdvHandle bdvHandle, final CallbackBDV callback )
+	public static void setupRecordMovie( final BdvStackSource<?> bdvSource, final CallbackBDV callback )
 	{
 		final ActionMap ksActionMap = new ActionMap();
 		final InputMap ksInputMap = new InputMap();
@@ -239,7 +235,7 @@ public class VisualizeStack
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
-				new Thread( ()-> BDVFlyThrough.record( callback ) ).start();
+				new Thread( ()-> BDVFlyThrough.record( bdvSource, callback ) ).start();
 			}
 
 			public void register() {
@@ -255,7 +251,7 @@ public class VisualizeStack
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
-				BDVFlyThrough.addCurrentViewerTransform( bdvHandle.getViewerPanel() );
+				BDVFlyThrough.addCurrentViewerTransform( bdvSource.getBdvHandle().getViewerPanel() );
 			}
 
 			public void register() {
@@ -280,29 +276,8 @@ public class VisualizeStack
 			}
 		}.register();
 
-		bdvHandle.getKeybindings().addActionMap("persistence", ksActionMap);
-		bdvHandle.getKeybindings().addInputMap("persistence", ksInputMap);
-		/*
-		if ( arg0.getKeyChar() == 's' )
-			if (bdvRunning)
-				new Thread( new Runnable()
-				{
-					@Override
-					public void run()
-					{ BDVFlyThrough.record( bdvPopup().bdv ); }
-				} ).start();
-			else
-				IOFunctions.println("Please open BigDataViewer to record a fly-through or add keypoints.");
-
-		if ( arg0.getKeyChar() == 'a' )
-			if (bdvRunning)
-				BDVFlyThrough.addCurrentViewerTransform( bdvPopup().bdv );
-			else
-				IOFunctions.println("Please open BigDataViewer to record a fly-through or add keypoints.");
-
-		if ( arg0.getKeyChar() == 'x' )
-			BDVFlyThrough.clearAllViewerTransform();
-		*/
+		bdvSource.getBdvHandle().getKeybindings().addActionMap("persistence", ksActionMap);
+		bdvSource.getBdvHandle().getKeybindings().addInputMap("persistence", ksInputMap);
 	}
 
 	public static void visualizeIJ( final ArrayList< STDataAssembly > puckData )
@@ -314,14 +289,14 @@ public class VisualizeStack
 		for ( final STDataAssembly stDataAssembly : puckData )
 			data.add( new ValuePair<STData, AffineTransform2D>( stDataAssembly.data(), new AffineTransform2D() ) );
 
-		GlobalOpt.visualizeList( data ).setTitle( "unaligned" );
+		AlignTools.visualizeList( data ).setTitle( "unaligned" );
 
 		data = new ArrayList<>();
 
 		for ( final STDataAssembly stDataAssembly : puckData )
 			data.add( new ValuePair<STData, AffineTransform2D>( stDataAssembly.data(), stDataAssembly.transform() ) );
 
-		GlobalOpt.visualizeList( data ).setTitle( "aligned" );
+		AlignTools.visualizeList( data ).setTitle( "aligned" );
 	}
 
 	public static void main( String[] args ) throws IOException
@@ -348,7 +323,7 @@ public class VisualizeStack
 			puckData.add( new STDataAssembly( data, stats, t, i ) );
 		}
 
-		//visualizeIJ( puckData );
+		visualizeIJ( puckData );
 
 		if ( puckData.size() == 1 )
 			render2d( puckData.get( 0 ) );

@@ -1,4 +1,4 @@
-package tools;
+package examples;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,7 +20,7 @@ import net.imglib2.type.numeric.real.DoubleType;
 import render.Render;
 import transform.TransformIntensities;
 
-public class Vistools2d
+public class TestDisplayModes
 {
 	public static void main( String[] args ) throws IOException
 	{

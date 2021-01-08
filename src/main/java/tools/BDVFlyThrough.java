@@ -9,7 +9,6 @@ import java.util.List;
 
 import javax.imageio.ImageIO;
 
-import bdv.BigDataViewer;
 import bdv.cache.CacheControl;
 import bdv.util.BdvStackSource;
 import bdv.viewer.ViewerPanel;
@@ -119,7 +118,7 @@ public class BDVFlyThrough
 		new ImagePlus( "BDV Screenshot", new ColorProcessor( target.bi ) ).show();
 	}
 
-	public static void record( final CallbackBDV callback )
+	public static void record( final BdvStackSource< ? > currentSource, final CallbackBDV callback )
 	{
 		if ( viewerTransforms.size() < 2 )
 		{
@@ -172,7 +171,7 @@ public class BDVFlyThrough
 
 		System.out.println( "Recording images for " + viewerTransformsLocal.size() + " transforms, interpolated with " + interpolateSteps + " steps using '" + interpolationMethods[ defaultMethod ] + "' in between to directory " + defaultPath );
 
-		BdvStackSource< ? > source = callback.updateBDV( 0, null );
+		BdvStackSource< ? > source = currentSource;
 		ViewerPanel bdvViewerPanel = source.getBdvHandle().getViewerPanel();
 		ViewerState renderState = bdvViewerPanel.getState();
 		final int canvasW = bdvViewerPanel.getDisplay().getWidth();
