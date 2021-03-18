@@ -28,10 +28,10 @@ public class RenderThread implements Runnable
 	protected static int medianFilter = 0;
 	protected static int gaussFactor = 1;
 
-	protected static double minRange = 0;
-	protected static double maxRange = 200;
-	protected static double min = 0.1;
-	protected static double max = 15;
+	public static double minRange = 0;
+	public static double maxRange = 200;
+	public static double min = 0.1;
+	public static double max = 5;
 
 	protected final BdvOptions options;
 	protected BdvStackSource< ? > bdv = null;
@@ -116,7 +116,7 @@ public class RenderThread implements Runnable
 				BdvStackSource< ? > old = bdv;
 
 				bdv = BdvFunctions.show( renderRRA, interval, gene, options.addTo( old ) );
-				bdv.setDisplayRange( min, Math.max( max, getMaxDisplayRange( old ) ) );
+				bdv.setDisplayRange( getMinDisplayRange( old ), getMaxDisplayRange( old ) );
 				bdv.setDisplayRangeBounds( minRange, maxRange );
 				bdv.setCurrent();
 				old.removeFromBdv();
@@ -129,6 +129,15 @@ public class RenderThread implements Runnable
 		while ( keepRunning.get() );
 
 		bdv.close();
+	}
+
+	public static double getMinDisplayRange( BdvStackSource< ? > bdv )
+	{
+		if ( bdv == null || bdv.getConverterSetups().size() == 0 || bdv.getBdvHandle().getSetupAssignments().getMinMaxGroups().size() == 0 )
+			return 0;
+		
+		return bdv.getBdvHandle().getSetupAssignments().getMinMaxGroup( 
+				bdv.getConverterSetups().iterator().next() ).getMinBoundedValue().getCurrentValue();
 	}
 
 	public static double getMaxDisplayRange( BdvStackSource< ? > bdv )
