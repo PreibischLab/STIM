@@ -2,7 +2,7 @@
 Library for managing, storage, viewing, and working with spatial
 transcriptomics data using imglib2, BigDataViewer and Fiji.
 
-Installation requires maven, OpenJDK8, and lib-hdf5, on Ubuntu:
+Installation requires maven and OpenJDK8 (or newer) on Ubuntu:
 ```bash
 sudo apt-get install openjdk-8-jdk maven
 ```
