@@ -16,7 +16,6 @@ import picocli.CommandLine;
 import picocli.CommandLine.Option;
 
 public class View implements Callable<Void> {
-	//TODO: fix viewer brightness
 
 	@Option(names = {"-i", "--container"}, required = true, description = "N5 container paths, e.g. -i /home/ssq.n5 ...")
 	private String containerPath = null;
