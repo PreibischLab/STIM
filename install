@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# This script is shamelessly adapted from https://github.com/saalfeldlab/n5-utils, thanks @axtimwalde & co!
+
+VERSION="0.1.0-SNAPSHOT"
+INSTALL_DIR=${1:-$(pwd)}
+
+echo "Installing into $INSTALL_DIR"
+
+# check for operating system
+if [[ "$OSTYPE" == "linux-gnu" ]]; then
+  echo "Assuming on Linux operating system"
+  MEM=$(cat /proc/meminfo | grep MemTotal | sed s/^MemTotal:\\\s*\\\|\\\s\\+[^\\\s]*$//g)
+  MEM=$(($MEM/2/1024/1024))
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+  echo "Assuming on MacOS X operating system"
+  # sysctl returns total hardware memory size in bytes
+  MEM=$(sysctl hw.memsize | grep hw.memsize | sed s/hw.memsize://g)
+  MEM=$(($MEM/2/1024/1024/1024))
+else
+  echo "ERROR - Operating system (arg2) must be either linux or osx - EXITING (on windows please run as a normal Java class from e.g. Eclipse)"
+  exit
+fi
+
+# mvn clean install
+# temporary workaround for openjdk plus surefire bug
+_JAVA_OPTIONS=-Djdk.net.URLClassPath.disableClassPathURLCheck=true mvn clean install
+mvn -Dmdep.outputFile=cp.txt -Dmdep.includeScope=runtime dependency:build-classpath
+
+echo '#!/bin/bash' > view
+echo '' >> view
+echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> view
+echo 'java \' >> view
+echo "  -Xmx${MEM}g \\" >> view
+echo '  -XX:+UseConcMarkSweepGC \' >> view
+echo -n '  -cp $JAR:' >> view
+echo -n $(cat cp.txt) >> view
+echo ' \' >> view
+echo '  cmd.View "$@"' >> view
+
+chmod a+x view
+
+mkdir -p $INSTALL_DIR
+mv view $INSTALL_DIR/
