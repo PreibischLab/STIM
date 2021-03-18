@@ -19,6 +19,7 @@ import org.apache.commons.compress.compressors.CompressorInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 
+import data.NormalizingSTData;
 import data.STData;
 import io.N5IO;
 import io.TextFileAccess;
@@ -33,6 +34,9 @@ public class Resave implements Callable<Void> {
 
 	@Option(names = {"-i", "--input"}, required = true, description = "list of csv input files as triple [locations.csv,reads.csv,n5groupname], e.g. -i '$HOME/Puck_180528_20/BeadLocationsForR.csv,$HOME/Puck_180528_20/MappedDGEForR.csv,Puck_180528_20' -i ...")
 	private List<String> inputPaths = null;
+
+	@Option(names = {"-n", "--normalize"}, required = false, description = "log-normalize the input data before saving (default: false)")
+	private boolean normalize = false;
 
 	@Override
 	public Void call() throws Exception {
@@ -104,11 +108,17 @@ public class Resave implements Callable<Void> {
 						return null;
 					}
 
-					final STData slideSeqOriginal = TextFileIO.readSlideSeq(
+					STData data = TextFileIO.readSlideSeq(
 							locationsIn,
 							readsIn );
 
-					N5IO.writeN5( n5, dataset, slideSeqOriginal );
+					if ( normalize )
+					{
+						System.out.println( "Normalizing input ... " );
+						data =  new NormalizingSTData( data );
+					}
+
+					N5IO.writeN5( n5, dataset, data );
 				}
 			}
 		}
