@@ -44,7 +44,7 @@ public class STDataExplorer
 
 	public STDataExplorer( final List< STDataAssembly > slides )
 	{
-		frame = new JFrame( "Interest Point Explorer" );
+		frame = new JFrame( "Spatial Transcriptomics Explorer" );
 		panel = new StDataExplorerPanel( slides );
 		frame.add( panel, BorderLayout.CENTER );
 
