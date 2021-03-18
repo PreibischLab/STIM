@@ -189,6 +189,10 @@
 			<artifactId>mpicbg</artifactId>
 			<version>1.4.0</version>
 		</dependency>
+		<dependency>
+			<groupId>info.picocli</groupId>
+			<artifactId>picocli</artifactId>
+		</dependency>
 	</dependencies>
 
 </project>
