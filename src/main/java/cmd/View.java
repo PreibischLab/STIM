@@ -20,7 +20,7 @@ public class View implements Callable<Void> {
 	@Option(names = {"-i", "--container"}, required = true, description = "N5 container paths, e.g. -i /home/ssq.n5 ...")
 	private String containerPath = null;
 
-	@Option(names = {"-d", "--datasets"}, required = false, description = "comma separated list of datasets, e.g. -d '/Puck_180528_20,Puck_180528_22' (default: open all datasets)")
+	@Option(names = {"-d", "--datasets"}, required = false, description = "comma separated list of datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: open all datasets)")
 	private List<String> datasets = null;
 
 	@Option(names = {"-c", "--contrast"}, description = "comma separated contrast range for BigDataViewer display, e.g. -c '0,255' (default 0.1,5)" )

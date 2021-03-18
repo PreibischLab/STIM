@@ -42,7 +42,6 @@ echo ' \' >> st-view
 echo '  cmd.View "$@"' >> st-view
 
 
-echo ""
 echo "Installing 'st-resave' command into" $INSTALL_DIR
 echo ""
 
@@ -57,8 +56,23 @@ echo -n $(cat cp.txt) >> st-resave
 echo ' \' >> st-resave
 echo '  cmd.Resave "$@"' >> st-resave
 
+echo "Installing 'st-normalize' command into" $INSTALL_DIR
+echo ""
+
+echo '#!/bin/bash' > st-normalize
+echo '' >> st-normalize
+echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> st-normalize
+echo 'java \' >> st-normalize
+echo "  -Xmx${MEM}g \\" >> st-normalize
+echo '  -XX:+UseConcMarkSweepGC \' >> st-normalize
+echo -n '  -cp $JAR:' >> st-normalize
+echo -n $(cat cp.txt) >> st-normalize
+echo ' \' >> st-normalize
+echo '  cmd.Normalize "$@"' >> st-normalize
+
 chmod a+x st-view
 chmod a+x st-resave
+chmod a+x st-normalize
 
 if [ $(pwd) == "$INSTALL_DIR" ]; then
     echo "Installation directory equals current directory, we are done."
@@ -67,6 +81,7 @@ else
     mkdir -p $INSTALL_DIR
     mv st-view $INSTALL_DIR/
     mv st-resave $INSTALL_DIR/
+    mv st-normalize $INSTALL_DIR/
 fi
 
 rm cp.txt
