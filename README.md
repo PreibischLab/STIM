@@ -18,6 +18,6 @@ This currently installs one tool, `view`.
 
 Run the viewer
 ```bash
-n5-view \
+view \
   -i '/path/directory.n5'
 ```
