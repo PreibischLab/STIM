@@ -6,8 +6,11 @@ import java.util.stream.Collectors;
 import data.STData;
 import data.STDataStatistics;
 import data.STDataUtils;
+import filter.Filters;
 import filter.GaussianFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
+import filter.MedianFilterFactory;
+import filter.SingleSpotRemovingFilterFactory;
 import ij.ImagePlus;
 import ij.ImageStack;
 import imglib2.ImgLib2Util;
@@ -32,7 +35,10 @@ public class AlignTools
 {
 	// used for example visualizations
 	// e.g. "Actb", "Ubb", "Hpca", "Calm2", "Mbp", "Fth1", "Pcp4", "Ptgds", "Ttr", "Calm1", "Fkbp1a"
-	public static String defaultGene = "Mbp";
+	public static String defaultGene = "Calm2";
+
+	// default scaling for visualization
+	public static double defaultScale = 0.05;
 
 	public static RandomAccessibleInterval< DoubleType > display(
 			final STData stdata,
@@ -70,9 +76,10 @@ public class AlignTools
 		//data = TransformCoordinates.sample( data, stStats.getMedianDistance() );
 
 		//data = Filters.filter( data, new DensityFilterFactory<>( new DoubleType(), medianDistance ) );
-		//data = Filters.filter( data, new MedianFilterFactory<>( outofbounds, medianDistance * 2 ) );
 		//data = Filters.filter( data, new MeanFilterFactory<>( outofbounds, medianDistance * 10 ) );
-		//data = Filters.filter( data, new GaussianFilterFactory<>( outofbounds, medianDistance * 2, stStats.getMedianDistance(), true ) );
+		//data = Filters.filter( data, new GaussianFilterFactory<>( outofbounds, stStats.getMedianDistance() * 2, WeightType.BY_SUM_OF_WEIGHTS ) );
+		data = Filters.filter( data, new SingleSpotRemovingFilterFactory<>( outofbounds, stStats.getMedianDistance() * 1.5 ) );
+		data = Filters.filter( data, new MedianFilterFactory<>( outofbounds, stStats.getMedianDistance() ) );
 
 		//final Pair< DoubleType, DoubleType > minmax = ImgLib2Util.minmax( data );
 		//System.out.println( "Min intensity: " + minmax.getA() );
@@ -83,13 +90,6 @@ public class AlignTools
 
 		// for rendering a 16x (median distance), regular sampled pointcloud
 		//final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, stStats.getMedianDistance() / 4.0, WeightType.NONE ) );
-
-		//BdvOptions options = BdvOptions.options().is2D().numRenderingThreads( Runtime.getRuntime().availableProcessors() );
-		//BdvStackSource< ? > bdv = BdvFunctions.show( renderRRA, stdata.getRenderInterval(), gene, options );
-		//bdv.setDisplayRange( 0.1, minmax.getB().get() * 2 );
-		//bdv.setDisplayRangeBounds( 0, minmax.getB().get() * 8 );
-
-		//System.out.println( new Date(System.currentTimeMillis()) + ": Rendering interval " + Util.printInterval( interval ) + " with " + Threads.numThreads() + " threads ... " );
 		
 		final RandomAccessibleInterval< DoubleType > rendered = Views.interval( RealViews.affine( renderRRA, transform ), renderInterval );
 		//ImageJFunctions.show( rendered, Threads.createFixedExecutorService() ).setTitle( stdata.toString() );
@@ -107,7 +107,7 @@ public class AlignTools
 
 		// visualize result using the global transform
 		final AffineTransform2D tS = new AffineTransform2D();
-		tS.scale( 0.05 );
+		tS.scale( defaultScale );
 
 		final AffineTransform2D tA = transformA.copy();
 		tA.preConcatenate( tS );
@@ -136,7 +136,7 @@ public class AlignTools
 	{
 		// visualize result using the global transform
 		final AffineTransform2D tS = new AffineTransform2D();
-		tS.scale( 0.05 );
+		tS.scale( defaultScale );
 
 		final Interval interval = STDataUtils.getCommonInterval( data.stream().map( entry -> entry.getA() ).collect( Collectors.toList() ) );
 		final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tS ), 100 );
@@ -171,5 +171,4 @@ public class AlignTools
 
 		return t;
 	}
-
 }
