@@ -46,9 +46,18 @@ Row,TCACGTAGAAACC,TCTCCTAGTTCGG, ...
 0610007P14Rik,0,0, ...
 ...
 ```
+### 2. Normalization
+You can run the normalization also independently after resaving. The tool can resave selected or all datasets of an N5 container into the same or a new N5:
+```bash
+./st-normalize \
+     -i '/path/input.n5' \
+     -o '/path/output.n5'
+```
 
-### 2. Viewing
-Run the viewer
+### 3. Viewing
+Run the interactive viewer as follows
 ```bash
 ./st-view -i '/path/directory.n5'
 ```
+It allows you to browse the data in realtime for all genes and datasets. If data is registered it will automatically use the transformations that are stored in the N5 metadata to properly overlay individual datasets.
+
