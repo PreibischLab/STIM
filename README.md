@@ -27,18 +27,18 @@ This currently installs two tools, `st-resave, st-view`.
 Resave a (compressed) textfile to the N5 format using
 ```bash
 ./st-resave \ 
-    -o '/path/directory.n5' \
+     -o '/path/directory.n5' \
      -i '/path/locations1.csv,/path/reads2.csv,name1' \
      -i '/path.zip/locations2.csv,/path.zip/reads2.csv,name2' ...
 ```
-If the n5 directory exists new datasets will be added (name1, name2), otherwise a new n5 will be created. Each input consists of a locations.csv file, a reads.csv file, and a user-chosen name. The locations file should contain a header for id, xcoord and ycoord, followed by the entries:
+If the n5 directory exists new datasets will be added (name1, name2), otherwise a new n5 will be created. Each input consists of a locations.csv file, a reads.csv file, and a user-chosen name. The locations file should contain a header for `barcode (id), xcoord and ycoord`, followed by the entries:
 ```
 barcodes,xcoord,ycoord
 TCACGTAGAAACC,3091.01234567901,2471.88888888889
 TCTCCTAGTTCGG,4375.91791044776,1577.52985074627
 ...
 ```
-The reads file should contain all barcodes as the header after a row column that holds the gene identifier. It should have as many rows as positions exists:
+The reads file should contain all `barcodes (id)` as the header after a `Row` column that holds the gene identifier. It should have as many rows as there are sequenced locations:
 ```
 Row,TCACGTAGAAACC,TCTCCTAGTTCGG, ...
 0610005C13Rik,0,0, ...
