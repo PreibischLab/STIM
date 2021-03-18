@@ -5,6 +5,7 @@
 VERSION="0.1.0-SNAPSHOT"
 INSTALL_DIR=${1:-$(pwd)}
 
+echo ""
 echo "Installing into $INSTALL_DIR"
 
 # check for operating system
@@ -22,10 +23,12 @@ else
   exit
 fi
 
-# mvn clean install
-# temporary workaround for openjdk plus surefire bug
-_JAVA_OPTIONS=-Djdk.net.URLClassPath.disableClassPathURLCheck=true mvn clean install
+mvn clean install
 mvn -Dmdep.outputFile=cp.txt -Dmdep.includeScope=runtime dependency:build-classpath
+
+echo ""
+echo "Installing 'view' command into" $INSTALL_DIR
+echo ""
 
 echo '#!/bin/bash' > view
 echo '' >> view
@@ -40,5 +43,12 @@ echo '  cmd.View "$@"' >> view
 
 chmod a+x view
 
-mkdir -p $INSTALL_DIR
-mv view $INSTALL_DIR/
+if [ $(pwd) == "$INSTALL_DIR" ]; then
+    echo "Installation directory equals current directory, we are done."
+else
+	echo "Creating directory $INSTALL_DIR and moving files..."
+    mkdir -p $INSTALL_DIR
+    mv view $INSTALL_DIR/
+fi
+
+echo "Installation finished."
