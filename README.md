@@ -54,7 +54,7 @@ You can run the normalization also independently after resaving. The tool can re
      -o '/path/output.n5'
 ```
 
-### 3. Iteractive Viewing with BigDataViewer
+### 3. Iteractive Viewing Application
 Run the interactive viewer as follows
 ```bash
 ./st-view -i '/path/directory.n5'
