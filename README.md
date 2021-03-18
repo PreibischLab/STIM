@@ -25,6 +25,5 @@ This currently installs one tool, `view`.
 
 Run the viewer
 ```bash
-view \
-  -i '/path/directory.n5'
+./st-view -i '/path/directory.n5'
 ```
