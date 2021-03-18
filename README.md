@@ -21,7 +21,7 @@ Install into your favorite local binary `$PATH` (or leave empty for using the ch
 ```
 All dependencies will be downloaded and managed by maven automatically.
 
-This currently installs one tool, `view`.
+This currently installs one tool, `st-view`.
 
 Run the viewer
 ```bash
