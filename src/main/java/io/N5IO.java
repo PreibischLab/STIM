@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -22,8 +23,11 @@ import data.STDataN5;
 import data.STDataStatistics;
 import filter.GaussianFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
+import gui.STDataAssembly;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.realtransform.AffineTransform;
+import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Util;
 import render.Render;
@@ -66,6 +70,52 @@ public class N5IO
 		final DoubleType outofbounds = new DoubleType( 0 );
 
 		BdvFunctions.show( Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, WeightType.NONE ) ), stdata.getRenderInterval(), "Pcp4_gauss1", BdvOptions.options().is2D() ).setDisplayRange( 0, 4 );
+	}
+
+	public static STDataAssembly openDataset( final File n5Path, final String dataset, final boolean ignoreIntensity ) throws IOException
+	{
+		return openDataset(N5IO.openN5( n5Path ), dataset, ignoreIntensity );
+	}
+
+	public static STDataAssembly openDataset( final N5FSReader n5, final String dataset, final boolean ignoreIntensity ) throws IOException
+	{
+		final STData slide = /*new NormalizingSTData*/( N5IO.readN5( n5, dataset ) );//.copy();
+		final STDataStatistics stat = new STDataStatistics( slide );
+
+		final String groupPath = n5.groupPath( dataset );
+		final Set< String > attributes = n5.listAttributes( groupPath ).keySet();
+
+		final AffineTransform2D t = new AffineTransform2D();
+
+		if ( attributes.contains( "transform" ))
+			t.set( n5.getAttribute( n5.groupPath( dataset ), "transform", double[].class ) );
+
+		final AffineTransform i = new AffineTransform( 1 );
+
+		if ( ignoreIntensity )
+		{
+			i.set( 1, 0 );
+		}
+		else
+		{
+			double[] values = n5.getAttribute( n5.groupPath( dataset ), "intensity_transform", double[].class );
+			i.set( values[ 0 ], values[ 1 ] );
+		}
+
+		return new STDataAssembly( slide, stat, t, i );
+	}
+
+	public static ArrayList< STDataAssembly > openAllDatasets( final File n5Path, final boolean ignoreIntensity ) throws IOException
+	{
+		final N5FSReader n5 = N5IO.openN5( n5Path );
+		final List< String > datasets = N5IO.listAllDatasets( n5 );
+
+		final ArrayList< STDataAssembly > slides = new ArrayList<>();
+
+		for ( final String dataset : datasets )
+			slides.add( openDataset(n5, dataset, ignoreIntensity) );
+
+		return slides;
 	}
 
 	public static N5FSWriter createN5( final File n5path ) throws IOException

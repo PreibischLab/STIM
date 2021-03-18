@@ -10,7 +10,6 @@ import java.util.List;
 import javax.swing.ActionMap;
 import javax.swing.InputMap;
 
-import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.scijava.ui.behaviour.KeyStrokeAdder;
 import org.scijava.ui.behaviour.io.InputTriggerConfig;
 import org.scijava.ui.behaviour.io.InputTriggerDescription;
@@ -22,8 +21,6 @@ import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
 import data.STData;
-import data.STDataN5;
-import data.STDataStatistics;
 import data.STDataUtils;
 import filter.FilterFactory;
 import filter.GaussianFilterFactory;
@@ -39,7 +36,6 @@ import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RealRandomAccessible;
-import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
@@ -255,28 +251,8 @@ public class VisualizeStack
 
 	public static void main( String[] args ) throws IOException
 	{
-		final String path = Path.getPath();
-		final File n5Path = new File( path + "slide-seq-normalized.n5" );
-		final N5FSReader n5 = N5IO.openN5( n5Path );
-		final List< String > pucks = N5IO.listAllDatasets( n5 );
-
-		final ArrayList< STDataAssembly > puckData = new ArrayList<>();
-
-		for ( final String puck : pucks )
-		{
-			final STDataN5 data = N5IO.readN5( n5, puck );
-			final STDataStatistics stats = new STDataStatistics( data );
-
-			final AffineTransform2D t = new AffineTransform2D();
-			t.set( n5.getAttribute( n5.groupPath( puck ), "transform", double[].class ) );
-
-			final AffineTransform i = new AffineTransform( 1 );
-			double[] values =  n5.getAttribute( n5.groupPath( puck ), "intensity_transform", double[].class );
-			i.set( 1,0);//values[ 0 ], values[ 1 ] );
-
-			puckData.add( new STDataAssembly( data, stats, t, i ) );
-		}
-		System.exit( 0 );
+		final ArrayList< STDataAssembly > puckData =
+				N5IO.openAllDatasets( new File( Path.getPath() + "slide-seq-normalized.n5" ), true );
 
 		new ImageJ();
 

@@ -31,18 +31,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import javax.swing.JFrame;
 
-import org.janelia.saalfeldlab.n5.N5FSReader;
-
-import data.STData;
-import data.STDataStatistics;
 import io.N5IO;
 import io.Path;
-import net.imglib2.realtransform.AffineTransform;
-import net.imglib2.realtransform.AffineTransform2D;
 
 public class STDataExplorer
 {
@@ -96,58 +89,9 @@ public class STDataExplorer
 
 	public static void main( String[] args ) throws IOException
 	{
-		final String path = Path.getPath();
-		//final String[] pucks = new String[] { "Puck_180531_23", "Puck_180531_22" };
+		final ArrayList< STDataAssembly > slides =
+				N5IO.openAllDatasets( new File( Path.getPath() + "slide-seq-normalized.n5" ), true );
 
-		final N5FSReader n5 = N5IO.openN5( new File( path + "slide-seq-normalized.n5" ) );
-		final List< String > pucks = N5IO.listAllDatasets( n5 );
-
-		final ArrayList< STDataAssembly > slides = new ArrayList<>();
-		// final List< String > pucks = N5IO.listAllDatasets( n5 );
-
-		for ( final String puck : pucks )
-		{
-			final STData slide = /*new NormalizingSTData*/( N5IO.readN5( n5, puck ) );//.copy();
-			final STDataStatistics stat = new STDataStatistics( slide );
-
-			final String groupPath = n5.groupPath( puck );
-			final Set< String > attributes = n5.listAttributes( groupPath ).keySet();
-
-			final AffineTransform2D t = new AffineTransform2D();
-
-			if ( attributes.contains( "transform" ))
-				t.set( n5.getAttribute( n5.groupPath( puck ), "transform", double[].class ) );
-
-			final AffineTransform i = new AffineTransform( 1 );
-			double[] values =  n5.getAttribute( n5.groupPath( puck ), "intensity_transform", double[].class );
-			i.set( values[ 0 ], values[ 1 ] );
-
-			slides.add( new STDataAssembly( slide, stat, t, i  ) );
-		}
-
-		/*
-			mt-Rnr2: 98406.00148799573
-			Malat1: 57573.36309555761
-			Calm1: 51896.11190606482
-			Fth1: 50462.27704927554
-			mt-Cytb: 40567.66176993931
-			mt-Nd1: 38026.647857079464
-			Actb: 36143.7881367091 <<
-			Cst3: 35665.60488383998
-			Ubb: 33296.58213607102
-			Apoe: 32112.9165355219
-			
-			mt-Rnr2: 2.77292097770305
-			Malat1: 2.7092015887283845
-			Fth1: 2.579159459129725
-			Calm1: 2.5671422766341654
-			mt-Cytb: 2.4166567930779324
-			mt-Nd1: 2.354738505000795
-			Cst3: 2.3154520298436196
-			Actb: 2.280770607027878
-			Apoe: 2.2256420300803264
-			Ubb: 2.2035294179635043
-		 */
 		new STDataExplorer( slides );
 	}
 }
