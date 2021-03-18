@@ -11,6 +11,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.janelia.saalfeldlab.n5.Compression;
+import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
@@ -174,8 +175,8 @@ public class N5IO
 			final ExecutorService service ) throws IOException, InterruptedException, ExecutionException
 	{
 		final String groupName = n5.groupPath( datasetName );
-		
-		if ( n5.datasetExists( groupName ) )
+
+		if ( n5.exists( groupName ) )
 			throw new IOException( groupName + " exists. stopping." );
 
 		// update general n5 attributes
@@ -205,7 +206,7 @@ public class N5IO
 		final RandomAccessibleInterval< DoubleType > locations = data.getLocations();
 		final RandomAccessibleInterval< DoubleType > expr = data.getAllExprValues();
 
-		System.out.println( "Saving N5 '" + n5.getBasePath() + "', group '" + groupName + "' ... " );
+		System.out.print( "Saving N5 '" + n5.getBasePath() + "', group '" + groupName + "' ... " );
 		long time = System.currentTimeMillis();
 
 		final ExecutorService exec;
@@ -226,7 +227,7 @@ public class N5IO
 		if ( service == null )
 			exec.shutdown();
 
-		System.out.println( "Saving N5 '" + n5.getBasePath() + "' group '" + groupName + "' took " + ( System.currentTimeMillis() - time ) + " ms." );
+		System.out.println( "took " + ( System.currentTimeMillis() - time ) + " ms." );
 	}
 
 	public static N5FSReader openN5( final File n5path ) throws IOException
@@ -261,7 +262,7 @@ public class N5IO
 	{
 		final String groupName = n5.groupPath( datasetName );
 		
-		if ( n5.datasetExists( groupName ) )
+		if ( !n5.exists( groupName ) )
 			throw new IOException( groupName + " does not exist. stopping." );
 
 		long time = System.currentTimeMillis();

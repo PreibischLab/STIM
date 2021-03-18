@@ -41,7 +41,24 @@ echo -n $(cat cp.txt) >> st-view
 echo ' \' >> st-view
 echo '  cmd.View "$@"' >> st-view
 
+
+echo ""
+echo "Installing 'st-resave' command into" $INSTALL_DIR
+echo ""
+
+echo '#!/bin/bash' > st-resave
+echo '' >> st-resave
+echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> st-resave
+echo 'java \' >> st-resave
+echo "  -Xmx${MEM}g \\" >> st-resave
+echo '  -XX:+UseConcMarkSweepGC \' >> st-resave
+echo -n '  -cp $JAR:' >> st-resave
+echo -n $(cat cp.txt) >> st-resave
+echo ' \' >> st-resave
+echo '  cmd.Resave "$@"' >> st-resave
+
 chmod a+x st-view
+chmod a+x st-resave
 
 if [ $(pwd) == "$INSTALL_DIR" ]; then
     echo "Installation directory equals current directory, we are done."
@@ -49,6 +66,9 @@ else
 	echo "Creating directory $INSTALL_DIR and moving files..."
     mkdir -p $INSTALL_DIR
     mv st-view $INSTALL_DIR/
+    mv st-resave $INSTALL_DIR/
 fi
+
+rm cp.txt
 
 echo "Installation finished."

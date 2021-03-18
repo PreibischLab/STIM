@@ -20,6 +20,24 @@ public class TextFileIO
 
 		long time = System.currentTimeMillis();
 
+		final HashMap< String, double[] > coordinateMap = readSlideSeqCoordinates( TextFileAccess.openFileRead( beadLocations ) );
+		System.out.println( "Read " + coordinateMap.keySet().size() + " coordinates." );
+
+		final Pair< List< double[] >, HashMap< String, double[] > > geneData = readSlideSeqGenes( TextFileAccess.openFileRead( reads ), coordinateMap );
+		System.out.println( "Read data for " + geneData.getB().keySet().size() + " genes." );
+
+		final STData data = new STDataText( geneData.getA(), geneData.getB() );
+		System.out.println( data );
+
+		System.out.println( "Parsing took " + ( System.currentTimeMillis() - time ) + " ms." );
+
+		return data;
+	}
+
+	public static STData readSlideSeq( final BufferedReader beadLocations, final BufferedReader reads )
+	{
+		long time = System.currentTimeMillis();
+
 		final HashMap< String, double[] > coordinateMap = readSlideSeqCoordinates( beadLocations );
 		System.out.println( "Read " + coordinateMap.keySet().size() + " coordinates." );
 
@@ -27,7 +45,7 @@ public class TextFileIO
 		System.out.println( "Read data for " + geneData.getB().keySet().size() + " genes." );
 
 		final STData data = new STDataText( geneData.getA(), geneData.getB() );
-		System.out.println( data );
+		//System.out.println( data );
 
 		System.out.println( "Parsing took " + ( System.currentTimeMillis() - time ) + " ms." );
 
@@ -155,13 +173,13 @@ public class TextFileIO
 	}
 
 	public static Pair< List< double[] >, HashMap< String, double[] > > readSlideSeqGenes(
-			final File file,
+			final BufferedReader in,
 			final HashMap< String, double[] > coordinateMap )
 	{
 		final ArrayList< double[] > coordinates = new ArrayList<>();
 		final HashMap< String, double[] > geneMap = new HashMap<>();
 
-		final BufferedReader in = TextFileAccess.openFileRead( file );
+		//final BufferedReader in = TextFileAccess.openFileRead( file );
 
 		try
 		{
@@ -181,7 +199,7 @@ public class TextFileIO
 					{
 						final double[] coordinate = coordinateMap.get( values[ i ] );
 						if ( coordinate == null )
-							throw new RuntimeException( "barcode " + values[ i ] + " not present in file " + file.getName() );
+							throw new RuntimeException( "barcode " + values[ i ] + " not present in file." );
 
 						coordinates.add( coordinate );
 					}
@@ -209,11 +227,11 @@ public class TextFileIO
 		return new ValuePair<>( coordinates, geneMap );
 	}
 
-	public static HashMap< String, double[] > readSlideSeqCoordinates( final File file )
+	public static HashMap< String, double[] > readSlideSeqCoordinates( final BufferedReader in )
 	{
 		final HashMap< String, double[] > coordinates = new HashMap<>();
 
-		final BufferedReader in = TextFileAccess.openFileRead( file );
+		//final BufferedReader in = TextFileAccess.openFileRead( file );
 
 		try
 		{
