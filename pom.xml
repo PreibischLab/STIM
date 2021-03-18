@@ -195,4 +195,5 @@
 		</dependency>
 	</dependencies>
 
+	<groupId>net.preibisch</groupId>
 </project>
