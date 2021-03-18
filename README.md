@@ -54,10 +54,9 @@ You can run the normalization also independently after resaving. The tool can re
      -o '/path/output.n5'
 ```
 
-### 3. Viewing
+### 3. Iteractive Viewing with BigDataViewer
 Run the interactive viewer as follows
 ```bash
 ./st-view -i '/path/directory.n5'
 ```
 It allows you to browse the data in realtime for all genes and datasets. If data is registered it will automatically use the transformations that are stored in the N5 metadata to properly overlay individual datasets.
-
