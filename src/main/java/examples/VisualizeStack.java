@@ -30,6 +30,7 @@ import filter.GaussianFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
 import gui.STDataAssembly;
 import ij.ImageJ;
+import ij.ImagePlus;
 import imglib2.StackedIterableRealInterval;
 import imglib2.TransformedIterableRealInterval;
 import io.N5IO;
@@ -240,23 +241,16 @@ public class VisualizeStack
 		bdvSource.getBdvHandle().getKeybindings().addInputMap("persistence", ksInputMap);
 	}
 
-	public static void visualizeIJ( final ArrayList< STDataAssembly > puckData )
+	public static ImagePlus visualizeIJ( final ArrayList< STDataAssembly > puckData, final boolean useTransform )
 	{
-		new ImageJ();
-
 		List< Pair< STData, AffineTransform2D > > data = new ArrayList<>();
 
 		for ( final STDataAssembly stDataAssembly : puckData )
-			data.add( new ValuePair<STData, AffineTransform2D>( stDataAssembly.data(), new AffineTransform2D() ) );
+			data.add( new ValuePair<STData, AffineTransform2D>(
+					stDataAssembly.data(),
+					useTransform ? stDataAssembly.transform() : new AffineTransform2D() ) );
 
-		AlignTools.visualizeList( data ).setTitle( "unaligned" );
-
-		data = new ArrayList<>();
-
-		for ( final STDataAssembly stDataAssembly : puckData )
-			data.add( new ValuePair<STData, AffineTransform2D>( stDataAssembly.data(), stDataAssembly.transform() ) );
-
-		AlignTools.visualizeList( data ).setTitle( "aligned" );
+		return AlignTools.visualizeList( data );
 	}
 
 	public static void main( String[] args ) throws IOException
@@ -282,15 +276,17 @@ public class VisualizeStack
 
 			puckData.add( new STDataAssembly( data, stats, t, i ) );
 		}
+		System.exit( 0 );
 
-		visualizeIJ( puckData );
+		new ImageJ();
 
-		if ( puckData.size() == 1 )
-			render2d( puckData.get( 0 ) );
-		else
-		{
-			BdvStackSource< ? > bdv = render3d( puckData );
-			renderMovie3d( puckData, bdv);
-		}
+		AlignTools.defaultScale = 0.1;
+		AlignTools.defaultGene = "Hpca";
+		visualizeIJ( puckData, false );
+
+		//render2d( puckData.get( 0 ) );
+
+		//BdvStackSource< ? > bdv = render3d( puckData );
+		//renderMovie3d( puckData, bdv);
 	}
 }
