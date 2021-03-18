@@ -8,11 +8,12 @@ import java.util.concurrent.Callable;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 
 import gui.STDataAssembly;
+import gui.STDataExplorer;
 import io.N5IO;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 
-public class Viewer implements Callable<Void> {
+public class View implements Callable<Void> {
 	//TODO: fix viewer brightness
 	//TODO: build function, makes fatjar and sh scripts
 
@@ -24,6 +25,14 @@ public class Viewer implements Callable<Void> {
 
 	@Override
 	public Void call() throws Exception {
+
+		final File n5Path = new File( containerPath );
+
+		if ( !n5Path.exists() )
+		{
+			System.out.println( "'" + n5Path.getAbsolutePath() + "' does not exist. Stopping." );
+			return null;
+		}
 
 		final ArrayList< STDataAssembly > data;
 
@@ -40,10 +49,12 @@ public class Viewer implements Callable<Void> {
 				data.add( N5IO.openDataset( n5, dataset, true ) );
 		}
 
+		new STDataExplorer( data );
+
 		return null;
 	}
 
 	public static final void main(final String... args) {
-		CommandLine.call(new Viewer(), args);
+		CommandLine.call(new View(), args);
 	}
 }
