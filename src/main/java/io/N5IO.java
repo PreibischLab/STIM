@@ -81,6 +81,10 @@ public class N5IO
 	public static STDataAssembly openDataset( final N5FSReader n5, final String dataset, final boolean ignoreIntensity ) throws IOException
 	{
 		final STData slide = /*new NormalizingSTData*/( N5IO.readN5( n5, dataset ) );//.copy();
+
+		if ( slide == null )
+			return null;
+
 		final STDataStatistics stat = new STDataStatistics( slide );
 
 		final String groupPath = n5.groupPath( dataset );
@@ -264,6 +268,10 @@ public class N5IO
 		
 		if ( !n5.exists( groupName ) )
 			throw new IOException( groupName + " does not exist. stopping." );
+
+		// different type of dataset/group
+		if ( !n5.listAttributes( groupName ).containsKey( "numLocations" ) )
+			return null;
 
 		long time = System.currentTimeMillis();
 		System.out.println( "Loading N5 '" + n5.getBasePath() + "', dataset '" + datasetName + "' ... " );

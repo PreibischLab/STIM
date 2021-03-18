@@ -134,9 +134,14 @@ public class AlignTools
 
 	public static ImagePlus visualizeList( final List< Pair< STData, AffineTransform2D > > data )
 	{
+		return visualizeList(data, defaultScale, defaultGene, true );
+	}
+
+	public static ImagePlus visualizeList( final List< Pair< STData, AffineTransform2D > > data, final double scale, final String gene, final boolean show )
+	{
 		// visualize result using the global transform
 		final AffineTransform2D tS = new AffineTransform2D();
-		tS.scale( defaultScale );
+		tS.scale( scale );
 
 		final Interval interval = STDataUtils.getCommonInterval( data.stream().map( entry -> entry.getA() ).collect( Collectors.toList() ) );
 		final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tS ), 100 );
@@ -148,14 +153,17 @@ public class AlignTools
 			final AffineTransform2D tA = pair.getB().copy();
 			tA.preConcatenate( tS );
 
-			final RandomAccessibleInterval<DoubleType> vis = display( pair.getA(), new STDataStatistics( pair.getA() ), defaultGene, finalInterval, tA );
+			final RandomAccessibleInterval<DoubleType> vis = display( pair.getA(), new STDataStatistics( pair.getA() ), gene, finalInterval, tA );
 
 			stack.addSlice(pair.getA().toString(), ImageJFunctions.wrapFloat( vis, new RealFloatConverter<>(), pair.getA().toString(), null ).getProcessor());
 		}
 
 		ImagePlus imp = new ImagePlus("all", stack );
 		imp.resetDisplayRange();
-		imp.show();
+
+		if ( show )
+			imp.show();
+
 		return imp;
 	}
 

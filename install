@@ -42,6 +42,21 @@ echo ' \' >> st-view
 echo '  cmd.View "$@"' >> st-view
 
 
+echo "Installing 'st-render' command into" $INSTALL_DIR
+echo ""
+
+echo '#!/bin/bash' > st-render
+echo '' >> st-render
+echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> st-render
+echo 'java \' >> st-render
+echo "  -Xmx${MEM}g \\" >> st-render
+echo '  -XX:+UseConcMarkSweepGC \' >> st-render
+echo -n '  -cp $JAR:' >> st-render
+echo -n $(cat cp.txt) >> st-render
+echo ' \' >> st-render
+echo '  cmd.RenderImage "$@"' >> st-render
+
+
 echo "Installing 'st-resave' command into" $INSTALL_DIR
 echo ""
 
@@ -71,6 +86,7 @@ echo ' \' >> st-normalize
 echo '  cmd.Normalize "$@"' >> st-normalize
 
 chmod a+x st-view
+chmod a+x st-render
 chmod a+x st-resave
 chmod a+x st-normalize
 
@@ -80,6 +96,7 @@ else
 	echo "Creating directory $INSTALL_DIR and moving files..."
     mkdir -p $INSTALL_DIR
     mv st-view $INSTALL_DIR/
+    mv st-render $INSTALL_DIR/
     mv st-resave $INSTALL_DIR/
     mv st-normalize $INSTALL_DIR/
 fi

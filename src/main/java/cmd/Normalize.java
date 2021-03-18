@@ -71,7 +71,8 @@ public class Normalize implements Callable<Void> {
 			for ( int i = 0; i < inputDatasets.size(); ++i )
 			{
 				STDataN5 data = N5IO.readN5( n5in, inputDatasets.get( i ) );
-				N5IO.writeN5(n5out, outputDatasets.get( i ), data );
+				if ( data != null )
+					N5IO.writeN5(n5out, outputDatasets.get( i ), data );
 			}
 
 			System.out.println( "done." );
