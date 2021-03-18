@@ -26,7 +26,10 @@ This currently installs two tools, `st-resave, st-view`.
 ### 1.	Resave
 Resave a (compressed) textfile to the N5 format using
 ```bash
-./st-resave -o '/path/directory.n5' -i '/path/locations1.csv,/path/reads2.csv,name1' -i '/path.zip/locations2.csv,/path.zip/reads2.csv,name2' ...
+./st-resave \ 
+    -o '/path/directory.n5' \
+     -i '/path/locations1.csv,/path/reads2.csv,name1' \
+     -i '/path.zip/locations2.csv,/path.zip/reads2.csv,name2' ...
 ```
 If the n5 directory exists new datasets will be added (name1, name2), otherwise a new n5 will be created. Each input consists of a locations.csv file, a reads.csv file, and a user-chosen name. The locations file should contain a header for id, xcoord and ycoord, followed by the entries:
 ```
