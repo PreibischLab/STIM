@@ -2,6 +2,8 @@ package render;
 
 import java.util.List;
 
+import data.STData;
+import data.STDataStatistics;
 import filter.FilterFactory;
 import filter.Filters;
 import filter.GaussianFilterFactory;
@@ -17,6 +19,7 @@ import net.imglib2.RealRandomAccessible;
 import net.imglib2.converter.Converters;
 import net.imglib2.interpolation.neighborsearch.NearestNeighborSearchInterpolatorFactory;
 import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
+import net.imglib2.realtransform.AffineGet;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.view.Views;
@@ -60,31 +63,37 @@ public class Render
 			final String gene,
 			final List< FilterFactory< DoubleType, DoubleType > > filterFactorys )
 	{
+		return getRealIterable(stdata.data(), stdata.transform(), stdata.intensityTransform(), gene, filterFactorys);
+	}
+
+	public static IterableRealInterval< DoubleType > getRealIterable(
+			final STData stdata,
+			final AffineGet coordinateTransform,
+			final AffineGet intensityTransform,
+			final String gene,
+			final List< FilterFactory< DoubleType, DoubleType > > filterFactorys )
+	{
 		IterableRealInterval< DoubleType > data;
 
-		if ( stdata.intensityTransform() == null || stdata.intensityTransform().isIdentity())
+		if ( intensityTransform == null || intensityTransform.isIdentity())
 		{
-			data = stdata.data().getExprData( gene ); 
-					/*Converters.convert(
-						stdata.data().getExprData( gene ),
-						(a,b) -> b.set( a.get() + 0.1 ),
-						new DoubleType() );*/
+			data = stdata.getExprData( gene ); 
 		}
 		else
 		{
-			final double m00 = stdata.intensityTransform().getRowPackedCopy()[ 0 ];
-			final double m01 = stdata.intensityTransform().getRowPackedCopy()[ 1 ];
+			final double m00 = intensityTransform.getRowPackedCopy()[ 0 ];
+			final double m01 = intensityTransform.getRowPackedCopy()[ 1 ];
 
 			data = Converters.convert(
-						stdata.data().getExprData( gene ),
+						stdata.getExprData( gene ),
 						(a,b) -> b.set( a.get() * m00 + m01 ),
 						new DoubleType() );
 		}
 
-		if ( stdata.transform() != null && !stdata.transform().isIdentity() )
+		if ( coordinateTransform != null && !coordinateTransform.isIdentity() )
 			data = new TransformedIterableRealInterval<>(
 					data,
-					stdata.transform() );
+					coordinateTransform );
 
 		// filter the iterable
 		if ( filterFactorys != null )
