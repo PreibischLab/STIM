@@ -58,6 +58,7 @@ public class AlignTools
 
 		IterableRealInterval< DoubleType > data = stdata.getExprData( gene );
 
+		/*
 		data = Converters.convert(
 				data,
 				new Converter< DoubleType, DoubleType >()
@@ -70,6 +71,7 @@ public class AlignTools
 					}
 				},
 				new DoubleType() );
+		*/
 
 		// TODO: this might all make more sense after normalization now, yay!
 
