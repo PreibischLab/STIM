@@ -18,6 +18,7 @@ import filter.GaussianFilterFactory.WeightType;
 import filter.MedianFilterFactory;
 import filter.SingleSpotRemovingFilterFactory;
 import gui.STDataAssembly;
+import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.ImageStack;
@@ -47,11 +48,14 @@ public class RenderImage implements Callable<Void> {
 	@Option(names = {"-i", "--input"}, required = true, description = "input N5 container, e.g. -i /home/ssq.n5")
 	private String input = null;
 
-	@Option(names = {"-d", "--datasets"}, required = false, description = "comma separated list of one or more datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: all)")
-	private String datasets = null;
-
 	@Option(names = {"-g", "--genes"}, required = true, description = "comma separated list of one or more genes, e.g. -g 'Calm2,Pcp4,Ptgds'")
 	private String genes = null;
+
+	@Option(names = {"-o", "--output"}, required = false, description = "output folder for saving rendered images as TIFF, e.g. -o /home/export (default: display with ImageJ)")
+	private String output = null;
+
+	@Option(names = {"-d", "--datasets"}, required = false, description = "comma separated list of one or more datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: all)")
+	private String datasets = null;
 
 	@Option(names = {"-s", "--scale"}, required = false, description = "scaling of the image, e.g. -s 0.5 (default: 0.05)")
 	private double scale = 0.05;
@@ -71,11 +75,7 @@ public class RenderImage implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 
-		final boolean displayAsImageInstance = true;
 		final boolean useTransform = true;
-
-		if ( displayAsImageInstance )
-			new ImageJ();
 
 		final N5FSReader n5 = N5IO.openN5( new File( input ) );
 
@@ -138,6 +138,12 @@ public class RenderImage implements Callable<Void> {
 			filterFactorys.add( new MedianFilterFactory<>( outofbounds, median ) );
 		}
 
+		if ( output == null )
+			new ImageJ();
+		else
+			if ( !new File( output ).exists() )
+				new File( output ).mkdirs();
+
 		for ( final String gene : geneList )
 		{
 			System.out.println( "Rendering gene " + gene );
@@ -146,8 +152,17 @@ public class RenderImage implements Callable<Void> {
 			ImagePlus imp = visualizeList( data, scale, gene, smoothnessFactor, border, filterFactorys );
 			imp.setTitle( gene );
 
-			if ( displayAsImageInstance )
+			if ( output == null )
+			{
 				imp.show();
+			}
+			else
+			{
+				final String file = new File( output, gene + ".tif" ).getAbsolutePath();
+				System.out.println( "Saving as " + file );
+				IJ.saveAsTiff( imp, file );
+				imp.close();
+			}
 		}
 
 		return null;
