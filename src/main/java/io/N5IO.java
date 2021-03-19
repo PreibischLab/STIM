@@ -11,7 +11,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.janelia.saalfeldlab.n5.Compression;
-import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
@@ -73,12 +72,12 @@ public class N5IO
 		BdvFunctions.show( Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, WeightType.NONE ) ), stdata.getRenderInterval(), "Pcp4_gauss1", BdvOptions.options().is2D() ).setDisplayRange( 0, 4 );
 	}
 
-	public static STDataAssembly openDataset( final File n5Path, final String dataset, final boolean ignoreIntensity ) throws IOException
+	public static STDataAssembly openDataset( final File n5Path, final String dataset ) throws IOException
 	{
-		return openDataset(N5IO.openN5( n5Path ), dataset, ignoreIntensity );
+		return openDataset(N5IO.openN5( n5Path ), dataset );
 	}
 
-	public static STDataAssembly openDataset( final N5FSReader n5, final String dataset, final boolean ignoreIntensity ) throws IOException
+	public static STDataAssembly openDataset( final N5FSReader n5, final String dataset ) throws IOException
 	{
 		final STData slide = /*new NormalizingSTData*/( N5IO.readN5( n5, dataset ) );//.copy();
 
@@ -97,20 +96,20 @@ public class N5IO
 
 		final AffineTransform i = new AffineTransform( 1 );
 
-		if ( ignoreIntensity )
-		{
-			i.set( 1, 0 );
-		}
-		else
+		if ( attributes.contains( "intensity_transform" ))
 		{
 			double[] values = n5.getAttribute( n5.groupPath( dataset ), "intensity_transform", double[].class );
 			i.set( values[ 0 ], values[ 1 ] );
+		}
+		else
+		{
+			i.set( 1, 0 );
 		}
 
 		return new STDataAssembly( slide, stat, t, i );
 	}
 
-	public static ArrayList< STDataAssembly > openAllDatasets( final File n5Path, final boolean ignoreIntensity ) throws IOException
+	public static ArrayList< STDataAssembly > openAllDatasets( final File n5Path ) throws IOException
 	{
 		final N5FSReader n5 = N5IO.openN5( n5Path );
 		final List< String > datasets = N5IO.listAllDatasets( n5 );
@@ -118,7 +117,7 @@ public class N5IO
 		final ArrayList< STDataAssembly > slides = new ArrayList<>();
 
 		for ( final String dataset : datasets )
-			slides.add( openDataset(n5, dataset, ignoreIntensity) );
+			slides.add( openDataset(n5, dataset) );
 
 		return slides;
 	}

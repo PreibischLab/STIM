@@ -5,20 +5,44 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 import org.janelia.saalfeldlab.n5.N5FSReader;
 
 import align.AlignTools;
 import data.STData;
+import data.STDataStatistics;
+import data.STDataUtils;
+import filter.Filters;
+import filter.GaussianFilterFactory;
+import filter.MedianFilterFactory;
+import filter.SingleSpotRemovingFilterFactory;
+import filter.GaussianFilterFactory.WeightType;
 import gui.STDataAssembly;
 import ij.ImageJ;
 import ij.ImagePlus;
+import ij.ImageStack;
+import imglib2.ImgLib2Util;
 import io.N5IO;
+import net.imglib2.Interval;
+import net.imglib2.IterableRealInterval;
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.RealRandomAccessible;
+import net.imglib2.converter.RealFloatConverter;
+import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform2D;
+import net.imglib2.realtransform.RealTransform;
+import net.imglib2.realtransform.RealViews;
+import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
+import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
+import net.imglib2.view.Views;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
+import render.Render;
 
 public class RenderImage implements Callable<Void> {
 
@@ -33,6 +57,12 @@ public class RenderImage implements Callable<Void> {
 
 	@Option(names = {"-s", "--scale"}, required = false, description = "scaling of the image, e.g. -s 0.5 (default: 0.05)")
 	private double scale = 0.05;
+
+	@Option(names = {"-f", "--singleSpotFilter"}, required = false, description = "filter single spots using the median distance between all spots as threshold (default: false)")
+	private boolean singleSpotFilter = false;
+
+	@Option(names = {"-m", "--median"}, required = false, description = "median-filter all spots using a given radius, e.g -m 20.0 (default: no filtering)")
+	private Double median = null;
 
 	@Override
 	public Void call() throws Exception {
@@ -75,7 +105,7 @@ public class RenderImage implements Callable<Void> {
 		for ( final String dataset : inputDatasets )
 		{
 			final STDataAssembly stAssembly =
-					N5IO.openDataset(n5, dataset, true );
+					N5IO.openDataset(n5, dataset);
 
 			if ( stAssembly != null )
 				data.add( new ValuePair<STData, AffineTransform2D>(
@@ -98,6 +128,114 @@ public class RenderImage implements Callable<Void> {
 		}
 
 		return null;
+	}
+
+	public static ImagePlus visualizeList( final List< Pair< STData, AffineTransform2D > > data, final double scale, final String gene, final boolean show )
+	{
+		// visualize result using the global transform
+		final AffineTransform2D tS = new AffineTransform2D();
+		tS.scale( scale );
+
+		final Interval interval =
+				STDataUtils.getCommonIterableInterval(
+						data.stream().map( entry -> 
+							ImgLib2Util.transformInterval(
+									entry.getA().getRenderInterval(),
+									entry.getB().copy().preConcatenate( tS ) )
+						).collect( Collectors.toList() ) );
+
+		final Interval finalInterval = Intervals.expand( interval, 100 );
+
+		System.out.println( "Rendering interval: " + Util.printInterval( finalInterval ) );
+
+		final ImageStack stack = new ImageStack( (int)finalInterval.dimension( 0 ), (int)finalInterval.dimension( 1 ) );
+
+		for ( Pair< STData, AffineTransform2D > pair : data )
+		{
+			final AffineTransform2D tA = pair.getB().copy();
+			tA.preConcatenate( tS );
+
+			final RandomAccessibleInterval<DoubleType> vis =
+					display(
+							pair.getA(),
+							new STDataStatistics( pair.getA() ),
+							pair.getB().copy().preConcatenate( tS ),
+							null,
+							gene,
+							finalInterval );
+
+			stack.addSlice(pair.getA().toString(), ImageJFunctions.wrapFloat( vis, new RealFloatConverter<>(), pair.getA().toString(), null ).getProcessor());
+		}
+
+		ImagePlus imp = new ImagePlus("all", stack );
+		imp.resetDisplayRange();
+
+		if ( show )
+			imp.show();
+
+		return imp;
+	}
+
+	public static RandomAccessibleInterval< DoubleType > display(
+			final STData stdata,
+			final STDataStatistics stStats,
+			final AffineGet coordinateTransform,
+			final AffineGet intensityTransform,
+			final String gene,
+			final Interval renderInterval  )
+	{
+		//Render.getRealIterable( stdata, gene, filterFactorys );
+		//System.out.println( "Mean distance: " + stStats.getMeanDistance());
+		//System.out.println( "Median distance: " + stStats.getMedianDistance() );
+		//System.out.println( "Max distance: " + stStats.getMaxDistance() );
+
+		// gauss crisp
+		double gaussRenderSigma = stStats.getMedianDistance();
+
+		final DoubleType outofbounds = new DoubleType( 0 );
+
+		IterableRealInterval< DoubleType > data = stdata.getExprData( gene );
+
+		/*
+		data = Converters.convert(
+				data,
+				new Converter< DoubleType, DoubleType >()
+				{
+					@Override
+					public void convert( final DoubleType input, final DoubleType output )
+					{
+						output.set( input.get() + 0.1 );
+						
+					}
+				},
+				new DoubleType() );
+		*/
+
+		// TODO: this might all make more sense after normalization now, yay!
+
+		//data = TransformCoordinates.sample( data, stStats.getMedianDistance() );
+
+		//data = Filters.filter( data, new DensityFilterFactory<>( new DoubleType(), medianDistance ) );
+		//data = Filters.filter( data, new MeanFilterFactory<>( outofbounds, medianDistance * 10 ) );
+		//data = Filters.filter( data, new GaussianFilterFactory<>( outofbounds, stStats.getMedianDistance() * 2, WeightType.BY_SUM_OF_WEIGHTS ) );
+		data = Filters.filter( data, new SingleSpotRemovingFilterFactory<>( outofbounds, stStats.getMedianDistance() * 1.5 ) );
+		data = Filters.filter( data, new MedianFilterFactory<>( outofbounds, stStats.getMedianDistance() ) );
+
+		//final Pair< DoubleType, DoubleType > minmax = ImgLib2Util.minmax( data );
+		//System.out.println( "Min intensity: " + minmax.getA() );
+		//System.out.println( "Max intensity: " + minmax.getB() );
+
+		// for rendering the input pointcloud
+		final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderSigma*2, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS ) );
+
+		// for rendering a 16x (median distance), regular sampled pointcloud
+		//final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, stStats.getMedianDistance() / 4.0, WeightType.NONE ) );
+		
+		final RandomAccessibleInterval< DoubleType > rendered = Views.interval( RealViews.affine( renderRRA, coordinateTransform ), renderInterval );
+		//ImageJFunctions.show( rendered, Threads.createFixedExecutorService() ).setTitle( stdata.toString() );
+		//System.out.println( new Date(System.currentTimeMillis()) + ": Done..." );
+
+		return rendered;
 	}
 
 	public static final void main(final String... args) {

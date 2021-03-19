@@ -58,7 +58,7 @@ public class View implements Callable<Void> {
 
 		if ( datasets == null || datasets.size() == 0 )
 		{
-			data = N5IO.openAllDatasets( new File( containerPath ), true );
+			data = N5IO.openAllDatasets( new File( containerPath ) );
 		}
 		else
 		{
@@ -66,8 +66,12 @@ public class View implements Callable<Void> {
 
 			final N5FSReader n5 = N5IO.openN5( new File( containerPath ) );
 			for ( final String dataset : datasets )
-				data.add( N5IO.openDataset( n5, dataset, true ) );
+				data.add( N5IO.openDataset( n5, dataset ) );
 		}
+
+		// ignore potentially saved intensity adjustments
+		for ( final STDataAssembly d : data )
+			d.intensityTransform().set( 1.0, 0.0 );
 
 		new STDataExplorer( data );
 

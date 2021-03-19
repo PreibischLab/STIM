@@ -90,7 +90,11 @@ public class STDataExplorer
 	public static void main( String[] args ) throws IOException
 	{
 		final ArrayList< STDataAssembly > slides =
-				N5IO.openAllDatasets( new File( Path.getPath() + "slide-seq-normalized.n5" ), true );
+				N5IO.openAllDatasets( new File( Path.getPath() + "slide-seq-normalized.n5" ) );
+
+		// ignore intensity adjustments
+		for ( final STDataAssembly s : slides )
+			s.intensityTransform().set( 1, 0 );
 
 		new STDataExplorer( slides );
 	}

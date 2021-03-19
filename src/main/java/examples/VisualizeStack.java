@@ -262,7 +262,10 @@ public class VisualizeStack
 	public static void main( String[] args ) throws IOException
 	{
 		final ArrayList< STDataAssembly > puckData =
-				N5IO.openAllDatasets( new File( Path.getPath() + "slide-seq-normalized.n5" ), true );
+				N5IO.openAllDatasets( new File( Path.getPath() + "slide-seq-normalized.n5" ) );
+
+		for ( final STDataAssembly p : puckData )
+			p.intensityTransform().set( 1.0, 0.0 );
 
 		new ImageJ();
 
