@@ -21,7 +21,7 @@ Install into your favorite local binary `$PATH` (or leave empty for using the ch
 ```
 All dependencies will be downloaded and managed by maven automatically.
 
-This currently installs two tools, `st-resave, st-view`.
+This currently installs several tools, `st-resave, st-normalize, st-view, st-render`.
 
 ### 1.	Resave
 Resave a (compressed) textfile to the N5 format (and optionally `--normalize`) using
@@ -68,3 +68,19 @@ Run the interactive viewer as follows
      [-c '0,255']
 ```
 It allows you to browse the data in realtime for all genes and datasets. If data is registered it will automatically use the transformations that are stored in the N5 metadata to properly overlay individual datasets. The optional switch `-d` allows you to select a subset of datasets from a N5, and using `-c` allows to preset the BigDataViewer intensity range.
+
+### 4. Render images and view or save as TIFF
+In order to render images of spatial sequencing datasets (can be saved as TIFF or displayed on screen using ImageJ) please run
+```bash
+./st-render \
+     -i '/path/directory.n5' \
+     -g 'Calm2,Hpca,Ptgds' \
+     [-o '/path/exportdir'] \
+     [-d 'Puck_180528_20,Puck_180528_22'] \
+     [-s 0.1] \
+     [-f] \
+     [-m 20] \
+     [-sf 2.0] \
+     [-b 50]
+```
+If you only define the N5 path `-i` and one or more genes `-g`, the rendered image will be displayed as an ImageJ image. If a N5 contains more than one dataset, they will be rendered as 3D image. 
