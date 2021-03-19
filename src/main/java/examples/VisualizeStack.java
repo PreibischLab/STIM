@@ -147,10 +147,20 @@ public class VisualizeStack
 
 	public static Pair< RealRandomAccessible< DoubleType >, Interval > createStack( final List< STDataAssembly > stdata, final String gene, final DoubleType outofbounds )
 	{
+		return createStack(stdata, gene, outofbounds, 5.0, null );
+	}
+
+	public static Pair< RealRandomAccessible< DoubleType >, Interval > createStack(
+			final List< STDataAssembly > stdata,
+			final String gene,
+			final DoubleType outofbounds,
+			final double spacingFactor,
+			final List< FilterFactory< DoubleType, DoubleType > > filterFactorys )
+	{
 		final ArrayList< IterableRealInterval< DoubleType > > slices = new ArrayList<>();
 
 		for ( int i = 0; i < stdata.size(); ++i )
-			slices.add( Render.getRealIterable( stdata.get( i ), gene ) );
+			slices.add( Render.getRealIterable( stdata.get( i ), gene, filterFactorys ) );
 
 		final double medianDistance = stdata.get( 0 ).statistics().getMedianDistance();
 
@@ -158,7 +168,7 @@ public class VisualizeStack
 		double gaussRenderSigma = medianDistance * 1.0;
 		//double gaussRenderRadius = medianDistance * 4;
 
-		final double spacing = medianDistance * 2;
+		final double spacing = medianDistance * spacingFactor;
 
 		final Interval interval2d = STDataUtils.getCommonIterableInterval( slices );
 		final long[] minI = new long[] { interval2d.min( 0 ), interval2d.min( 1 ), 0 - Math.round( Math.ceil( gaussRenderSigma * 3 ) ) };
