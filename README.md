@@ -27,11 +27,13 @@ Resave a (compressed) textfile to the N5 format (and optionally `--normalize`) u
 ```bash
 ./st-resave \
      -o '/path/directory.n5' \
-     -i '/path/locations1.csv,/path/reads2.csv,name1' \
-     -i '/path.zip/locations2.csv,/path.zip/reads2.csv,name2' ... \
+     -i '/path/locations.csv,/path/reads.csv,name' \
+     -i '/Puck_180528_20.tar/BeadLocationsForR.csv,/Puck_180528_20.tar/MappedDGEForR.csv,Puck_180528_20' ... \
      [--normalize]
 ```
-If the n5 directory exists new datasets will be added (name1, name2), otherwise a new n5 will be created. Each input consists of a locations.csv file, a reads.csv file, and a user-chosen name. Optionally, the datasets can be directly log-normalized before resaving. The locations file should contain a header for `barcode (id), xcoord and ycoord`, followed by the entries:
+If the n5 directory exists new datasets will be added (`name1`, `name2`), otherwise a new n5 will be created. Each input consists of a `locations.csv` file, a `reads.csv` file, and a user-defined `dataset name`. The csv files can optionally be inside (zip/tar/tar.gz) files. It is tested on the slide-seq data linked above, which can be used as a blueprint for how to save one's own data for import.
+
+Optionally, the datasets can be directly log-normalized before resaving (recommended). The locations file should contain a header for `barcode (id), xcoord and ycoord`, followed by the entries:
 ```
 barcodes,xcoord,ycoord
 TCACGTAGAAACC,3091.01234567901,2471.88888888889
