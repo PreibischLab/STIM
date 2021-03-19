@@ -27,10 +27,10 @@ This currently installs two tools, `st-resave, st-view`.
 Resave a (compressed) textfile to the N5 format using
 ```bash
 ./st-resave \
-     --normalize \
      -o '/path/directory.n5' \
      -i '/path/locations1.csv,/path/reads2.csv,name1' \
-     -i '/path.zip/locations2.csv,/path.zip/reads2.csv,name2' ...
+     -i '/path.zip/locations2.csv,/path.zip/reads2.csv,name2' ... \
+     [--normalize]
 ```
 If the n5 directory exists new datasets will be added (name1, name2), otherwise a new n5 will be created. Each input consists of a locations.csv file, a reads.csv file, and a user-chosen name. Optionally, the datasets can be directly log-normalized before resaving. The locations file should contain a header for `barcode (id), xcoord and ycoord`, followed by the entries:
 ```
@@ -53,8 +53,11 @@ You can run the normalization also independently after resaving. The tool can re
 ```bash
 ./st-normalize \
      -i '/path/input.n5' \
-     -o '/path/output.n5'
+     [-o '/path/output.n5'] \
+     [-d 'dataset1,dataset2'] \
+     [-e 'dataset1-normed,dataset2-normed']
 ```
+The only parameter you have to provide is the input N5 `-i`. You can optionally define an output N5 `-o`, select specific input dataasets within the input N5 `-d`, and use user-defined names for the normalized datasets `-e` (by default it will be `inputname-norm`).
 
 ### 3. Iteractive Viewing Application
 Run the interactive viewer as follows
