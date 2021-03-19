@@ -1,6 +1,5 @@
-# imglib2-st
-Library for managing, storage, viewing, and working with spatial
-transcriptomics data using imglib2, BigDataViewer and Fiji.
+# ImgLib2 Spatial Transcriptomics Project
+Library for managing, storage, viewing, and working with spatial transcriptomics data using imglib2, BigDataViewer and Fiji. Great example data is provided by the [SlideSeq paper](https://science.sciencemag.org/content/363/6434/1463.long) and can be downloaded from [here](https://portals.broadinstitute.org/single_cell/study/slide-seq-study).
 
 Installation requires maven and OpenJDK8 (or newer) on Ubuntu:
 ```bash
@@ -28,11 +27,14 @@ Resave a (compressed) textfile to the N5 format (and optionally `--normalize`) u
 ```bash
 ./st-resave \
      -o '/path/directory.n5' \
-     -i '/path/locations1.csv,/path/reads2.csv,name1' \
-     -i '/path.zip/locations2.csv,/path.zip/reads2.csv,name2' ... \
+     -i '/path/locations.csv,/path/reads.csv,name' \
+     -i '/Puck_180528_20.tar/BeadLocationsForR.csv,/Puck_180528_20.tar/MappedDGEForR.csv,Puck_180528_20' \
+     -i ...
      [--normalize]
 ```
-If the n5 directory exists new datasets will be added (name1, name2), otherwise a new n5 will be created. Each input consists of a locations.csv file, a reads.csv file, and a user-chosen name. Optionally, the datasets can be directly log-normalized before resaving. The locations file should contain a header for `barcode (id), xcoord and ycoord`, followed by the entries:
+If the n5 directory exists new datasets will be added (example above:`name`, `Puck_180528_20`), otherwise a new n5 will be created. Each input consists of a `locations.csv` file, a `reads.csv` file, and a user-defined `dataset name`. The csv files can optionally be inside (zip/tar/tar.gz) files. It is tested on the slide-seq data linked above, which can be used as a blueprint for how to save one's own data for import.
+
+Optionally, the datasets can be directly log-normalized before resaving (recommended). The locations file should contain a header for `barcode (id), xcoord and ycoord`, followed by the entries:
 ```
 barcodes,xcoord,ycoord
 TCACGTAGAAACC,3091.01234567901,2471.88888888889
@@ -84,3 +86,18 @@ In order to render images of spatial sequencing datasets (can be saved as TIFF o
      [-b 50]
 ```
 If you only define the N5 path `-i` and one or more genes `-g`, the rendered image will be displayed as an ImageJ image. If a N5 contains more than one dataset, they will be rendered as 3D image. When defining an output directory `-o` images will not be displayed, but saved as TIFF (stacks) into the directory with filenames corresponding to the gene name. The optional switch `-d` allows you to select a subset of datasets from a N5, `-s` scales the rendering (default: 0.05), `-f` enables a single-spot filter (default: off), `-m` applies median filtering in locations space (not on top of the rendered image) with a certain radius (default: off), `-sf` sets the smoothness factor for rendering of the sparse dataset, and `-b` sets the size of an extra black border around the location coordinates (default: 20).
+
+### 5. View a selected gene for an entire N5 as 2D/3D using BigDataViewer
+In order to interactively browse the 2D/3D space of one or more datasets of an N5 with BigDataViewer you can
+```bash
+./st-3d-view \
+     -i '/path/directory.n5' \
+     -g Calm2 \
+     [-d 'Puck_180528_20,Puck_180528_22'] \
+     [-z 5.0] \
+     [-c '0,255'] \
+     [-f] \
+     [-m 20] \
+     [-sf 2.0] \
+```
+Dataset(s) from the selected N5 `-i` will be interactively rendered for a selected gene `-g`. By default all datasets will be displayed, but they can be limited (or ordered) using `-d`. You can define the distance between sections with `-z` (as a factor of median spacing between sequenced locations), `-c` allows to preset the BigDataViewer intensity range and parameters `-f, -m, -sf` are explained above (4).
