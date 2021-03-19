@@ -48,7 +48,7 @@ public class RenderImage implements Callable<Void> {
 	@Option(names = {"-i", "--input"}, required = true, description = "input N5 container, e.g. -i /home/ssq.n5")
 	private String input = null;
 
-	@Option(names = {"-g", "--genes"}, required = true, description = "comma separated list of one or more genes, e.g. -g 'Calm2,Pcp4,Ptgds'")
+	@Option(names = {"-g", "--genes"}, required = true, description = "comma separated list of one or more genes, e.g. -g 'Calm2,Hpca,Ptgds'")
 	private String genes = null;
 
 	@Option(names = {"-o", "--output"}, required = false, description = "output folder for saving rendered images as TIFF, e.g. -o /home/export (default: display with ImageJ)")
