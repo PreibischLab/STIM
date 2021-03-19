@@ -62,12 +62,13 @@ public class Render
 	{
 		IterableRealInterval< DoubleType > data;
 
-		if ( stdata.intensityTransform().isIdentity())
+		if ( stdata.intensityTransform() == null || stdata.intensityTransform().isIdentity())
 		{
-			data = Converters.convert(
+			data = stdata.data().getExprData( gene ); 
+					/*Converters.convert(
 						stdata.data().getExprData( gene ),
 						(a,b) -> b.set( a.get() + 0.1 ),
-						new DoubleType() );
+						new DoubleType() );*/
 		}
 		else
 		{
@@ -76,11 +77,11 @@ public class Render
 
 			data = Converters.convert(
 						stdata.data().getExprData( gene ),
-						(a,b) -> b.set( a.get() * m00 + m01 + 0.1 ),
+						(a,b) -> b.set( a.get() * m00 + m01 ),
 						new DoubleType() );
 		}
 
-		if ( !stdata.transform().isIdentity() )
+		if ( stdata.transform() != null && !stdata.transform().isIdentity() )
 			data = new TransformedIterableRealInterval<>(
 					data,
 					stdata.transform() );
