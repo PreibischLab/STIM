@@ -39,13 +39,15 @@ TCACGTAGAAACC,3091.01234567901,2471.88888888889
 TCTCCTAGTTCGG,4375.91791044776,1577.52985074627
 ...
 ```
-The reads file should contain all `barcodes (id)` as the header after a `Row` column that holds the gene identifier. It should have as many rows as there are sequenced locations:
+The reads file should contain all `barcodes (id)` as the header after a `Row` column that holds the gene identifier. It should have as many columns as there are sequenced locations (ids from above):
 ```
 Row,TCACGTAGAAACC,TCTCCTAGTTCGG, ...
 0610005C13Rik,0,0, ...
 0610007P14Rik,0,0, ...
 ...
 ```
+Note: if there is a mismatch between number of sequenced locations defined in the locations.csv (rows) with the locations in reads.csv (columns), the resave will stop.
+
 ### 2. Normalization
 You can run the normalization also independently after resaving. The tool can resave selected or all datasets of an N5 container into the same or a new N5:
 ```bash
