@@ -24,7 +24,7 @@ All dependencies will be downloaded and managed by maven automatically.
 This currently installs two tools, `st-resave, st-view`.
 
 ### 1.	Resave
-Resave a (compressed) textfile to the N5 format using
+Resave a (compressed) textfile to the N5 format (and optionally `--normalize`) using
 ```bash
 ./st-resave \
      -o '/path/directory.n5' \
@@ -57,11 +57,14 @@ You can run the normalization also independently after resaving. The tool can re
      [-d 'dataset1,dataset2'] \
      [-e 'dataset1-normed,dataset2-normed']
 ```
-The only parameter you have to provide is the input N5 `-i`. You can optionally define an output N5 `-o`, select specific input dataasets within the input N5 `-d`, and use user-defined names for the normalized datasets `-e` (by default it will be `inputname-norm`).
+The only parameter you have to provide is the input N5 `-i`. You can optionally define an output N5 `-o` (otherwise it'll be the same), select specific input dataasets within the input N5 `-d`, and use user-defined names for the normalized datasets `-e` (by default it will be `inputname-norm`).
 
 ### 3. Iteractive Viewing Application
 Run the interactive viewer as follows
 ```bash
-./st-view -i '/path/directory.n5'
+./st-view \
+     -i '/path/directory.n5' \
+     [-d 'Puck_180528_20,Puck_180528_22'] \
+     [-c '0,255']
 ```
-It allows you to browse the data in realtime for all genes and datasets. If data is registered it will automatically use the transformations that are stored in the N5 metadata to properly overlay individual datasets.
+It allows you to browse the data in realtime for all genes and datasets. If data is registered it will automatically use the transformations that are stored in the N5 metadata to properly overlay individual datasets. The optional switch `-d` allows you to select a subset of datasets from a N5, and using `-c` allows to preset the BigDataViewer intensity range.
