@@ -190,7 +190,8 @@ public class TextFileIO
 				final String[] values = in.readLine().trim().split( "," );
 
 				if ( values.length - 1 != coordinateMap.keySet().size() )
-					throw new RuntimeException( "length of header inconsistent with number of coordinates: " + (values.length - 1) + " != " + coordinateMap.keySet().size() );
+					throw new RuntimeException( "length of header inconsistent with number of locations: " + (values.length - 1) + " != " + coordinateMap.keySet().size() + "\n" +
+							"You defined " + coordinateMap.keySet().size() + " locations (ids), but the reads file only contains data for " + (values.length - 1) + " locations.");
 
 				if ( line++ == 0 ) 
 				{

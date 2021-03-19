@@ -63,7 +63,7 @@ public class Resave implements Callable<Void> {
 	
 				if ( elements.length != 3 )
 				{
-					System.out.println( "input path could not parsed " + inputPath + ", stopping." );
+					System.out.println( "input path could not parsed, it does not have 3 arguments: [locations.csv,reads.csv,name]:" + inputPath + ", stopping." );
 					return null;
 				}
 				else
