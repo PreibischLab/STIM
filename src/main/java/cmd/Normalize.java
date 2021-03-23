@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 
+import data.NormalizingSTData;
 import data.STDataN5;
 import io.N5IO;
 import picocli.CommandLine;
@@ -72,7 +73,7 @@ public class Normalize implements Callable<Void> {
 			{
 				STDataN5 data = N5IO.readN5( n5in, inputDatasets.get( i ) );
 				if ( data != null )
-					N5IO.writeN5(n5out, outputDatasets.get( i ), data );
+					N5IO.writeN5(n5out, outputDatasets.get( i ), new NormalizingSTData( data ) );
 			}
 
 			System.out.println( "done." );
