@@ -150,6 +150,11 @@ public class Resave implements Callable<Void> {
 			index = path.indexOf( ".tar" );
 			length = 4;
 		}
+		else if ( path.contains( ".gz" ) )
+		{
+			index = path.indexOf( ".gz" );
+			length = 3;
+		}
 
 		if ( index >= 0 )
 		{
