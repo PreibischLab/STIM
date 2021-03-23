@@ -35,7 +35,13 @@ public class NormalizingRandomAccess implements RandomAccess< DoubleType >
 //		by 10*5 to get meaningful numbers, add 1 to escape infinities
 //		and take a logarithm of that.
 
-		value.set( Math.log( 10000 * inputRandomAccess.get().get() / sumsPerLocationRandomAccess.get().get() + 1 ) );
+		final double d_mn = inputRandomAccess.get().get();
+		final double sum_k = sumsPerLocationRandomAccess.get().get();
+
+		if ( sum_k == 0 || d_mn == 0 )
+			value.set( 0 );
+		else
+			value.set( Math.log( 10000 * d_mn / sum_k + 1 ) );
 
 		return value;
 	}
