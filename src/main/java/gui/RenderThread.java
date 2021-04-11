@@ -26,7 +26,7 @@ import render.Render;
 public class RenderThread implements Runnable
 {
 	protected static int medianFilter = 0;
-	protected static int gaussFactor = 1;
+	protected static double gaussFactor = 1;
 
 	public static double minRange = 0;
 	public static double maxRange = 200;

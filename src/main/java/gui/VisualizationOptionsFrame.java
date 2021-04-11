@@ -31,10 +31,10 @@ public class VisualizationOptionsFrame extends JFrame
 		final JSlider sliderMedian = new JSlider( 0, 100, 0 );
 
 		final JTextField textGauss = new JTextField( 2 );
-		final JSlider sliderGauss = new JSlider( 0, 10, 0 );
+		final JSlider sliderGauss = new JSlider( 0, 1000, 100 ); // maps to 0-10
 
 		sliderMedian.addChangeListener( e -> textMedian.setText( String.valueOf( updateMedian( sliderMedian.getValue() ) ) ) );
-		sliderGauss.addChangeListener( e -> textGauss.setText( String.valueOf( updateGauss( sliderGauss.getValue() + 1 ) ) ) );
+		sliderGauss.addChangeListener( e -> textGauss.setText( String.valueOf( updateGauss( sliderGauss.getValue() ) / 100.0 ) ) );
 
 		textMedian.addKeyListener(
 				new KeyAdapter()
@@ -63,7 +63,7 @@ public class VisualizationOptionsFrame extends JFrame
 		textMedian.setText( String.valueOf( RenderThread.medianFilter ) );
 		sliderMedian.setValue( RenderThread.medianFilter );
 		textGauss.setText( String.valueOf( RenderThread.gaussFactor ) );
-		sliderGauss.setValue( RenderThread.gaussFactor - 1 );
+		sliderGauss.setValue( (int)Math.round( RenderThread.gaussFactor * 100 ) );
 
 		/* Location */
 		final GridBagLayout layout = new GridBagLayout();
@@ -107,7 +107,7 @@ public class VisualizationOptionsFrame extends JFrame
 
 	protected int updateGauss( final int newValue )
 	{
-		RenderThread.gaussFactor = newValue;
+		RenderThread.gaussFactor = (double)newValue / 100.0;
 		panel.forceUpdate = true;
 		panel.update();
 		panel.forceUpdate = false;
