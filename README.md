@@ -87,12 +87,12 @@ In order to render images of spatial sequencing datasets (can be saved as TIFF o
 ```
 If you only define the N5 path `-i` and one or more genes `-g`, the rendered image will be displayed as an ImageJ image. If a N5 contains more than one dataset, they will be rendered as 3D image. When defining an output directory `-o` images will not be displayed, but saved as TIFF (stacks) into the directory with filenames corresponding to the gene name. The optional switch `-d` allows you to select a subset of datasets from a N5, `-s` scales the rendering (default: 0.05), `-f` enables a single-spot filter (default: off), `-m` applies median filtering in locations space (not on top of the rendered image) with a certain radius (default: off), `-sf` sets the smoothness factor for rendering of the sparse dataset, and `-b` sets the size of an extra black border around the location coordinates (default: 20).
 
-### 5. View a selected gene for an entire N5 as 2D/3D using BigDataViewer
+### 5. View selected genes for an entire N5 as 2D/3D using BigDataViewer
 In order to interactively browse the 2D/3D space of one or more datasets of an N5 with BigDataViewer you can
 ```bash
 ./st-3d-view \
      -i '/path/directory.n5' \
-     -g Calm2 \
+     -g Calm2,Hpca \
      [-d 'Puck_180528_20,Puck_180528_22'] \
      [-z 5.0] \
      [-c '0,255'] \
@@ -100,4 +100,4 @@ In order to interactively browse the 2D/3D space of one or more datasets of an N
      [-m 20] \
      [-sf 2.0] \
 ```
-Dataset(s) from the selected N5 `-i` will be interactively rendered for a selected gene `-g`. By default all datasets will be displayed, but they can be limited (or ordered) using `-d`. You can define the distance between sections with `-z` (as a factor of median spacing between sequenced locations), `-c` allows to preset the BigDataViewer intensity range and parameters `-f, -m, -sf` are explained above (4).
+Dataset(s) from the selected N5 `-i` will be interactively rendered for one or more selected gene `-g` (multiple genes will be overlaid into different colors). By default all datasets will be displayed, but they can be limited (or ordered) using `-d`. You can define the distance between sections with `-z` (as a factor of median spacing between sequenced locations), `-c` allows to preset the BigDataViewer intensity range and parameters `-f, -m, -sf` are explained above (4).
