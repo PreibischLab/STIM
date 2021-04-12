@@ -16,7 +16,9 @@ import net.imglib2.RealInterval;
 import net.imglib2.RealLocalizable;
 import net.imglib2.neighborsearch.KNearestNeighborSearch;
 import net.imglib2.neighborsearch.KNearestNeighborSearchOnKDTree;
+import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
+import net.imglib2.util.ValuePair;
 
 public class STDataUtils
 {
@@ -197,10 +199,10 @@ public class STDataUtils
 
 	public static STData createTestDataSet()
 	{
-		final ArrayList< double[] > coordinates = new ArrayList<>();
-		coordinates.add( new double[] { -1, 1 } );
-		coordinates.add( new double[] { 2.1, 2 } );
-		coordinates.add( new double[] { 17.1, -5.1 } );
+		final ArrayList<  Pair< double[], String > > coordinates = new ArrayList<>();
+		coordinates.add( new ValuePair<>( new double[] { -1, 1 }, "ATTA" ) );
+		coordinates.add( new ValuePair<>( new double[] { 2.1, 2 }, "GTTC" ) );
+		coordinates.add( new ValuePair<>( new double[] { 17.1, -5.1 }, "CCCT" ) );
 
 		final HashMap< String, double[] > geneMap = new HashMap<>();
 

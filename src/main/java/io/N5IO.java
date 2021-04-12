@@ -21,6 +21,7 @@ import bdv.util.BdvOptions;
 import data.STData;
 import data.STDataN5;
 import data.STDataStatistics;
+import data.STDataUtils;
 import filter.GaussianFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
 import gui.STDataAssembly;
@@ -40,15 +41,7 @@ public class N5IO
 
 	public static void main( String[] args ) throws IOException, InterruptedException, ExecutionException
 	{
-		// load from Json
-		System.out.println( "Loading Json ... " );
-		long time = System.currentTimeMillis();
-
-		STData stdata = 
-				//STDataUtils.createTestDataSet();
-				JsonIO.readJSON( new File( Path.getPath() + "patterns_examples_2d/small.json.zip" ) );
-
-		System.out.println( "Loding Json took " + ( System.currentTimeMillis() - time ) + " ms." );
+		STData stdata = STDataUtils.createTestDataSet();
 
 		final File n5path = new File( Path.getPath() + "patterns_examples_2d/small.n5" );
 		System.out.println( "n5-path: " + n5path.getAbsolutePath() );
@@ -205,6 +198,7 @@ public class N5IO
 		n5.setAttribute( groupName, "numLocations", data.numLocations() );
 		n5.setAttribute( groupName, "numGenes", data.numGenes() );
 		n5.setAttribute( groupName, "geneList", data.getGeneNames() );
+		n5.setAttribute( groupName, "barcodeList", data.getBarcodes() );
 	
 		final RandomAccessibleInterval< DoubleType > locations = data.getLocations();
 		final RandomAccessibleInterval< DoubleType > expr = data.getAllExprValues();
@@ -282,6 +276,17 @@ public class N5IO
 		@SuppressWarnings("unchecked")
 		final List< String > geneNameList = n5.getAttribute( groupName, "geneList", List.class );
 
+		@SuppressWarnings("unchecked")
+		List< String > barcodeList = n5.getAttribute( groupName, "barcodeList", List.class );
+
+		if ( barcodeList == null || barcodeList.size() == 0 || barcodeList.size() != numLocations )
+		{
+			System.out.println( "Error reading barcodes from N5, setting empty Strings instead");
+			barcodeList = new ArrayList<>();
+			for ( int i = 0; i < numLocations; ++i )
+				barcodeList.add( "" );
+		}
+
 		final RandomAccessibleInterval< DoubleType > locations = N5Utils.open( n5, n5.groupPath( datasetName, "locations" ) ); // size: [numLocations x numDimensions]
 		final RandomAccessibleInterval< DoubleType > exprValues = N5Utils.open( n5, n5.groupPath( datasetName, "expression" ) ); // size: [numGenes x numLocations]
 
@@ -312,7 +317,7 @@ public class N5IO
 		for ( int i = 0; i < geneNameList.size(); ++i )
 			geneLookup.put( geneNameList.get( i ), i );
 
-		return new STDataN5( locations, exprValues, geneNameList, geneLookup, n5, new File( n5.getBasePath() ), datasetName );
+		return new STDataN5( locations, exprValues, geneNameList, barcodeList, geneLookup, n5, new File( n5.getBasePath() ), datasetName );
 	}
 
 	public static ArrayList< STDataN5 > readN5All( final File n5path ) throws IOException

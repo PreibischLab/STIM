@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
@@ -12,6 +13,7 @@ import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.util.Pair;
 
 /**
  * A text-input based implementation that can be used to convert to e.g. N5.
@@ -24,12 +26,12 @@ import net.imglib2.type.numeric.real.DoubleType;
  */
 public class STDataText extends STDataImgLib2
 {
-	public STDataText( final List< double[] > locations, final HashMap< String, double[] > exprValues )
+	public STDataText( final List< Pair< double[], String > > locations, final HashMap< String, double[] > exprValues )
 	{
 		super( create( locations, exprValues ) );
 	}
 
-	protected static STDataImgLib2Factory create( final List< double[] > locations, final HashMap< String, double[] > exprValues )
+	protected static STDataImgLib2Factory create( final List< Pair< double[], String > > locations, final HashMap< String, double[] > exprValues )
 	{
 		final STDataImgLib2Factory factory = new STDataImgLib2Factory();
 
@@ -40,6 +42,7 @@ public class STDataText extends STDataImgLib2
 		for ( int i = 0; i < factory.geneNames.size(); ++i )
 			factory.geneLookup.put( factory.geneNames.get( i ), i );
 
+		factory.barcodes = locations.stream().map( p -> p.getB() ).collect( Collectors.toList() );
 		factory.locations = locationsToImgLib2( locations );
 		factory.exprValues = exprValuesToImgLib2( factory.geneNames, exprValues );
 
@@ -50,14 +53,14 @@ public class STDataText extends STDataImgLib2
 	 * @param locations - the list of sequenced locations
 	 * @return - a 2d datastructure that holds all sequenced locations, size: [numLocations x numDimensions]
 	 */
-	public static Img< DoubleType > locationsToImgLib2( final List< double[] > locations )
+	public static Img< DoubleType > locationsToImgLib2( final List< Pair< double[], String > > locations )
 	{
-		final int n = locations.get( 0 ).length;
+		final int n = locations.get( 0 ).getA().length;
 		final int numLocations = locations.size();
 
 		final Img< DoubleType > img = ArrayImgs.doubles( new long[] { numLocations, n } );
 
-		setLocations( locations, img );
+		setLocations( locations.stream().map( p -> p.getA() ).collect( Collectors.toList() ), img );
 
 		return img;
 	}

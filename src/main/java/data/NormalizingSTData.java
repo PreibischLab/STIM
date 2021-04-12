@@ -198,6 +198,12 @@ public class NormalizingSTData implements STData
 	}
 
 	@Override
+	public List< String > getBarcodes()
+	{
+		return data.getBarcodes();
+	}
+
+	@Override
 	public RandomAccessibleInterval< DoubleType > getLocations()
 	{
 		return data.getLocations();

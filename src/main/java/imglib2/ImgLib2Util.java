@@ -29,8 +29,6 @@ import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.realtransform.AffineGet;
-import net.imglib2.realtransform.AffineTransform2D;
-import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.Type;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
@@ -60,14 +58,17 @@ public class ImgLib2Util
 
 		// copy the gene name list
 		final ArrayList< String > geneNames = new ArrayList<>( data.getGeneNames() );
-	
+
+		// copy the barcode list
+		final ArrayList< String > barcodes = new ArrayList<>( data.getBarcodes() );
+
 		// create the gene lookup
 		final HashMap< String, Integer > geneLookup = new HashMap<>();
 
 		for ( final String geneName : geneNames )
 			geneLookup.put( geneName, data.getIndexForGene( geneName ) );
 
-		return new STDataImgLib2( locations, exprValues, geneNames, geneLookup );
+		return new STDataImgLib2( locations, exprValues, geneNames, barcodes, geneLookup );
 	}
 
 	public static Interval transformInterval( final Interval interval, final AffineGet affine )

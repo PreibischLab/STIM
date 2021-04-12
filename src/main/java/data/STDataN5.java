@@ -19,12 +19,13 @@ public class STDataN5 extends STDataImgLib2
 			final RandomAccessibleInterval< DoubleType > locations,
 			final RandomAccessibleInterval< DoubleType > exprValues,
 			final List< String > geneNames,
+			final List< String > barcodes,
 			final HashMap< String, Integer > geneLookup,
 			final N5FSReader n5Reader,
 			final File n5path,
 			final String datasetName )
 	{
-		super( locations, exprValues, geneNames, geneLookup );
+		super( locations, exprValues, geneNames, barcodes, geneLookup );
 
 		this.n5Reader = n5Reader;
 		this.n5path = n5path;
@@ -33,7 +34,7 @@ public class STDataN5 extends STDataImgLib2
 
 	public STDataN5( final STDataImgLib2Factory factory, final N5FSReader n5Reader, final File n5path, final String datasetName )
 	{
-		this( factory.locations, factory.exprValues, factory.geneNames, factory.geneLookup, n5Reader, n5path, datasetName );
+		this( factory.locations, factory.exprValues, factory.geneNames, factory.barcodes, factory.geneLookup, n5Reader, n5path, datasetName );
 	}
 
 	public File n5Path() { return n5path; }

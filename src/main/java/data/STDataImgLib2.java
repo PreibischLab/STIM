@@ -25,7 +25,7 @@ public class STDataImgLib2 extends STDataAbstract
 	 */
 	private final RandomAccessibleInterval< DoubleType > exprValues;
 
-	private final List< String > geneNames;
+	private final List< String > geneNames, barcodes;
 	private final HashMap< String, Integer > geneLookup;
 
 	private RealInterval realInterval;
@@ -33,19 +33,20 @@ public class STDataImgLib2 extends STDataAbstract
 	public static class STDataImgLib2Factory
 	{
 		public RandomAccessibleInterval< DoubleType > locations, exprValues;
-		public List< String > geneNames;
+		public List< String > geneNames, barcodes;
 		public HashMap< String, Integer > geneLookup;
 	}
 
 	public STDataImgLib2( final STDataImgLib2Factory factory )
 	{
-		this( factory.locations, factory.exprValues, factory.geneNames, factory.geneLookup );
+		this( factory.locations, factory.exprValues, factory.geneNames, factory.barcodes, factory.geneLookup );
 	}
 
 	public STDataImgLib2(
 			final RandomAccessibleInterval< DoubleType > locations,
 			final RandomAccessibleInterval< DoubleType > exprValues,
 			final List< String > geneNames,
+			final List< String > barcodes,
 			final HashMap< String, Integer > geneLookup )
 	{
 		super( (int)locations.dimension( 1 ), (int)locations.dimension( 0 ), (int)exprValues.dimension( 0 ) );
@@ -53,6 +54,7 @@ public class STDataImgLib2 extends STDataAbstract
 		this.locations = locations;
 		this.exprValues = exprValues;
 		this.geneNames = geneNames;
+		this.barcodes = barcodes;
 		this.geneLookup = geneLookup;
 
 		this.realInterval = STDataUtils.computeRealInterval( this );
@@ -79,6 +81,9 @@ public class STDataImgLib2 extends STDataAbstract
 
 	@Override
 	public List< String > getGeneNames() { return geneNames; }
+
+	@Override
+	public List< String > getBarcodes() { return barcodes; }
 
 	@Override
 	public RandomAccessibleInterval< DoubleType > getAllExprValues()

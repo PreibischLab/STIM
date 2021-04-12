@@ -38,6 +38,11 @@ public interface STData extends IterableRealInterval< RealLocalizable >
 	public List< String > getGeneNames();
 
 	/**
+	 * @return a list of barcodes (ordered in the same fashion as the locations)
+	 */
+	public List< String > getBarcodes();
+
+	/**
 	 * Note: usually you do not need this datastructure, rather request a RealPointSampleList or 
 	 * 
 	 * @return the underlying 2d datastructure that holds all sequenced locations by index, size: [numLocations x numDimensions]
