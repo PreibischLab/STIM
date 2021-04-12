@@ -15,6 +15,7 @@ import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
+import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 
 import bdv.util.BdvFunctions;
@@ -217,6 +218,7 @@ public class N5IO
 		else
 			exec = service;
 
+		/*
 		if ( data.getMetaData().size() > 0 )
 		{
 			n5.setAttribute(
@@ -230,7 +232,9 @@ public class N5IO
 				N5Utils.save( (RandomAccessibleInterval)(Object)metadata, n5, metaLocation, new int[]{ blockSizeLocations, 1 }, compression, exec );
 			}
 		}
-
+		*/
+		writeMetaData( n5, datasetName, data.getMetaData(), blockSizeLocations, blockSizeExpression, compression, exec );
+		
 		// save the coordinates
 		// numLocations x numDimensions
 		N5Utils.save( locations, n5, groupLocations, new int[]{ blockSizeLocations, data.numDimensions() }, compression, exec );
@@ -243,6 +247,30 @@ public class N5IO
 			exec.shutdown();
 
 		System.out.println( "took " + ( System.currentTimeMillis() - time ) + " ms." );
+	}
+
+	public static void writeMetaData(
+			final N5Writer n5,
+			final String datasetName,
+			final List< Pair< String, RandomAccessibleInterval< ? extends NativeType< ? > > > > metadataList,
+			final int blockSizeLocations, // 1024
+			final int[] blockSizeExpression, // new int[]{ 512, 512 }
+			final Compression compression, // new GzipCompression( 3 ); // new RawCompression();
+			final ExecutorService exec ) throws IOException, InterruptedException, ExecutionException
+	{
+		if ( metadataList.size() > 0 )
+		{
+			n5.setAttribute(
+					n5.groupPath( datasetName ),
+					"metadataList",
+					metadataList.stream().map( p -> p.getA() ).collect( Collectors.toList() ) );
+
+			for ( final Pair< String, RandomAccessibleInterval<? extends NativeType< ? >> > metadata : metadataList )
+			{
+				final String metaLocation = n5.groupPath( datasetName, "meta-" + metadata.getA() );
+				N5Utils.save( (RandomAccessibleInterval)(Object)metadata, n5, metaLocation, new int[]{ blockSizeLocations, 1 }, compression, exec );
+			}
+		}
 	}
 
 	public static N5FSReader openN5( final File n5path ) throws IOException

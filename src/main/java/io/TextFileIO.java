@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -49,6 +50,64 @@ public class TextFileIO
 		System.out.println( "Parsing took " + ( System.currentTimeMillis() - time ) + " ms." );
 
 		return data;
+	}
+
+	public static int[] readMetaData( final BufferedReader metaFile, final List< String > barcodes ) throws IOException
+	{
+		final HashMap< String, Integer > barcodeMap = new HashMap<>();
+
+		int i = 0;
+		for ( final String barcode : barcodes )
+			barcodeMap.put( barcode, i++ );
+
+		int[] ids = new int[ barcodes.size() ];
+
+		i = 0;
+		while ( metaFile.ready() )
+		{
+			String[] val = metaFile.readLine().split( "," );
+
+			if ( val.length != 2 || val[ 0 ].trim().length() == 0 )
+				continue;
+
+			ids[ barcodeMap.get( val[ 0 ] ) ] = Integer.parseInt( val[ 1 ].trim() );
+			++i;
+		}
+
+		if ( i != barcodes.size() )
+			throw new RuntimeException( "Not all ids could be assigned (only " + i + " out of " + barcodes.size() + ". Stopping." );
+
+		return ids;
+	}
+
+	/**
+	 * Assumes that the order of the entries in the file are the same (no barcode-check)
+	 * 
+	 * @param metaFile
+	 * @param numLocations
+	 * @return
+	 * @throws IOException
+	 */
+	public static int[] readMetaData( final BufferedReader metaFile, final int numLocations ) throws IOException
+	{
+		int[] ids = new int[ numLocations ];
+
+		int i = 0;
+
+		while ( metaFile.ready() )
+		{
+			String[] val = metaFile.readLine().split( "," );
+
+			if ( val.length != 2 || val[ 0 ].trim().length() == 0 )
+				continue;
+
+			ids[ i++ ] = Integer.parseInt( val[ 1 ].trim() );
+		}
+
+		if ( i != numLocations )
+			throw new RuntimeException( "Not all ids could be assigned (only " + i + " out of " + numLocations + ". Stopping." );
+
+		return ids;
 	}
 
 	public static Pair< List< Pair< double[], String > >, HashMap< String, double[] > > readSlideSeqGenes(
