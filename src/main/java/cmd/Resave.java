@@ -10,6 +10,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
 import org.apache.commons.compress.archivers.ArchiveException;
@@ -84,7 +85,10 @@ public class Resave implements Callable<Void> {
 
 					final BufferedReader locationsIn;
 
-					if ( !locationsFile.exists() )
+					if ( !locationsFile.exists() ||
+						 locationsFile.getAbsolutePath().toLowerCase().endsWith( ".zip" ) ||
+						 locationsFile.getAbsolutePath().toLowerCase().endsWith( ".gz" ) ||
+						 locationsFile.getAbsolutePath().toLowerCase().endsWith( ".tar" ) )
 						locationsIn = openCompressedFile( locationsFile ); // try opening as compressed file
 					else
 						locationsIn = TextFileAccess.openFileRead( locationsFile );
@@ -97,7 +101,10 @@ public class Resave implements Callable<Void> {
 
 					final BufferedReader readsIn;
 
-					if ( !readsFile.exists() )
+					if ( !readsFile.exists() ||
+						 readsFile.getAbsolutePath().toLowerCase().endsWith( ".zip" ) ||
+						 readsFile.getAbsolutePath().toLowerCase().endsWith( ".gz" ) ||
+						 readsFile.getAbsolutePath().toLowerCase().endsWith( ".tar" ) )
 						readsIn = openCompressedFile( readsFile ); // try opening as compressed file
 					else
 						readsIn = TextFileAccess.openFileRead( readsFile );
@@ -159,13 +166,19 @@ public class Resave implements Callable<Void> {
 		if ( index >= 0 )
 		{
 			String compressedFile = path.substring( 0, index + length );
-			String pathInCompressed = path.substring( index + length + 1, path.length() );
+			String pathInCompressed;
+
+			if ( index + length >= path.length() )
+				pathInCompressed = null; // no path inside the archive specified, open first file that comes along
+			else
+				pathInCompressed = path.substring( index + length + 1, path.length() );
 
 			//System.out.println( compressedFile );
 			//System.out.println( pathInCompressed );
 
 			try
 			{
+				@SuppressWarnings("resource")
 				ZipFile zipFile = new ZipFile( compressedFile );
 				Enumeration<? extends ZipEntry> entries = zipFile.entries();
 				String baseDir = null;
@@ -173,6 +186,10 @@ public class Resave implements Callable<Void> {
 				while(entries.hasMoreElements())
 				{
 					ZipEntry entry = entries.nextElement();
+
+					if ( pathInCompressed == null )
+						return new BufferedReader( new InputStreamReader( zipFile.getInputStream( entry ), "UTF-8") );
+
 					if ( baseDir == null )
 						baseDir = entry.getName();
 
@@ -192,6 +209,9 @@ public class Resave implements Callable<Void> {
 	
 				TarArchiveEntry entry = tin.getNextTarEntry();
 				String baseDir = entry.getName();
+
+				if ( pathInCompressed == null )
+					return new BufferedReader( new InputStreamReader( tin, "UTF-8") );
 
 				while (entry != null)
 				{
@@ -213,6 +233,9 @@ public class Resave implements Callable<Void> {
 				TarArchiveEntry entry = tin.getNextTarEntry();
 				String baseDir = entry.getName();
 
+				if ( pathInCompressed == null )
+					return new BufferedReader( new InputStreamReader( tin, "UTF-8") );
+
 				while (entry != null)
 				{
 					if ( entry.getName().equals( baseDir + pathInCompressed ) || entry.getName().equals( pathInCompressed ) )
@@ -230,7 +253,7 @@ public class Resave implements Callable<Void> {
 		return null;
 	}
 
-	public static final void main(final String... args) {
+	public static final void main(final String... args) throws ZipException, IOException, ArchiveException {
 		CommandLine.call(new Resave(), args);
 	}
 }
