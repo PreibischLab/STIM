@@ -7,7 +7,9 @@ import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealLocalizable;
+import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.util.Pair;
 
 public interface STData extends IterableRealInterval< RealLocalizable >
 {
@@ -18,7 +20,11 @@ public interface STData extends IterableRealInterval< RealLocalizable >
 	//public KDTree< RealLocalizable > getLocationKDTree();
 	//public KDTree< DoubleType > getExpValueKDTree( final String geneName );
 	public IterableRealInterval< DoubleType > getExprData( final String geneName );
-	
+
+	/**
+	 * @return additional metadata that maps any location to an arbitrary value
+	 */
+	public List< Pair< String, RandomAccessibleInterval< ? extends NativeType< ? > > > > getMetaData();
 
 	int getIndexForGene( final String geneName );
 

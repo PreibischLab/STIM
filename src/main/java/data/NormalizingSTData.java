@@ -13,7 +13,9 @@ import net.imglib2.IterableRealInterval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealCursor;
 import net.imglib2.RealLocalizable;
+import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
 
 public class NormalizingSTData implements STData
@@ -40,6 +42,12 @@ public class NormalizingSTData implements STData
 	public RandomAccessibleInterval< DoubleType > getAllExprValues()
 	{
 		return allExprValues;
+	}
+
+	@Override
+	public List< Pair< String, RandomAccessibleInterval< ? extends NativeType< ? > > > > getMetaData()
+	{
+		return data.getMetaData();
 	}
 
 	/*
