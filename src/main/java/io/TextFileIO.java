@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -63,9 +62,11 @@ public class TextFileIO
 		int[] ids = new int[ barcodes.size() ];
 
 		i = 0;
-		while ( metaFile.ready() )
+		String nextLine = null;
+
+		while ( (nextLine = metaFile.readLine()) != null ) 
 		{
-			String[] val = metaFile.readLine().split( "," );
+			String[] val = nextLine.split( "," );
 
 			if ( val.length != 2 || val[ 0 ].trim().length() == 0 )
 				continue;
@@ -75,7 +76,7 @@ public class TextFileIO
 		}
 
 		if ( i != barcodes.size() )
-			throw new RuntimeException( "Not all ids could be assigned (only " + i + " out of " + barcodes.size() + ". Stopping." );
+			System.out.println( "WARNING: Not all ids could be assigned (only " + i + " out of " + barcodes.size() + "). Assigning label 0 to all other locations." );
 
 		return ids;
 	}
@@ -93,10 +94,11 @@ public class TextFileIO
 		int[] ids = new int[ numLocations ];
 
 		int i = 0;
+		String nextLine = null;
 
-		while ( metaFile.ready() )
+		while ( (nextLine = metaFile.readLine()) != null ) 
 		{
-			String[] val = metaFile.readLine().split( "," );
+			String[] val = nextLine.split( "," );
 
 			if ( val.length != 2 || val[ 0 ].trim().length() == 0 )
 				continue;
@@ -105,7 +107,7 @@ public class TextFileIO
 		}
 
 		if ( i != numLocations )
-			throw new RuntimeException( "Not all ids could be assigned (only " + i + " out of " + numLocations + ". Stopping." );
+			System.out.println( "WARNING: Not all ids could be assigned (only " + i + " out of " + numLocations + "). Assigning label 0 to all other locations." );
 
 		return ids;
 	}
@@ -123,9 +125,11 @@ public class TextFileIO
 		{
 			int line = 0;
 
-			while ( in.ready() )
+			String nextLine = null;
+
+			while ( (nextLine = in.readLine()) != null ) 
 			{
-				final String[] values = in.readLine().trim().split( "," );
+				final String[] values = nextLine.trim().split( "," );
 
 				if ( values.length - 1 != coordinateMap.keySet().size() )
 					throw new RuntimeException( "length of header inconsistent with number of locations: " + (values.length - 1) + " != " + coordinateMap.keySet().size() + "\n" +
@@ -177,9 +181,11 @@ public class TextFileIO
 			int line = 0;
 			int dim = -1;
 
-			while ( in.ready() )
+			String nextLine = null;
+
+			while ( (nextLine = in.readLine()) != null ) 
 			{
-				final String s = in.readLine().trim();
+				final String s = nextLine.trim();
 				
 				if ( line++ == 0 ) // header: barcodes,xcoord,ycoord
 					continue;

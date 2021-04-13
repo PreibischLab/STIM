@@ -1,5 +1,6 @@
 package cmd;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -17,7 +18,9 @@ import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.CompressorInputStream;
+import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.apache.commons.compress.compressors.gzip.GzipParameters;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 
 import data.NormalizingSTData;
@@ -246,6 +249,21 @@ public class Resave implements Callable<Void> {
 
 				tin.close();
 			} catch ( Exception e ) { /* not a tar file */ }
+
+			try
+			{
+				final File input = new File(compressedFile);
+				final InputStream is = new FileInputStream(input);
+				final CompressorInputStream gzip = new CompressorStreamFactory().createCompressorInputStream(new BufferedInputStream(is));
+				//final GzipCompressorInputStream gzip = new GzipCompressorInputStream( is, true );
+
+				//final GzipParameters metaData = gzip.getMetaData();
+				//System.out.println( metaData.getFilename() );
+
+				return new BufferedReader( new InputStreamReader( gzip, "UTF-8") );
+			} catch ( Exception e ) { /* not a gzipped file*/ }
+
+			System.out.println( "ERROR: File '" + compressedFile + "' could not be read as archive." );
 
 			return null;
 		}

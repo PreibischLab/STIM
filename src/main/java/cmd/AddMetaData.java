@@ -16,11 +16,8 @@ import data.STDataN5;
 import io.N5IO;
 import io.TextFileAccess;
 import io.TextFileIO;
-import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
-import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.array.ArrayImgs;
-import net.imglib2.img.basictypeaccess.array.IntArray;
 import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.util.ValuePair;
 import picocli.CommandLine;
@@ -64,7 +61,7 @@ public class AddMetaData implements Callable<Void> {
 
 		if ( metadataList.size() != inputDatasets.size() )
 		{
-			System.out.println( "number of datasets does not match number of metadata files. stopping.");
+			System.out.println( "number of datasets (" + inputDatasets.size() + ") does not match number of metadata files (" + metadataList.size() + "). stopping.");
 			return null;
 		}
 
@@ -76,9 +73,9 @@ public class AddMetaData implements Callable<Void> {
 		{
 			final String datasetName = inputDatasets.get( i );
 
-			System.out.println( "Processing " + inputDatasets.get( i ) );
+			System.out.println( "\n>>>Processing " + datasetName );
 
-			final STDataN5 data = N5IO.readN5( n5, inputDatasets.get( i ) );
+			final STDataN5 data = N5IO.readN5( n5, datasetName );
 
 			final File in = new File( metadataList.get( i ) );
 			final BufferedReader readsIn;
@@ -90,6 +87,16 @@ public class AddMetaData implements Callable<Void> {
 				readsIn = Resave.openCompressedFile( in ); // try opening as compressed file
 			else
 				readsIn = TextFileAccess.openFileRead( in );
+
+			if ( readsIn == null )
+			{
+				System.out.println( "Could not open file '" + in.getAbsolutePath() + "'. Stopping." );
+				return null;
+			}
+			else
+			{
+				System.out.println( "Loading file '" + in.getAbsolutePath() + "' as label '" + label + "'" );
+			}
 
 			final int[] ids;
 
@@ -112,9 +119,11 @@ public class AddMetaData implements Callable<Void> {
 
 			final ExecutorService exec = Executors.newFixedThreadPool( Math.max( 1, Runtime.getRuntime().availableProcessors() / 2 ) );
 			final String metaLocation = n5.groupPath( datasetName, "meta-" + label );
-			N5Utils.save( (RandomAccessibleInterval)(Object)metadata, n5, metaLocation, new int[]{ N5IO.defaultBlockLength, 1 }, N5IO.defaultCompression, exec );
+			N5Utils.save( img, n5, metaLocation, new int[]{ N5IO.defaultBlockLength, 1 }, N5IO.defaultCompression, exec );
 			exec.shutdown();
 		}
+
+		System.out.println( "Done." );
 
 		return null;
 	}
