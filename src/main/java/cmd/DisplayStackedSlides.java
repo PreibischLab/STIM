@@ -14,12 +14,14 @@ import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
+import data.STDataUtils;
 import examples.VisualizeStack;
 import filter.FilterFactory;
 import filter.MedianFilterFactory;
 import filter.SingleSpotRemovingFilterFactory;
 import gui.RenderThread;
 import gui.STDataAssembly;
+import imglib2.TransformedIterableRealInterval;
 import io.N5IO;
 import net.imglib2.Interval;
 import net.imglib2.RealRandomAccessible;
@@ -29,6 +31,7 @@ import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
+import render.Render;
 
 public class DisplayStackedSlides implements Callable<Void> {
 
@@ -52,6 +55,9 @@ public class DisplayStackedSlides implements Callable<Void> {
 
 	@Option(names = {"-m", "--median"}, required = false, description = "median-filter all spots using a given radius, e.g -m 20.0 (default: no filtering)")
 	private Double median = null;
+
+	@Option(names = {"-sf", "--smoothnessFactor"}, required = false, description = "factor for the sigma of the gaussian used for rendering, corresponds to smoothness, e.g -sf 2.0 (default: 1.5)")
+	private double smoothnessFactor = 1.5;
 
 	@Override
 	public Void call() throws Exception {
@@ -146,11 +152,33 @@ public class DisplayStackedSlides implements Callable<Void> {
 
 		for ( final String gene : genesToShow )
 		{
-			final Pair< RealRandomAccessible< DoubleType >, Interval > stack = VisualizeStack.createStack( slides, gene, outofbounds, zSpacingFactor, filterFactorys );
-			final Interval interval = stack.getB();
-	
-			final BdvOptions options = BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() ).addTo( source );
-			source = BdvFunctions.show( stack.getA(), interval, gene, options );
+			System.out.println( "Rendering gene: " + gene );
+
+			final RealRandomAccessible< DoubleType > rra;
+			final Interval interval;
+
+			if ( slides.size() > 1 )
+			{
+				final Pair< RealRandomAccessible< DoubleType >, Interval > stack =
+						VisualizeStack.createStack( slides, gene, outofbounds, zSpacingFactor, smoothnessFactor, filterFactorys );
+				rra = stack.getA();
+				interval = stack.getB();
+			}
+			else
+			{
+				rra = Render.getRealRandomAccessible( slides.get( 0 ), gene, smoothnessFactor, filterFactorys );
+
+				interval =
+						STDataUtils.getIterableInterval(
+								new TransformedIterableRealInterval<>(
+										slides.get( 0 ).data(),
+										slides.get( 0 ).transform() ) );
+			}
+
+			BdvOptions options = BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() ).addTo( source );
+			if ( slides.size() == 1 )
+				options = options.is2D();
+			source = BdvFunctions.show( rra, interval, gene, options );
 			source.setDisplayRange( minI, maxI );
 			source.setDisplayRangeBounds( 0, 200 );
 			source.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.FUSED );

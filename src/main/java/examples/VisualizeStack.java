@@ -157,6 +157,17 @@ public class VisualizeStack
 			final double spacingFactor,
 			final List< FilterFactory< DoubleType, DoubleType > > filterFactorys )
 	{
+		return createStack(stdata, gene, outofbounds, spacingFactor, 1.5, filterFactorys);
+	}
+
+	public static Pair< RealRandomAccessible< DoubleType >, Interval > createStack(
+			final List< STDataAssembly > stdata,
+			final String gene,
+			final DoubleType outofbounds,
+			final double spacingFactor,
+			final double renderSigmaFactor,
+			final List< FilterFactory< DoubleType, DoubleType > > filterFactorys )
+	{
 		final ArrayList< IterableRealInterval< DoubleType > > slices = new ArrayList<>();
 
 		for ( int i = 0; i < stdata.size(); ++i )
@@ -177,7 +188,7 @@ public class VisualizeStack
 
 		final StackedIterableRealInterval< DoubleType > stack = new StackedIterableRealInterval<>( slices, spacing );
 
-		return new ValuePair<>( Render.render( stack, new GaussianFilterFactory<>( outofbounds, gaussRenderSigma*1.5, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS ) ), interval );
+		return new ValuePair<>( Render.render( stack, new GaussianFilterFactory<>( outofbounds, gaussRenderSigma*renderSigmaFactor, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS ) ), interval );
 	}
 
 	public static void setupRecordMovie( final BdvStackSource<?> bdvSource, final CallbackBDV callback )
