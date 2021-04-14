@@ -268,7 +268,7 @@ public class N5IO
 			for ( final Pair< String, RandomAccessibleInterval<? extends NativeType< ? >> > metadata : metadataList )
 			{
 				final String metaLocation = n5.groupPath( datasetName, "meta-" + metadata.getA() );
-				N5Utils.save( (RandomAccessibleInterval)(Object)metadata, n5, metaLocation, new int[]{ blockSizeLocations, 1 }, compression, exec );
+				N5Utils.save( (RandomAccessibleInterval)(Object)metadata.getB(), n5, metaLocation, new int[]{ blockSizeLocations, 1 }, compression, exec );
 			}
 		}
 	}
@@ -344,7 +344,7 @@ public class N5IO
 		}
 		else if ( metadataList.size() > 0 )
 		{
-			System.out.println( "Reading " + metadataList.size() + " metadata extries N5." );
+			System.out.println( "Reading " + metadataList.size() + " metadata extries from N5." );
 
 			for ( final String metadata : metadataList )
 			{

@@ -4,11 +4,18 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import data.STData;
 import data.STDataText;
+import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 
@@ -51,7 +58,87 @@ public class TextFileIO
 		return data;
 	}
 
+	public static STData readSlideSeq( final BufferedReader beadLocations, final BufferedReader reads, final BufferedReader cellTypes ) throws IOException
+	{
+		long time = System.currentTimeMillis();
+
+		final HashMap< String, double[] > coordinateMap = readSlideSeqCoordinates( beadLocations );
+		System.out.println( "Read " + coordinateMap.keySet().size() + " coordinates." );
+
+		// coordinates, geneMap
+		final Pair< List< Pair< double[], String > >, HashMap< String, double[] > > geneData = readSlideSeqGenes( reads, coordinateMap );
+		System.out.println( "Read data for " + geneData.getB().keySet().size() + " genes." );
+
+		final HashSet< Integer > notAssigned = new HashSet<>();
+		final List< String > barcodes = geneData.getA().stream().map( p -> p.getB() ).collect( Collectors.toList() );
+
+		int[] celltypeIds = readMetaData(
+				cellTypes,
+				barcodes,
+				notAssigned );
+
+		final STData data;
+
+		if ( notAssigned.size() > 0 )
+		{
+			// reduce celltypes
+			int[] celltypeIdsRed = new int[ celltypeIds.length  - notAssigned.size() ];
+
+			// reduce coordinates
+			List< Pair< double[], String > > coordinatesRed = new ArrayList<>();
+
+			int i = 0;
+
+			for ( int j = 0; j < celltypeIds.length; ++j )
+			{
+				if ( !notAssigned.contains( j ) )
+				{
+					celltypeIdsRed[ i ] = celltypeIds[ j ];
+					coordinatesRed.add( geneData.getA().get( j ) );
+					++i;
+				}
+			}
+
+			// reduce geneMap
+			HashMap< String, double[] > geneMapRed = new HashMap<>();
+
+			for ( final Entry< String, double[] > entry : geneData.getB().entrySet() )
+			{
+				double[] exp = entry.getValue();
+				double[] expRed = new double[ celltypeIds.length  - notAssigned.size() ];
+
+				i = 0;
+				for ( int j = 0; j < exp.length; ++j )
+					if ( !notAssigned.contains( j ) )
+						expRed[ i++ ] = exp[ j ];
+
+				geneMapRed.put( entry.getKey(),  expRed );
+			}
+
+			data = new STDataText( coordinatesRed, geneMapRed );
+			data.getMetaData().add( new ValuePair<>( "celltype", ArrayImgs.ints( celltypeIdsRed, (int)data.numLocations() ) ) );
+		}
+		else
+		{
+			data = new STDataText( geneData.getA(), geneData.getB() );
+			data.getMetaData().add( new ValuePair<>( "celltype", ArrayImgs.ints( celltypeIds, (int)data.numLocations() ) ) );
+		}
+
+		System.out.println( "Parsing took " + ( System.currentTimeMillis() - time ) + " ms." );
+
+		return data;
+	}
+
 	public static int[] readMetaData( final BufferedReader metaFile, final List< String > barcodes ) throws IOException
+	{
+		return readMetaData(metaFile, barcodes, null);
+	}
+
+	/*
+	 * Important: the barcodes list defines the order of the returned int[] array. Not all barcodes might be listed in the metaFile,
+	 * 			  those id's that were not assigned will be listed in the notAssigned map
+	 */
+	public static int[] readMetaData( final BufferedReader metaFile, final List< String > barcodes, final Set< Integer > notAssigned ) throws IOException
 	{
 		final HashMap< String, Integer > barcodeMap = new HashMap<>();
 
@@ -60,6 +147,7 @@ public class TextFileIO
 			barcodeMap.put( barcode, i++ );
 
 		int[] ids = new int[ barcodes.size() ];
+		boolean[] assigned = new boolean[ barcodes.size() ];
 
 		i = 0;
 		String nextLine = null;
@@ -71,12 +159,30 @@ public class TextFileIO
 			if ( val.length != 2 || val[ 0 ].trim().length() == 0 )
 				continue;
 
-			ids[ barcodeMap.get( val[ 0 ] ) ] = Integer.parseInt( val[ 1 ].trim() );
+			final Integer index = barcodeMap.get( val[ 0 ] );
+
+			if ( index == null )
+			{
+				System.out.println( "barcode '' defined in celltypes not found in the location/expression data. Stopping.");
+				return null;
+			}
+	
+			ids[ index ] = Integer.parseInt( val[ 1 ].trim() );
+			assigned[ index ] = true;
 			++i;
 		}
 
 		if ( i != barcodes.size() )
-			System.out.println( "WARNING: Not all ids could be assigned (only " + i + " out of " + barcodes.size() + "). Assigning label 0 to all other locations." );
+			System.out.println( "WARNING: Not all ids could be assigned (only " + i + " out of " + barcodes.size() + ")." );
+
+		if ( notAssigned != null )
+		{
+			for ( int j = 0; j < barcodes.size(); ++j )
+				if ( !assigned[ j ] )
+					notAssigned.add( j );
+
+			System.out.println( "not assigned: " + notAssigned.size() );
+		}
 
 		return ids;
 	}

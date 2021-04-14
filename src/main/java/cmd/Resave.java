@@ -20,7 +20,6 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.CompressorInputStream;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
-import org.apache.commons.compress.compressors.gzip.GzipParameters;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 
 import data.NormalizingSTData;
@@ -36,7 +35,7 @@ public class Resave implements Callable<Void> {
 	@Option(names = {"-o", "--container"}, required = true, description = "N5 output container path to which a new dataset will be added (N5 can exist or new one will be created), e.g. -o /home/ssq.n5 ...")
 	private String containerPath = null;
 
-	@Option(names = {"-i", "--input"}, required = true, description = "list of csv input files as triple [locations.csv,reads.csv,n5groupname], e.g. -i '$HOME/Puck_180528_20/BeadLocationsForR.csv,$HOME/Puck_180528_20/MappedDGEForR.csv,Puck_180528_20' -i ...")
+	@Option(names = {"-i", "--input"}, required = true, description = "list of csv input files as triple 'locations.csv,reads.csv,n5groupname' or optionally quadruple 'locations.csv,reads.csv,celltypes.csv,n5groupname' with celltype annotations (missing barcodes in celltypes will be excluded from the datasets), e.g. -i '$HOME/Puck_180528_20/BeadLocationsForR.csv,$HOME/Puck_180528_20/MappedDGEForR.csv,Puck_180528_20' -i ...")
 	private List<String> inputPaths = null;
 
 	@Option(names = {"-n", "--normalize"}, required = false, description = "log-normalize the input data before saving (default: false)")
@@ -61,24 +60,45 @@ public class Resave implements Callable<Void> {
 
 		if ( inputPaths != null && inputPaths.size() > 0 )
 		{
+			int length = -1; // with or without celltypes?
+
 			for ( final String inputPath : inputPaths )
 			{
 				String[] elements = inputPath.trim().split( "," );
 	
-				if ( elements.length != 3 )
+				if ( elements.length < 3 || elements.length > 4 )
 				{
-					System.out.println( "input path could not parsed, it does not have 3 arguments: [locations.csv,reads.csv,name]:" + inputPath + ", stopping." );
+					System.out.println( "input path could not parsed, it does not have 3 arguments: [locations.csv,reads.csv,name] or 4 arguments [locations.csv,reads.csv,celltypes.csv,name]:" + inputPath + ", stopping." );
 					return null;
 				}
 				else
 				{
+					if ( length < 0 )
+						length = elements.length;
+					else if ( length != elements.length )
+						System.out.println( "WARNING: input path length not consistent. Some datasets with, others without cell type annotations!");
+
 					final File locationsFile = new File( elements[ 0 ].trim() );
 					final File readsFile = new File( elements[ 1 ].trim() );
-					final String dataset = elements[ 2 ];
+					final String dataset;
+					final File celltypeFile;
+
+					if ( elements.length == 3 )
+					{
+						celltypeFile = null;
+						dataset = elements[ 2 ];
+					}
+					else
+					{
+						celltypeFile = new File( elements[ 2 ].trim() );
+						dataset = elements[ 3 ];
+					}
 
 					System.out.println( "\nDataset='" + dataset + "'");
 					System.out.println( "Locations='" + locationsFile.getAbsolutePath() + "'");
 					System.out.println( "Reads='" +readsFile.getAbsolutePath() + "'" );
+					if ( celltypeFile != null )
+						System.out.println( "Celltypes='" +celltypeFile.getAbsolutePath() + "'" );
 
 					if ( n5.exists( n5.groupPath( dataset ) ) )
 					{
@@ -118,9 +138,43 @@ public class Resave implements Callable<Void> {
 						return null;
 					}
 
-					STData data = TextFileIO.readSlideSeq(
+					STData data;
+
+					if ( celltypeFile != null )
+					{
+						// load with celltype annotationg
+						final BufferedReader celltypeIn;
+	
+						if ( !celltypeFile.exists() ||
+								celltypeFile.getAbsolutePath().toLowerCase().endsWith( ".zip" ) ||
+								celltypeFile.getAbsolutePath().toLowerCase().endsWith( ".gz" ) ||
+								celltypeFile.getAbsolutePath().toLowerCase().endsWith( ".tar" ) )
+							celltypeIn = Resave.openCompressedFile( celltypeFile ); // try opening as compressed file
+						else
+							celltypeIn = TextFileAccess.openFileRead( celltypeFile );
+	
+						if ( celltypeIn == null )
+						{
+							System.out.println( "Could not open file '" + celltypeFile.getAbsolutePath() + "'. Stopping." );
+							return null;
+						}
+						else
+						{
+							System.out.println( "Loading file '" + celltypeFile.getAbsolutePath() + "' as label 'celltype'" );
+						}
+
+						data = TextFileIO.readSlideSeq(
+								locationsIn,
+								readsIn,
+								celltypeIn );
+					}
+					else
+					{
+						// load without celltype annotationg
+						data = TextFileIO.readSlideSeq(
 							locationsIn,
 							readsIn );
+					}
 
 					if ( normalize )
 					{
@@ -131,6 +185,10 @@ public class Resave implements Callable<Void> {
 					N5IO.writeN5( n5, dataset, data );
 				}
 			}
+		}
+		else
+		{
+			System.out.println( "No input paths defined: " + inputPaths + ". Stopping.");
 		}
 
 		System.out.println( "Done." );
