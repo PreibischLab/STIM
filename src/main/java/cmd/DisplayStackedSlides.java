@@ -1,6 +1,5 @@
 package cmd;
 
-import java.awt.Color;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,27 +18,19 @@ import data.STDataUtils;
 import examples.VisualizeMetadata;
 import examples.VisualizeStack;
 import filter.FilterFactory;
-import filter.Filters;
 import filter.MedianFilterFactory;
 import filter.SingleSpotRemovingFilterFactory;
 import gui.RenderThread;
 import gui.STDataAssembly;
-import imglib2.ExpValueRealIterable;
 import imglib2.TransformedIterableRealInterval;
 import io.N5IO;
-import net.imglib2.FinalRealInterval;
 import net.imglib2.Interval;
-import net.imglib2.IterableRealInterval;
-import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
-import net.imglib2.converter.Converters;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.ARGBType;
-import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
-import net.imglib2.view.Views;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import render.Render;
@@ -170,39 +161,53 @@ public class DisplayStackedSlides implements Callable<Void> {
 
 		BdvStackSource< ? > source = null;
 
+		//
+		// Display metadata
+		//
 		for ( final String meta : metadataList )
 		{
 			final IntType outofboundsInt = new IntType( -1 );
-
-			// TODO: 3d
-			final STDataAssembly slide = slides.get( 0 );
-
-			final List< FilterFactory< IntType, IntType > > filterFactorysInt = new ArrayList<>();
-
-			if ( singleSpotFilter )
-			{
-				System.out.println( "Using single-spot filtering, radius="  + (slide.statistics().getMedianDistance() * 1.5) );
-				filterFactorysInt.add( new SingleSpotRemovingFilterFactory<>( outofboundsInt, slide.statistics().getMedianDistance() * 1.5 ) );
-			}
-
+			final double spotSize = slides.get( 0 ).statistics().getMedianDistance() / 1.5;
 			final HashMap<Long, ARGBType > lut = new HashMap<>();
 
-			final RealRandomAccessible< IntType > rra = VisualizeMetadata.visualize2d(
-					slide.data(),
-					meta,
-					slide.statistics().getMedianDistance() / 1.5,
-					slide.transform(),
-					outofboundsInt,
-					filterFactorysInt,
-					lut );
+			final List< FilterFactory< IntType, IntType > > filterFactorysInt = new ArrayList<>();
+			
+			if ( singleSpotFilter )
+			{
+				System.out.println( "Using single-spot filtering, radius="  + (slides.get( 0 ).statistics().getMedianDistance() * 1.5) );
+				filterFactorysInt.add( new SingleSpotRemovingFilterFactory<>( outofboundsInt, slides.get( 0 ).statistics().getMedianDistance() * 1.5 ) );
+			}
 
-			Interval interval =
-					STDataUtils.getIterableInterval(
-							new TransformedIterableRealInterval<>(
-									slide.data(),
-									slide.transform() ) );
+			final RealRandomAccessible< ARGBType > rraRGB;
+			final Interval interval;
 
-			final RealRandomAccessible< ARGBType > rraRGB = Render.convertToRGB( rra, outofboundsInt, lut );
+			if ( slides.size() > 1 )
+			{
+				final Pair< RealRandomAccessible< IntType >, Interval > stack =
+						VisualizeMetadata.createStack( slides, meta, spotSize, zSpacingFactor, outofboundsInt, filterFactorysInt, lut );
+				rraRGB = Render.convertToRGB( stack.getA(), outofboundsInt, new ARGBType(), lut );
+				interval = stack.getB();
+			}
+			else
+			{
+				final STDataAssembly slide = slides.get( 0 );
+	
+				final RealRandomAccessible< IntType > rra = VisualizeMetadata.visualize2d(
+						slide.data(),
+						meta,
+						spotSize,
+						slide.transform(),
+						outofboundsInt,
+						filterFactorysInt,
+						lut );
+	
+				interval = STDataUtils.getIterableInterval(
+						new TransformedIterableRealInterval<>(
+								slide.data(),
+								slide.transform() ) );
+	
+				rraRGB = Render.convertToRGB( rra, outofboundsInt, new ARGBType(), lut );
+			}
 
 			BdvOptions options = BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() ).addTo( source );
 			if ( slides.size() == 1 )
@@ -212,6 +217,11 @@ public class DisplayStackedSlides implements Callable<Void> {
 			source.setDisplayRangeBounds( 0, 2550 );
 		}
 
+		//
+		// Display genes
+		//
+
+		// random gene coloring
 		Random rnd = new Random( 343 );
 
 		for ( final String gene : genesToShow )
