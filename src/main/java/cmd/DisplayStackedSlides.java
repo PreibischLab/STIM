@@ -184,7 +184,7 @@ public class DisplayStackedSlides implements Callable<Void> {
 			if ( slides.size() > 1 )
 			{
 				final Pair< RealRandomAccessible< IntType >, Interval > stack =
-						VisualizeMetadata.createStack( slides, meta, spotSize, zSpacingFactor, outofboundsInt, filterFactorysInt, lut );
+						VisualizeMetadata.createStack( slides, meta, zSpacingFactor * spotSize, zSpacingFactor, outofboundsInt, filterFactorysInt, lut );
 				rraRGB = Render.convertToRGB( stack.getA(), outofboundsInt, new ARGBType(), lut );
 				interval = stack.getB();
 			}
