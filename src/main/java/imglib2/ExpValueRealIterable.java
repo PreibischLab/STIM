@@ -2,7 +2,6 @@ package imglib2;
 
 import java.util.Iterator;
 
-import net.imglib2.Cursor;
 import net.imglib2.IterableInterval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RandomAccessibleInterval;
@@ -15,23 +14,36 @@ import net.imglib2.view.Views;
 public class ExpValueRealIterable< T > implements IterableRealInterval< T >
 {
 	final RandomAccessibleInterval< DoubleType > locations;
-	final RandomAccessibleInterval< T > values;
+	//final RandomAccessibleInterval< T > values;
 	final RealInterval realInterval;
 	final long lastIndex, size;
 	final IterableInterval< T > iterableValues;
 
 	public ExpValueRealIterable(
 			final RandomAccessibleInterval< DoubleType > locations,
-			final RandomAccessibleInterval< T > values,
+			final RandomAccessibleInterval< T > values, // matrix
 			final long valueIndex, //getIndexForGene( geneName )
 			final RealInterval realInterval )
 	{
 		this.locations = locations;
-		this.values = values;
+		//this.values = values;
 		this.realInterval = realInterval;
 		this.size = locations.dimension( 0 );
 		this.lastIndex = locations.dimension( 0 ) - 1;
 		this.iterableValues = Views.flatIterable( Views.hyperSlice( values, 0, valueIndex ) );
+	}
+
+	public ExpValueRealIterable(
+			final RandomAccessibleInterval< DoubleType > locations,
+			final RandomAccessibleInterval< T > values, // vector
+			final RealInterval realInterval )
+	{
+		this.locations = locations;
+		//this.values = values;
+		this.realInterval = realInterval;
+		this.size = locations.dimension( 0 );
+		this.lastIndex = locations.dimension( 0 ) - 1;
+		this.iterableValues = Views.flatIterable( values );
 	}
 
 	@Override

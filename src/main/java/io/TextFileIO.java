@@ -4,11 +4,9 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -116,12 +114,12 @@ public class TextFileIO
 			}
 
 			data = new STDataText( coordinatesRed, geneMapRed );
-			data.getMetaData().add( new ValuePair<>( "celltype", ArrayImgs.ints( celltypeIdsRed, (int)data.numLocations() ) ) );
+			data.getMetaData().put( "celltype", ArrayImgs.ints( celltypeIdsRed, (int)data.numLocations() ) );
 		}
 		else
 		{
 			data = new STDataText( geneData.getA(), geneData.getB() );
-			data.getMetaData().add( new ValuePair<>( "celltype", ArrayImgs.ints( celltypeIds, (int)data.numLocations() ) ) );
+			data.getMetaData().put( "celltype", ArrayImgs.ints( celltypeIds, (int)data.numLocations() ) );
 		}
 
 		System.out.println( "Parsing took " + ( System.currentTimeMillis() - time ) + " ms." );

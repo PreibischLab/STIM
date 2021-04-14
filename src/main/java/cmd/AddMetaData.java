@@ -109,13 +109,13 @@ public class AddMetaData implements Callable<Void> {
 
 			final Img<IntType> img = ArrayImgs.ints( ids, (int)data.numLocations() );
 
-			data.getMetaData().add( new ValuePair<>( label, img ) );
+			data.getMetaData().put( label, img );
 
 			// write the attribute for all existing metadata objects
 			n5.setAttribute(
 					n5.groupPath( datasetName ),
 					"metadataList",
-					data.getMetaData().stream().map( p -> p.getA() ).collect( Collectors.toList() ) );
+					data.getMetaData().keySet() );
 
 			final ExecutorService exec = Executors.newFixedThreadPool( Math.max( 1, Runtime.getRuntime().availableProcessors() / 2 ) );
 			final String metaLocation = n5.groupPath( datasetName, "meta-" + label );

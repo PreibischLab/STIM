@@ -1,6 +1,7 @@
 package data;
 
 import java.util.List;
+import java.util.Map;
 
 import imglib2.ImgLib2Util;
 import net.imglib2.Interval;
@@ -9,7 +10,6 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealLocalizable;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.util.Pair;
 
 public interface STData extends IterableRealInterval< RealLocalizable >
 {
@@ -24,7 +24,7 @@ public interface STData extends IterableRealInterval< RealLocalizable >
 	/**
 	 * @return additional metadata that maps any location to an arbitrary value
 	 */
-	public List< Pair< String, RandomAccessibleInterval< ? extends NativeType< ? > > > > getMetaData();
+	public Map< String, RandomAccessibleInterval< ? extends NativeType< ? > > > getMetaData();
 
 	int getIndexForGene( final String geneName );
 

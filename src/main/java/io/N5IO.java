@@ -5,11 +5,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.GzipCompression;
@@ -33,9 +34,7 @@ import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
-import net.imglib2.util.ValuePair;
 import render.Render;
 
 public class N5IO
@@ -252,23 +251,23 @@ public class N5IO
 	public static void writeMetaData(
 			final N5Writer n5,
 			final String datasetName,
-			final List< Pair< String, RandomAccessibleInterval< ? extends NativeType< ? > > > > metadataList,
+			final Map< String, RandomAccessibleInterval< ? extends NativeType< ? > > > metadataMap,
 			final int blockSizeLocations, // 1024
 			final int[] blockSizeExpression, // new int[]{ 512, 512 }
 			final Compression compression, // new GzipCompression( 3 ); // new RawCompression();
 			final ExecutorService exec ) throws IOException, InterruptedException, ExecutionException
 	{
-		if ( metadataList.size() > 0 )
+		if ( metadataMap.keySet().size() > 0 )
 		{
 			n5.setAttribute(
 					n5.groupPath( datasetName ),
 					"metadataList",
-					metadataList.stream().map( p -> p.getA() ).collect( Collectors.toList() ) );
+					metadataMap.keySet() );
 
-			for ( final Pair< String, RandomAccessibleInterval<? extends NativeType< ? >> > metadata : metadataList )
+			for ( final Entry< String, RandomAccessibleInterval<? extends NativeType< ? >> > metadata : metadataMap.entrySet() )
 			{
-				final String metaLocation = n5.groupPath( datasetName, "meta-" + metadata.getA() );
-				N5Utils.save( (RandomAccessibleInterval)(Object)metadata.getB(), n5, metaLocation, new int[]{ blockSizeLocations, 1 }, compression, exec );
+				final String metaLocation = n5.groupPath( datasetName, "meta-" + metadata.getKey() );
+				N5Utils.save( (RandomAccessibleInterval)(Object)metadata.getValue(), n5, metaLocation, new int[]{ blockSizeLocations, 1 }, compression, exec );
 			}
 		}
 	}
@@ -336,7 +335,7 @@ public class N5IO
 		@SuppressWarnings("unchecked")
 		final List< String > metadataList = n5.getAttribute( groupName, "metadataList", List.class );
 
-		final List<Pair<String, RandomAccessibleInterval<? extends NativeType<?>>>> meta = new ArrayList<>();
+		final HashMap<String, RandomAccessibleInterval<? extends NativeType<?>>> meta = new HashMap<>();
 
 		if ( metadataList == null )
 		{
@@ -349,7 +348,7 @@ public class N5IO
 			for ( final String metadata : metadataList )
 			{
 				final RandomAccessibleInterval metaRAI = N5Utils.open( n5, n5.groupPath( datasetName, "meta-" + metadata ) );
-				meta.add( new ValuePair<>( metadata, metaRAI ) );
+				meta.put( metadata, metaRAI );
 			}
 		}
 
@@ -385,7 +384,7 @@ public class N5IO
 
 		final STDataN5 data = new STDataN5( locations, exprValues, geneNameList, barcodeList, geneLookup, n5, new File( n5.getBasePath() ), datasetName );
 
-		data.getMetaData().addAll( meta );
+		data.getMetaData().putAll( meta );
 
 		return data;
 	}

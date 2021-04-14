@@ -2,6 +2,7 @@ package data;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import imglib2.ExpValueRealIterable;
 import imglib2.ImgLib2Util;
@@ -45,7 +46,7 @@ public class NormalizingSTData implements STData
 	}
 
 	@Override
-	public List< Pair< String, RandomAccessibleInterval< ? extends NativeType< ? > > > > getMetaData()
+	public Map< String, RandomAccessibleInterval< ? extends NativeType< ? > > > getMetaData()
 	{
 		return data.getMetaData();
 	}
