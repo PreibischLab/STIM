@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Callable;
@@ -17,18 +18,27 @@ import bdv.viewer.DisplayMode;
 import data.STDataUtils;
 import examples.VisualizeStack;
 import filter.FilterFactory;
+import filter.Filters;
 import filter.MedianFilterFactory;
 import filter.SingleSpotRemovingFilterFactory;
 import gui.RenderThread;
 import gui.STDataAssembly;
+import imglib2.ExpValueRealIterable;
 import imglib2.TransformedIterableRealInterval;
 import io.N5IO;
+import net.imglib2.FinalRealInterval;
 import net.imglib2.Interval;
+import net.imglib2.IterableRealInterval;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
+import net.imglib2.converter.Converters;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.ARGBType;
+import net.imglib2.type.numeric.IntegerType;
+import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
+import net.imglib2.view.Views;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import render.Render;
@@ -40,6 +50,9 @@ public class DisplayStackedSlides implements Callable<Void> {
 
 	@Option(names = {"-g", "--genes"}, required = true, description = "comma separated list of one or more gene to visualize, e.g. -g Calm2,Ubb")
 	private String genes = null;
+
+	@Option(names = {"-md", "--metadata"}, required = false, description = "comma separated list of metadata to visualize, e.g. -m celltype")
+	private String metadata = null;
 
 	@Option(names = {"-z", "--zSpacingFactor"}, required = false, description = "define the z-spacing between differnt sections (as a factor of median spacing between sequenced locations), e.g. -z 10.0 (default: 5.0)")
 	private double zSpacingFactor = 5.0;
@@ -79,6 +92,13 @@ public class DisplayStackedSlides implements Callable<Void> {
 			System.out.println( "no input datasets available. stopping.");
 			return null;
 		}
+
+		List< String > metadataList;
+
+		if ( metadata != null && metadata.length() > 0 )
+			metadataList = Arrays.asList( metadata.split( "," ) );
+		else
+			metadataList = new ArrayList<>();
 
 		double minI = RenderThread.min;
 		double maxI = RenderThread.max;
@@ -148,6 +168,82 @@ public class DisplayStackedSlides implements Callable<Void> {
 		}
 
 		BdvStackSource< ? > source = null;
+
+		for ( final String meta : metadataList )
+		{
+			// TODO: 3d
+			final STDataAssembly slide = slides.get( 0 );
+			final RandomAccessibleInterval ids = slide.data().getMetaData().get( meta );
+
+			if ( ids == null )
+			{
+				System.out.println( "WARNING: metadata '" + meta + "' does not exist. skipping.");
+				continue;
+			}
+
+			final Object type = Views.iterable( ids ).firstElement();
+			if ( !IntegerType.class.isInstance( type ) )
+			{
+				System.out.println( "WARNING: metadata '" + meta + "' is not an integer type (but "+ type.getClass().getSimpleName() +". don't know how to render it. skipping.");
+				continue;
+			}
+
+			long min = Long.MAX_VALUE;
+			long max = Long.MIN_VALUE;
+
+			for ( final IntegerType<?> t : Views.iterable( (RandomAccessibleInterval<IntegerType<?>>)ids ) )
+			{
+				min = Math.min( min, t.getIntegerLong() );
+				max = Math.max( max, t.getIntegerLong() );
+			}
+
+			System.out.println( "Rendering metadata '" + meta + "', type="+ type.getClass().getSimpleName() + ", min=" + min + ", max= " + max );
+
+
+			IterableRealInterval< IntType > data = new ExpValueRealIterable(
+					slide.data().getLocations(),
+					ids,
+					new FinalRealInterval( slide.data() ));
+
+			if ( slides.get( 0 ).transform() != null && !slides.get( 0 ).transform().isIdentity() )
+				data = new TransformedIterableRealInterval<>(
+						data,
+						slides.get( 0 ).transform() );
+
+			final IntType outofboundsInt = new IntType( -1 );
+
+			final List< FilterFactory< IntType, IntType > > filterFactorysInt = new ArrayList<>();
+
+			if ( singleSpotFilter )
+			{
+				System.out.println( "Using single-spot filtering, radius="  + (slide.statistics().getMedianDistance() * 1.5) );
+				filterFactorysInt.add( new SingleSpotRemovingFilterFactory<>( outofboundsInt, slide.statistics().getMedianDistance() * 1.5 ) );
+			}
+
+			// filter the iterable
+			if ( filterFactorys != null )
+				for ( final FilterFactory<IntType, IntType> filterFactory : filterFactorysInt )
+					data = Filters.filter( data, filterFactory );
+
+			double gaussRenderSigma = slides.get( 0 ).statistics().getMedianDistance() * smoothnessFactor;
+
+			Interval interval =
+					STDataUtils.getIterableInterval(
+							new TransformedIterableRealInterval<>(
+									slide.data(),
+									slide.transform() ) );
+
+			final RealRandomAccessible< IntType > rra = Render.renderNN(data, outofboundsInt, gaussRenderSigma );
+			final RealRandomAccessible< ARGBType > rraRGB = convertToRGB(rra, outofboundsInt, new HashMap<>() );
+
+			BdvOptions options = BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() ).addTo( source );
+			if ( slides.size() == 1 )
+				options = options.is2D();
+			source = BdvFunctions.show( rraRGB, interval, meta, options );
+			source.setDisplayRange( 0, 255 );
+			source.setDisplayRangeBounds( 0, 2550 );
+		}
+
 		Random rnd = new Random( 343 );
 
 		for ( final String gene : genesToShow )
@@ -185,17 +281,45 @@ public class DisplayStackedSlides implements Callable<Void> {
 			source.setCurrent();
 
 			if ( genesToShow.size() > 1 )
-			{
-				final float h = rnd.nextFloat();
-				final float s = rnd.nextFloat();
-				final float b = 0.9f + 0.1f * rnd.nextFloat();
-				final Color c = Color.getHSBColor(h, s, b);
-
-				source.setColor( new ARGBType( ARGBType.rgba(c.getRed(), c.getGreen(), c.getBlue(), c.getAlpha())));
-			}
+				source.setColor( randomColor( rnd ) );
 		}
 
 		return null;
+	}
+
+	public static < T extends IntegerType< T > > RealRandomAccessible< ARGBType > convertToRGB( final RealRandomAccessible< T > rra, final T outofbounds, final HashMap<Long, ARGBType> lut )
+	{
+		final Random rnd = new Random( 455 );
+		final ARGBType black = new ARGBType( 0 );
+
+		return Converters.convert( rra, (i,o) -> {
+				final long v = i.getIntegerLong();
+				if ( v == outofbounds.getIntegerLong() )
+				{
+					o.set( black );
+				}
+				else
+				{
+					ARGBType t = lut.get( v );
+					if ( t == null )
+					{
+						t = randomColor( rnd );
+						lut.put( v,  t );
+					}
+
+					o.set( t );
+				}
+			} , new ARGBType() );
+	}
+
+	public static ARGBType randomColor( Random rnd )
+	{
+		final float h = rnd.nextFloat();
+		final float s = rnd.nextFloat();
+		final float b = 0.9f + 0.1f * rnd.nextFloat();
+		final Color c = Color.getHSBColor(h, s, b);
+
+		return new ARGBType( ARGBType.rgba(c.getRed(), c.getGreen(), c.getBlue(), c.getAlpha()));
 	}
 
 	public static final void main(final String... args) {
