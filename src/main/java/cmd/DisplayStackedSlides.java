@@ -16,6 +16,7 @@ import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
 import data.STDataUtils;
+import examples.VisualizeMetadata;
 import examples.VisualizeStack;
 import filter.FilterFactory;
 import filter.Filters;
@@ -171,46 +172,10 @@ public class DisplayStackedSlides implements Callable<Void> {
 
 		for ( final String meta : metadataList )
 		{
+			final IntType outofboundsInt = new IntType( -1 );
+
 			// TODO: 3d
 			final STDataAssembly slide = slides.get( 0 );
-			final RandomAccessibleInterval ids = slide.data().getMetaData().get( meta );
-
-			if ( ids == null )
-			{
-				System.out.println( "WARNING: metadata '" + meta + "' does not exist. skipping.");
-				continue;
-			}
-
-			final Object type = Views.iterable( ids ).firstElement();
-			if ( !IntegerType.class.isInstance( type ) )
-			{
-				System.out.println( "WARNING: metadata '" + meta + "' is not an integer type (but "+ type.getClass().getSimpleName() +". don't know how to render it. skipping.");
-				continue;
-			}
-
-			long min = Long.MAX_VALUE;
-			long max = Long.MIN_VALUE;
-
-			for ( final IntegerType<?> t : Views.iterable( (RandomAccessibleInterval<IntegerType<?>>)ids ) )
-			{
-				min = Math.min( min, t.getIntegerLong() );
-				max = Math.max( max, t.getIntegerLong() );
-			}
-
-			System.out.println( "Rendering metadata '" + meta + "', type="+ type.getClass().getSimpleName() + ", min=" + min + ", max= " + max );
-
-
-			IterableRealInterval< IntType > data = new ExpValueRealIterable(
-					slide.data().getLocations(),
-					ids,
-					new FinalRealInterval( slide.data() ));
-
-			if ( slides.get( 0 ).transform() != null && !slides.get( 0 ).transform().isIdentity() )
-				data = new TransformedIterableRealInterval<>(
-						data,
-						slides.get( 0 ).transform() );
-
-			final IntType outofboundsInt = new IntType( -1 );
 
 			final List< FilterFactory< IntType, IntType > > filterFactorysInt = new ArrayList<>();
 
@@ -220,12 +185,16 @@ public class DisplayStackedSlides implements Callable<Void> {
 				filterFactorysInt.add( new SingleSpotRemovingFilterFactory<>( outofboundsInt, slide.statistics().getMedianDistance() * 1.5 ) );
 			}
 
-			// filter the iterable
-			if ( filterFactorys != null )
-				for ( final FilterFactory<IntType, IntType> filterFactory : filterFactorysInt )
-					data = Filters.filter( data, filterFactory );
+			final HashMap<Long, ARGBType > lut = new HashMap<>();
 
-			double gaussRenderSigma = slides.get( 0 ).statistics().getMedianDistance() * smoothnessFactor;
+			final RealRandomAccessible< IntType > rra = VisualizeMetadata.visualize2d(
+					slide.data(),
+					meta,
+					slide.statistics().getMedianDistance() / 1.5,
+					slide.transform(),
+					outofboundsInt,
+					filterFactorysInt,
+					lut );
 
 			Interval interval =
 					STDataUtils.getIterableInterval(
@@ -233,8 +202,7 @@ public class DisplayStackedSlides implements Callable<Void> {
 									slide.data(),
 									slide.transform() ) );
 
-			final RealRandomAccessible< IntType > rra = Render.renderNN(data, outofboundsInt, gaussRenderSigma );
-			final RealRandomAccessible< ARGBType > rraRGB = convertToRGB(rra, outofboundsInt, new HashMap<>() );
+			final RealRandomAccessible< ARGBType > rraRGB = Render.convertToRGB( rra, outofboundsInt, lut );
 
 			BdvOptions options = BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() ).addTo( source );
 			if ( slides.size() == 1 )
@@ -281,46 +249,12 @@ public class DisplayStackedSlides implements Callable<Void> {
 			source.setCurrent();
 
 			if ( genesToShow.size() > 1 )
-				source.setColor( randomColor( rnd ) );
+				source.setColor( Render.randomColor( rnd ) );
 		}
 
 		return null;
 	}
 
-	public static < T extends IntegerType< T > > RealRandomAccessible< ARGBType > convertToRGB( final RealRandomAccessible< T > rra, final T outofbounds, final HashMap<Long, ARGBType> lut )
-	{
-		final Random rnd = new Random( 455 );
-		final ARGBType black = new ARGBType( 0 );
-
-		return Converters.convert( rra, (i,o) -> {
-				final long v = i.getIntegerLong();
-				if ( v == outofbounds.getIntegerLong() )
-				{
-					o.set( black );
-				}
-				else
-				{
-					ARGBType t = lut.get( v );
-					if ( t == null )
-					{
-						t = randomColor( rnd );
-						lut.put( v,  t );
-					}
-
-					o.set( t );
-				}
-			} , new ARGBType() );
-	}
-
-	public static ARGBType randomColor( Random rnd )
-	{
-		final float h = rnd.nextFloat();
-		final float s = rnd.nextFloat();
-		final float b = 0.9f + 0.1f * rnd.nextFloat();
-		final Color c = Color.getHSBColor(h, s, b);
-
-		return new ARGBType( ARGBType.rgba(c.getRed(), c.getGreen(), c.getBlue(), c.getAlpha()));
-	}
 
 	public static final void main(final String... args) {
 		CommandLine.call(new DisplayStackedSlides(), args);

@@ -1,6 +1,9 @@
 package render;
 
+import java.awt.Color;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 
 import data.STData;
 import data.STDataStatistics;
@@ -20,6 +23,8 @@ import net.imglib2.converter.Converters;
 import net.imglib2.interpolation.neighborsearch.NearestNeighborSearchInterpolatorFactory;
 import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
 import net.imglib2.realtransform.AffineGet;
+import net.imglib2.type.numeric.ARGBType;
+import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.view.Views;
@@ -145,4 +150,42 @@ public class Render
 						filterFactory ),
 				new IntegratingNeighborSearchInterpolatorFactory< T >() );
 	}
+
+	public static < T extends IntegerType< T > > RealRandomAccessible< ARGBType > convertToRGB( final RealRandomAccessible< T > rra, final T outofbounds, final HashMap<Long, ARGBType> lut )
+	{
+		final Random rnd = new Random( 455 );
+		final ARGBType black = new ARGBType( 0 );
+
+		return Converters.convert( rra, (i,o) -> {
+				final long v = i.getIntegerLong();
+				if ( v == outofbounds.getIntegerLong() )
+				{
+					o.set( black );
+				}
+				else
+				{
+					ARGBType t = lut.get( v );
+					if ( t == null )
+					{
+						synchronized ( lut ) {
+							t = randomColor( rnd );
+							lut.put( v,  t );
+						}
+					}
+
+					o.set( t );
+				}
+			} , new ARGBType() );
+	}
+
+	public static ARGBType randomColor( Random rnd )
+	{
+		final float h = rnd.nextFloat();
+		final float s = rnd.nextFloat();
+		final float b = 0.9f + 0.1f * rnd.nextFloat();
+		final Color c = Color.getHSBColor(h, s, b);
+
+		return new ARGBType( ARGBType.rgba(c.getRed(), c.getGreen(), c.getBlue(), c.getAlpha()));
+	}
+
 }
