@@ -22,6 +22,7 @@ import filter.MedianFilterFactory;
 import filter.SingleSpotRemovingFilterFactory;
 import gui.RenderThread;
 import gui.STDataAssembly;
+import gui.celltype.CellTypeExplorer;
 import imglib2.TransformedIterableRealInterval;
 import io.N5IO;
 import net.imglib2.Interval;
@@ -178,21 +179,21 @@ public class DisplayStackedSlides implements Callable<Void> {
 				filterFactorysInt.add( new SingleSpotRemovingFilterFactory<>( outofboundsInt, slides.get( 0 ).statistics().getMedianDistance() * 1.5 ) );
 			}
 
-			final RealRandomAccessible< ARGBType > rraRGB;
+			final RealRandomAccessible< IntType > rra;
 			final Interval interval;
 
 			if ( slides.size() > 1 )
 			{
 				final Pair< RealRandomAccessible< IntType >, Interval > stack =
-						VisualizeMetadata.createStack( slides, meta, zSpacingFactor * spotSize, zSpacingFactor, outofboundsInt, filterFactorysInt, lut );
-				rraRGB = Render.convertToRGB( stack.getA(), outofboundsInt, new ARGBType(), lut );
+						VisualizeMetadata.createStack( slides, meta, zSpacingFactor *0.75 * spotSize, zSpacingFactor, outofboundsInt, filterFactorysInt, lut );
+				rra = stack.getA();
 				interval = stack.getB();
 			}
 			else
 			{
 				final STDataAssembly slide = slides.get( 0 );
 
-				final RealRandomAccessible< IntType > rra = VisualizeMetadata.visualize2d(
+				rra = VisualizeMetadata.visualize2d(
 						slide.data(),
 						meta,
 						spotSize,
@@ -206,8 +207,11 @@ public class DisplayStackedSlides implements Callable<Void> {
 								slide.data(),
 								slide.transform() ) );
 
-				rraRGB = Render.convertToRGB( rra, outofboundsInt, new ARGBType(), lut );
 			}
+
+			CellTypeExplorer cte = new CellTypeExplorer( lut );
+
+			final RealRandomAccessible< ARGBType > rraRGB = Render.switchableConvertToRGB( rra, outofboundsInt, new ARGBType(), lut, cte.panel() );
 
 			BdvOptions options = BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() ).addTo( source );
 			if ( slides.size() == 1 )
@@ -215,6 +219,8 @@ public class DisplayStackedSlides implements Callable<Void> {
 			source = BdvFunctions.show( rraRGB, interval, meta, options );
 			source.setDisplayRange( 0, 255 );
 			source.setDisplayRangeBounds( 0, 2550 );
+
+			cte.panel().setBDV( source.getBdvHandle().getViewerPanel() );
 		}
 
 		//
