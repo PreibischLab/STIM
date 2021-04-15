@@ -86,17 +86,15 @@ public class CellTypeExplorerPanel extends JPanel implements Function<Long, Bool
 		for ( int column = 0; column < tableModel.getColumnCount(); ++column )
 			table.getColumnModel().getColumn( column ).setCellRenderer( myRenderer );
 
-		table.setPreferredScrollableViewportSize( new Dimension( 100, 600 ) );
+		table.setPreferredScrollableViewportSize( new Dimension( 150, 600 ) );
 		final Font f = table.getFont();
 		
 		table.setFont( new Font( f.getName(), f.getStyle(), 11 ) );
 		
 		this.setLayout( new BorderLayout() );
-		this.label = new JLabel( "View Description --- " );
-		this.add( label, BorderLayout.NORTH );
 		this.add( new JScrollPane( table ), BorderLayout.CENTER );
 
-		table.getColumnModel().getColumn( 0 ).setPreferredWidth( 100 );
+		table.getColumnModel().getColumn( 0 ).setPreferredWidth( 150 );
 
 		table.addMouseListener( new MouseListener()
 		{
