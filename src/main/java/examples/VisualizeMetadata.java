@@ -6,14 +6,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import org.janelia.saalfeldlab.n5.N5FSReader;
-
+import bdv.util.BdvFunctions;
+import bdv.util.BdvOptions;
+import bdv.util.BdvStackSource;
 import data.STData;
 import data.STDataUtils;
 import filter.FilterFactory;
 import gui.STDataAssembly;
+import gui.celltype.CellTypeExplorer;
 import imglib2.StackedIterableRealInterval;
+import imglib2.TransformedIterableRealInterval;
 import io.N5IO;
+import io.Path;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
@@ -27,7 +31,6 @@ import render.Render;
 
 public class VisualizeMetadata
 {
-	// 3d cell types
 	// minimal GUI for cell type selection
 	// alignment
 
@@ -65,6 +68,42 @@ public class VisualizeMetadata
 				interval );
 	}
 
+	public static void visualize2d(
+			final STData stdata,
+			final String meta,
+			final double spotSize,
+			final AffineTransform2D transform )
+	{
+		final HashMap<Long, ARGBType > lut = new HashMap<>();
+
+		final RealRandomAccessible< IntType > rra = VisualizeMetadata.visualize2d(
+				stdata,
+				meta,
+				spotSize,
+				transform,
+				new IntType( -1 ),
+				null ,
+				lut );
+
+		final Interval interval = STDataUtils.getIterableInterval(
+				new TransformedIterableRealInterval<>(
+						stdata,
+						transform ) );
+
+		CellTypeExplorer cte = new CellTypeExplorer( lut );
+
+		BdvOptions options = BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() ).is2D();
+		BdvStackSource< ? > source = BdvFunctions.show(
+				Render.switchableConvertToRGB( rra, new IntType( -1 ), new ARGBType(), lut, cte.panel() ),
+				interval,
+				meta,
+				options );
+		source.setDisplayRange( 0, 255 );
+		source.setDisplayRangeBounds( 0, 2550 );
+		cte.panel().setBDV( source.getBdvHandle().getViewerPanel() );
+		//source.getBdvHandle().getViewerPanel().requestRepaint();
+	}
+
 	public static RealRandomAccessible< IntType > visualize2d(
 			final STData stdata,
 			final String meta,
@@ -81,6 +120,13 @@ public class VisualizeMetadata
 
 	public static void main( String[] args ) throws IOException
 	{
-		final N5FSReader n5 = N5IO.openN5( new File( "/Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5" ) );
+		final ArrayList< STDataAssembly > puckData =
+				N5IO.openAllDatasets( new File( Path.getPath() + "slide-seq-test.n5" ) );
+
+		visualize2d(
+				puckData.get( 12 ).data(),
+				"celltype",
+				puckData.get( 12 ).statistics().getMedianDistance() / 1.5,
+				puckData.get( 12 ).transform() );
 	}
 }

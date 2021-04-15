@@ -4,6 +4,9 @@ import java.awt.Color;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import data.STData;
 import filter.FilterFactory;
@@ -227,6 +230,24 @@ public class Render
 				(i,o) -> {
 					final long v = i.getIntegerLong();
 					if ( v == outofbounds.getIntegerLong() )
+						o.set( background );
+					else
+						o.set( lut.get( v ) ); },
+				new ARGBType() );
+	}
+
+	public static < T extends IntegerType< T > > RealRandomAccessible< ARGBType > switchableConvertToRGB(
+			final RealRandomAccessible< T > rra,
+			final T outofbounds,
+			final ARGBType background,
+			final HashMap<Long, ARGBType> lut,
+			final Function<Long, Boolean> visible )
+	{
+		return Converters.convert(
+				rra,
+				(i,o) -> {
+					final long v = i.getIntegerLong();
+					if ( v == outofbounds.getIntegerLong() || !visible.apply( v ) )
 						o.set( background );
 					else
 						o.set( lut.get( v ) ); },

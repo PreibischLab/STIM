@@ -191,7 +191,7 @@ public class DisplayStackedSlides implements Callable<Void> {
 			else
 			{
 				final STDataAssembly slide = slides.get( 0 );
-	
+
 				final RealRandomAccessible< IntType > rra = VisualizeMetadata.visualize2d(
 						slide.data(),
 						meta,
@@ -200,12 +200,12 @@ public class DisplayStackedSlides implements Callable<Void> {
 						outofboundsInt,
 						filterFactorysInt,
 						lut );
-	
+
 				interval = STDataUtils.getIterableInterval(
 						new TransformedIterableRealInterval<>(
 								slide.data(),
 								slide.transform() ) );
-	
+
 				rraRGB = Render.convertToRGB( rra, outofboundsInt, new ARGBType(), lut );
 			}
 
