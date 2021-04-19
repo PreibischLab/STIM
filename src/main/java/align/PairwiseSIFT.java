@@ -2,7 +2,6 @@ package align;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -14,11 +13,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.janelia.saalfeldlab.n5.DataType;
-import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
-import org.janelia.saalfeldlab.n5.N5Writer;
+import org.joml.Math;
 
 import data.STData;
 import data.STDataStatistics;
@@ -29,7 +27,6 @@ import ij.process.ImageProcessor;
 import imglib2.ImgLib2Util;
 import io.N5IO;
 import io.Path;
-import io.TextFileAccess;
 import mpicbg.ij.FeatureTransform;
 import mpicbg.ij.SIFT;
 import mpicbg.ij.util.Util;
@@ -44,7 +41,6 @@ import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.RealFloatConverter;
 import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Intervals;
@@ -52,15 +48,24 @@ import util.Threads;
 
 public class PairwiseSIFT
 {
-	static private class Param
+	public static class SIFTParam
 	{
-		public Param()
+		public SIFTParam()
 		{
 			this.sift.fdSize = 8;
 			this.sift.fdBins = 8;
 			this.sift.steps = 10;
 			this.rod = 0.90f;
 			this.sift.minOctaveSize = 128;
+		}
+
+		public SIFTParam( final int fdSize, final int fdBins, final int steps, final float rod, final int minOctaveSize )
+		{
+			this.sift.fdSize = fdSize;
+			this.sift.fdBins = fdBins;
+			this.sift.steps = steps;
+			this.rod = rod;
+			this.sift.minOctaveSize = minOctaveSize;
 		}
 
 		final public FloatArray2DSIFT.Param sift = new FloatArray2DSIFT.Param();
@@ -70,8 +75,6 @@ public class PairwiseSIFT
 		 */
 		public float rod;
 	}
-
-	final static private Param p = new Param();
 
 	static public void matchFeatures(
 			final Collection< Feature > fs1,
@@ -130,7 +133,7 @@ public class PairwiseSIFT
 			else ++i;
 		}
 	}
-	public static List< PointMatch > extractCandidates( final ImageProcessor ip1, final ImageProcessor ip2, final String gene )
+	public static List< PointMatch > extractCandidates( final ImageProcessor ip1, final ImageProcessor ip2, final String gene, final SIFTParam p )
 	{
 		final List< Feature > fs1 = new ArrayList< Feature >();
 		final List< Feature > fs2 = new ArrayList< Feature >();
@@ -198,6 +201,200 @@ public class PairwiseSIFT
 		}
 	}
 
+	public static void pairwiseSIFT(
+			final STData stDataA,
+			final String stDataAname,
+			final STData stDataB,
+			final String stDataBname,
+			final File n5File,
+			final List< String > genesToTest,
+			final SIFTParam p,
+			final double scale,
+			final double maxEpsilon,
+			final int minNumInliers,
+			final int minNumInliersPerGene,
+			final boolean saveResult,
+			final boolean visualizeResult,
+			final int numThreads ) throws IOException
+	{
+		final AffineTransform2D tS = new AffineTransform2D();
+		tS.scale( scale );
+
+		final Interval interval = STDataUtils.getCommonInterval( stDataA, stDataB );
+		final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tS ), 100 );
+
+		final List< PointMatch > allCandidates = new ArrayList<>();
+
+		final List< Callable< List< PointMatch > > > tasks = new ArrayList<>();
+		final AtomicInteger nextGene = new AtomicInteger();
+
+		for ( int threadNum = 0; threadNum < numThreads; ++threadNum )
+		{
+			tasks.add( () ->
+			{
+				final List< PointMatch > allPerGeneInliers = new ArrayList<>();
+
+				for ( int g = nextGene.getAndIncrement(); g < genesToTest.size(); g = nextGene.getAndIncrement() )
+				{
+					final String gene = genesToTest.get( g );
+					//System.out.println( "current gene: " + gene );
+
+					final RandomAccessibleInterval<DoubleType> imgA = AlignTools.display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tS );
+					final RandomAccessibleInterval<DoubleType> imgB = AlignTools.display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tS );
+
+					final ImagePlus impA = ImageJFunctions.wrapFloat( imgA, new RealFloatConverter<>(), "A_" + gene);
+					final ImagePlus impB = ImageJFunctions.wrapFloat( imgB, new RealFloatConverter<>(), "B_" + gene );
+
+					final List< PointMatch > matchesAB = extractCandidates(impA.getProcessor(), impB.getProcessor(), gene, p );
+					final List< PointMatch > matchesBA = extractCandidates(impB.getProcessor(), impA.getProcessor(), gene, p );
+
+					//System.out.println( gene + " = " + matchesAB.size() );
+					//System.out.println( gene + " = " + matchesBA.size() );
+
+					if ( matchesAB.size() == 0 && matchesBA.size() == 0 )
+						continue;
+
+					final List< PointMatch > candidatesTmp = new ArrayList<>();
+
+					if ( matchesBA.size() > matchesAB.size() )
+						PointMatch.flip( matchesBA, candidatesTmp );
+					else
+						candidatesTmp.addAll( matchesAB );
+
+					//final List< PointMatch > inliersTmp = consensus( candidatesTmp, new RigidModel2D(), minNumInliersPerGene, maxEpsilon*scale );
+					//System.out.println( "remaining points" );
+					
+					//for ( final PointMatch pm:inliersTmp )
+					//	System.out.println( pm.getWeight() );
+					/*
+					if ( gene.equals("Ckb"))
+					{
+						final List< PointMatch > inliersTmp = consensus( candidatesTmp, new RigidModel2D(), minNumInliersPerGene, maxEpsilon*scale );
+						impA.show();impA.resetDisplayRange();
+						impB.show();impB.resetDisplayRange();
+						visualizeInliers( impA, impB, inliersTmp );
+					}	*/
+
+					// adjust the locations to the global coordinate system
+					// and store the gene name it came from
+					for ( final PointMatch pm : candidatesTmp )
+					{
+						final Point p1 = pm.getP1();
+						final Point p2 = pm.getP2();
+
+						for ( int d = 0; d < finalInterval.numDimensions(); ++d )
+						{
+							p1.getL()[ d ] = p1.getW()[ d ] = ( p1.getL()[ d ] + finalInterval.min( d ) ) / scale;
+							p2.getL()[ d ] = p2.getW()[ d ] = ( p2.getL()[ d ] + finalInterval.min( d ) ) / scale;
+						}
+					}
+
+					// prefilter the candidates
+					final RigidModel2D model = new RigidModel2D();
+					final List< PointMatch > inliers = consensus( candidatesTmp, model, minNumInliersPerGene, maxEpsilon );
+
+					// reset world coordinates & compute error
+					double error = Double.NaN, maxError = Double.NaN, minError = Double.NaN;
+					if ( inliers.size() > 0 )
+					{
+						error = 0;
+						minError = Double.MAX_VALUE;
+						maxError = -Double.MAX_VALUE;
+
+						for ( final PointMatch pm : inliers )
+						{
+							final double dist = Point.distance(pm.getP1(), pm.getP2());
+							error += dist;
+							maxError = Math.max( maxError, dist );
+							minError = Math.min( minError, dist );
+						}
+
+						error /= (double)inliers.size();
+					}
+
+					for ( final PointMatch pm : candidatesTmp )
+					{
+						final Point p1 = pm.getP1();
+						final Point p2 = pm.getP2();
+
+						for ( int d = 0; d < finalInterval.numDimensions(); ++d )
+						{
+							p1.getW()[ d ] = p1.getL()[ d ];
+							p2.getW()[ d ] = p2.getL()[ d ];
+						}
+					}
+
+					if ( inliers.size() > 0 )
+					{
+						allPerGeneInliers.addAll( inliers );
+						System.out.println( stDataAname + "-" + stDataBname + ": " + inliers.size() + "/" + candidatesTmp.size() + ", " + minError + "/" + error + "/" + maxError + ", " + ((PointST)inliers.get( 0 ).getP1()).getGene() );
+						//System.out.println( ki + "-" + kj + ": " + inliers.size() + "/" + candidatesTmp.size() + ", " + ((PointST)inliers.get( 0 ).getP1()).getGene() + ", " );
+						//GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() ).setTitle( gene +"_" + inliers.size() );;
+					}
+				}
+
+				return allPerGeneInliers;
+			});
+		}
+
+		final ExecutorService service = Threads.createFixedExecutorService( numThreads );
+
+		try
+		{
+			final List< Future< List< PointMatch > > > futures = service.invokeAll( tasks );
+			for ( final Future< List< PointMatch > > future : futures )
+				allCandidates.addAll( future.get() );
+		}
+		catch ( final InterruptedException | ExecutionException e )
+		{
+			e.printStackTrace();
+			throw new RuntimeException( e );
+		}
+
+		service.shutdown();
+
+		final RigidModel2D model = new RigidModel2D();
+		final ArrayList< PointMatch > inliers = consensus( allCandidates, model, minNumInliers, maxEpsilon );
+		
+		// the model that maps J to I
+		System.out.println( stDataAname + "\t" + stDataBname + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + AlignTools.modelToAffineTransform2D( model ).inverse() );
+
+		if ( saveResult && inliers.size() >= minNumInliers )
+		{
+			final HashSet< String > genes = new HashSet< String >();
+			for ( final PointMatch pm : inliers )
+				genes.add( ((PointST)pm.getP1()).getGene() );
+
+			final N5FSWriter n5 = N5IO.openN5write( n5File );
+			final String pairwiseGroupName = n5.groupPath( "/", "matches", stDataAname + "-" + stDataBname );
+			if (n5.exists(pairwiseGroupName))
+				n5.remove( pairwiseGroupName );
+			n5.createDataset(
+					pairwiseGroupName,
+					new long[] {1},
+					new int[] {1},
+					DataType.OBJECT,
+					new GzipCompression());
+	
+			n5.setAttribute( pairwiseGroupName, "stDataAname", stDataAname );
+			n5.setAttribute( pairwiseGroupName, "stDataBname", stDataBname );
+			n5.setAttribute( pairwiseGroupName, "inliers", inliers.size() );
+			n5.setAttribute( pairwiseGroupName, "candidates", allCandidates.size() );
+			n5.setAttribute( pairwiseGroupName, "model", AlignTools.modelToAffineTransform2D( model ).inverse().getRowPackedCopy() ); // the model that maps J to I
+			n5.setAttribute( pairwiseGroupName, "genes", genes );
+	
+			n5.writeSerializedBlock(
+					inliers,
+					pairwiseGroupName,
+					n5.getDatasetAttributes( pairwiseGroupName ),
+					new long[]{0});
+		}
+
+		if ( visualizeResult && inliers.size() >= minNumInliers )
+			AlignTools.visualizePair(stDataA, stDataB, new AffineTransform2D(), AlignTools.modelToAffineTransform2D( model ).inverse() ).setTitle( stDataAname + "-" + stDataBname + "-inliers-" + inliers.size() );
+		//SimpleMultiThreading.threadHaltUnClean();
+	}
+
 	public static void main( String[] args ) throws IOException
 	{
 		final String path = Path.getPath();
@@ -244,9 +441,12 @@ public class PairwiseSIFT
 		final int minNumInliers = 12;
 		final int minNumInliersPerGene = 10;
 
+		final SIFTParam p = new SIFTParam();
+		final boolean saveResult = true;
+		final boolean visualizeResult = true;
+
 		// multi-threading
 		final int numThreads = Threads.numThreads();
-		final ExecutorService serviceGlobal = Threads.createFixedExecutorService( numThreads );
 
 		for ( int i = 0; i < pucks.size() - 1; ++i )
 		{
@@ -255,8 +455,8 @@ public class PairwiseSIFT
 				if ( Math.abs( j - i ) > 2 )
 					continue;
 
-				final int ki = i;
-				final int kj = j;
+				//final int ki = i;
+				//final int kj = j;
 
 				final STData stDataA = puckData.get(i);
 				final STData stDataB = puckData.get(j);
@@ -266,7 +466,7 @@ public class PairwiseSIFT
 
 				//System.out.println( new Date( System.currentTimeMillis() ) + ": Finding genes" );
 
-				final List< String > genesToTest = Pairwise.genesToTest( stDataA, stDataB, 2000 );
+				final List< String > genesToTest = Pairwise.genesToTest( stDataA, stDataB, 2000, numThreads );
 				//for ( final String gene : genesToTest )
 				//	System.out.println( gene );
 				/*final List< String > genesToTest = new ArrayList<>();
@@ -280,153 +480,8 @@ public class PairwiseSIFT
 				// check out ROD!
 				*/
 
-				final AffineTransform2D tS = new AffineTransform2D();
-				tS.scale( scale );
-
-				final Interval interval = STDataUtils.getCommonInterval( stDataA, stDataB );
-				final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tS ), 100 );
-
-				final List< PointMatch > allCandidates = new ArrayList<>();
-
-				final List< Callable< List< PointMatch > > > tasks = new ArrayList<>();
-				final AtomicInteger nextGene = new AtomicInteger();
-
-				for ( int threadNum = 0; threadNum < numThreads; ++threadNum )
-				{
-					tasks.add( () ->
-					{
-						final List< PointMatch > allPerGeneInliers = new ArrayList<>();
-
-						for ( int g = nextGene.getAndIncrement(); g < genesToTest.size(); g = nextGene.getAndIncrement() )
-						{
-							final String gene = genesToTest.get( g );
-							//System.out.println( "current gene: " + gene );
-
-							final RandomAccessibleInterval<DoubleType> imgA = AlignTools.display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tS );
-							final RandomAccessibleInterval<DoubleType> imgB = AlignTools.display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tS );
-
-							final ImagePlus impA = ImageJFunctions.wrapFloat( imgA, new RealFloatConverter<>(), "A_" + gene);
-							final ImagePlus impB = ImageJFunctions.wrapFloat( imgB, new RealFloatConverter<>(), "B_" + gene );
-
-							final List< PointMatch > matchesAB = extractCandidates(impA.getProcessor(), impB.getProcessor(), gene );
-							final List< PointMatch > matchesBA = extractCandidates(impB.getProcessor(), impA.getProcessor(), gene );
-
-							//System.out.println( gene + " = " + matchesAB.size() );
-							//System.out.println( gene + " = " + matchesBA.size() );
-
-							if ( matchesAB.size() == 0 && matchesBA.size() == 0 )
-								continue;
-
-							final List< PointMatch > candidatesTmp = new ArrayList<>();
-
-							if ( matchesBA.size() > matchesAB.size() )
-								PointMatch.flip( matchesBA, candidatesTmp );
-							else
-								candidatesTmp.addAll( matchesAB );
-
-							//final List< PointMatch > inliersTmp = consensus( candidatesTmp, new RigidModel2D(), minNumInliersPerGene, maxEpsilon*scale );
-							//System.out.println( "remaining points" );
-							
-							//for ( final PointMatch pm:inliersTmp )
-							//	System.out.println( pm.getWeight() );
-							/*
-							if ( gene.equals("Ckb"))
-							{
-							final List< PointMatch > inliersTmp = consensus( candidatesTmp, new RigidModel2D(), minNumInliersPerGene, maxEpsilon*scale );
-							impA.show();impA.resetDisplayRange();
-							impB.show();impB.resetDisplayRange();
-							visualizeInliers( impA, impB, inliersTmp );
-							}	*/
-
-							// adjust the locations to the global coordinate system
-							// and store the gene name it came from
-							for ( final PointMatch pm : candidatesTmp )
-							{
-								final Point p1 = pm.getP1();
-								final Point p2 = pm.getP2();
-
-								for ( int d = 0; d < finalInterval.numDimensions(); ++d )
-								{
-									p1.getL()[ d ] = p1.getW()[ d ] = ( p1.getL()[ d ] + finalInterval.min( d ) ) / scale;
-									p2.getL()[ d ] = p2.getW()[ d ] = ( p2.getL()[ d ] + finalInterval.min( d ) ) / scale;
-								}
-							}
-
-							// prefilter the candidates
-							final RigidModel2D model = new RigidModel2D();
-							final List< PointMatch > inliers = consensus( candidatesTmp, model, minNumInliersPerGene, maxEpsilon );
-
-							// reset world coordinates
-							for ( final PointMatch pm : candidatesTmp )
-							{
-								final Point p1 = pm.getP1();
-								final Point p2 = pm.getP2();
-
-								for ( int d = 0; d < finalInterval.numDimensions(); ++d )
-								{
-									p1.getW()[ d ] = p1.getW()[ d ];
-									p2.getW()[ d ] = p2.getW()[ d ];
-								}
-							}
-
-							if ( inliers.size() > 0 )
-							{
-								allPerGeneInliers.addAll( inliers );
-								System.out.println( ki + "-" + kj + ": " + inliers.size() + "/" + candidatesTmp.size() + ", " + ((PointST)inliers.get( 0 ).getP1()).getGene() + ", " );
-								//GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() ).setTitle( gene +"_" + inliers.size() );;
-							}
-						}
-
-						return allPerGeneInliers;
-					});
-				}
-
-				try
-				{
-					final List< Future< List< PointMatch > > > futures = serviceGlobal.invokeAll( tasks );
-					for ( final Future< List< PointMatch > > future : futures )
-						allCandidates.addAll( future.get() );
-				}
-				catch ( final InterruptedException | ExecutionException e )
-				{
-					e.printStackTrace();
-					throw new RuntimeException( e );
-				}
-
-				final RigidModel2D model = new RigidModel2D();
-				final ArrayList< PointMatch > inliers = consensus( allCandidates, model, minNumInliers, maxEpsilon );
-				
-				// the model that maps J to I
-				System.out.println( i + "\t" + j + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + AlignTools.modelToAffineTransform2D( model ).inverse() );
-
-				final HashSet< String > genes = new HashSet< String >();
-				for ( final PointMatch pm : inliers )
-					genes.add( ((PointST)pm.getP1()).getGene() );
-
-				final String pairwiseGroupName = n5.groupPath( "/", "matches", i + "-" + j );
-				final N5FSWriter n5WriterLocal = N5IO.openN5write( n5File );
-				n5WriterLocal.createDataset(
-						pairwiseGroupName,
-						new long[] {1},
-						new int[] {1},
-						DataType.OBJECT,
-						new GzipCompression());
-
-				n5WriterLocal.setAttribute( pairwiseGroupName, "i", puckA );
-				n5WriterLocal.setAttribute( pairwiseGroupName, "j", puckB );
-				n5WriterLocal.setAttribute( pairwiseGroupName, "inliers", inliers.size() );
-				n5WriterLocal.setAttribute( pairwiseGroupName, "candidates", allCandidates.size() );
-				n5WriterLocal.setAttribute( pairwiseGroupName, "model", AlignTools.modelToAffineTransform2D( model ).inverse().getRowPackedCopy() ); // the model that maps J to I
-				n5WriterLocal.setAttribute( pairwiseGroupName, "genes", genes );
-
-				n5WriterLocal.writeSerializedBlock(
-						inliers,
-						pairwiseGroupName,
-						n5Writer.getDatasetAttributes( pairwiseGroupName ),
-						new long[]{0});
-
-				AlignTools.visualizePair(stDataA, stDataB, new AffineTransform2D(), AlignTools.modelToAffineTransform2D( model ).inverse() ).setTitle( i + "-" + j + "-inliers-" + inliers.size() );
-				//SimpleMultiThreading.threadHaltUnClean();
+				pairwiseSIFT(stDataA, puckA, stDataB, puckB, n5File, genesToTest, p, scale, maxEpsilon,
+						minNumInliers, minNumInliersPerGene, saveResult, visualizeResult, numThreads);
 			}
 		}
 		System.out.println("done.");

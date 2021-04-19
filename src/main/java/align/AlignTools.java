@@ -100,6 +100,34 @@ public class AlignTools
 		return rendered;
 	}
 
+	public static RandomAccessibleInterval< DoubleType > displayDensityMap(
+			final STData stdata,
+			final STDataStatistics stStats,
+			final double smoothnessFactor,
+			final Interval renderInterval,
+			final AffineTransform2D transform )
+	{
+		// outofbounds value
+		final DoubleType outofbounds = new DoubleType( 0 );
+
+		// take any gene
+		IterableRealInterval< DoubleType > data = stdata.getExprData( stdata.getGeneNames().get( 0 ) );
+
+		// always return 1
+		data = Converters.convert( data, (i,o) -> o.set( 1.0 ), new DoubleType() );
+
+		// remove single spots
+		data = Filters.filter( data, new SingleSpotRemovingFilterFactory<>( outofbounds, stStats.getMedianDistance() * 1.5 ) );
+
+		// for rendering the input pointcloud, no weights, just add gaussians as they come along
+		final double gaussRenderSigma = stStats.getMedianDistance();
+		final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderSigma*smoothnessFactor, WeightType.NONE ) );
+
+		final RandomAccessibleInterval< DoubleType > rendered = Views.interval( RealViews.affine( renderRRA, transform ), renderInterval );
+
+		return rendered;
+	}
+
 	public static ImagePlus visualizePair( final STData stDataA, final STData stDataB, final AffineTransform2D transformA, final AffineTransform2D transformB )
 	{
 		//final AffineTransform2D pcmTransform = new AffineTransform2D();

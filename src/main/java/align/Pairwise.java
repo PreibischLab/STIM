@@ -3,7 +3,9 @@ package align;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -164,23 +166,46 @@ public class Pairwise
 		}
 	}
 
-	public static List< String > genesToTest( final STData stdataA, final STData stdataB, final int numGenes )
+	public static List< String > genesToTest( final STData stdataA, final STData stdataB, final int numGenes, final int numThreads )
 	{
-		final ArrayList< Pair< String, Double > > listA = ExtractGeneLists.sortByStDevIntensity( stdataA );
-		final ArrayList< Pair< String, Double > > listB = ExtractGeneLists.sortByStDevIntensity( stdataB );
+		if ( numGenes <= 0 )
+			return new ArrayList<>();
 
-		final ArrayList< String > genesA = new ArrayList<>();
-		final ArrayList< String > genesB = new ArrayList<>();
+		System.out.println( "Sorting all genes of both datasets by stdev (this takes a bit) ... ");
+		long time = System.currentTimeMillis();
 
-		for ( int i = 0; i < numGenes; ++i )
-		{
-			genesA.add( listA.get( i ).getA() );
-			genesB.add( listB.get( i ).getA() );
-		}
+		// from big to small
+		final ArrayList< Pair< String, Double > > listA = ExtractGeneLists.sortByStDevIntensity( stdataA, numThreads );
+		final ArrayList< Pair< String, Double > > listB = ExtractGeneLists.sortByStDevIntensity( stdataB, numThreads );
 
-		final List< String > genesToTest = STDataUtils.commonGeneNames( genesA, genesB );
+		System.out.println( "Took " + (System.currentTimeMillis() - time) );
 
-		return genesToTest;
+		// now we want to find the combination of genes where both have high variance
+		// we therefore sort them by the sum of ranks of both lists
+
+		final HashMap<String, Integer > geneToIndexB = new HashMap<>();
+
+		for ( int i = 0; i < listB.size(); ++i )
+			geneToIndexB.put( listB.get( i ).getA(), i );
+
+		final ArrayList< Pair< Integer, Integer > > entries = new ArrayList<>();
+
+		for ( int i = 0; i < listA.size(); ++i )
+			if ( geneToIndexB.containsKey( listA.get( i ).getA() ) )
+				entries.add( new ValuePair<>( i, geneToIndexB.get( listA.get( i ).getA() ) ) );
+
+		Collections.sort( entries, (o1,o2) -> (o1.getA()+o1.getB()) - (o2.getA()+o2.getB()) ); 
+
+		//for ( int i = 0; i < 10; ++i )
+		//	System.out.println( entries.get( i ).getA() + " (" + listA.get( entries.get( i ).getA() ).getA() +"), " + entries.get( i ).getB() + " ("  + listB.get( entries.get( i ).getB() ).getA() + ")" );
+		//System.out.println( entries.get( entries.size() - 1 ).getA() + ", " + entries.get( entries.size() - 1 ).getB() );
+
+		final ArrayList< String > toTest = new ArrayList<>();
+
+		for ( int i = 0; i < Math.min( numGenes, entries.size() ); ++i )
+			toTest.add( listA.get( entries.get( i ).getA() ).getA() ); // gene names are identical in the matched lists
+
+		return toTest;
 	}
 
 	public static Pair< AffineTransform2D, Double > align(
@@ -511,7 +536,7 @@ public class Pairwise
 		
 				System.out.println( new Date( System.currentTimeMillis() ) + ": Finding genes" );
 
-				final List< String > genesToTest = genesToTest( stDataA, stDataB, 50 );
+				final List< String > genesToTest = genesToTest( stDataA, stDataB, 50, Threads.numThreads() );
 		
 				/*
 				final List< String > genesToTest = new ArrayList<>();
