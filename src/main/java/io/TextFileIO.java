@@ -3,7 +3,9 @@ package io;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -161,8 +163,8 @@ public class TextFileIO
 
 			if ( index == null )
 			{
-				System.out.println( "barcode '' defined in celltypes not found in the location/expression data. Stopping.");
-				return null;
+				System.out.println( "barcode '" + val[ 0 ] + "' defined in celltypes not found in the location/expression data. Ignoring.");
+				continue;
 			}
 	
 			ids[ index ] = Integer.parseInt( val[ 1 ].trim() );
@@ -320,5 +322,38 @@ public class TextFileIO
 		}
 
 		return coordinates;
+	}
+
+	public static void saveGenes( final File file, final Collection< String > genes ) throws IOException
+	{
+		PrintWriter out = TextFileAccess.openFileWrite( file );
+
+		for ( final String gene : genes )
+			out.println( gene );
+
+		out.close();
+	}
+
+	public static ArrayList< String > loadGenes( final File file, final HashSet< String > existingGenes1, final HashSet< String > existingGenes2 ) throws IOException
+	{
+		BufferedReader in = TextFileAccess.openFileRead( file );
+
+		ArrayList< String > genes = new ArrayList<>();
+
+		String nextLine = null;
+
+		while ( (nextLine = in.readLine()) != null ) 
+		{
+			String trimmed = nextLine.trim();
+
+			if ( existingGenes1.contains( trimmed ) && existingGenes2.contains( trimmed ) )
+				genes.add( trimmed );
+			else
+				System.out.println( "Gene '" + trimmed + "' does not exist in both datasets, skipping.");
+		}
+
+		in.close();
+
+		return genes;
 	}
 }
