@@ -33,6 +33,10 @@ import mpicbg.ij.util.Util;
 import mpicbg.imagefeatures.Feature;
 import mpicbg.imagefeatures.FloatArray2DSIFT;
 import mpicbg.models.AbstractModel;
+import mpicbg.models.Affine2D;
+import mpicbg.models.AffineModel2D;
+import mpicbg.models.InterpolatedAffineModel2D;
+import mpicbg.models.Model;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
@@ -157,7 +161,7 @@ public class PairwiseSIFT
 		return candidatesST;
 	}
 
-	public static ArrayList< PointMatch > consensus( final List< PointMatch > candidates, final AbstractModel< ? > model, final int minNumInliers, final double maxEpsilon )
+	public static ArrayList< PointMatch > consensus( final List< PointMatch > candidates, final Model< ? > model, final int minNumInliers, final double maxEpsilon )
 	{
 		final ArrayList< PointMatch > inliers = new ArrayList< PointMatch >();
 
@@ -201,11 +205,13 @@ public class PairwiseSIFT
 		}
 	}
 
-	public static void pairwiseSIFT(
+	public static < M extends Affine2D<M> & Model<M>, N extends Affine2D<N> & Model<N> > void pairwiseSIFT(
 			final STData stDataA,
 			final String stDataAname,
 			final STData stDataB,
 			final String stDataBname,
+			final M modelPairwise,
+			final N modelGlobal,
 			final File n5File,
 			final List< String > genesToTest,
 			final SIFTParam p,
@@ -290,7 +296,7 @@ public class PairwiseSIFT
 					}
 
 					// prefilter the candidates
-					final RigidModel2D model = new RigidModel2D();
+					final M model = modelPairwise.copy();//new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), 0.1 );//new RigidModel2D();
 					final List< PointMatch > inliers = consensus( candidatesTmp, model, minNumInliersPerGene, maxEpsilon );
 
 					// reset world coordinates & compute error
@@ -353,11 +359,12 @@ public class PairwiseSIFT
 
 		service.shutdown();
 
-		final RigidModel2D model = new RigidModel2D();
-		final ArrayList< PointMatch > inliers = consensus( allCandidates, model, minNumInliers, maxEpsilon );
+		//final InterpolatedAffineModel2D<AffineModel2D, RigidModel2D> model = new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), 0.1 );//new RigidModel2D();
+		//final RigidModel2D model = new RigidModel2D();
+		final ArrayList< PointMatch > inliers = consensus( allCandidates, modelGlobal, minNumInliers, maxEpsilon );
 		
 		// the model that maps J to I
-		System.out.println( stDataAname + "\t" + stDataBname + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + AlignTools.modelToAffineTransform2D( model ).inverse() );
+		System.out.println( stDataAname + "\t" + stDataBname + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + AlignTools.modelToAffineTransform2D( modelGlobal ).inverse() );
 
 		if ( saveResult && inliers.size() >= minNumInliers )
 		{
@@ -380,7 +387,7 @@ public class PairwiseSIFT
 			n5.setAttribute( pairwiseGroupName, "stDataBname", stDataBname );
 			n5.setAttribute( pairwiseGroupName, "inliers", inliers.size() );
 			n5.setAttribute( pairwiseGroupName, "candidates", allCandidates.size() );
-			n5.setAttribute( pairwiseGroupName, "model", AlignTools.modelToAffineTransform2D( model ).inverse().getRowPackedCopy() ); // the model that maps J to I
+			n5.setAttribute( pairwiseGroupName, "model", AlignTools.modelToAffineTransform2D( modelGlobal ).inverse().getRowPackedCopy() ); // the model that maps J to I
 			n5.setAttribute( pairwiseGroupName, "genes", genes );
 	
 			n5.writeSerializedBlock(
@@ -391,7 +398,7 @@ public class PairwiseSIFT
 		}
 
 		if ( visualizeResult && inliers.size() >= minNumInliers )
-			AlignTools.visualizePair(stDataA, stDataB, new AffineTransform2D(), AlignTools.modelToAffineTransform2D( model ).inverse() ).setTitle( stDataAname + "-" + stDataBname + "-inliers-" + inliers.size() );
+			AlignTools.visualizePair(stDataA, stDataB, new AffineTransform2D(), AlignTools.modelToAffineTransform2D( modelGlobal ).inverse() ).setTitle( stDataAname + "-" + stDataBname + "-inliers-" + inliers.size() );
 		//SimpleMultiThreading.threadHaltUnClean();
 	}
 
@@ -480,7 +487,7 @@ public class PairwiseSIFT
 				// check out ROD!
 				*/
 
-				pairwiseSIFT(stDataA, puckA, stDataB, puckB, n5File, genesToTest, p, scale, maxEpsilon,
+				pairwiseSIFT(stDataA, puckA, stDataB, puckB, new RigidModel2D(), new RigidModel2D(), n5File, genesToTest, p, scale, maxEpsilon,
 						minNumInliers, minNumInliersPerGene, saveResult, visualizeResult, numThreads);
 			}
 		}

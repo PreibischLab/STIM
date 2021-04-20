@@ -3,7 +3,6 @@ package cmd;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.concurrent.Callable;
 
 import org.janelia.saalfeldlab.n5.N5FSWriter;
@@ -15,6 +14,7 @@ import data.STData;
 import ij.ImageJ;
 import io.N5IO;
 import io.TextFileIO;
+import mpicbg.models.RigidModel2D;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import util.Threads;
@@ -152,20 +152,25 @@ public class PairwiseSectionAligner implements Callable<Void> {
 		//
 		// start alignment
 		//
-
 		final double scale = 0.1; //global scaling
-		final double maxEpsilon = 200;
+		final double maxEpsilon = 250;
 		final int minNumInliers = 25;
-		final int minNumInliersPerGene = 10;
+		final int minNumInliersPerGene = 11;
 
 		final SIFTParam p = new SIFTParam();
 		final boolean saveResult = true;
 		final boolean visualizeResult = true;
 
+		// hard case: -i /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d1 Puck_180602_15 -d2 Puck_180602_16 -n 30
+		// even harder: -i /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d1 Puck_180602_20 -d2 Puck_180602_18 -n 100 --overwrite
 		new ImageJ();
-
-		PairwiseSIFT.pairwiseSIFT(stData1, dataset1, stData2, dataset2, n5File, new ArrayList<>( genesToTest ), p, scale, maxEpsilon,
-				minNumInliers, minNumInliersPerGene, saveResult, visualizeResult, Threads.numThreads() );
+		PairwiseSIFT.pairwiseSIFT(
+				stData1, dataset1, stData2, dataset2,
+				new RigidModel2D(), new RigidModel2D(),
+				n5File, new ArrayList<>( genesToTest ),
+				p, scale, maxEpsilon,
+				minNumInliers, minNumInliersPerGene,
+				saveResult, visualizeResult, Threads.numThreads() );
 
 		return null;
 	}
