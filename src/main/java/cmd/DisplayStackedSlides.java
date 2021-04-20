@@ -44,8 +44,11 @@ public class DisplayStackedSlides implements Callable<Void> {
 	@Option(names = {"-g", "--genes"}, required = true, description = "comma separated list of one or more gene to visualize, e.g. -g Calm2,Ubb")
 	private String genes = null;
 
-	@Option(names = {"-md", "--metadata"}, required = false, description = "comma separated list of metadata to visualize, e.g. -m celltype")
+	@Option(names = {"-md", "--metadata"}, required = false, description = "comma separated list of metadata to visualize, e.g. -md celltype")
 	private String metadata = null;
+
+	@Option(names = {"-mdr", "--metadataRadius"}, required = false, description = "radius of metadata spots as a factor of their median distance, e.g. -mdr 2.0 (default: 0.75; in 3d: zSpacing*0.75)")
+	private double metadataRadius = 0.75;
 
 	@Option(names = {"-z", "--zSpacingFactor"}, required = false, description = "define the z-spacing between differnt sections (as a factor of median spacing between sequenced locations), e.g. -z 10.0 (default: 5.0)")
 	private double zSpacingFactor = 5.0;
@@ -168,7 +171,7 @@ public class DisplayStackedSlides implements Callable<Void> {
 		for ( final String meta : metadataList )
 		{
 			final IntType outofboundsInt = new IntType( -1 );
-			final double spotSize = slides.get( 0 ).statistics().getMedianDistance() / 1.5;
+			final double spotSize = slides.get( 0 ).statistics().getMedianDistance() * metadataRadius;
 			final HashMap<Long, ARGBType > lut = new HashMap<>();
 
 			final List< FilterFactory< IntType, IntType > > filterFactorysInt = new ArrayList<>();
@@ -185,7 +188,7 @@ public class DisplayStackedSlides implements Callable<Void> {
 			if ( slides.size() > 1 )
 			{
 				final Pair< RealRandomAccessible< IntType >, Interval > stack =
-						VisualizeMetadata.createStack( slides, meta, zSpacingFactor *0.75 * spotSize, zSpacingFactor, outofboundsInt, filterFactorysInt, lut );
+						VisualizeMetadata.createStack( slides, meta, zSpacingFactor * 0.75 * spotSize, zSpacingFactor, outofboundsInt, filterFactorysInt, lut );
 				rra = stack.getA();
 				interval = stack.getB();
 			}
