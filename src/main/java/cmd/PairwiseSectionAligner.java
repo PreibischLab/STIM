@@ -27,7 +27,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 	@Option(names = {"-i", "--input"}, required = true, description = "input N5 container, e.g. -i /home/ssq.n5")
 	private String input = null;
 
-	@Option(names = {"-d", "--datasets"}, required = true, description = "ordered, comma separated list of one or more datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: all)")
+	@Option(names = {"-d", "--datasets"}, required = true, description = "ordered, comma separated list of one or more datasets, e.g. -d 'Puck_180528_20,Puck_180528_22'")
 	private String datasets = null;
 
 	//@Option(names = {"-l", "--loadGenes"}, required = false, description = "load a plain text file with gene names")
