@@ -1,13 +1,11 @@
 package align;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5FSReader;
@@ -17,11 +15,9 @@ import data.STData;
 import ij.ImageJ;
 import io.N5IO;
 import io.Path;
-import io.TextFileAccess;
 import mpicbg.models.AffineModel2D;
 import mpicbg.models.ErrorStatistic;
 import mpicbg.models.InterpolatedAffineModel2D;
-import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
 import mpicbg.models.RigidModel2D;
 import mpicbg.models.Tile;
@@ -38,13 +34,8 @@ public class GlobalOptSIFT
 	{
 		List< PointMatch > inliers = new ArrayList<>();
 
-		// pairwise transform
-		AffineTransform2D t = new AffineTransform2D();
-
 		int numInliers = 0;
 		int numCandidates = 0;
-		int puckA = -1;
-		int puckB = -1;
 		String puckAName = "";
 		String puckBName = "";
 
@@ -60,7 +51,7 @@ public class GlobalOptSIFT
 	}
 
 	@SuppressWarnings("unchecked")
-	protected static Matches loadMatches( final N5FSReader n5, final int puckA, final int puckB )
+	protected static Matches loadMatches( final N5FSReader n5, final String puckA, final String puckB )
 	{
 		final Matches matches = new Matches();
 
@@ -71,14 +62,17 @@ public class GlobalOptSIFT
 
 		try
 		{
-			matches.puckA = puckA;
-			matches.puckB = puckB;
-			matches.puckAName = n5.getAttribute( pairwiseGroupName, "i", String.class );
-			matches.puckBName = n5.getAttribute( pairwiseGroupName, "j", String.class );
+			matches.puckAName = n5.getAttribute( pairwiseGroupName, "stDataAname", String.class );
+			matches.puckBName = n5.getAttribute( pairwiseGroupName, "stDataBname", String.class );
+
+			if (!puckA.equals( matches.puckAName ) )
+				throw new RuntimeException( "mismatch between match folder and metadata: " + puckA + "!=" + matches.puckAName );
+
+			if (!puckB.equals( matches.puckBName ) )
+				throw new RuntimeException( "mismatch between match folder and metadata: " + puckB + "!=" + matches.puckBName );
+
 			matches.numInliers = n5.getAttribute( pairwiseGroupName, "inliers", Integer.class );
 			matches.numCandidates = n5.getAttribute( pairwiseGroupName, "candidates", Integer.class );
-			matches.t = new AffineTransform2D();
-			matches.t.set( n5.getAttribute( pairwiseGroupName, "model", double[].class ) );
 
 			matches.genes = new HashSet<String>( n5.getAttribute( pairwiseGroupName, "genes", List.class ) );
 
@@ -142,7 +136,7 @@ public class GlobalOptSIFT
 		{
 			for ( int j = i + 1; j < datasets.size(); ++j )
 			{
-				final Matches matches = loadMatches( n5, i, j );//loadMatches( siftMatchesPath, i, j );
+				final Matches matches = loadMatches( n5, datasets.get( i ), datasets.get( j ) );//loadMatches( siftMatchesPath, i, j );
 
 				if ( useQuality )
 				{
@@ -292,7 +286,7 @@ public class GlobalOptSIFT
 			{
 				for ( int j = i + 1; j < datasets.size(); ++j )
 				{
-					final Matches matches = loadMatches( n5, i, j ); //loadMatches( siftMatchesPath, i, j );
+					final Matches matches = loadMatches( n5, datasets.get( i ) , datasets.get( j ) ); //loadMatches( siftMatchesPath, i, j );
 	
 					// they were connected and we use the genes that RANSAC filtered
 					if ( matches.genes.size() > 0 )
@@ -423,20 +417,19 @@ public class GlobalOptSIFT
 		final List< String > pucks = N5IO.listAllDatasets( n5 );
 
 		final boolean useQuality = true;
+		final double lambdaGlobal = 1.0; // rigid only
 		final double maxAllowedError = 300;
 		final int maxIterations = 500;
 		final int maxPlateauwidth = 500;
 		final double relativeThreshold = 3.0;
 		final double absoluteThreshold = 160;
 
-		final double lambdaGlobal = 1.0; // rigid only
-		final double lambdaICP = 0.1; // rigid only
-
+		final boolean doICP = false;
+		final double lambdaICP = 0.1;
 		final double icpErrorFraction = 1.0 / 10.0;
 		final double maxAllowedErrorICP = 140;
 		final int numIterationsICP = 3000;
 		final int maxPlateauwhidthICP = 500;
-
 
 		globalOpt(
 				n5Path, pucks,
@@ -447,7 +440,7 @@ public class GlobalOptSIFT
 				maxPlateauwidth,
 				relativeThreshold,
 				absoluteThreshold,
-				true,
+				doICP,
 				lambdaICP,
 				icpErrorFraction,
 				maxAllowedErrorICP,

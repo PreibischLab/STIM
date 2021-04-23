@@ -59,7 +59,7 @@ public class IntensityAdjustment
 				final ArrayList< PointMatch > localMatches = new ArrayList<>();
 
 				// load the matches
-				final Matches siftmatches = GlobalOptSIFT.loadMatches( n5, i, j );
+				final Matches siftmatches = GlobalOptSIFT.loadMatches( n5, pucks.get( i ), pucks.get( j ) );
 
 				if ( siftmatches.numInliers == 0 )
 					continue;

@@ -27,7 +27,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 	@Option(names = {"-i", "--input"}, required = true, description = "input N5 container, e.g. -i /home/ssq.n5")
 	private String input = null;
 
-	@Option(names = {"-d", "--datasets"}, required = true, description = "ordered, comma separated list of one or more datasets, e.g. -d 'Puck_180528_20,Puck_180528_22'")
+	@Option(names = {"-d", "--datasets"}, required = false, description = "ordered, comma separated list of one or more datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: all, in order as saved in N5 metadata)")
 	private String datasets = null;
 
 	//@Option(names = {"-l", "--loadGenes"}, required = false, description = "load a plain text file with gene names")
@@ -90,11 +90,16 @@ public class PairwiseSectionAligner implements Callable<Void> {
 			return null;
 		}
 
-		final List< String > inputDatasets = Arrays.asList( datasets.split( "," ) );
+		final List< String > inputDatasets;
+
+		if ( datasets == null || datasets.trim().length() == 0 )
+			inputDatasets = N5IO.listAllDatasets( n5 );
+		else
+			inputDatasets = Arrays.asList( datasets.split( "," ) );
 
 		if ( inputDatasets.size() == 0 )
 		{
-			System.out.println( "no input datasets defined. stopping.");
+			System.out.println( "no input datasets available. stopping.");
 			return null;
 		}
 

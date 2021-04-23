@@ -392,7 +392,6 @@ public class PairwiseSIFT
 			n5.setAttribute( pairwiseGroupName, "stDataBname", stDataBname );
 			n5.setAttribute( pairwiseGroupName, "inliers", inliers.size() );
 			n5.setAttribute( pairwiseGroupName, "candidates", allCandidates.size() );
-			n5.setAttribute( pairwiseGroupName, "model", AlignTools.modelToAffineTransform2D( modelGlobal ).inverse().getRowPackedCopy() ); // the model that maps J to I
 			n5.setAttribute( pairwiseGroupName, "genes", genes );
 	
 			n5.writeSerializedBlock(
