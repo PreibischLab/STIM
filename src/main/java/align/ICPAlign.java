@@ -101,6 +101,7 @@ public class ICPAlign
 				listAFiltered.add( p );
 		}
 
+		// TODO: just very few left here 30/28000, this must be wrong
 		System.out.println( "Remaining: " + listAFiltered.size()+ "/" + listA.size() + ", maxdist=" + maxDistance );
 
 		final M model = initialModel.copy();
