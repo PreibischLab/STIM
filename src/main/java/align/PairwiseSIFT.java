@@ -174,8 +174,9 @@ public class PairwiseSIFT
 					inliers,
 					10000,
 					maxEpsilon,
-					0.00f, //p.minInlierRatio,
-					minNumInliers );
+					0.1f, //p.minInlierRatio,
+					minNumInliers,
+					3f );
 		}
 		catch ( final NotEnoughDataPointsException e )
 		{
@@ -276,9 +277,12 @@ public class PairwiseSIFT
 					if ( gene.equals("Ckb"))
 					{
 						final List< PointMatch > inliersTmp = consensus( candidatesTmp, new RigidModel2D(), minNumInliersPerGene, maxEpsilon*scale );
-						impA.show();impA.resetDisplayRange();
-						impB.show();impB.resetDisplayRange();
-						visualizeInliers( impA, impB, inliersTmp );
+						if ( inliersTmp.size() > minNumInliersPerGene )
+						{
+							impA.show();impA.resetDisplayRange();
+							impB.show();impB.resetDisplayRange();
+							visualizeInliers( impA, impB, inliersTmp );
+						}
 					}	*/
 
 					// adjust the locations to the global coordinate system
@@ -362,7 +366,7 @@ public class PairwiseSIFT
 		//final InterpolatedAffineModel2D<AffineModel2D, RigidModel2D> model = new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), 0.1 );//new RigidModel2D();
 		//final RigidModel2D model = new RigidModel2D();
 		final ArrayList< PointMatch > inliers = consensus( allCandidates, modelGlobal, minNumInliers, maxEpsilon );
-		
+
 		// the model that maps J to I
 		System.out.println( stDataAname + "\t" + stDataBname + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + AlignTools.modelToAffineTransform2D( modelGlobal ).inverse() );
 
@@ -399,7 +403,29 @@ public class PairwiseSIFT
 
 		if ( visualizeResult && inliers.size() >= minNumInliers )
 			AlignTools.visualizePair(stDataA, stDataB, new AffineTransform2D(), AlignTools.modelToAffineTransform2D( modelGlobal ).inverse() ).setTitle( stDataAname + "-" + stDataBname + "-inliers-" + inliers.size() );
-		//SimpleMultiThreading.threadHaltUnClean();
+
+		// compute errors
+		// reset world coordinates & compute error
+		double error = Double.NaN, maxError = Double.NaN, minError = Double.NaN;
+		if ( inliers.size() > 0 )
+		{
+			error = 0;
+			minError = Double.MAX_VALUE;
+			maxError = -Double.MAX_VALUE;
+
+			for ( final PointMatch pm : inliers )
+			{
+				pm.apply( modelGlobal );
+				final double dist = Point.distance(pm.getP1(), pm.getP2());
+				error += dist;
+				maxError = Math.max( maxError, dist );
+				minError = Math.min( minError, dist );
+			}
+
+			error /= (double)inliers.size();
+		}
+
+		System.out.println( "errors: " + minError + "/" + error + "/" + maxError );
 	}
 
 	public static void main( String[] args ) throws IOException
