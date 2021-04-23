@@ -217,6 +217,7 @@ public class PairwiseSIFT
 			final List< String > genesToTest,
 			final SIFTParam p,
 			final double scale,
+			final double smoothnessFactor,
 			final double maxEpsilon,
 			final int minNumInliers,
 			final int minNumInliersPerGene,
@@ -246,8 +247,8 @@ public class PairwiseSIFT
 					final String gene = genesToTest.get( g );
 					//System.out.println( "current gene: " + gene );
 
-					final RandomAccessibleInterval<DoubleType> imgA = AlignTools.display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tS );
-					final RandomAccessibleInterval<DoubleType> imgB = AlignTools.display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tS );
+					final RandomAccessibleInterval<DoubleType> imgA = AlignTools.display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tS, smoothnessFactor );
+					final RandomAccessibleInterval<DoubleType> imgB = AlignTools.display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tS, smoothnessFactor );
 
 					final ImagePlus impA = ImageJFunctions.wrapFloat( imgA, new RealFloatConverter<>(), "A_" + gene);
 					final ImagePlus impB = ImageJFunctions.wrapFloat( imgB, new RealFloatConverter<>(), "B_" + gene );
@@ -402,7 +403,7 @@ public class PairwiseSIFT
 		}
 
 		if ( visualizeResult && inliers.size() >= minNumInliers )
-			AlignTools.visualizePair(stDataA, stDataB, new AffineTransform2D(), AlignTools.modelToAffineTransform2D( modelGlobal ).inverse() ).setTitle( stDataAname + "-" + stDataBname + "-inliers-" + inliers.size() );
+			AlignTools.visualizePair(stDataA, stDataB, new AffineTransform2D(), AlignTools.modelToAffineTransform2D( modelGlobal ).inverse(), smoothnessFactor ).setTitle( stDataAname + "-" + stDataBname + "-inliers-" + inliers.size() );
 
 		// compute errors
 		// reset world coordinates & compute error
@@ -474,6 +475,8 @@ public class PairwiseSIFT
 		final int minNumInliers = 12;
 		final int minNumInliersPerGene = 10;
 
+		final double smoothnessFactor = 4.0;
+
 		final SIFTParam p = new SIFTParam();
 		final boolean saveResult = true;
 		final boolean visualizeResult = true;
@@ -513,7 +516,7 @@ public class PairwiseSIFT
 				// check out ROD!
 				*/
 
-				pairwiseSIFT(stDataA, puckA, stDataB, puckB, new RigidModel2D(), new RigidModel2D(), n5File, genesToTest, p, scale, maxEpsilon,
+				pairwiseSIFT(stDataA, puckA, stDataB, puckB, new RigidModel2D(), new RigidModel2D(), n5File, genesToTest, p, scale, smoothnessFactor, maxEpsilon,
 						minNumInliers, minNumInliersPerGene, saveResult, visualizeResult, numThreads);
 			}
 		}

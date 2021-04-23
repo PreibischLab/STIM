@@ -16,7 +16,6 @@ import align.PairwiseSIFT.SIFTParam;
 import data.STData;
 import ij.ImageJ;
 import io.N5IO;
-import io.TextFileIO;
 import mpicbg.models.RigidModel2D;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
@@ -30,6 +29,23 @@ public class PairwiseSectionAligner implements Callable<Void> {
 	@Option(names = {"-d", "--datasets"}, required = true, description = "ordered, comma separated list of one or more datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: all)")
 	private String datasets = null;
 
+	//@Option(names = {"-l", "--loadGenes"}, required = false, description = "load a plain text file with gene names")
+	//private String loadGenes = null;
+
+	//@Option(names = {"-s", "--saveGenes"}, required = false, description = "save a plain text file with gene names that were used (can be later imported with -l)")
+	//private String saveGenes = null;
+
+	@Option(names = {"-o", "--overwrite"}, required = false, description = "overwrite existing pairwise matches (default: false)")
+	private boolean overwrite = false;
+
+	// rendering parameters
+	@Option(names = {"-s", "--scale"}, required = false, description = "scaling factor rendering the coordinates into images, which highly sample-dependent (default: 0.05 for slideseq data)")
+	private double scale = 0.05;
+
+	@Option(names = {"-sf", "--smoothnessFactor"}, required = false, description = "factor for the sigma of the gaussian used for rendering, corresponds to smoothness, e.g -sf 2.0 (default: 4.0)")
+	private double smoothnessFactor = 4.0;
+
+	// alignment parameters
 	@Option(names = {"-r", "--range"}, required = false, description = "range in which pairs of datasets will be aligned, therefore the order in -d is important (default: 2)")
 	private int range = 2;
 
@@ -39,14 +55,17 @@ public class PairwiseSectionAligner implements Callable<Void> {
 	@Option(names = {"-n", "--numGenes"}, required = false, description = "use N number of genes that have the highest entropy (default: 100)")
 	private int numGenes = 100;
 
-	@Option(names = {"-l", "--loadGenes"}, required = false, description = "load a plain text file with gene names")
-	private String loadGenes = null;
+	@Option(names = {"-e", "--maxEpsilon"}, required = false, description = "maximally allowed alignment error (in global space, independent of scaling factor) for SIFT on a 2D rigid model (default: 250.0 for slideseq)")
+	private double maxEpsilon = 250.0;
 
-	@Option(names = {"-s", "--saveGenes"}, required = false, description = "save a plain text file with gene names that were used (can be later imported with -l)")
-	private String saveGenes = null;
+	@Option(names = {"--minNumInliers"}, required = false, description = "minimal number of inliers across all tested genes that support the same 2D rigid model (default: 30 for slideseq)")
+	private int minNumInliers = 30;
 
-	@Option(names = {"-o", "--overwrite"}, required = false, description = "overwrite existing pairwise matches (default: false)")
-	private boolean overwrite = false;
+	@Option(names = {"--minNumInliersGene"}, required = false, description = "minimal number of inliers for each gene that support the same 2D rigid model (default: 5 for slideseq)")
+	private int minNumInliersGene = 5;
+
+	@Option(names = {"--hidePairwiseRendering"}, required = false, description = "do not show pairwise renderings that apply the 2D rigid models (default: false - showing them)")
+	private boolean hidePairwiseRendering = false;
 
 	@Override
 	public Void call() throws Exception {
@@ -128,7 +147,8 @@ public class PairwiseSectionAligner implements Callable<Void> {
 			}
 		}
 
-		new ImageJ();
+		if ( !hidePairwiseRendering )
+			new ImageJ();
 
 		for ( int i = 0; i < stdata.size() - 1; ++i )
 		{
@@ -200,14 +220,17 @@ public class PairwiseSectionAligner implements Callable<Void> {
 				//
 				// start alignment
 				//
-				final double scale = 0.05; //global scaling
-				final double maxEpsilon = 250;
-				final int minNumInliers = 30;
-				final int minNumInliersPerGene = 5;
+
+				//final double scale = 0.05; //global scaling
+				//final double smoothnessFactor = 4.0;
+
+				//final double maxEpsilon = 250;
+				//final int minNumInliers = 30;
+				//final int minNumInliersPerGene = 5;
 		
 				final SIFTParam p = new SIFTParam();
 				final boolean saveResult = true;
-				final boolean visualizeResult = true;
+				final boolean visualizeResult = !hidePairwiseRendering;
 
 				System.out.println( "Aligning ... ");
 
@@ -217,8 +240,8 @@ public class PairwiseSectionAligner implements Callable<Void> {
 						stData1, dataset1, stData2, dataset2,
 						new RigidModel2D(), new RigidModel2D(),
 						n5File, new ArrayList<>( genesToTest ),
-						p, scale, maxEpsilon,
-						minNumInliers, minNumInliersPerGene,
+						p, scale, smoothnessFactor, maxEpsilon,
+						minNumInliers, minNumInliersGene,
 						saveResult, visualizeResult, Threads.numThreads() );
 			}
 		}
