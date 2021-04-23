@@ -10,6 +10,7 @@ import java.util.concurrent.Callable;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.joml.Math;
 
+import align.AlignTools;
 import align.Pairwise;
 import align.PairwiseSIFT;
 import align.PairwiseSIFT.SIFTParam;
@@ -44,6 +45,9 @@ public class PairwiseSectionAligner implements Callable<Void> {
 
 	@Option(names = {"-sf", "--smoothnessFactor"}, required = false, description = "factor for the sigma of the gaussian used for rendering, corresponds to smoothness, e.g -sf 2.0 (default: 4.0)")
 	private double smoothnessFactor = 4.0;
+
+	@Option(names = {"--renderingGene"}, required = false, description = "genes used for visualizing the results, e.g. renderingGene Calm2 (default: first gene in the list)")
+	private String renderingGene = null;
 
 	// alignment parameters
 	@Option(names = {"-r", "--range"}, required = false, description = "range in which pairs of datasets will be aligned, therefore the order in -d is important (default: 2)")
@@ -119,13 +123,13 @@ public class PairwiseSectionAligner implements Callable<Void> {
 
 				// clear the alignment metadata
 				final String matchesGroupName = n5.groupPath( "matches" );
-		
+
 				if ( !n5.exists(matchesGroupName) )
 				{
 					System.out.println( "Creating new dataset '" + matchesGroupName + "'" );
 					n5.createGroup( matchesGroupName );
 				}
-		
+
 				final String pairwiseGroupName = n5.groupPath( "matches", inputDatasets.get( i ) + "-" + inputDatasets.get( j ) );
 				if ( new File( n5File, pairwiseGroupName ).exists() )// n5.exists( pairwiseGroupName ) )
 				{
@@ -233,6 +237,19 @@ public class PairwiseSectionAligner implements Callable<Void> {
 				final boolean visualizeResult = !hidePairwiseRendering;
 
 				System.out.println( "Aligning ... ");
+
+				if ( visualizeResult )
+				{
+					if ( renderingGene == null )
+					{
+						if ( genesToTest.contains( "Calm2" ) )
+							renderingGene = "Calm2";
+						else
+							renderingGene = genesToTest.iterator().next();
+					}
+
+					AlignTools.defaultGene = renderingGene;
+				}
 
 				// hard case: -i /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d1 Puck_180602_15 -d2 Puck_180602_16 -n 30
 				// even harder: -i /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d1 Puck_180602_20 -d2 Puck_180602_18 -n 100 --overwrite
