@@ -9,24 +9,17 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.janelia.saalfeldlab.n5.N5FSReader;
 
 import data.STData;
-import data.STDataStatistics;
 import data.STDataUtils;
+import edu.mines.jtk.util.Threads;
 import ij.ImageJ;
-import ij.ImagePlus;
-import ij.ImageStack;
-import imglib2.ImgLib2Util;
 import io.N5IO;
 import io.Path;
 import io.TextFileAccess;
-import mpicbg.models.AbstractAffineModel2D;
-import mpicbg.models.Affine2D;
 import mpicbg.models.ErrorStatistic;
-import mpicbg.models.InterpolatedAffineModel2D;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
 import mpicbg.models.RigidModel2D;
@@ -34,14 +27,9 @@ import mpicbg.models.Tile;
 import mpicbg.models.TileConfiguration;
 import mpicbg.models.TileUtil;
 import net.imglib2.Interval;
-import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.converter.RealFloatConverter;
-import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform2D;
-import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 
@@ -168,8 +156,9 @@ public class GlobalOpt
 			final int maxPlateauwidth,
 			final double relativeThreshold,
 			final double absoluteThreshold,
-			final HashMap< Tile< RigidModel2D >, Integer > tileToIndex,
-			final double[][] quality )
+			final HashMap< ? extends Tile< ? >, Integer > tileToIndex,
+			final double[][] quality,
+			final int numThreads)
 	{
 		// now perform the global optimization
 		boolean finished = false;
@@ -186,7 +175,7 @@ public class GlobalOpt
 
 				TileUtil.optimizeConcurrently(
 						new ErrorStatistic( maxPlateauwidth + 1 ),  maxAllowedError, maxIterations, maxPlateauwidth, 1.0f,
-						tc, tc.getTiles(), tc.getFixedTiles(), Runtime.getRuntime().availableProcessors());
+						tc, tc.getTiles(), tc.getFixedTiles(), numThreads );
 
 				System.out.println( "(" + new Date( System.currentTimeMillis() ) + "): Global optimization of " + tc.getTiles().size());
 				System.out.println( "(" + new Date( System.currentTimeMillis() ) + "):    Avg Error: " + tc.getError() + "px" );
@@ -238,7 +227,7 @@ public class GlobalOpt
 
 	public static Pair< Tile< ? >, Tile< ? > > removeLink(
 			final TileConfiguration tc,
-			final HashMap< Tile< RigidModel2D >, Integer > tileToIndex,
+			final HashMap< ? extends Tile< ? >, Integer > tileToIndex,
 			final double[][] quality )
 	{
 		double worstInvScore = -Double.MAX_VALUE;
@@ -469,7 +458,8 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 				3.0,
 				50,
 				tileToIndex,
-				quality );
+				quality,
+				util.Threads.numThreads() );
 
 		for ( final Pair< Tile< ? >, Tile< ? > > removed : removedInconsistentPairs )
 			System.out.println( "Removed " + tileToIndex.get( removed.getA() ) + " to " + tileToIndex.get( removed.getB() ) + " (" + tileToData.get( removed.getA() ) + " to " + tileToData.get( removed.getB() ) + ")" );

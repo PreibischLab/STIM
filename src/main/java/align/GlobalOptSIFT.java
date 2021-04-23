@@ -30,6 +30,7 @@ import mpicbg.models.TileUtil;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
+import util.Threads;
 
 public class GlobalOptSIFT
 {
@@ -104,48 +105,65 @@ public class GlobalOptSIFT
 		return matches;
 	}
 
-	public static void main( String[] args ) throws IOException
+	public static void globalOpt(
+			final File n5Path,
+			final List<String> datasets,
+			final boolean useQuality,
+			final double lambdaGlobal,
+			final double maxAllowedError,
+			final int maxIterations,
+			final int maxPlateauwidth,
+			final double relativeThreshold,
+			final double absoluteThreshold,
+			final boolean icpRefine,
+			final double lambdaICP,
+			final double icpErrorFraction,
+			final double maxAllowedErrorICP,
+			final int numIterationsICP,
+			final int maxPlateauwhidthICP,
+			final int numThreads ) throws IOException
 	{
-		final String path = Path.getPath();
-
-		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
-
-		final File n5Path = new File( path + "slide-seq-normalized.n5" );
 		final N5FSReader n5 = N5IO.openN5( n5Path );
-		final List< String > pucks = N5IO.listAllDatasets( n5 );
 
 		final ArrayList< STData > puckData = new ArrayList<STData>();
-		for ( final String puck : pucks )
+		for ( final String puck : datasets )
 			puckData.add( N5IO.readN5( n5, puck ) );
 
-		final HashMap< STData, Tile< RigidModel2D > > dataToTile = new HashMap<>();
-		final HashMap< Tile< RigidModel2D >, STData > tileToData = new HashMap<>();
-		final HashMap< Tile< RigidModel2D >, Integer > tileToIndex = new HashMap<>();
+		final HashMap< STData, Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > > dataToTile = new HashMap<>();
+		final HashMap< Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > >, STData > tileToData = new HashMap<>();
+		final HashMap< Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > >, Integer > tileToIndex = new HashMap<>();
 
 		// for accessing the quality later
-		final double[][] quality = new double[pucks.size()][pucks.size()];
+		final double[][] quality = new double[datasets.size()][datasets.size()];
 		double maxQuality = -Double.MAX_VALUE;
 		double minQuality = Double.MAX_VALUE;
 
-		for ( int i = 0; i < pucks.size() - 1; ++i )
+		for ( int i = 0; i < datasets.size() - 1; ++i )
 		{
-			for ( int j = i + 1; j < pucks.size(); ++j )
+			for ( int j = i + 1; j < datasets.size(); ++j )
 			{
 				final Matches matches = loadMatches( n5, i, j );//loadMatches( siftMatchesPath, i, j );
 
-				quality[ i ][ j ] = quality[ j ][ i ] = matches.quality();
-
-				maxQuality = Math.max( maxQuality, quality[ i ][ j ] );
-				minQuality = Math.min( minQuality, quality[ i ][ j ] );
+				if ( useQuality )
+				{
+					quality[ i ][ j ] = quality[ j ][ i ] = matches.quality();
+	
+					maxQuality = Math.max( maxQuality, quality[ i ][ j ] );
+					minQuality = Math.min( minQuality, quality[ i ][ j ] );
+				}
+				else
+				{
+					quality[ i ][ j ] = quality[ j ][ i ] = 1.0;
+				}
 
 				final STData stDataA = puckData.get(i);
 				final STData stDataB = puckData.get(j);
 
-				final Tile< RigidModel2D > tileA, tileB;
+				final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileA, tileB;
 
 				if ( !dataToTile.containsKey( stDataA ) )
 				{
-					tileA = new Tile<>( new RigidModel2D() );
+					tileA = new Tile<>( new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >( new AffineModel2D(), new RigidModel2D(), lambdaGlobal ) );
 					dataToTile.put( stDataA, tileA );
 					tileToData.put( tileA, stDataA );
 				}
@@ -156,7 +174,7 @@ public class GlobalOptSIFT
 
 				if ( !dataToTile.containsKey( stDataB ) )
 				{
-					tileB = new Tile<>( new RigidModel2D() );
+					tileB = new Tile<>( new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >( new AffineModel2D(), new RigidModel2D(), lambdaGlobal ) );
 					dataToTile.put( stDataB, tileB );
 					tileToData.put( tileB, stDataB );
 				}
@@ -177,31 +195,34 @@ public class GlobalOptSIFT
 			}
 		}
 
-		System.out.println( "minQ: " + minQuality );
-		System.out.println( "maxQ: " + maxQuality );
-
-		for ( int i = 0; i < pucks.size(); ++i )
+		if ( useQuality )
 		{
-			System.out.print( "i=" + i + ": " );
-
-			for ( int j = 0; j < pucks.size(); ++j )
+			System.out.println( "minQ: " + minQuality );
+			System.out.println( "maxQ: " + maxQuality );
+	
+			for ( int i = 0; i < datasets.size(); ++i )
 			{
-				if ( i == j || quality[ i ][ j ] < minQuality )
-					quality[ i ][ j ] = 0.0;
-				else
-					quality[ i ][ j ] = ( quality[ i ][ j ] - minQuality ) / ( maxQuality - minQuality );
-
-				System.out.print( j + "=" + quality[ i ][ j ] + " ");
+				System.out.print( "i=" + i + ": " );
+	
+				for ( int j = 0; j < datasets.size(); ++j )
+				{
+					if ( i == j || quality[ i ][ j ] < minQuality )
+						quality[ i ][ j ] = 0.0;
+					else
+						quality[ i ][ j ] = ( quality[ i ][ j ] - minQuality ) / ( maxQuality - minQuality );
+	
+					System.out.print( j + "=" + quality[ i ][ j ] + " ");
+				}
+				System.out.println();
 			}
-			System.out.println();
 		}
 
-		System.out.println( dataToTile.keySet().size() + " / " + pucks.size() );
-		System.out.println( tileToData.keySet().size() + " / " + pucks.size() );
+		System.out.println( dataToTile.keySet().size() + " / " + datasets.size() );
+		System.out.println( tileToData.keySet().size() + " / " + datasets.size() );
 
 		//System.exit( 0 );
 
-		for ( int i = 0; i < pucks.size(); ++i )
+		for ( int i = 0; i < datasets.size(); ++i )
 			System.out.println( puckData.get( i ) + ": " + dataToTile.get( puckData.get( i ) ) );
 
 		final TileConfiguration tileConfig = new TileConfiguration();
@@ -210,17 +231,18 @@ public class GlobalOptSIFT
 		tileConfig.fixTile( dataToTile.get( puckData.get( 0 ) ) );
 
 		final ArrayList< Pair< Tile< ? >, Tile< ? > > > removedInconsistentPairs = new ArrayList<>();
-		
+
 		GlobalOpt.iterativeGlobalOpt(
 				tileConfig,
 				removedInconsistentPairs,
-				300,
-				500,
-				500,
-				3.0,
-				160,
+				maxAllowedError,
+				maxIterations,
+				maxPlateauwidth,
+				relativeThreshold,
+				absoluteThreshold,
 				tileToIndex,
-				quality );
+				quality,
+				numThreads );
 
 		for ( final Pair< Tile< ? >, Tile< ? > > removed : removedInconsistentPairs )
 			System.out.println( "Removed " + tileToIndex.get( removed.getA() ) + " to " + tileToIndex.get( removed.getB() ) + " (" + tileToData.get( removed.getA() ) + " to " + tileToData.get( removed.getB() ) + ")" );
@@ -229,11 +251,11 @@ public class GlobalOptSIFT
 
 		final N5FSWriter n5Writer = N5IO.openN5write( n5Path );
 
-		for ( int i = 0; i < pucks.size(); ++i )
+		for ( int i = 0; i < datasets.size(); ++i )
 		{
 			final AffineTransform2D transform = AlignTools.modelToAffineTransform2D( dataToTile.get( puckData.get( i ) ).getModel() );
 
-			final String groupName = n5.groupPath( pucks.get( i ) );
+			final String groupName = n5.groupPath( datasets.get( i ) );
 			n5Writer.setAttribute( groupName, "model_sift", transform.getRowPackedCopy() );
 			n5Writer.setAttribute( groupName, "transform", transform.getRowPackedCopy() ); // will be overwritten by ICP later
 
@@ -243,149 +265,194 @@ public class GlobalOptSIFT
 
 		new ImageJ();
 		AlignTools.visualizeList( data );
-		
+
 		System.out.println( "Avg error: " + tileConfig.getError() );
 
-		//
-		// perform ICP refinement
-		//
-		final int icpIteration = 100;
-		final double lambda = 0.1;
-
-		final TileConfiguration tileConfigICP = new TileConfiguration();
-
-		final HashMap< STData, Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > > dataToTileICP = new HashMap<>();
-		final HashMap< Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > >, STData > tileToDataICP = new HashMap<>();
-
-		for ( final STData stdata : dataToTile.keySet() )
+		if ( icpRefine )
 		{
-			final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tile =
-					new Tile<>( new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >( new AffineModel2D(), new RigidModel2D(), lambda ) );
-			dataToTileICP.put( stdata, tile );
-			tileToDataICP.put( tile, stdata );
-		}
-
-		for ( int i = 0; i < pucks.size() - 1; ++i )
-		{
-			for ( int j = i + 1; j < pucks.size(); ++j )
+			//
+			// perform ICP refinement
+			//
+			final int icpIteration = 100;
+	
+			final TileConfiguration tileConfigICP = new TileConfiguration();
+	
+			final HashMap< STData, Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > > dataToTileICP = new HashMap<>();
+			final HashMap< Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > >, STData > tileToDataICP = new HashMap<>();
+	
+			for ( final STData stdata : dataToTile.keySet() )
 			{
-				final Matches matches = loadMatches( n5, i, j ); //loadMatches( siftMatchesPath, i, j );
-
-				// they were connected and we use the genes that RANSAC filtered
-				if ( matches.genes.size() > 0 )
+				final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tile =
+						new Tile<>( new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >( new AffineModel2D(), new RigidModel2D(), lambdaICP ) );
+				dataToTileICP.put( stdata, tile );
+				tileToDataICP.put( tile, stdata );
+			}
+	
+			for ( int i = 0; i < datasets.size() - 1; ++i )
+			{
+				for ( int j = i + 1; j < datasets.size(); ++j )
 				{
-					// was this one removed during global opt?
-					boolean wasRemoved = false;
-
-					for ( final Pair< Tile< ? >, Tile< ? > > removed : removedInconsistentPairs )
+					final Matches matches = loadMatches( n5, i, j ); //loadMatches( siftMatchesPath, i, j );
+	
+					// they were connected and we use the genes that RANSAC filtered
+					if ( matches.genes.size() > 0 )
 					{
-						final int id0 = tileToIndex.get( removed.getA() );
-						final int id1 = tileToIndex.get( removed.getB() );
-
-						if ( i == id0 && j == id1 || j == id0 && i == id1 )
+						// was this one removed during global opt?
+						boolean wasRemoved = false;
+	
+						for ( final Pair< Tile< ? >, Tile< ? > > removed : removedInconsistentPairs )
 						{
-							wasRemoved = true;
-							break;
+							final int id0 = tileToIndex.get( removed.getA() );
+							final int id1 = tileToIndex.get( removed.getB() );
+	
+							if ( i == id0 && j == id1 || j == id0 && i == id1 )
+							{
+								wasRemoved = true;
+								break;
+							}
 						}
-					}
-
-					if ( wasRemoved )
-					{
-						System.out.println( i + "<>" + j + " was removed in global opt. Not running ICP." );
-					}
-					else
-					{
-						System.out.print( "ICP for: " + i + "<>" + j + ": " );
-						for ( final String gene : matches.genes )
-							System.out.print( gene + "," );
-						System.out.println();
-						
-						final RigidModel2D modelA = dataToTile.get( puckData.get( i ) ).getModel().copy();
-						final RigidModel2D modelB = dataToTile.get( puckData.get( j ) ).getModel().copy();
-						final RigidModel2D modelAInv = modelA.createInverse();
-
-						// modelA is the identity transform after applying its own inverse
-						modelA.preConcatenate( modelAInv );
-						// modelB maps B to A
-						modelB.preConcatenate( modelAInv );
-
-						final AffineModel2D affineB = new AffineModel2D();
-						affineB.set( modelB );
-
-						final InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > interpolated =
-								new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>( affineB, modelB, lambda );
-
-						final Pair< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >, List< PointMatch > > icpT =
-								ICPAlign.alignICP( puckData.get( i ), puckData.get( j ), matches.genes, interpolated, tileConfig.getError() / 10.0, icpIteration );
-
-						if ( icpT.getB().size() > 0 )
+	
+						if ( wasRemoved )
 						{
-							final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileA = dataToTileICP.get( puckData.get( i ) );
-							final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileB = dataToTileICP.get( puckData.get( j ) );
-
-							System.out.println( "Connecting " + i + " to " + j + " with " + icpT.getB().size() + " inliers." ); 
-							tileA.connect( tileB, icpT.getB() );
+							System.out.println( i + "<>" + j + " was removed in global opt. Not running ICP." );
 						}
-						/*
-						List< Pair< STData, AffineTransform2D > > dataTmp = new ArrayList<>();
-
-						dataTmp.add( new ValuePair<>( puckData.get( i ), GlobalOpt.modelToAffineTransform2D( modelA ) ) );
-						dataTmp.add( new ValuePair<>( puckData.get( j ), GlobalOpt.modelToAffineTransform2D( modelB ) ) );
-						dataTmp.add( new ValuePair<>( puckData.get( j ), GlobalOpt.modelToAffineTransform2D( icpT.getA() ) ) );
-						
-						GlobalOpt.visualizeList( dataTmp ).setTitle( i + "-" + j + "_ICP" );
-
-						//SimpleMultiThreading.threadHaltUnClean();
-						*/
+						else
+						{
+							System.out.print( "ICP for: " + i + "<>" + j + ": " );
+							for ( final String gene : matches.genes )
+								System.out.print( gene + "," );
+							System.out.println();
+							
+							final InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > modelA = dataToTile.get( puckData.get( i ) ).getModel().copy();
+							final InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > modelB = dataToTile.get( puckData.get( j ) ).getModel().copy();
+							final InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > modelAInv = modelA.createInverse();
+	
+							// modelA is the identity transform after applying its own inverse
+							modelA.preConcatenate( modelAInv );
+							// modelB maps B to A
+							modelB.preConcatenate( modelAInv );
+	
+							//final AffineModel2D affineB = new AffineModel2D();
+							//affineB.set( modelB );
+	
+							final InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > interpolated = modelB;
+									//new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>( affineB, modelB, lambda );
+	
+							final Pair< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >, List< PointMatch > > icpT =
+									ICPAlign.alignICP( puckData.get( i ), puckData.get( j ), matches.genes, interpolated, tileConfig.getError() * icpErrorFraction, icpIteration );
+	
+							if ( icpT.getB().size() > 0 )
+							{
+								final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileA = dataToTileICP.get( puckData.get( i ) );
+								final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileB = dataToTileICP.get( puckData.get( j ) );
+	
+								System.out.println( "Connecting " + i + " to " + j + " with " + icpT.getB().size() + " inliers." ); 
+								tileA.connect( tileB, icpT.getB() );
+							}
+							/*
+							List< Pair< STData, AffineTransform2D > > dataTmp = new ArrayList<>();
+	
+							dataTmp.add( new ValuePair<>( puckData.get( i ), GlobalOpt.modelToAffineTransform2D( modelA ) ) );
+							dataTmp.add( new ValuePair<>( puckData.get( j ), GlobalOpt.modelToAffineTransform2D( modelB ) ) );
+							dataTmp.add( new ValuePair<>( puckData.get( j ), GlobalOpt.modelToAffineTransform2D( icpT.getA() ) ) );
+							
+							GlobalOpt.visualizeList( dataTmp ).setTitle( i + "-" + j + "_ICP" );
+	
+							//SimpleMultiThreading.threadHaltUnClean();
+							*/
+						}
 					}
 				}
 			}
+	
+			tileConfigICP.addTiles( new HashSet<>( dataToTileICP.values() ) );
+			tileConfigICP.fixTile( dataToTileICP.get( puckData.get( 0 ) ) );
+	
+			try
+			{
+				tileConfigICP.preAlign();
+	
+				TileUtil.optimizeConcurrently(
+					new ErrorStatistic( 500 + 1 ),
+					maxAllowedErrorICP,
+					numIterationsICP,
+					maxPlateauwhidthICP,
+					1.0,
+					tileConfigICP,
+					tileConfigICP.getTiles(),
+					tileConfigICP.getFixedTiles(),
+					numThreads );
+	
+				System.out.println( " avg=" + tileConfig.getError() + ", min=" + tileConfig.getMinError() + ", max=" + tileConfig.getMaxError() );
+			}
+			catch ( Exception e )
+			{
+				System.out.println( ": Could not solve, cause: " + e );
+				e.printStackTrace();
+			}
+	
+			final List< Pair< STData, AffineTransform2D > > dataICP = new ArrayList<>();
+	
+			for ( int i = 0; i < datasets.size(); ++i )
+			{
+				final AffineTransform2D transform = AlignTools.modelToAffineTransform2D( dataToTileICP.get( puckData.get( i ) ).getModel() );
+	
+				final String groupName = n5.groupPath( datasets.get( i ) );
+				n5Writer.setAttribute( groupName, "model_icp", transform.getRowPackedCopy() );
+				n5Writer.setAttribute( groupName, "transform", transform.getRowPackedCopy() ); // overwritten
+	
+				System.out.println( puckData.get( i ) + ": " + transform );
+	
+				dataICP.add( new ValuePair<>( puckData.get( i ), transform ) );
+			}
+	
+			AlignTools.visualizeList( dataICP ).setTitle( "ICP-reg" );
+			
+			System.out.println( "Avg error: " + tileConfig.getError() );
 		}
+	}
 
-		tileConfigICP.addTiles( new HashSet<>( dataToTileICP.values() ) );
-		tileConfigICP.fixTile( dataToTileICP.get( puckData.get( 0 ) ) );
+	public static void main( String[] args ) throws IOException
+	{
+		final String path = Path.getPath();
 
-		try
-		{
-			tileConfigICP.preAlign();
+		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
 
-			TileUtil.optimizeConcurrently(
-				new ErrorStatistic( 500 + 1 ),
-				140,
-				3000,
-				500,
-				1.0,
-				tileConfigICP,
-				tileConfigICP.getTiles(),
-				tileConfigICP.getFixedTiles(),
-				30 );
+		final File n5Path = new File( path + "slide-seq-normalized.n5" );
+		final N5FSReader n5 = N5IO.openN5( n5Path );
+		final List< String > pucks = N5IO.listAllDatasets( n5 );
 
-			System.out.println( " avg=" + tileConfig.getError() + ", min=" + tileConfig.getMinError() + ", max=" + tileConfig.getMaxError() );
-		}
-		catch ( Exception e )
-		{
-			System.out.println( ": Could not solve, cause: " + e );
-			e.printStackTrace();
-		}
+		final boolean useQuality = true;
+		final double maxAllowedError = 300;
+		final int maxIterations = 500;
+		final int maxPlateauwidth = 500;
+		final double relativeThreshold = 3.0;
+		final double absoluteThreshold = 160;
 
-		final List< Pair< STData, AffineTransform2D > > dataICP = new ArrayList<>();
+		final double lambdaGlobal = 1.0; // rigid only
+		final double lambdaICP = 0.1; // rigid only
 
-		for ( int i = 0; i < pucks.size(); ++i )
-		{
-			final AffineTransform2D transform = AlignTools.modelToAffineTransform2D( dataToTileICP.get( puckData.get( i ) ).getModel() );
+		final double icpErrorFraction = 1.0 / 10.0;
+		final double maxAllowedErrorICP = 140;
+		final int numIterationsICP = 3000;
+		final int maxPlateauwhidthICP = 500;
 
-			final String groupName = n5.groupPath( pucks.get( i ) );
-			n5Writer.setAttribute( groupName, "model_icp", transform.getRowPackedCopy() );
-			n5Writer.setAttribute( groupName, "transform", transform.getRowPackedCopy() ); // overwritten
 
-			System.out.println( puckData.get( i ) + ": " + transform );
-
-			dataICP.add( new ValuePair<>( puckData.get( i ), transform ) );
-		}
-
-		AlignTools.visualizeList( dataICP ).setTitle( "ICP-reg" );
-		
-		System.out.println( "Avg error: " + tileConfig.getError() );
-
+		globalOpt(
+				n5Path, pucks,
+				useQuality,
+				lambdaGlobal,
+				maxAllowedError,
+				maxIterations,
+				maxPlateauwidth,
+				relativeThreshold,
+				absoluteThreshold,
+				true,
+				lambdaICP,
+				icpErrorFraction,
+				maxAllowedErrorICP,
+				numIterationsICP,
+				maxPlateauwhidthICP,
+				Threads.numThreads() );
 	}
 }
