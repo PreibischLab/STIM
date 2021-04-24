@@ -12,6 +12,7 @@ import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 
 import data.STData;
+import data.STDataStatistics;
 import ij.ImageJ;
 import io.N5IO;
 import io.Path;
@@ -103,14 +104,13 @@ public class GlobalOptSIFT
 			final File n5Path,
 			final List<String> datasets,
 			final boolean useQuality,
-			final double lambdaGlobal,
+			final double lambda,
 			final double maxAllowedError,
 			final int maxIterations,
 			final int maxPlateauwidth,
 			final double relativeThreshold,
 			final double absoluteThreshold,
 			final boolean icpRefine,
-			final double lambdaICP,
 			final double icpErrorFraction,
 			final double maxAllowedErrorICP,
 			final int numIterationsICP,
@@ -123,9 +123,9 @@ public class GlobalOptSIFT
 		for ( final String puck : datasets )
 			puckData.add( N5IO.readN5( n5, puck ) );
 
-		final HashMap< STData, Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > > dataToTile = new HashMap<>();
-		final HashMap< Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > >, STData > tileToData = new HashMap<>();
-		final HashMap< Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > >, Integer > tileToIndex = new HashMap<>();
+		final HashMap< STData, Tile< RigidModel2D > > dataToTile = new HashMap<>();
+		final HashMap< Tile< RigidModel2D >, STData > tileToData = new HashMap<>();
+		final HashMap< Tile< RigidModel2D >, Integer > tileToIndex = new HashMap<>();
 
 		// for accessing the quality later
 		final double[][] quality = new double[datasets.size()][datasets.size()];
@@ -153,11 +153,11 @@ public class GlobalOptSIFT
 				final STData stDataA = puckData.get(i);
 				final STData stDataB = puckData.get(j);
 
-				final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileA, tileB;
+				final Tile< RigidModel2D > tileA, tileB;
 
 				if ( !dataToTile.containsKey( stDataA ) )
 				{
-					tileA = new Tile<>( new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >( new AffineModel2D(), new RigidModel2D(), lambdaGlobal ) );
+					tileA = new Tile<>( new RigidModel2D() );
 					dataToTile.put( stDataA, tileA );
 					tileToData.put( tileA, stDataA );
 				}
@@ -168,7 +168,7 @@ public class GlobalOptSIFT
 
 				if ( !dataToTile.containsKey( stDataB ) )
 				{
-					tileB = new Tile<>( new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >( new AffineModel2D(), new RigidModel2D(), lambdaGlobal ) );
+					tileB = new Tile<>( new RigidModel2D() );
 					dataToTile.put( stDataB, tileB );
 					tileToData.put( tileB, stDataB );
 				}
@@ -277,7 +277,7 @@ public class GlobalOptSIFT
 			for ( final STData stdata : dataToTile.keySet() )
 			{
 				final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tile =
-						new Tile<>( new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >( new AffineModel2D(), new RigidModel2D(), lambdaICP ) );
+						new Tile<>( new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >( new AffineModel2D(), new RigidModel2D(), lambda ) );
 				dataToTileICP.put( stdata, tile );
 				tileToDataICP.put( tile, stdata );
 			}
@@ -317,23 +317,28 @@ public class GlobalOptSIFT
 								System.out.print( gene + "," );
 							System.out.println();
 							
-							final InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > modelA = dataToTile.get( puckData.get( i ) ).getModel().copy();
-							final InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > modelB = dataToTile.get( puckData.get( j ) ).getModel().copy();
-							final InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > modelAInv = modelA.createInverse();
+							final RigidModel2D modelA = dataToTile.get( puckData.get( i ) ).getModel().copy();
+							final RigidModel2D modelB = dataToTile.get( puckData.get( j ) ).getModel().copy();
+							final RigidModel2D modelAInv = modelA.createInverse();
 	
 							// modelA is the identity transform after applying its own inverse
 							modelA.preConcatenate( modelAInv );
 							// modelB maps B to A
 							modelB.preConcatenate( modelAInv );
 	
-							//final AffineModel2D affineB = new AffineModel2D();
-							//affineB.set( modelB );
+							final AffineModel2D affineB = new AffineModel2D();
+							affineB.set( modelB );
 	
-							final InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > interpolated = modelB;
-									//new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>( affineB, modelB, lambda );
-	
+							final InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > interpolated = //modelB;
+									new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>( affineB, modelB, lambda );
+
+							final double medianDistance = 
+									Math.max( new STDataStatistics( puckData.get( i ) ).getMedianDistance(), new STDataStatistics( puckData.get( j ) ).getMedianDistance() );
+
+							final double maxDistance = Math.max( medianDistance * 2, tileConfig.getError() * icpErrorFraction );
+
 							final Pair< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >, List< PointMatch > > icpT =
-									ICPAlign.alignICP( puckData.get( i ), puckData.get( j ), matches.genes, interpolated, tileConfig.getError() * icpErrorFraction, icpIteration );
+									ICPAlign.alignICP( puckData.get( i ), puckData.get( j ), matches.genes, interpolated, maxDistance, icpIteration );
 	
 							if ( icpT.getB().size() > 0 )
 							{
@@ -417,7 +422,7 @@ public class GlobalOptSIFT
 		final List< String > pucks = N5IO.listAllDatasets( n5 );
 
 		final boolean useQuality = true;
-		final double lambdaGlobal = 1.0; // rigid only
+		final double lambdaGlobal = 0.1; // rigid only
 		final double maxAllowedError = 300;
 		final int maxIterations = 500;
 		final int maxPlateauwidth = 500;
@@ -425,7 +430,6 @@ public class GlobalOptSIFT
 		final double absoluteThreshold = 160;
 
 		final boolean doICP = false;
-		final double lambdaICP = 0.1;
 		final double icpErrorFraction = 1.0 / 10.0;
 		final double maxAllowedErrorICP = 140;
 		final int numIterationsICP = 3000;
@@ -441,7 +445,6 @@ public class GlobalOptSIFT
 				relativeThreshold,
 				absoluteThreshold,
 				doICP,
-				lambdaICP,
 				icpErrorFraction,
 				maxAllowedErrorICP,
 				numIterationsICP,
