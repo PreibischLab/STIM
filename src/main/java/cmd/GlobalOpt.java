@@ -66,7 +66,7 @@ public class GlobalOpt implements Callable<Void> {
 		}
 
 		final boolean useQuality = true;
-		final double lambda = 0.1;
+		final double lambda = 0.01;
 		final double maxAllowedError = 300;
 		final int maxIterations = 500;
 		final int maxPlateauwidth = 500;
@@ -74,7 +74,7 @@ public class GlobalOpt implements Callable<Void> {
 		final double absoluteThreshold = 160;
 
 		final boolean doICP = true;
-		final double icpErrorFraction = 1.0 / 10.0;
+		final double icpErrorFraction = 1.0 / 2.0;
 		final double maxAllowedErrorICP = 140;
 		final int numIterationsICP = 3000;
 		final int maxPlateauwhidthICP = 500;

@@ -73,6 +73,7 @@ public class ICPAlign
 		final KDTree< RealPoint > kdTreeRef = new KDTree< RealPoint >( listA, listA );
 		final RadiusNeighborSearchOnKDTree< RealPoint > radiusSearchRef = new RadiusNeighborSearchOnKDTree<>( kdTreeRef );
 
+		// TODO: Gaussian blur first?? and/or relative brightness of each spot or gradient instead of selecting them? -- checkout 0<>2
 		for ( final RealPoint p : listA )
 		{
 			radiusSearchRef.search( p, maxDistance, true );
