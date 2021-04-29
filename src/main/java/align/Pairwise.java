@@ -120,7 +120,7 @@ public class Pairwise
 		model.set( m[ 0 ], m[ 3 ], m[ 1 ], m[ 4 ], m[ 2 ], m[ 5 ] );
 
 		final PointMatchIdentification< RealPoint > pmi = new StDataPointMatchIdentification<>( stdataB, stdataA, genesToUse, maxDistance );
-		final ICP< RealPoint > icp = new ICP<>( listB, listA, pmi );
+		final ICP< RealPoint > icp = new ICP<>( listB, listA, pmi, Double.NaN );
 
 		int i = 0;
 		double lastAvgError = 0;
