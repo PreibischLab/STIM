@@ -40,6 +40,7 @@ public class ICPAlign
 	 * @param genesToUse - list of genes
 	 * @param initialModel - maps B to A
 	 * @param maxDistance - max search radius for corresponding point
+	 * @param ransacDistance - distance for ransac, Double.NaN means no ransac
 	 * @param maxIterations - max num of ICP iterations
 	 */
 	public static < M extends Model< M >> Pair< M, List< PointMatch > > alignICP(
@@ -48,6 +49,7 @@ public class ICPAlign
 			final Collection< String > genesToUse,
 			final M initialModel,
 			final double maxDistance,
+			final double ransacDistance,
 			final int maxIterations )
 	{
 		final ArrayList< RealPoint > listA = new ArrayList<>(); // reference
@@ -109,7 +111,7 @@ public class ICPAlign
 		final M model = initialModel.copy();
 
 		final PointMatchIdentification< RealPoint > pmi = new StDataPointMatchIdentification<>( stdataB, stdataA, genesToUse, maxDistance );
-		final ICP< RealPoint > icp = new ICP<>( listB, listA /* listAFiltered */, pmi, maxDistance / 2.0 );
+		final ICP< RealPoint > icp = new ICP<>( listB, listA /* listAFiltered */, pmi, ransacDistance / 2.0 );
 
 		int i = 0;
 		double lastAvgError = 0;

@@ -337,7 +337,7 @@ public class GlobalOptSIFT
 							final double maxDistance = medianDistance * icpErrorFactor;
 
 							final Pair< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >, List< PointMatch > > icpT =
-									ICPAlign.alignICP( puckData.get( i ), puckData.get( j ), matches.genes, interpolated, maxDistance, icpIterations );
+									ICPAlign.alignICP( puckData.get( i ), puckData.get( j ), matches.genes, interpolated, maxDistance, maxDistance / 2.0, icpIterations );
 	
 							if ( icpT.getB().size() > 0 )
 							{
