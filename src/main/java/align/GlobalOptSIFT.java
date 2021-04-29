@@ -111,7 +111,8 @@ public class GlobalOptSIFT
 			final double relativeThreshold,
 			final double absoluteThreshold,
 			final boolean icpRefine,
-			final double icpErrorFraction,
+			final int icpIterations,
+			final double icpErrorFactor,
 			final double maxAllowedErrorICP,
 			final int numIterationsICP,
 			final int maxPlateauwhidthICP,
@@ -267,8 +268,6 @@ public class GlobalOptSIFT
 			//
 			// perform ICP refinement
 			//
-			final int icpIteration = 100;
-	
 			final TileConfiguration tileConfigICP = new TileConfiguration();
 	
 			final HashMap< STData, Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > > dataToTileICP = new HashMap<>();
@@ -335,10 +334,10 @@ public class GlobalOptSIFT
 							final double medianDistance = 
 									Math.max( new STDataStatistics( puckData.get( i ) ).getMedianDistance(), new STDataStatistics( puckData.get( j ) ).getMedianDistance() );
 
-							final double maxDistance = Math.max( medianDistance * 2, tileConfig.getError() * icpErrorFraction );
+							final double maxDistance = medianDistance * icpErrorFactor;
 
 							final Pair< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >, List< PointMatch > > icpT =
-									ICPAlign.alignICP( puckData.get( i ), puckData.get( j ), matches.genes, interpolated, maxDistance, icpIteration );
+									ICPAlign.alignICP( puckData.get( i ), puckData.get( j ), matches.genes, interpolated, maxDistance, icpIterations );
 	
 							if ( icpT.getB().size() > 0 )
 							{
@@ -382,7 +381,7 @@ public class GlobalOptSIFT
 					tileConfigICP.getFixedTiles(),
 					numThreads );
 	
-				System.out.println( " avg=" + tileConfig.getError() + ", min=" + tileConfig.getMinError() + ", max=" + tileConfig.getMaxError() );
+				System.out.println( " avg=" + tileConfigICP.getError() + ", min=" + tileConfigICP.getMinError() + ", max=" + tileConfigICP.getMaxError() );
 			}
 			catch ( Exception e )
 			{
@@ -407,7 +406,7 @@ public class GlobalOptSIFT
 	
 			AlignTools.visualizeList( dataICP ).setTitle( "ICP-reg" );
 			
-			System.out.println( "Avg error: " + tileConfig.getError() );
+			System.out.println( "Avg error: " + tileConfigICP.getError() );
 		}
 	}
 
@@ -430,7 +429,8 @@ public class GlobalOptSIFT
 		final double absoluteThreshold = 160;
 
 		final boolean doICP = false;
-		final double icpErrorFraction = 1.0 / 10.0;
+		final int icpIterations = 100;
+		final double icpErrorFraction = 2.0;
 		final double maxAllowedErrorICP = 140;
 		final int numIterationsICP = 3000;
 		final int maxPlateauwhidthICP = 500;
@@ -445,6 +445,7 @@ public class GlobalOptSIFT
 				relativeThreshold,
 				absoluteThreshold,
 				doICP,
+				icpIterations,
 				icpErrorFraction,
 				maxAllowedErrorICP,
 				numIterationsICP,
