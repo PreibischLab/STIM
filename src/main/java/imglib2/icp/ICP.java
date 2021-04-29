@@ -48,7 +48,9 @@ public class ICP < P extends RealLocalizable >
 	List< PointMatch > pointMatches;
 	ArrayList< PointMatch > ambigousMatches;
 	PointMatchIdentification< P > pointMatchIdentifier;
-	
+
+	final double maxErrorRANSAC;
+
 	double avgError, maxError;
 	int numMatches;
 	
@@ -60,8 +62,9 @@ public class ICP < P extends RealLocalizable >
 	 * @param target - the {@link List} of target points
 	 * @param reference - the {@link List} of reference points
 	 * @param pointMatchIdentifier - the {@link PointMatchIdentification} which defines how correspondences are established
+	 * @param maxErrorRANSAC - maximal error for ransac after each ICP run (ignore if is Double.NaN)
 	 */
-	public ICP( final List< P > target, final List< P > reference, final PointMatchIdentification< P > pointMatchIdentifier )
+	public ICP( final List< P > target, final List< P > reference, final PointMatchIdentification< P > pointMatchIdentifier, final double maxErrorRANSAC )
 	{
 		this.reference = new ArrayList<>();
 		this.target = new ArrayList<>();
@@ -87,32 +90,11 @@ public class ICP < P extends RealLocalizable >
 
 		this.pointMatchIdentifier = pointMatchIdentifier;
 
+		this.maxErrorRANSAC = maxErrorRANSAC;
+
 		this.avgError = -1;
 		this.maxError = -1;
 		this.numMatches = -1;
-	}
-
-	/**
-	 * Also instantiates a new {@link ICP} instance, but uses the {@link SimplePointMatchIdentification} to define corresponding points.
-	 * 
-	 * @param target - the {@link List} of target points
-	 * @param reference - the {@link List} of reference points
-	 * @param distanceThreshold - the maximal distance of {@link SimplePointMatchIdentification}, so that the nearest neighbor of a point is still counted as a corresponding point
-	 */
-	public ICP( final List< P > target, final List< P > reference, final double distanceThreshold )
-	{
-		this( target, reference, new SimplePointMatchIdentification< P >( distanceThreshold ) );
-	}
-
-	/**
-	 * Also instantiates a new {@link ICP} instance, but uses the {@link SimplePointMatchIdentification} to define corresponding points.
-	 * 
-	 * @param target - the {@link List} of target points
-	 * @param reference - the {@link List} of reference points
-	 */
-	public ICP( final List< P > target, final List< P > reference )
-	{
-		this( target, reference, new SimplePointMatchIdentification<P>() );
 	}
 
 	/**
@@ -133,10 +115,22 @@ public class ICP < P extends RealLocalizable >
 			point.apply( lastModel );
 		
 		/* get corresponding points for ICP */
-		final List< PointMatch > matches = pointMatchIdentifier.assignPointMatches( target, reference );
-		
+		final List< PointMatch > candidates = pointMatchIdentifier.assignPointMatches( target, reference );
+
+		final List< PointMatch > matches = new ArrayList<>();
+
+		if ( !Double.isNaN( maxErrorRANSAC ))
+		{
+			newModel.filterRansac(candidates, matches, 200, maxErrorRANSAC, 0.0f );
+			System.out.println( "RANSAC: " + matches.size() + "/" + candidates.size() );
+		}
+		else
+		{
+			matches.addAll( candidates );
+		}
+
 		/* remove ambigous correspondences */
-		ambigousMatches = removeAmbigousMatches( matches );
+		//ambigousMatches = removeAmbigousMatches( matches );
 
 		/* fit the model */
 		newModel.fit( matches );
