@@ -50,7 +50,8 @@ public class GlobalOpt implements Callable<Void> {
 			return null;
 		}
 
-		final List< STData > stdata = new ArrayList<>();
+		
+		//final List< STData > stdata = new ArrayList<>();
 
 		for ( final String dataset : inputDatasets )
 		{
@@ -59,14 +60,16 @@ public class GlobalOpt implements Callable<Void> {
 				System.out.println( "dataset '" + dataset + "' not found. stopping.");
 				return null;
 			}
-			else
+			/*else
 			{
 				stdata.add( N5IO.readN5( n5, dataset ) );
-			}
+			}*/
 		}
 
+		// -d 'Puck_180602_20,Puck_180602_17'
+
 		final boolean useQuality = true;
-		final double lambda = 0.01;
+		final double lambda = 0.1;
 		final double maxAllowedError = 300;
 		final int maxIterations = 500;
 		final int maxPlateauwidth = 500;
@@ -74,6 +77,7 @@ public class GlobalOpt implements Callable<Void> {
 		final double absoluteThreshold = 160;
 
 		final boolean doICP = true;
+		final int icpIterations = 100;
 		final double icpErrorFraction = 1.0 / 2.0;
 		final double maxAllowedErrorICP = 140;
 		final int numIterationsICP = 3000;
@@ -90,6 +94,7 @@ public class GlobalOpt implements Callable<Void> {
 				relativeThreshold,
 				absoluteThreshold,
 				doICP,
+				icpIterations,
 				icpErrorFraction,
 				maxAllowedErrorICP,
 				numIterationsICP,
