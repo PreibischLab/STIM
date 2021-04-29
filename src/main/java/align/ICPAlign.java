@@ -63,7 +63,7 @@ public class ICPAlign
 		// filter only the brightest local points
 		// this way we make sure it is a relative measure, map brightest point in the local neighborhood to the brightest point in the corresponding area
 		//
-		final ArrayList< RealPoint > listAFiltered = new ArrayList<>(); // reference filtered
+		//final ArrayList< RealPoint > listAFiltered = new ArrayList<>(); // reference filtered
 
 		final HashMap< String, NearestNeighborSearchOnKDTree< DoubleType > > searchReference = new HashMap<>();
 		
@@ -74,6 +74,8 @@ public class ICPAlign
 		final RadiusNeighborSearchOnKDTree< RealPoint > radiusSearchRef = new RadiusNeighborSearchOnKDTree<>( kdTreeRef );
 
 		// TODO: Gaussian blur first?? and/or relative brightness of each spot or gradient instead of selecting them? -- checkout 0<>2
+
+		/*
 		for ( final RealPoint p : listA )
 		{
 			radiusSearchRef.search( p, maxDistance, true );
@@ -102,13 +104,12 @@ public class ICPAlign
 				listAFiltered.add( p );
 		}
 
-		// TODO: just very few left here 30/28000, this must be wrong
 		System.out.println( "Remaining: " + listAFiltered.size()+ "/" + listA.size() + ", maxdist=" + maxDistance );
-
+		*/
 		final M model = initialModel.copy();
 
 		final PointMatchIdentification< RealPoint > pmi = new StDataPointMatchIdentification<>( stdataB, stdataA, genesToUse, maxDistance );
-		final ICP< RealPoint > icp = new ICP<>( listB, listAFiltered, pmi );
+		final ICP< RealPoint > icp = new ICP<>( listB, listA /* listAFiltered */, pmi, maxDistance / 2.0 );
 
 		int i = 0;
 		double lastAvgError = 0;
