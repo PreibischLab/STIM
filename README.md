@@ -23,7 +23,7 @@ All dependencies will be downloaded and managed by maven automatically.
 This currently installs several tools, `st-resave, st-normalize, st-view, st-render`.
 
 ### 1.	Resave
-Resave a (compressed) textfile to the N5 format (and optionally `--normalize`) using
+Resave (compressed) textfiles to the N5 format (and optionally `--normalize`) using
 ```bash
 ./st-resave \
      -o '/path/directory.n5' \
@@ -34,14 +34,16 @@ Resave a (compressed) textfile to the N5 format (and optionally `--normalize`) u
 ```
 If the n5 directory exists new datasets will be added (example above:`name`, `Puck_180528_20`), otherwise a new n5 will be created. Each input consists of a `locations.csv` file, a `reads.csv` file, and a user-defined `dataset name`. The csv files can optionally be inside (zip/tar/tar.gz) files. It is tested on the slide-seq data linked above, which can be used as a blueprint for how to save one's own data for import.
 
-Optionally, the datasets can be directly log-normalized before resaving (recommended). The locations file should contain a header for `barcode (id), xcoord and ycoord`, followed by the entries:
+_Optionally_, cell type predictions can be imported as part of the resaving step, in this case each input consists of **four entries**, `locations.csv` file, a `reads.csv` file, **a `celltypes.csv` file**,and a user-defined `dataset name`. Please note that missing barcodes in celltypes.csv will be excluded from the dataset. This way you can filter locations with bad expression values.
+
+_Optionally_, the datasets can be directly log-normalized before resaving (recommended). The **locations file** should contain a header for `barcode (id), xcoord and ycoord`, followed by the entries:
 ```
 barcodes,xcoord,ycoord
 TCACGTAGAAACC,3091.01234567901,2471.88888888889
 TCTCCTAGTTCGG,4375.91791044776,1577.52985074627
 ...
 ```
-The reads file should contain all `barcodes (id)` as the header after a `Row` column that holds the gene identifier. It should have as many columns as there are sequenced locations (ids from above):
+The **reads file** should contain all `barcodes (id)` as the header after a `Row` column that holds the gene identifier. It should have as many columns as there are sequenced locations (ids from above):
 ```
 Row,TCACGTAGAAACC,TCTCCTAGTTCGG, ...
 0610005C13Rik,0,0, ...
@@ -49,6 +51,15 @@ Row,TCACGTAGAAACC,TCTCCTAGTTCGG, ...
 ...
 ```
 Note: if there is a mismatch between number of sequenced locations defined in the locations.csv (rows) with the locations in reads.csv (columns), the resave will stop.
+
+The _optional_ **celltypes file** should contain all `barcodes (id)` and `celltype id` (integer numbers) as a header:
+```
+barcodes,celltype
+TCACGTAGAAACC,28
+TCTCCTAGTTCGG,1
+ACCGTCTGAATTC,40
+...
+```
 
 ### 2. Normalization
 You can run the normalization also independently after resaving. The tool can resave selected or all datasets of an N5 container into the same or a new N5:
