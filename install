@@ -31,19 +31,19 @@ mvn clean install
 mvn -Dmdep.outputFile=cp.txt -Dmdep.includeScope=runtime dependency:build-classpath
 
 echo ""
-echo "Installing 'st-view' command into" $INSTALL_DIR
+echo "Installing 'st-explorer' command into" $INSTALL_DIR
 echo ""
 
-echo '#!/bin/bash' > st-view
-echo '' >> st-view
-echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> st-view
-echo 'java \' >> st-view
-echo "  -Xmx${MEM}g \\" >> st-view
-echo '  -XX:+UseConcMarkSweepGC \' >> st-view
-echo -n '  -cp $JAR:' >> st-view
-echo -n $(cat cp.txt) >> st-view
-echo ' \' >> st-view
-echo '  cmd.View "$@"' >> st-view
+echo '#!/bin/bash' > st-explorer
+echo '' >> st-explorer
+echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> st-explorer
+echo 'java \' >> st-explorer
+echo "  -Xmx${MEM}g \\" >> st-explorer
+echo '  -XX:+UseConcMarkSweepGC \' >> st-explorer
+echo -n '  -cp $JAR:' >> st-explorer
+echo -n $(cat cp.txt) >> st-explorer
+echo ' \' >> st-explorer
+echo '  cmd.View "$@"' >> st-explorer
 
 
 echo "Installing 'st-render' command into" $INSTALL_DIR
@@ -61,19 +61,19 @@ echo ' \' >> st-render
 echo '  cmd.RenderImage "$@"' >> st-render
 
 
-echo "Installing 'st-3d-view' command into" $INSTALL_DIR
+echo "Installing 'st-bdv-view' command into" $INSTALL_DIR
 echo ""
 
-echo '#!/bin/bash' > st-3d-view
-echo '' >> st-3d-view
-echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> st-3d-view
-echo 'java \' >> st-3d-view
-echo "  -Xmx${MEM}g \\" >> st-3d-view
-echo '  -XX:+UseConcMarkSweepGC \' >> st-3d-view
-echo -n '  -cp $JAR:' >> st-3d-view
-echo -n $(cat cp.txt) >> st-3d-view
-echo ' \' >> st-3d-view
-echo '  cmd.DisplayStackedSlides "$@"' >> st-3d-view
+echo '#!/bin/bash' > st-bdv-view
+echo '' >> st-bdv-view
+echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> st-bdv-view
+echo 'java \' >> st-bdv-view
+echo "  -Xmx${MEM}g \\" >> st-bdv-view
+echo '  -XX:+UseConcMarkSweepGC \' >> st-bdv-view
+echo -n '  -cp $JAR:' >> st-bdv-view
+echo -n $(cat cp.txt) >> st-bdv-view
+echo ' \' >> st-bdv-view
+echo '  cmd.DisplayStackedSlides "$@"' >> st-bdv-view
 
 
 echo "Installing 'st-resave' command into" $INSTALL_DIR
@@ -104,19 +104,67 @@ echo -n $(cat cp.txt) >> st-normalize
 echo ' \' >> st-normalize
 echo '  cmd.Normalize "$@"' >> st-normalize
 
-chmod a+x st-view
-chmod a+x st-3d-view
+
+echo "Installing 'st-align-pairs' command into" $INSTALL_DIR
+echo ""
+
+echo '#!/bin/bash' > st-align-pairs
+echo '' >> st-align-pairs
+echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> st-align-pairs
+echo 'java \' >> st-align-pairs
+echo "  -Xmx${MEM}g \\" >> st-align-pairs
+echo '  -XX:+UseConcMarkSweepGC \' >> st-align-pairs
+echo -n '  -cp $JAR:' >> st-align-pairs
+echo -n $(cat cp.txt) >> st-align-pairs
+echo ' \' >> st-align-pairs
+echo '  cmd.PairwiseSectionAligner "$@"' >> st-align-pairs
+
+
+echo "Installing 'st-align-pairs-view' command into" $INSTALL_DIR
+echo ""
+
+echo '#!/bin/bash' > st-align-pairs-view
+echo '' >> st-align-pairs-view
+echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> st-align-pairs-view
+echo 'java \' >> st-align-pairs-view
+echo "  -Xmx${MEM}g \\" >> st-align-pairs-view
+echo '  -XX:+UseConcMarkSweepGC \' >> st-align-pairs-view
+echo -n '  -cp $JAR:' >> st-align-pairs-view
+echo -n $(cat cp.txt) >> st-align-pairs-view
+echo ' \' >> st-align-pairs-view
+echo '  cmd.ViewPairwiseAlignment "$@"' >> st-align-pairs-view
+
+echo "Installing 'st-align-global' command into" $INSTALL_DIR
+echo ""
+
+echo '#!/bin/bash' > st-align-global
+echo '' >> st-align-global
+echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> st-align-global
+echo 'java \' >> st-align-global
+echo "  -Xmx${MEM}g \\" >> st-align-global
+echo '  -XX:+UseConcMarkSweepGC \' >> st-align-global
+echo -n '  -cp $JAR:' >> st-align-global
+echo -n $(cat cp.txt) >> st-align-global
+echo ' \' >> st-align-global
+echo '  cmd.GlobalOpt "$@"' >> st-align-global
+
+
+chmod a+x st-explorer
+chmod a+x st-bdv-view
 chmod a+x st-render
 chmod a+x st-resave
 chmod a+x st-normalize
+chmod a+x st-align-pairs
+chmod a+x st-align-pairs-view
+chmod a+x st-align-global
 
 if [ $(pwd) == "$INSTALL_DIR" ]; then
     echo "Installation directory equals current directory, we are done."
 else
 	echo "Creating directory $INSTALL_DIR and moving files..."
     mkdir -p $INSTALL_DIR
-    mv st-view $INSTALL_DIR/
-    mv st-3d-view $INSTALL_DIR/
+    mv st-explorer $INSTALL_DIR/
+    mv st-bdv-view $INSTALL_DIR/
     mv st-render $INSTALL_DIR/
     mv st-resave $INSTALL_DIR/
     mv st-normalize $INSTALL_DIR/
