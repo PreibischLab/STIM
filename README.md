@@ -101,9 +101,10 @@ If you only define the N5 path `-i` and one or more genes `-g`, the rendered ima
 ### 5. View selected genes for an entire N5 as 2D/3D using BigDataViewer
 In order to interactively browse the 2D/3D space of one or more datasets of an N5 with BigDataViewer you can
 ```bash
-./st-3d-view \
+./st-bdv-view \
      -i '/path/directory.n5' \
      -g Calm2,Hpca \
+     [-md 'celltype']
      [-d 'Puck_180528_20,Puck_180528_22'] \
      [-z 5.0] \
      [-c '0,255'] \
@@ -111,4 +112,4 @@ In order to interactively browse the 2D/3D space of one or more datasets of an N
      [-m 20] \
      [-sf 2.0] \
 ```
-Dataset(s) from the selected N5 `-i` will be interactively rendered for one or more selected gene `-g` (multiple genes will be overlaid into different colors). By default all datasets will be displayed, but they can be limited (or ordered) using `-d`. You can define the distance between sections with `-z` (as a factor of median spacing between sequenced locations), `-c` allows to preset the BigDataViewer intensity range and parameters `-f, -m, -sf` are explained above (4).
+Dataset(s) from the selected N5 `-i` will be interactively rendered for one or more selected gene `-g` (multiple genes will be overlaid into different colors). The switch `-md` will overlay for example celltype annotations. By default all datasets will be displayed, but they can be limited (or ordered) using `-d`. You can define the distance between sections with `-z` (as a factor of median spacing between sequenced locations), `-c` allows to preset the BigDataViewer intensity range and parameters `-f, -m, -sf` are explained above (4).
