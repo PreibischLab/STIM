@@ -75,7 +75,7 @@ The only parameter you have to provide is the input N5 `-i`. You can optionally 
 ### 3. Iteractive Viewing Application
 Run the interactive viewer as follows
 ```bash
-./st-view \
+./st-explorer \
      -i '/path/directory.n5' \
      [-d 'Puck_180528_20,Puck_180528_22'] \
      [-c '0,255']
