@@ -7,7 +7,7 @@ Library for managing, storage, viewing, and working with spatial transcriptomics
 3. [Normalization](#Normalization)
 4. [Iteractive Viewing Application](#Iteractive-Viewing-Application)
 5. [Render images and view or save as TIFF](#Render-images-and-view-or-save-as-TIFF)
-6. [View selected genes for an entire N5 as 2D/3D using BigDataViewer](#View-selected-genes-for-an-entire-N5-as-2D/3D-using-BigDataViewer)
+6. [View selected genes for an entire N5 as 2D/3D using BigDataViewer](#View-selected-genes-for-an-entire-N5-as-2D-or-3D-using-BigDataViewer)
 7. [Alignment of 2D slices](#Alignment-of-2D-slices)
    1. [Pairwise Alignment](#Pairwise-Alignment)
 
@@ -111,7 +111,7 @@ In order to render images of spatial sequencing datasets (can be saved as TIFF o
 ```
 If you only define the N5 path `-i` and one or more genes `-g`, the rendered image will be displayed as an ImageJ image. If a N5 contains more than one dataset, they will be rendered as 3D image. When defining an output directory `-o` images will not be displayed, but saved as TIFF (stacks) into the directory with filenames corresponding to the gene name. The optional switch `-d` allows you to select a subset of datasets from a N5, `-s` scales the rendering (default: 0.05), `-f` enables a single-spot filter (default: off), `-m` applies median filtering in locations space (not on top of the rendered image) with a certain radius (default: off), `-sf` sets the smoothness factor for rendering of the sparse dataset, and `-b` sets the size of an extra black border around the location coordinates (default: 20).
 
-## View selected genes for an entire N5 as 2D/3D using BigDataViewer
+## View selected genes for an entire N5 as 2D or 3D using BigDataViewer
 In order to interactively browse the 2D/3D space of one or more datasets of an N5 with BigDataViewer you can
 ```bash
 ./st-bdv-view \
