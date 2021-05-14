@@ -10,7 +10,8 @@ Library for managing, storage, viewing, and working with spatial transcriptomics
 6. [View selected genes for an entire N5 as 2D/3D using BigDataViewer](#View-selected-genes-for-an-entire-N5-as-2D-or-3D-using-BigDataViewer)
 7. [Alignment of 2D slices](#Alignment-of-2D-slices)
    1. [Pairwise Alignment](#Pairwise-Alignment)
-
+   2. [View Pairwise Alignment](#View-Pairwise-Alignment)
+   3. [Global Optimization and ICP refinement](#Global-Optimization-and-ICP-refinement)
 
 ## Installation Instructions
 
@@ -132,3 +133,7 @@ Dataset(s) from the selected N5 `-i` will be interactively rendered for one or m
 The alignment of 2D slices of a 3D volume is a two-step process. At first, using **`st-align-pairs`** slices will be aligned pairwise (e.g. 1<sup>st</sup> vs 2<sup>nd</sup>, 1<sup>st</sup> vs 3<sup>rd</sup>, and so on ...) using the Scale Invariant Feature Transform (SIFT) on a set of genes. These pairwise alignments can _optionally_ be viewed and confirmed using **`st-align-pairs-view`**. Finally, a globally optimal model for each slide will computed using **`st-align-global`**, which supports a refinement using Iterative Closest Point (ICP) matching.
 
 ### Pairwise Alignment
+
+### View Pairwise Alignment
+
+### Global Optimization and ICP refinement
