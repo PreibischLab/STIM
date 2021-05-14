@@ -134,7 +134,7 @@ The alignment of 2D slices of a 3D volume is a two-step process. At first, using
 
 ### Pairwise Alignment
 
-The pairwise alignment uses SIFT to align pairs of 2d slices. _**Important note:** the order of the datasets as they are passed into the program is crucial as it determines which slices are next to each other. If not specified, they are used in the order as stored in the JSON file inside the N5 container._ The 2d alignment can be called as follows:
+The pairwise alignment uses SIFT to align pairs of 2d slices. _**Important note:** the order of the datasets as they are passed into the program is crucial as it determines which slices are next to each other. If not specified, they are used in the order as stored in the JSON file inside the N5 container._ The 2d alignment can be called as follows, the resulting transformations and corresponding points are automatically stored in the N5:
 ```bash
 ./st-align-pairs \
      -i '/path/directory.n5' \
@@ -142,16 +142,25 @@ The pairwise alignment uses SIFT to align pairs of 2d slices. _**Important note:
      [-r 2] \
      [-g 'Calm2,Hpca'] \
      [-n 100] \
-     [-e 250.0] \
-     [--minNumInliers 30] \
-     [--minNumInliersGene 5] \
      [-s 0.05] \
      [-sf 4.0] \
+     [--overwrite] \
+     [-e 250.0] \
+     [--minNumInliersGene 5] \
+     [--minNumInliers 30] \
      [--renderingGene Calm2] \
      [--hidePairwiseRendering] \
-     [--overwrite] \
+
 ```
-Datasets from the selected N5 `-i` will be aligned in pairs. Datasets and their ordering can be optionally defined using `-d`, otherwise all datasets will be used in the order as defined in the N5 container. The comparison range (±slices to the be aligned) can be defined using `-r`, by default it is set to 2. Genes to be used can be specified manually using `-g`, or a specified number of genes `-n` with the highest standard deviation in the expression signal will be used. By default, 100 genes will be automatically selected. 
+Datasets from the selected N5 `-i` will be aligned in pairs. Datasets and their ordering can be optionally defined using `-d`, otherwise all datasets will be used in the order as defined in the N5 container. The comparison range (±slices to be aligned) can be defined using `-r`, by default it is set to 2. Genes to be used can be specified manually using `-g`, or a specified number of genes `-n` with the highest standard deviation in the expression signal will be used. By default, 100 genes will be automatically selected.
+
+The images used for alignment are rendered as in the viewing programs above. The scaling of the images can be changed using `-s` (default: 0.05 or 5%), and the smoothness factor can be changed using `-sf` (default: 4.0). If a registration was run before, the application will quit. Previous results can be overwritten using `--overwrite`.
+
+The alignment itself has more paramters that can be adjusted. The maximal error (default 250.0) for the RANSAC matching in SIFT can be adjusted using `-e`, the minimally required number of RANSAC inliers per tested gene can be changed using `--minNumInliersGene` (default: 5), and the minimal number of inliers over all genes can be adjusted using `--minNumInliers` (default: 30).
+
+The results of the alignment will be shown by default using a gene (selected automatically or defined via `--renderingGene`, which can be deactivated using `--hidePairwiseRendering`. 
+
+
 
 ### View Pairwise Alignment
 
