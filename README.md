@@ -113,3 +113,8 @@ In order to interactively browse the 2D/3D space of one or more datasets of an N
      [-sf 2.0] \
 ```
 Dataset(s) from the selected N5 `-i` will be interactively rendered for one or more selected gene `-g` (multiple genes will be overlaid into different colors). The switch `-md` will overlay for example celltype annotations. By default all datasets will be displayed, but they can be limited (or ordered) using `-d`. You can define the distance between sections with `-z` (as a factor of median spacing between sequenced locations), `-c` allows to preset the BigDataViewer intensity range and parameters `-f, -m, -sf` are explained above (4).
+
+### 6. Alignment of 2D slices (or 'pucks')
+
+The alignment of 2D slices of a 3D volume is a two-step process. At first, using **`st-align-pairs`** slices will be aligned pairwise (e.g. 1^st vs 2^nd, 1^st vs 3^rd, and so on ...) using the Scale Invariant Feature Transform (SIFT) on a set of genes. These pairwise alignments can _optionally_ be viewed and confirmed using 
+**`st-align-pairs-view`**. Finally, a globally optimal model for each slide will computed using **`st-align-global`**, which supports a refinement using Iterative Closest Point (ICP) matching.
