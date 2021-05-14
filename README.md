@@ -134,7 +134,7 @@ The alignment of 2D slices of a 3D volume is a two-step process. At first, using
 
 ### Pairwise Alignment
 
-The pairwise alignment uses SIFT to align pairs of 2d slices. _Important note: the order of the datasets as they are passed into the program is crucial as it determines which slices are next to each other. If not specified, they are used in the order as stored in the JSON file inside the N5 container._ The 2d alignment can be called as follows:
+The pairwise alignment uses SIFT to align pairs of 2d slices. _**Important note:** the order of the datasets as they are passed into the program is crucial as it determines which slices are next to each other. If not specified, they are used in the order as stored in the JSON file inside the N5 container._ The 2d alignment can be called as follows:
 ```bash
 ./st-align-pairs \
      -i '/path/directory.n5' \
@@ -151,7 +151,7 @@ The pairwise alignment uses SIFT to align pairs of 2d slices. _Important note: t
      [--hidePairwiseRendering] \
      [--overwrite] \
 ```
-
+Datasets from the selected N5 `-i` will be aligned in pairs. Datasets and their ordering can be optionally defined using `-d`, otherwise all datasets will be used in the order as defined in the N5 container. The comparison range (±slices to the be aligned) can be defined using `-r`, by default it is set to 2. Genes to be used can be specified manually using `-g`, or a specified number of genes `-n` with the highest standard deviation in the expression signal will be used. By default, 100 genes will be automatically selected. 
 
 ### View Pairwise Alignment
 
