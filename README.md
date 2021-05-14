@@ -2,12 +2,17 @@
 Library for managing, storage, viewing, and working with spatial transcriptomics data using imglib2, BigDataViewer and Fiji. Great example data is provided by the [SlideSeq paper](https://science.sciencemag.org/content/363/6434/1463.long) and can be downloaded from [here](https://portals.broadinstitute.org/single_cell/study/slide-seq-study).
 
 ## Contents
-1. [Installation instructions](#Installation-instructions)
-   1. [Virtual](#virtual)
-   2. [Cropping](#cropping)
-2. [Export N5](#export-n5)
+1. [Installation Instructions](#Installation-Instructions)
+2. [Resaving](#Resaving)
+3. [Normalization](#Normalization)
+4. [Iteractive Viewing Application](#Iteractive-Viewing-Application)
+5. [Render images and view or save as TIFF](#Render-images-and-view-or-save-as-TIFF)
+6. [View selected genes for an entire N5 as 2D/3D using BigDataViewer](#View-selected-genes-for-an-entire-N5-as-2D/3D-using-BigDataViewer)
+7. [Alignment of 2D slices](#Alignment-of-2D-slices)
+   1. [Pairwise Alignment](#Pairwise-Alignment)
 
-## Installation instructions
+
+## Installation Instructions
 
 Installation requires maven and OpenJDK8 (or newer) on Ubuntu:
 ```bash
@@ -30,7 +35,7 @@ All dependencies will be downloaded and managed by maven automatically.
 
 This currently installs several tools, `st-resave, st-normalize, st-view, st-render`.
 
-## 1. Resave
+## Resaving
 Resave (compressed) textfiles to the N5 format (and optionally `--normalize`) using
 ```bash
 ./st-resave \
@@ -69,7 +74,7 @@ ACCGTCTGAATTC,40
 ...
 ```
 
-## 2. Normalization
+## Normalization
 You can run the normalization also independently after resaving. The tool can resave selected or all datasets of an N5 container into the same or a new N5:
 ```bash
 ./st-normalize \
@@ -80,7 +85,7 @@ You can run the normalization also independently after resaving. The tool can re
 ```
 The only parameter you have to provide is the input N5 `-i`. You can optionally define an output N5 `-o` (otherwise it'll be the same), select specific input dataasets within the input N5 `-d`, and use user-defined names for the normalized datasets `-e` (by default it will be `inputname-norm`).
 
-## 3. Iteractive Viewing Application
+## Iteractive Viewing Application
 Run the interactive viewer as follows
 ```bash
 ./st-explorer \
@@ -90,7 +95,7 @@ Run the interactive viewer as follows
 ```
 It allows you to browse the data in realtime for all genes and datasets. If data is registered it will automatically use the transformations that are stored in the N5 metadata to properly overlay individual datasets. The optional switch `-d` allows you to select a subset of datasets from a N5, and using `-c` allows to preset the BigDataViewer intensity range.
 
-## 4. Render images and view or save as TIFF
+## Render images and view or save as TIFF
 In order to render images of spatial sequencing datasets (can be saved as TIFF or displayed on screen using ImageJ) please run
 ```bash
 ./st-render \
@@ -106,7 +111,7 @@ In order to render images of spatial sequencing datasets (can be saved as TIFF o
 ```
 If you only define the N5 path `-i` and one or more genes `-g`, the rendered image will be displayed as an ImageJ image. If a N5 contains more than one dataset, they will be rendered as 3D image. When defining an output directory `-o` images will not be displayed, but saved as TIFF (stacks) into the directory with filenames corresponding to the gene name. The optional switch `-d` allows you to select a subset of datasets from a N5, `-s` scales the rendering (default: 0.05), `-f` enables a single-spot filter (default: off), `-m` applies median filtering in locations space (not on top of the rendered image) with a certain radius (default: off), `-sf` sets the smoothness factor for rendering of the sparse dataset, and `-b` sets the size of an extra black border around the location coordinates (default: 20).
 
-## 5. View selected genes for an entire N5 as 2D/3D using BigDataViewer
+## View selected genes for an entire N5 as 2D/3D using BigDataViewer
 In order to interactively browse the 2D/3D space of one or more datasets of an N5 with BigDataViewer you can
 ```bash
 ./st-bdv-view \
@@ -122,8 +127,8 @@ In order to interactively browse the 2D/3D space of one or more datasets of an N
 ```
 Dataset(s) from the selected N5 `-i` will be interactively rendered for one or more selected gene `-g` (multiple genes will be overlaid into different colors). The switch `-md` will overlay for example celltype annotations. By default all datasets will be displayed, but they can be limited (or ordered) using `-d`. You can define the distance between sections with `-z` (as a factor of median spacing between sequenced locations), `-c` allows to preset the BigDataViewer intensity range and parameters `-f, -m, -sf` are explained above (4).
 
-## 6. Alignment of 2D slices (or 'pucks')
+## Alignment of 2D slices
 
 The alignment of 2D slices of a 3D volume is a two-step process. At first, using **`st-align-pairs`** slices will be aligned pairwise (e.g. 1<sup>st</sup> vs 2<sup>nd</sup>, 1<sup>st</sup> vs 3<sup>rd</sup>, and so on ...) using the Scale Invariant Feature Transform (SIFT) on a set of genes. These pairwise alignments can _optionally_ be viewed and confirmed using **`st-align-pairs-view`**. Finally, a globally optimal model for each slide will computed using **`st-align-global`**, which supports a refinement using Iterative Closest Point (ICP) matching.
 
-### 6.1. Pairwise alignment
+### Pairwise Alignment
