@@ -134,6 +134,25 @@ The alignment of 2D slices of a 3D volume is a two-step process. At first, using
 
 ### Pairwise Alignment
 
+The pairwise alignment uses SIFT to align pairs of 2d slices. _Important note: the order of the datasets as they are passed into the program is crucial as it determines which slices are next to each other. If not specified, they are used in the order as stored in the JSON file inside the N5 container._ The 2d alignment can be called as follows:
+```bash
+./st-align-pairs \
+     -i '/path/directory.n5' \
+     [-d 'Puck_180528_20,Puck_180528_22'] \
+     [-r 2] \
+     [-g 'Calm2,Hpca'] \
+     [-n 100] \
+     [-e 250.0] \
+     [--minNumInliers 30] \
+     [--minNumInliersGene 5] \
+     [-s 0.05] \
+     [-sf 4.0] \
+     [--renderingGene Calm2] \
+     [--hidePairwiseRendering] \
+     [--overwrite] \
+```
+
+
 ### View Pairwise Alignment
 
 ### Global Optimization and ICP refinement
