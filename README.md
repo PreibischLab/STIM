@@ -2,7 +2,7 @@
 Library for managing, storage, viewing, and working with spatial transcriptomics data using imglib2, BigDataViewer and Fiji. Great example data is provided by the [SlideSeq paper](https://science.sciencemag.org/content/363/6434/1463.long) and can be downloaded from [here](https://portals.broadinstitute.org/single_cell/study/slide-seq-study).
 
 ## Contents
-1. [Installation instructions](#Installation-instructions)
+1. [Installation instructions](#1.-Installation-instructions)
    1. [Virtual](#virtual)
    2. [Cropping](#cropping)
 2. [Export N5](#export-n5)
