@@ -116,5 +116,5 @@ Dataset(s) from the selected N5 `-i` will be interactively rendered for one or m
 
 ### 6. Alignment of 2D slices (or 'pucks')
 
-The alignment of 2D slices of a 3D volume is a two-step process. At first, using **`st-align-pairs`** slices will be aligned pairwise (e.g. 1^st vs 2^nd, 1^st vs 3^rd, and so on ...) using the Scale Invariant Feature Transform (SIFT) on a set of genes. These pairwise alignments can _optionally_ be viewed and confirmed using 
+The alignment of 2D slices of a 3D volume is a two-step process. At first, using **`st-align-pairs`** slices will be aligned pairwise (e.g. 1<sup>st</sup> vs 2<sup>nd</sup>, 1<sup>st</sup> vs 3<sup>rd</sup>, and so on ...) using the Scale Invariant Feature Transform (SIFT) on a set of genes. These pairwise alignments can _optionally_ be viewed and confirmed using 
 **`st-align-pairs-view`**. Finally, a globally optimal model for each slide will computed using **`st-align-global`**, which supports a refinement using Iterative Closest Point (ICP) matching.
