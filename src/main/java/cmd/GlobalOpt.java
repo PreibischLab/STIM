@@ -22,6 +22,45 @@ public class GlobalOpt implements Callable<Void> {
 	private String datasets = null;
 
 	// alignment options
+	@Option(names = {"--ignoreQuality"}, required = false, description = "ignore the amount of RANSAC inlier ratio, otherwise used it to determine - if necessary - which pairwise connections to remove during global optimization (default: false)")
+	private boolean ignoreQuality = false;
+
+	@Option(names = {"--lambda"}, required = false, description = "lambda of the affine model regularized with the rigid model, 0.0 means fully affine, 1.0 means just rigid (default: 0.1)")
+	private double lambda = 0.1;
+
+	@Option(names = {"--maxAllowedError"}, required = false, description = "maximally allowed error during global optimization (default: 300.0 for slideseq)")
+	private double maxAllowedError = 300.0;
+
+	@Option(names = {"--maxIterations"}, required = false, description = "maximum number of iterations (default: 3000)")
+	private int maxIterations = 500;
+
+	@Option(names = {"--minIterations"}, required = false, description = "minimum number of iterations (default: 500)")
+	private int minIterations = 500;
+
+	@Option(names = {"--relativeThreshold"}, required = false, description = "relative threshold for dropping pairwise connections, i.e. if the pairwise error is n-times higher than the average error (default: 3.0)")
+	private double relativeThreshold = 300.0;
+
+	@Option(names = {"--absoluteThreshold"}, required = false, description = "absolute error threshold for dropping pairwise connections - consult the results of pairwise matching to identify a reasonable number (default: 160.0 for slideseq)")
+	private double absoluteThreshold = 160.0;
+
+	// ICP parameters
+	@Option(names = {"--skipICP"}, required = false, description = "skip the ICP refinement step (default: false)")
+	private boolean skipICP = false;
+
+	@Option(names = {"--icpIterations"}, required = false, description = "maximum number of ICP iterations for each pair of slides (default: 100)")
+	private int icpIterations = 500;
+
+	@Option(names = {"--icpErrorFraction"}, required = false, description = "distance at which locations will be assigned as corresponding during ICP, relative to median distance between all locations (default: 0.5)")
+	private double icpErrorFraction = 1.0 / 2.0;
+
+	@Option(names = {"--maxAllowedErrorICP"}, required = false, description = "maximum error allowed during ICP runs after model fit - consult the results of pairwise matching to identify a reasonable number (default: 140.0 for slideseq)")
+	private double maxAllowedErrorICP = 140.0;
+
+	@Option(names = {"--maxIterationsICP"}, required = false, description = "maximum number of iterations during ICP (default: 3000)")
+	private int maxIterationsICP = 500;
+
+	@Option(names = {"--minIterationsICP"}, required = false, description = "minimum number of iterations during ICP (default: 3000)")
+	private int minIterationsICP = 500;
 
 	@Override
 	public Void call() throws Exception {
@@ -66,20 +105,20 @@ public class GlobalOpt implements Callable<Void> {
 
 		// -d 'Puck_180602_20,Puck_180602_17'
 
-		final boolean useQuality = true;
-		final double lambda = 0.1;
-		final double maxAllowedError = 300;
-		final int maxIterations = 500;
-		final int maxPlateauwidth = 500;
-		final double relativeThreshold = 3.0;
-		final double absoluteThreshold = 160;
+		final boolean useQuality = !ignoreQuality;
+		final double lambda = this.lambda;
+		final double maxAllowedError = this.maxAllowedError;
+		final int maxIterations = this.maxIterations;
+		final int maxPlateauwidth = this.minIterations;
+		final double relativeThreshold = this.relativeThreshold;
+		final double absoluteThreshold = this.absoluteThreshold;
 
-		final boolean doICP = true;
-		final int icpIterations = 100;
-		final double icpErrorFraction = 1.0 / 2.0;
-		final double maxAllowedErrorICP = 140;
-		final int numIterationsICP = 3000;
-		final int maxPlateauwhidthICP = 500;
+		final boolean doICP = !skipICP;
+		final int icpIterations = this.icpIterations;
+		final double icpErrorFraction = this.icpErrorFraction;
+		final double maxAllowedErrorICP = this.maxAllowedErrorICP;
+		final int maxIterationsICP = this.maxIterationsICP;
+		final int maxPlateauwhidthICP = this.minIterationsICP;
 
 		GlobalOptSIFT.globalOpt(
 				n5File,
@@ -95,7 +134,7 @@ public class GlobalOpt implements Callable<Void> {
 				icpIterations,
 				icpErrorFraction,
 				maxAllowedErrorICP,
-				numIterationsICP,
+				maxIterationsICP,
 				maxPlateauwhidthICP,
 				Threads.numThreads() );
 
