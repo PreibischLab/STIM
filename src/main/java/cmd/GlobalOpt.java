@@ -1,7 +1,6 @@
 package cmd;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -9,7 +8,6 @@ import java.util.concurrent.Callable;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 
 import align.GlobalOptSIFT;
-import data.STData;
 import io.N5IO;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
