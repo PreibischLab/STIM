@@ -168,6 +168,9 @@ else
     mv st-render $INSTALL_DIR/
     mv st-resave $INSTALL_DIR/
     mv st-normalize $INSTALL_DIR/
+    mv st-align-pairs $INSTALL_DIR/
+    mv st-align-pairs-view $INSTALL_DIR/
+    mv st-align-global $INSTALL_DIR/
 fi
 
 rm cp.txt
