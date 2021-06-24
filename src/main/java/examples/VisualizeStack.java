@@ -23,8 +23,11 @@ import bdv.viewer.DisplayMode;
 import data.STData;
 import data.STDataUtils;
 import filter.FilterFactory;
+import filter.Filters;
 import filter.GaussianFilterFactory;
+import filter.SingleSpotRemovingFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
+import filter.MedianFilterFactory;
 import gui.STDataAssembly;
 import ij.ImageJ;
 import ij.ImagePlus;
@@ -58,6 +61,7 @@ public class VisualizeStack
 		//filterFactorys.add( new MedianFilterFactory<>( new DoubleType( 0 ), 50.0 ) );
 		//filterFactorys.add( new GaussianFilterFactory<>( new DoubleType( 0 ), 50.0, WeightType.BY_SUM_OF_WEIGHTS ) );
 		//filterFactorys.add( new MeanFilterFactory<>( new DoubleType( 0 ), 50.0 ) );
+		filterFactorys.add( new SingleSpotRemovingFilterFactory<>( new DoubleType( 0 ), stdata.statistics().getMedianDistance() * 1.5 ) );
 
 		final String gene = "Calm2";
 		final RealRandomAccessible< DoubleType > renderRRA = Render.getRealRandomAccessible( stdata, gene, 1.0, filterFactorys );
@@ -71,11 +75,11 @@ public class VisualizeStack
 		final BdvOptions options = BdvOptions.options().is2D().numRenderingThreads( Runtime.getRuntime().availableProcessors() / 2 );
 
 		BdvStackSource<?> bdv = BdvFunctions.show( renderRRA, interval, gene, options );
-		bdv.setDisplayRange( min, max );
 		bdv.setDisplayRangeBounds( minRange, maxRange );
+		bdv.setDisplayRange( min, max );
 		//bdv.setColor( new ARGBType( ARGBType.rgba( 255, 0, 0, 0 ) ) );
 		//bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
-		bdv.setCurrent();
+		//bdv.setCurrent();
 
 		return bdv;
 	}
@@ -84,15 +88,22 @@ public class VisualizeStack
 	{
 		final DoubleType outofbounds = new DoubleType( 0 );
 
-		final Pair< RealRandomAccessible< DoubleType >, Interval > stack = createStack( stdata, "Hpca", outofbounds );
+		final List< FilterFactory< DoubleType, DoubleType > > filterFactorys = new ArrayList<>();
+
+		filterFactorys.add( new MedianFilterFactory<>( new DoubleType( 0 ), 20.0 ) );
+		//filterFactorys.add( new GaussianFilterFactory<>( new DoubleType( 0 ), 50.0, WeightType.BY_SUM_OF_WEIGHTS ) );
+		//filterFactorys.add( new MeanFilterFactory<>( new DoubleType( 0 ), 50.0 ) );
+		filterFactorys.add( new SingleSpotRemovingFilterFactory<>( outofbounds, 30 ) );
+
+		final Pair< RealRandomAccessible< DoubleType >, Interval > stack = createStack( stdata, "Calm2", outofbounds, 5.0, 1.5, filterFactorys );
 		final Interval interval = stack.getB();
 
 		final BdvOptions options = BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() );
-		BdvStackSource< ? > source = BdvFunctions.show( stack.getA(), interval, "Hpca", options );
-		source.setDisplayRange( min, max );
+		BdvStackSource< ? > source = BdvFunctions.show( stack.getA(), interval, "Calm2", options );
 		source.setDisplayRangeBounds( minRange, maxRange );
-		source.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
-		source.setCurrent();
+		source.setDisplayRange( min, max );
+		//source.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
+		//source.setCurrent();
 
 		return source;
 	}
@@ -273,7 +284,7 @@ public class VisualizeStack
 	public static void main( String[] args ) throws IOException
 	{
 		final ArrayList< STDataAssembly > puckData =
-				N5IO.openAllDatasets( new File( Path.getPath() + "slide-seq-normalized.n5" ) );
+				N5IO.openAllDatasets( new File( Path.getPath() + "slide-seq-test.n5" ) );
 
 		for ( final STDataAssembly p : puckData )
 			p.intensityTransform().set( 1.0, 0.0 );
@@ -282,11 +293,11 @@ public class VisualizeStack
 
 		AlignTools.defaultScale = 0.1;
 		AlignTools.defaultGene = "Hpca";
-		visualizeIJ( puckData, false );
+		//visualizeIJ( puckData, false );
 
 		//render2d( puckData.get( 0 ) );
 
-		//BdvStackSource< ? > bdv = render3d( puckData );
+		BdvStackSource< ? > bdv = render3d( puckData );
 		//renderMovie3d( puckData, bdv);
 	}
 }
