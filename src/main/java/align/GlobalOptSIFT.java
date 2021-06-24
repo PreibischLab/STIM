@@ -116,7 +116,8 @@ public class GlobalOptSIFT
 			final double maxAllowedErrorICP,
 			final int numIterationsICP,
 			final int maxPlateauwhidthICP,
-			final int numThreads ) throws IOException
+			final int numThreads,
+			final boolean skipDisplayResults ) throws IOException
 	{
 		final N5FSReader n5 = N5IO.openN5( n5Path );
 
@@ -218,7 +219,7 @@ public class GlobalOptSIFT
 		//System.exit( 0 );
 
 		for ( int i = 0; i < datasets.size(); ++i )
-			System.out.println( puckData.get( i ) + ": " + dataToTile.get( puckData.get( i ) ) );
+			System.out.println( puckData.get( i ) + ": " + dataToTile.get( puckData.get( i ) ).getModel() );
 
 		final TileConfiguration tileConfig = new TileConfiguration();
 
@@ -258,8 +259,11 @@ public class GlobalOptSIFT
 			data.add( new ValuePair<>( puckData.get( i ), transform ) );
 		}
 
-		new ImageJ();
-		AlignTools.visualizeList( data );
+		if ( !skipDisplayResults )
+		{
+			new ImageJ();
+			AlignTools.visualizeList( data );
+		}
 
 		System.out.println( "Avg error: " + tileConfig.getError() );
 
@@ -347,6 +351,7 @@ public class GlobalOptSIFT
 								System.out.println( "Connecting " + i + " to " + j + " with " + icpT.getB().size() + " inliers." ); 
 								tileA.connect( tileB, icpT.getB() );
 							}
+
 							/*
 							List< Pair< STData, AffineTransform2D > > dataTmp = new ArrayList<>();
 	
@@ -403,9 +408,10 @@ public class GlobalOptSIFT
 	
 				dataICP.add( new ValuePair<>( puckData.get( i ), transform ) );
 			}
-	
-			AlignTools.visualizeList( dataICP ).setTitle( "ICP-reg" );
-			
+
+			if ( !skipDisplayResults )
+				AlignTools.visualizeList( dataICP ).setTitle( "ICP-reg" );
+
 			System.out.println( "Avg error: " + tileConfigICP.getError() );
 		}
 	}
@@ -450,6 +456,7 @@ public class GlobalOptSIFT
 				maxAllowedErrorICP,
 				numIterationsICP,
 				maxPlateauwhidthICP,
-				Threads.numThreads() );
+				Threads.numThreads(),
+				false );
 	}
 }

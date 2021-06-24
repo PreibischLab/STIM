@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import align.AlignTools;
 import align.ICPAlign;
@@ -54,6 +56,7 @@ import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.realtransform.RealViews;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.util.Intervals;
 import net.imglib2.util.RealSum;
 import net.imglib2.view.Views;
 import render.Render;
@@ -66,6 +69,7 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 	final STData stDataTarget;
 	final STData stDataReference;
 	final Collection< String > genes;
+	final int numThreads;
 
 	NearestNeighborSearchOnKDTree< DoubleType > searchTarget, searchReference;
 
@@ -73,12 +77,13 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 
 	double distanceThresold;
 
-	public StDataPointMatchIdentification( final STData stDataTarget, final STData stDataReference, final Collection< String > genes, final double distanceThreshold )
+	public StDataPointMatchIdentification( final STData stDataTarget, final STData stDataReference, final Collection< String > genes, final double distanceThreshold, final int numThreads )
 	{
 		this.stDataTarget = stDataTarget;
 		this.stDataReference = stDataReference;
 		this.genes = genes;
 		this.distanceThresold = distanceThreshold;
+		this.numThreads = numThreads;
 
 		//this.searchTarget = new HashMap<>();
 		//this.searchReference = new HashMap<>();
@@ -88,17 +93,28 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 		IterableRealInterval< DoubleType > sumReference = null;
 		IterableRealInterval< DoubleType > sumTarget = null;
 
-		
-		// TODO: why not integrate all genes into one value right away?
 		for ( final String gene : genes )
 		{
-			// normalize per gene 0...1 and gaussian blur first
+			System.out.print(  " " + gene );
 
+			// normalize per gene 0...1 and gaussian blur first
 			IterableRealInterval<DoubleType> ref = stDataReference.getExprData( gene );
 			IterableRealInterval<DoubleType> target = stDataTarget.getExprData( gene );
 
-			ref = Filters.filter( ref, new GaussianFilterFactory<>( new DoubleType( 0 ), dist * 4, WeightType.BY_SUM_OF_WEIGHTS ) );
-			target = Filters.filter( target, new GaussianFilterFactory<>( new DoubleType( 0 ), dist * 4, WeightType.BY_SUM_OF_WEIGHTS ) );
+			if ( numThreads > 1 )
+			{
+				final ExecutorService service = Executors.newFixedThreadPool( numThreads );
+
+				ref = Filters.filter( ref, new GaussianFilterFactory<>( new DoubleType( 0 ), dist * 4, WeightType.BY_SUM_OF_WEIGHTS ), service );
+				target = Filters.filter( target, new GaussianFilterFactory<>( new DoubleType( 0 ), dist * 4, WeightType.BY_SUM_OF_WEIGHTS ), service );
+
+				service.shutdown();
+			}
+			else
+			{
+				ref = Filters.filter( ref, new GaussianFilterFactory<>( new DoubleType( 0 ), dist * 4, WeightType.BY_SUM_OF_WEIGHTS ) );
+				target = Filters.filter( target, new GaussianFilterFactory<>( new DoubleType( 0 ), dist * 4, WeightType.BY_SUM_OF_WEIGHTS ) );
+			}
 
 			if ( sumReference == null )
 			{
@@ -160,7 +176,7 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 		sumReference = normalize( sumReference, 0, sumR.getSum() / (double)sumReference.size() );
 		this.searchReference = new NearestNeighborSearchOnKDTree<>( new KDTree<>( sumReference ) );
 
-		System.out.println( "avg target: " + sumT.getSum() / (double)sumTarget.size() + ", avg ref: " + sumR.getSum() / (double)sumReference.size() + ", maxDist: " + distanceThreshold );
+		System.out.println( "\navg target: " + sumT.getSum() / (double)sumTarget.size() + ", avg ref: " + sumR.getSum() / (double)sumReference.size() + ", maxDist: " + distanceThreshold );
 
 		/*
 		// visualize the sum of both
@@ -284,7 +300,7 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 			*/
 		}
 
-		System.out.println("Assigned " + numMatches + " with avg error = " + (sumDiff.getSum() / numMatches ) );
+		System.out.println("Assigned " + numMatches + " with avg error (expression value) = " + (sumDiff.getSum() / numMatches ) );
 
 		return pointMatches;
 	}

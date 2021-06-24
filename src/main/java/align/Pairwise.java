@@ -119,7 +119,7 @@ public class Pairwise
 		//model.set( m00, m10, m01, m11, m02, m12 );
 		model.set( m[ 0 ], m[ 3 ], m[ 1 ], m[ 4 ], m[ 2 ], m[ 5 ] );
 
-		final PointMatchIdentification< RealPoint > pmi = new StDataPointMatchIdentification<>( stdataB, stdataA, genesToUse, maxDistance );
+		final PointMatchIdentification< RealPoint > pmi = new StDataPointMatchIdentification<>( stdataB, stdataA, genesToUse, maxDistance, Threads.numThreads() );
 		final ICP< RealPoint > icp = new ICP<>( listB, listA, pmi, Double.NaN );
 
 		int i = 0;

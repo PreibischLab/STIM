@@ -20,6 +20,7 @@ import net.imglib2.neighborsearch.RadiusNeighborSearchOnKDTree;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
+import util.Threads;
 
 public class ICPAlign
 {
@@ -52,6 +53,29 @@ public class ICPAlign
 			final double ransacDistance,
 			final int maxIterations )
 	{
+		return alignICP(stdataA, stdataB, genesToUse, initialModel, maxDistance, ransacDistance, maxIterations, Threads.numThreads() );
+	}
+
+	/**
+	 * @param stdataA - data for A
+	 * @param stdataB - data for B
+	 * @param genesToUse - list of genes
+	 * @param initialModel - maps B to A
+	 * @param maxDistance - max search radius for corresponding point
+	 * @param ransacDistance - distance for ransac, Double.NaN means no ransac
+	 * @param maxIterations - max num of ICP iterations
+	 * @param numThreads - number threads to use
+	 */
+	public static < M extends Model< M >> Pair< M, List< PointMatch > > alignICP(
+			final STData stdataA,
+			final STData stdataB,
+			final Collection< String > genesToUse,
+			final M initialModel,
+			final double maxDistance,
+			final double ransacDistance,
+			final int maxIterations,
+			final int numThreads )
+	{
 		final ArrayList< RealPoint > listA = new ArrayList<>(); // reference
 		final ArrayList< RealPoint > listB = new ArrayList<>(); // target
 
@@ -67,13 +91,13 @@ public class ICPAlign
 		//
 		//final ArrayList< RealPoint > listAFiltered = new ArrayList<>(); // reference filtered
 
-		final HashMap< String, NearestNeighborSearchOnKDTree< DoubleType > > searchReference = new HashMap<>();
+		//final HashMap< String, NearestNeighborSearchOnKDTree< DoubleType > > searchReference = new HashMap<>();
 		
-		for ( final String gene : genesToUse )
-			searchReference.put( gene, new NearestNeighborSearchOnKDTree<>( new KDTree<>( stdataA.getExprData( gene ) ) ) );
+		//for ( final String gene : genesToUse )
+		//	searchReference.put( gene, new NearestNeighborSearchOnKDTree<>( new KDTree<>( stdataA.getExprData( gene ) ) ) );
 
-		final KDTree< RealPoint > kdTreeRef = new KDTree< RealPoint >( listA, listA );
-		final RadiusNeighborSearchOnKDTree< RealPoint > radiusSearchRef = new RadiusNeighborSearchOnKDTree<>( kdTreeRef );
+		//final KDTree< RealPoint > kdTreeRef = new KDTree< RealPoint >( listA, listA );
+		//final RadiusNeighborSearchOnKDTree< RealPoint > radiusSearchRef = new RadiusNeighborSearchOnKDTree<>( kdTreeRef );
 
 		// TODO: Gaussian blur first?? and/or relative brightness of each spot or gradient instead of selecting them? -- checkout 0<>2
 
@@ -110,8 +134,11 @@ public class ICPAlign
 		*/
 		final M model = initialModel.copy();
 
-		final PointMatchIdentification< RealPoint > pmi = new StDataPointMatchIdentification<>( stdataB, stdataA, genesToUse, maxDistance );
-		final ICP< RealPoint > icp = new ICP<>( listB, listA /* listAFiltered */, pmi, ransacDistance / 2.0 );
+		System.out.println( "Setting up Pointmatch identification: " );
+		final PointMatchIdentification< RealPoint > pmi = new StDataPointMatchIdentification<>( stdataB, stdataA, genesToUse, maxDistance, numThreads );
+
+		System.out.println( "Setting up ICP" );
+		final ICP< RealPoint > icp = new ICP<>( listB, listA /* listAFiltered */, pmi, ransacDistance );
 
 		int i = 0;
 		double lastAvgError = 0;

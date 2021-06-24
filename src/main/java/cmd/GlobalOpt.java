@@ -21,6 +21,10 @@ public class GlobalOpt implements Callable<Void> {
 	@Option(names = {"-d", "--datasets"}, required = false, description = "ordered, comma separated list of one or more datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: all, in order as saved in N5 metadata)")
 	private String datasets = null;
 
+	// general display options
+	@Option(names = {"--skipDisplayResults"}, required = false, description = "do not show a preview of the aligned stack (default: false)")
+	private boolean skipDisplayResults = false;
+
 	// alignment options
 	@Option(names = {"--ignoreQuality"}, required = false, description = "ignore the amount of RANSAC inlier ratio, otherwise used it to determine - if necessary - which pairwise connections to remove during global optimization (default: false)")
 	private boolean ignoreQuality = false;
@@ -32,7 +36,7 @@ public class GlobalOpt implements Callable<Void> {
 	private double maxAllowedError = 300.0;
 
 	@Option(names = {"--maxIterations"}, required = false, description = "maximum number of iterations (default: 3000)")
-	private int maxIterations = 500;
+	private int maxIterations = 3000;
 
 	@Option(names = {"--minIterations"}, required = false, description = "minimum number of iterations (default: 500)")
 	private int minIterations = 500;
@@ -48,10 +52,10 @@ public class GlobalOpt implements Callable<Void> {
 	private boolean skipICP = false;
 
 	@Option(names = {"--icpIterations"}, required = false, description = "maximum number of ICP iterations for each pair of slides (default: 100)")
-	private int icpIterations = 500;
+	private int icpIterations = 100;
 
 	@Option(names = {"--icpErrorFraction"}, required = false, description = "distance at which locations will be assigned as corresponding during ICP, relative to median distance between all locations (default: 0.5)")
-	private double icpErrorFraction = 1.0 / 2.0;
+	private double icpErrorFraction = 1.0;
 
 	@Option(names = {"--maxAllowedErrorICP"}, required = false, description = "maximum error allowed during ICP runs after model fit - consult the results of pairwise matching to identify a reasonable number (default: 140.0 for slideseq)")
 	private double maxAllowedErrorICP = 140.0;
@@ -105,6 +109,7 @@ public class GlobalOpt implements Callable<Void> {
 
 		// -d 'Puck_180602_20,Puck_180602_17'
 
+		final boolean skipDisplayResults = this.skipDisplayResults;
 		final boolean useQuality = !ignoreQuality;
 		final double lambda = this.lambda;
 		final double maxAllowedError = this.maxAllowedError;
@@ -136,7 +141,8 @@ public class GlobalOpt implements Callable<Void> {
 				maxAllowedErrorICP,
 				maxIterationsICP,
 				maxPlateauwhidthICP,
-				Threads.numThreads() );
+				Threads.numThreads(),
+				skipDisplayResults );
 
 		return null;
 	}
