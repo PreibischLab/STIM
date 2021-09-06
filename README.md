@@ -33,8 +33,8 @@ On other platforms, please find your way and report back if interested.
 Next, please check out this repository and go into the folder
 
 ```
-git clone https://github.com/PreibischLab/imglib2-st.git
-cd imglib2-st
+git clone https://github.com/PreibischLab/stim.git
+cd stim
 ```
 
 Install into your favorite local binary `$PATH` (or leave empty for using the checked out directory):
