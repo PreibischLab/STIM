@@ -1,4 +1,4 @@
-# ImgLib2 Spatial Transcriptomics Project
+# STIM - the Spatial Transcriptomics ImgLib2 Project
 Library for managing, storage, viewing, and working with spatial transcriptomics data using imglib2, BigDataViewer and Fiji. Great example data is provided by the [SlideSeq paper](https://science.sciencemag.org/content/363/6434/1463.long) and can be downloaded from [here](https://portals.broadinstitute.org/single_cell/study/slide-seq-study).
 
 ## Contents
