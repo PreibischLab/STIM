@@ -21,7 +21,7 @@ A great example dataset is provided by the [SlideSeq paper](https://science.scie
    1. [Pairwise Alignment](#Pairwise-Alignment)
    2. [View Pairwise Alignment](#View-Pairwise-Alignment)
    3. [Global Optimization and ICP refinement](#Global-Optimization-and-ICP-refinement)
-8. [Wrapping in Python](#Pyton-Wrapping) 
+8. [Wrapping in Python](#Wrapping-in-Python) 
 
 ## Installation Instructions
 
