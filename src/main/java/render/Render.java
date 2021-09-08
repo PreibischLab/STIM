@@ -24,7 +24,10 @@ import net.imglib2.KDTree;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.converter.Converters;
+import net.imglib2.interpolation.neighborsearch.InverseDistanceWeightingInterpolator;
+import net.imglib2.interpolation.neighborsearch.InverseDistanceWeightingInterpolatorFactory;
 import net.imglib2.interpolation.neighborsearch.NearestNeighborSearchInterpolatorFactory;
+import net.imglib2.neighborsearch.KNearestNeighborSearchOnKDTree;
 import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform2D;
@@ -202,6 +205,32 @@ public class Render
 		return Views.interpolate(
 				new NearestNeighborSearchOnKDTree< T >( new KDTree< T > ( data ) ),
 				new NearestNeighborSearchInterpolatorFactory< T >() );
+	}
+
+	public static < T extends RealType< T > > RealRandomAccessible< T > renderLinear(
+			final IterableRealInterval< T > data,
+			final int numNeighbors,
+			final double p )
+	{
+		return Views.interpolate(
+				new KNearestNeighborSearchOnKDTree< T >( new KDTree< T > ( data ), numNeighbors ),
+				new InverseDistanceWeightingInterpolatorFactory< T >( p ) );
+	}
+
+	public static < T extends RealType< T > > RealRandomAccessible< T > renderLinear(
+			final IterableRealInterval< T > data,
+			final int numNeighbors,
+			final double p,
+			final T outofbounds,
+			final double maxRadius)
+	{
+		return Views.interpolate(
+				new KNearestNeighborMaxDistanceSearchOnKDTree< T >(
+						new KDTree< T > ( data ),
+						numNeighbors,
+						outofbounds,
+						maxRadius ),
+				new InverseDistanceWeightingInterpolatorFactory< T >( p ) );
 	}
 
 	public static < T extends RealType< T > > RealRandomAccessible< T > renderNN( final IterableRealInterval< T > data, final T outofbounds, final double maxRadius )

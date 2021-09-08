@@ -5,6 +5,8 @@ import java.io.IOException;
 
 import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
+import bdv.util.BdvStackSource;
+import bdv.viewer.DisplayMode;
 import data.STData;
 import data.STDataStatistics;
 import filter.Filters;
@@ -27,8 +29,8 @@ public class TestDisplayModes
 		final String path = Path.getPath();
 
 		long time = System.currentTimeMillis();
-		//final STData stdata = JsonIO.readJSON( new File( path + "/patterns_examples_2d/full.json.zip" ) );
-		final STData stdata = N5IO.readN5( new File( path + "examples.n5" ), "slideSeqSmall" );
+
+		final STData stdata = N5IO.readN5( new File( path + "slide-seq-test.n5" ), "Puck_180531_19" );
 
 		System.out.println( System.currentTimeMillis() - time + " ms." );
 
@@ -38,20 +40,49 @@ public class TestDisplayModes
 
 		System.out.println( stStats );
 
-		TransformIntensities.add( stdata, 1 );
 
-		final double displayRadius = stStats.getMedianDistance() / 2.0;
-		final double medianRadius = stStats.getMedianDistance() * 2.0;
-
-		// gauss crisp
-		double gaussRenderSigma = stStats.getMedianDistance() / 4; 
-		double gaussRenderRadius = displayRadius;
+		final IterableRealInterval< DoubleType > data = stdata.getExprData( "Calm2" );
 
 		final DoubleType outofbounds = new DoubleType( 0 );
+		final double smoothness = 1.0;
 
-		final IterableRealInterval< DoubleType > data = stdata.getExprData( "Pcp4" );
-		//final IterableRealInterval< DoubleType > data = ImgLib2Util.copyIterableRealInterval( stdata.getExprData( "Pcp4" ) );
+		final RealRandomAccessible< DoubleType > renderNN =
+				Render.renderNN( data );
 
+		final RealRandomAccessible< DoubleType > renderNNT =
+				Render.renderNN(data, outofbounds, stStats.getMedianDistance() );
+
+		final RealRandomAccessible< DoubleType > renderLinear =
+				Render.renderLinear(data, 20, 2.0 );
+
+		final RealRandomAccessible< DoubleType > renderLinearT =
+				Render.renderLinear(data, 20, 2.0, outofbounds, stStats.getMedianDistance() * 5 );
+
+		final RealRandomAccessible< DoubleType > renderGauss =
+				Render.render(
+						data,
+						new GaussianFilterFactory<>(
+								outofbounds,
+								stStats.getMedianDistance() * smoothness,
+								WeightType.PARTIAL_BY_SUM_OF_WEIGHTS ) );
+
+		BdvOptions options = new BdvOptions().is2D();
+		BdvStackSource<?> bdv = null;
+
+		bdv = BdvFunctions.show( renderNN, stdata.getRenderInterval(), "Calm2-NN", options.addTo(bdv) );
+		bdv.setDisplayRange(0, 10);
+		bdv = BdvFunctions.show( renderNNT, stdata.getRenderInterval(), "Calm2-NN-Thresholded", options.addTo(bdv) );
+		bdv.setDisplayRange(0, 10);
+		bdv = BdvFunctions.show( renderLinear, stdata.getRenderInterval(), "Calm2-Linear", options.addTo(bdv) );
+		bdv.setDisplayRange(0, 10);
+		bdv = BdvFunctions.show( renderLinearT, stdata.getRenderInterval(), "Calm2-Linear-Thresholded", options.addTo(bdv) );
+		bdv.setDisplayRange(0, 10);
+		bdv = BdvFunctions.show( renderGauss, stdata.getRenderInterval(), "Calm2-Gauss", options.addTo(bdv) );
+		bdv.setDisplayRange(0, 10);
+
+		bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
+
+		/*
 		final IterableRealInterval< DoubleType > medianFiltered = Filters.filter( data, new MedianFilterFactory<>( outofbounds, medianRadius ) );//outofbounds, medianRadius );
 
 		final RealRandomAccessible< DoubleType > median = new MedianRealRandomAccessible<>( data, outofbounds, medianRadius );
@@ -59,7 +90,7 @@ public class TestDisplayModes
 		//BdvFunctions.show( Render.render( data, outofbounds, displayRadius ), stdata.renderInterval, "Pcp4_raw", BdvOptions.options().is2D() ).setDisplayRange( 0, 6 );
 		//BdvFunctions.show( Render.renderAvg( data, outofbounds, displayRadius * 3 ), stdata.renderInterval, "Pcp4_rawavg", BdvOptions.options().is2D() ).setDisplayRange( 0, 6 );
 
-		BdvFunctions.show( Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, WeightType.NONE ) ), stdata.getRenderInterval(), "Pcp4_gauss1", BdvOptions.options().is2D() ).setDisplayRange( 0, 4 );
+		BdvFunctions.show( Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS ) ), stdata.getRenderInterval(), "Pcp4_gauss1", BdvOptions.options().is2D() ).setDisplayRange( 0, 4 );
 		BdvFunctions.show( Render.render( medianFiltered, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, WeightType.NONE ) ), stdata.getRenderInterval(), "Pcp4_median_gauss1", BdvOptions.options().is2D() ).setDisplayRange( 0, 4 );
 
 		// gauss smooth
@@ -74,6 +105,6 @@ public class TestDisplayModes
 
 		//final RandomAccessibleInterval< FloatType > img = Render.render( data, stdata.renderInterval, outofbounds, displayRadius );
 		//new ImageJ();
-		//ImageJFunctions.show( img );
+		//ImageJFunctions.show( img );*/
 	}
 }
