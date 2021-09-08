@@ -185,4 +185,4 @@ N5 container created by STIM.
 
 ## Java Code Examples
 
-There some example classes in the Java package that can help you getting started with STIM.
+There some example classes in the Java package that can help you getting started with programming in STIM.
