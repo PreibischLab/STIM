@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Executors;
 
 import javax.swing.ActionMap;
 import javax.swing.InputMap;
@@ -31,6 +32,7 @@ import filter.MedianFilterFactory;
 import gui.STDataAssembly;
 import ij.ImageJ;
 import ij.ImagePlus;
+import ij.io.FileSaver;
 import imglib2.StackedIterableRealInterval;
 import imglib2.TransformedIterableRealInterval;
 import io.N5IO;
@@ -38,11 +40,25 @@ import io.Path;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
+import net.imglib2.RandomAccessible;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
+import net.imglib2.converter.Converters;
+import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.multithreading.SimpleMultiThreading;
+import net.imglib2.realtransform.AffineGet;
+import net.imglib2.realtransform.AffineRandomAccessible;
+import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
+import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.realtransform.RealViews;
+import net.imglib2.realtransform.Scale3D;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
+import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
+import net.imglib2.view.Views;
 import render.Render;
 import tools.BDVFlyThrough;
 import tools.BDVFlyThrough.CallbackBDV;
@@ -84,6 +100,32 @@ public class VisualizeStack
 		return bdv;
 	}
 
+	public static RandomAccessibleInterval< DoubleType > render3d_IJ( final List< STDataAssembly > stdata, final String gene, final double scale )
+	{
+		final DoubleType outofbounds = new DoubleType( 0 );
+
+		final List< FilterFactory< DoubleType, DoubleType > > filterFactorys = new ArrayList<>();
+
+		filterFactorys.add( new MedianFilterFactory<>( new DoubleType( 0 ), 20.0 ) );
+		//filterFactorys.add( new GaussianFilterFactory<>( new DoubleType( 0 ), 50.0, WeightType.BY_SUM_OF_WEIGHTS ) );
+		//filterFactorys.add( new MeanFilterFactory<>( new DoubleType( 0 ), 50.0 ) );
+		filterFactorys.add( new SingleSpotRemovingFilterFactory<>( outofbounds, 30 ) );
+
+		final Pair< RealRandomAccessible< DoubleType >, Interval > stack = createStack( stdata, gene, outofbounds, 4.0, 1, filterFactorys );
+
+		if ( scale != 1.0 )
+		{
+			final AffineGet scaleTransform = new Scale3D( scale, scale, scale );
+			final RandomAccessible< DoubleType > scaledImg = RealViews.affine( stack.getA(), scaleTransform );
+	
+			return Views.interval( scaledImg, Intervals.smallestContainingInterval( Intervals.scale( Intervals.expand( stack.getB(), 200, 2 ), scale ) ) );
+		}
+		else
+		{
+			return Views.interval( Views.raster( stack.getA() ), stack.getB() );
+		}
+	}
+
 	public static BdvStackSource< ? > render3d( final List< STDataAssembly > stdata )
 	{
 		final DoubleType outofbounds = new DoubleType( 0 );
@@ -95,7 +137,7 @@ public class VisualizeStack
 		//filterFactorys.add( new MeanFilterFactory<>( new DoubleType( 0 ), 50.0 ) );
 		filterFactorys.add( new SingleSpotRemovingFilterFactory<>( outofbounds, 30 ) );
 
-		final Pair< RealRandomAccessible< DoubleType >, Interval > stack = createStack( stdata, "Calm2", outofbounds, 5.0, 1.5, filterFactorys );
+		final Pair< RealRandomAccessible< DoubleType >, Interval > stack = createStack( stdata, "Calm2", outofbounds, 4.0, 2, filterFactorys );
 		final Interval interval = stack.getB();
 
 		final BdvOptions options = BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() );
@@ -269,16 +311,22 @@ public class VisualizeStack
 		bdvSource.getBdvHandle().getKeybindings().addInputMap("persistence", ksInputMap);
 	}
 
-	public static ImagePlus visualizeIJ( final ArrayList< STDataAssembly > puckData, final boolean useTransform )
+	public static ImagePlus visualizeIJ( final ArrayList< STDataAssembly > puckData, final boolean useTransform, final boolean useIntensityTransform )
 	{
-		List< Pair< STData, AffineTransform2D > > data = new ArrayList<>();
+		final List< STData > data = new ArrayList<>();
+		final List< AffineTransform2D > transforms = new ArrayList<>();
+		final List< AffineGet > intensityTransforms = useIntensityTransform ? new ArrayList<>() : null;
 
-		for ( final STDataAssembly stDataAssembly : puckData )
-			data.add( new ValuePair<STData, AffineTransform2D>(
-					stDataAssembly.data(),
-					useTransform ? stDataAssembly.transform() : new AffineTransform2D() ) );
+		for ( final STDataAssembly stda : puckData )
+		{
+			data.add( stda.data() );
+			transforms.add( useTransform ? stda.transform() : new AffineTransform2D() );
 
-		return AlignTools.visualizeList( data );
+			if ( useIntensityTransform )
+				intensityTransforms.add( stda.intensityTransform() );
+		}
+
+		return AlignTools.visualizeList( data, transforms, intensityTransforms, AlignTools.defaultScale, AlignTools.defaultSmoothnessFactor, AlignTools.defaultGene, true );
 	}
 
 	public static void main( String[] args ) throws IOException
@@ -287,17 +335,28 @@ public class VisualizeStack
 				N5IO.openAllDatasets( new File( Path.getPath() + "slide-seq-test.n5" ) );
 
 		for ( final STDataAssembly p : puckData )
+		{
+			System.out.println( p.intensityTransform().get(0, 0 ) + ", " + p.intensityTransform().get(0, 1 ));
 			p.intensityTransform().set( 1.0, 0.0 );
+		}
 
 		new ImageJ();
 
+		// Display as full 3D ImageJ image
+		RandomAccessibleInterval<DoubleType> img = render3d_IJ( puckData, "Ptgds", 0.4 );
+		ImageJFunctions.show( img, Executors.newFixedThreadPool( 8 ) ).setTitle("Ptgds");
+
+		// Display as 2D slices (each slice a 2D image)
+		AlignTools.defaultGene = "Ptgds";//"Calm2";//"Mbp";//;
 		AlignTools.defaultScale = 0.1;
-		AlignTools.defaultGene = "Hpca";
-		//visualizeIJ( puckData, false );
+		AlignTools.defaultSmoothnessFactor = 2.0;
+		ImagePlus imp = visualizeIJ( puckData, true, false );
+		imp.show();
 
-		//render2d( puckData.get( 0 ) );
+		// Display interactively with BDV
+		render2d( puckData.get( 0 ) );
 
+		// Display 3D interactively with BDV
 		BdvStackSource< ? > bdv = render3d( puckData );
-		//renderMovie3d( puckData, bdv);
 	}
 }
