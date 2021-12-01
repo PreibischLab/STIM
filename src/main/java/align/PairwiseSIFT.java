@@ -247,8 +247,8 @@ public class PairwiseSIFT
 					final String gene = genesToTest.get( g );
 					//System.out.println( "current gene: " + gene );
 
-					final RandomAccessibleInterval<DoubleType> imgA = AlignTools.display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tS, smoothnessFactor );
-					final RandomAccessibleInterval<DoubleType> imgB = AlignTools.display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tS, smoothnessFactor );
+					final RandomAccessibleInterval<DoubleType> imgA = AlignTools.display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tS, null, smoothnessFactor );
+					final RandomAccessibleInterval<DoubleType> imgB = AlignTools.display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tS, null, smoothnessFactor );
 
 					final ImagePlus impA = ImageJFunctions.wrapFloat( imgA, new RealFloatConverter<>(), "A_" + gene);
 					final ImagePlus impB = ImageJFunctions.wrapFloat( imgB, new RealFloatConverter<>(), "B_" + gene );
