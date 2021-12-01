@@ -7,6 +7,7 @@ import java.util.concurrent.Callable;
 
 import org.janelia.saalfeldlab.n5.N5FSReader;
 
+import align.AlignTools;
 import align.GlobalOptSIFT;
 import io.N5IO;
 import picocli.CommandLine;
@@ -65,6 +66,12 @@ public class GlobalOpt implements Callable<Void> {
 
 	@Option(names = {"--minIterationsICP"}, required = false, description = "minimum number of iterations during ICP (default: 3000)")
 	private int minIterationsICP = 500;
+
+	@Option(names = {"-sf", "--smoothnessFactor"}, required = false, description = "FOR DISPLAY ONLY: factor for the sigma of the gaussian used for rendering, corresponds to smoothness, e.g -sf 2.0 (default: 1.5)")
+	private double smoothnessFactor = AlignTools.defaultSmoothnessFactor;
+
+	@Option(names = {"-g", "--gene"}, required = false, description = "FOR DISPLAY ONLY: gene to display, e.g. -g Calm2")
+	private String gene = AlignTools.defaultGene;
 
 	@Override
 	public Void call() throws Exception {
@@ -142,7 +149,9 @@ public class GlobalOpt implements Callable<Void> {
 				maxIterationsICP,
 				maxPlateauwhidthICP,
 				Threads.numThreads(),
-				skipDisplayResults );
+				skipDisplayResults,
+				smoothnessFactor,
+				gene );
 
 		return null;
 	}
