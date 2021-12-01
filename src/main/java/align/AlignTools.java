@@ -1,5 +1,6 @@
 package align;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -9,6 +10,7 @@ import data.STDataUtils;
 import filter.Filters;
 import filter.GaussianFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
+import gui.STDataAssembly;
 import filter.MedianFilterFactory;
 import filter.SingleSpotRemovingFilterFactory;
 import ij.ImagePlus;
@@ -23,6 +25,8 @@ import net.imglib2.converter.Converter;
 import net.imglib2.converter.Converters;
 import net.imglib2.converter.RealFloatConverter;
 import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.realtransform.AffineGet;
+import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.realtransform.RealViews;
 import net.imglib2.type.numeric.real.DoubleType;
@@ -49,6 +53,7 @@ public class AlignTools
 			final String gene,
 			final Interval renderInterval,
 			final AffineTransform2D transform,
+			final AffineGet intensityTransform,
 			final double smoothnessFactor )
 	{
 		//System.out.println( "Mean distance: " + stStats.getMeanDistance());
@@ -60,7 +65,22 @@ public class AlignTools
 
 		final DoubleType outofbounds = new DoubleType( 0 );
 
-		IterableRealInterval< DoubleType > data = stdata.getExprData( gene );
+		IterableRealInterval< DoubleType > data;
+
+		if ( intensityTransform == null || intensityTransform.isIdentity())
+		{
+			data = stdata.getExprData( gene ); 
+		}
+		else
+		{
+			final double m00 = intensityTransform.getRowPackedCopy()[ 0 ];
+			final double m01 = intensityTransform.getRowPackedCopy()[ 1 ];
+
+			data = Converters.convert(
+						stdata.getExprData( gene ),
+						(a,b) -> b.set( a.get() * m00 + m01 ),
+						new DoubleType() );
+		}
 
 		/*
 		data = Converters.convert(
@@ -93,6 +113,7 @@ public class AlignTools
 
 		// for rendering the input pointcloud
 		final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderSigma*smoothnessFactor, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS ) );
+		//final RealRandomAccessible< DoubleType > renderRRA = Render.renderNN(data, outofbounds, stStats.getMedianDistance() * 10 );
 
 		// for rendering a 16x (median distance), regular sampled pointcloud
 		//final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, stStats.getMedianDistance() / 4.0, WeightType.NONE ) );
@@ -153,8 +174,8 @@ public class AlignTools
 
 		final ImageStack stack = new ImageStack( (int)finalInterval.dimension( 0 ), (int)finalInterval.dimension( 1 ) );
 
-		final RandomAccessibleInterval<DoubleType> visA = display( stDataA, new STDataStatistics( stDataA ), defaultGene, finalInterval, tA, smoothnessFactor );
-		final RandomAccessibleInterval<DoubleType> visB = display( stDataB, new STDataStatistics( stDataB ), defaultGene, finalInterval, tB, smoothnessFactor );
+		final RandomAccessibleInterval<DoubleType> visA = display( stDataA, new STDataStatistics( stDataA ), defaultGene, finalInterval, tA, null, smoothnessFactor );
+		final RandomAccessibleInterval<DoubleType> visB = display( stDataB, new STDataStatistics( stDataB ), defaultGene, finalInterval, tB, null, smoothnessFactor );
 
 		stack.addSlice(stDataA.toString(), ImageJFunctions.wrapFloat( visA, new RealFloatConverter<>(), stDataA.toString(), null ).getProcessor());
 		stack.addSlice(stDataB.toString(), ImageJFunctions.wrapFloat( visB, new RealFloatConverter<>(), stDataB.toString(), null ).getProcessor());
@@ -172,29 +193,52 @@ public class AlignTools
 	}
 
 	public static ImagePlus visualizeList(
-			final List< Pair< STData, AffineTransform2D > > data,
+			final List< Pair< STData, AffineTransform2D > > stdata,
 			final double scale,
 			final double smoothnessFactor,
 			final String gene,
 			final boolean show )
 	{
+		final List< STData > data = new ArrayList<>();
+		final List< AffineTransform2D > transforms = new ArrayList<>();
+
+		for ( final Pair< STData, AffineTransform2D > stda : stdata )
+		{
+			data.add( stda.getA() );
+			transforms.add( stda.getB() );
+		}
+
+		return visualizeList (data, transforms, null, scale, smoothnessFactor, gene, show );
+	}
+
+	public static ImagePlus visualizeList(
+			final List< STData > data,
+			final List< AffineTransform2D > transforms,
+			final List< AffineGet > intensityTransforms,
+			final double scale,
+			final double smoothnessFactor,
+			final String gene,
+			final boolean show )
+	{	
 		// visualize result using the global transform
 		final AffineTransform2D tS = new AffineTransform2D();
 		tS.scale( scale );
 
-		final Interval interval = STDataUtils.getCommonInterval( data.stream().map( entry -> entry.getA() ).collect( Collectors.toList() ) );
-		final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tS ), 100 );
+		final Interval interval = STDataUtils.getCommonInterval( data );
+		final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tS ), Math.round( 1000 * scale ) );
 
 		final ImageStack stack = new ImageStack( (int)finalInterval.dimension( 0 ), (int)finalInterval.dimension( 1 ) );
 
-		for ( Pair< STData, AffineTransform2D > pair : data )
+		for ( int i = 0; i < data.size(); ++i )
 		{
-			final AffineTransform2D tA = pair.getB().copy();
+			final STData stdata = data.get( i );
+			final AffineTransform2D tA = transforms.get( i ).copy();
 			tA.preConcatenate( tS );
+			final AffineGet iT = ( intensityTransforms == null || intensityTransforms.size() == 0 ) ? null : intensityTransforms.get( i );
 
-			final RandomAccessibleInterval<DoubleType> vis = display( pair.getA(), new STDataStatistics( pair.getA() ), gene, finalInterval, tA, smoothnessFactor );
+			final RandomAccessibleInterval<DoubleType> vis = display( stdata, new STDataStatistics( stdata ), gene, finalInterval, tA, iT, smoothnessFactor );
 
-			stack.addSlice(pair.getA().toString(), ImageJFunctions.wrapFloat( vis, new RealFloatConverter<>(), pair.getA().toString(), null ).getProcessor());
+			stack.addSlice( stdata.toString(), ImageJFunctions.wrapFloat( vis, new RealFloatConverter<>(), stdata.toString(), null ).getProcessor());
 		}
 
 		ImagePlus imp = new ImagePlus("all", stack );
