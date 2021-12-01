@@ -117,7 +117,9 @@ public class GlobalOptSIFT
 			final int numIterationsICP,
 			final int maxPlateauwhidthICP,
 			final int numThreads,
-			final boolean skipDisplayResults ) throws IOException
+			final boolean skipDisplayResults,
+			final double smoothnessFactor,
+			final String displaygene ) throws IOException
 	{
 		final N5FSReader n5 = N5IO.openN5( n5Path );
 
@@ -125,14 +127,17 @@ public class GlobalOptSIFT
 		for ( final String puck : datasets )
 			puckData.add( N5IO.readN5( n5, puck ) );
 
-		final HashMap< STData, Tile< RigidModel2D > > dataToTile = new HashMap<>();
-		final HashMap< Tile< RigidModel2D >, STData > tileToData = new HashMap<>();
-		final HashMap< Tile< RigidModel2D >, Integer > tileToIndex = new HashMap<>();
+		final HashMap< STData, Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > > dataToTile = new HashMap<>();
+		final HashMap< Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > >, STData > tileToData = new HashMap<>();
+		final HashMap< Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > >, Integer > tileToIndex = new HashMap<>();
 
 		// for accessing the quality later
 		final double[][] quality = new double[datasets.size()][datasets.size()];
 		double maxQuality = -Double.MAX_VALUE;
 		double minQuality = Double.MAX_VALUE;
+
+		final double lambda1 = icpRefine ? 1.0 : lambda;
+		System.out.println( "Lambda for SIFT global align (amount of regularization by rigid model): " + lambda1 );
 
 		for ( int i = 0; i < datasets.size() - 1; ++i )
 		{
@@ -155,11 +160,11 @@ public class GlobalOptSIFT
 				final STData stDataA = puckData.get(i);
 				final STData stDataB = puckData.get(j);
 
-				final Tile< RigidModel2D > tileA, tileB;
+				final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileA, tileB;
 
 				if ( !dataToTile.containsKey( stDataA ) )
 				{
-					tileA = new Tile<>( new RigidModel2D() );
+					tileA = new Tile<>( new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >( new AffineModel2D(), new RigidModel2D(), lambda1 ) );
 					dataToTile.put( stDataA, tileA );
 					tileToData.put( tileA, stDataA );
 				}
@@ -170,7 +175,7 @@ public class GlobalOptSIFT
 
 				if ( !dataToTile.containsKey( stDataB ) )
 				{
-					tileB = new Tile<>( new RigidModel2D() );
+					tileB = new Tile<>( new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >( new AffineModel2D(), new RigidModel2D(), lambda1 ) );
 					dataToTile.put( stDataB, tileB );
 					tileToData.put( tileB, stDataB );
 				}
@@ -262,7 +267,7 @@ public class GlobalOptSIFT
 		if ( !skipDisplayResults )
 		{
 			new ImageJ();
-			AlignTools.visualizeList( data );
+			AlignTools.visualizeList( data, AlignTools.defaultScale, smoothnessFactor, displaygene, true );
 		}
 
 		System.out.println( "Avg error: " + tileConfig.getError() );
@@ -320,8 +325,8 @@ public class GlobalOptSIFT
 								System.out.print( gene + "," );
 							System.out.println();
 							
-							final RigidModel2D modelA = dataToTile.get( puckData.get( i ) ).getModel().copy();
-							final RigidModel2D modelB = dataToTile.get( puckData.get( j ) ).getModel().copy();
+							final RigidModel2D modelA = dataToTile.get( puckData.get( i ) ).getModel().getB().copy();
+							final RigidModel2D modelB = dataToTile.get( puckData.get( j ) ).getModel().getB().copy();
 							final RigidModel2D modelAInv = modelA.createInverse();
 	
 							// modelA is the identity transform after applying its own inverse
@@ -410,7 +415,7 @@ public class GlobalOptSIFT
 			}
 
 			if ( !skipDisplayResults )
-				AlignTools.visualizeList( dataICP ).setTitle( "ICP-reg" );
+				AlignTools.visualizeList( dataICP, AlignTools.defaultScale, smoothnessFactor, displaygene, true ).setTitle( "ICP-reg" );
 
 			System.out.println( "Avg error: " + tileConfigICP.getError() );
 		}
@@ -457,6 +462,8 @@ public class GlobalOptSIFT
 				numIterationsICP,
 				maxPlateauwhidthICP,
 				Threads.numThreads(),
-				false );
+				false,
+				AlignTools.defaultSmoothnessFactor,
+				AlignTools.defaultGene );
 	}
 }
