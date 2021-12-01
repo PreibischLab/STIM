@@ -71,6 +71,8 @@ public class PairwiseSectionAligner implements Callable<Void> {
 	@Option(names = {"--hidePairwiseRendering"}, required = false, description = "do not show pairwise renderings that apply the 2D rigid models (default: false - showing them)")
 	private boolean hidePairwiseRendering = false;
 
+	//-i /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d 'Puck_180602_20,Puck_180602_18,Puck_180602_17,Puck_180602_16,Puck_180602_15,Puck_180531_23,Puck_180531_22,Puck_180531_19,Puck_180531_18,Puck_180531_17,Puck_180531_13,Puck_180528_22,Puck_180528_20' -n 100 --overwrite
+
 	@Override
 	public Void call() throws Exception {
 
@@ -84,23 +86,28 @@ public class PairwiseSectionAligner implements Callable<Void> {
 
 		final N5FSWriter n5 = N5IO.openN5write( n5File );
 
-		if ( datasets == null || datasets.trim().length() == 0 )
-		{
-			System.out.println( "no input datasets specified. stopping.");
-			return null;
-		}
-
 		final List< String > inputDatasets;
 
 		if ( datasets == null || datasets.trim().length() == 0 )
+		{
+			System.out.println( "no input datasets specified. Trying to load all of them.");
 			inputDatasets = N5IO.listAllDatasets( n5 );
+		}
 		else
+		{
 			inputDatasets = Arrays.asList( datasets.split( "," ) );
+		}
 
 		if ( inputDatasets.size() == 0 )
 		{
 			System.out.println( "no input datasets available. stopping.");
 			return null;
+		}
+		else
+		{
+			System.out.println( "Following datasets were found: ");
+			for ( String s : inputDatasets )
+				System.out.println( s );
 		}
 
 		final List< STData > stdata = new ArrayList<>();
@@ -195,10 +202,13 @@ public class PairwiseSectionAligner implements Callable<Void> {
 						if ( genes1.contains( name ) && genes2.contains( name ) )
 							genesToTest.add( name );
 						else
-							System.out.println( "Gene " + name + " is not present in both datasets, omitting.");
+							System.out.println( "Gene '" + name + "' is not present in both datasets, omitting.");
 					}
 		
-					System.out.println( "Added desired genes, number of genes now " + genesToTest.size() );
+					System.out.println( "Added desired genes, number of genes now " + genesToTest.size() + ": " );
+					for ( String g : genesToTest )
+						System.out.print( g + " ");
+					System.out.println();
 				}
 
 				/*
