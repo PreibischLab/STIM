@@ -26,14 +26,23 @@ public class Normalize implements Callable<Void> {
 		@Option(names = {"-d", "--datasets"}, required = false, description = "comma-separated list of datasets to be normalized, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: all datasets)")
 		private String datasets = null;
 
-		@Option(names = {"-n", "--normdatasets"}, required = false, description = "comma-separated list of with the corresponding names of normalized datasets to be normalized, e.g. -n 'NormPuck_180528_20,NormPuck_180528_22' (default: old names extended with -norm)")
+		@Option(names = {"-n", "--normdatasets"}, required = false, description = "comma-separated list of with the corresponding names of normalized datasets to be normalized, e.g. -n 'NormPuck_180528_20,NormPuck_180528_22' (default: old names extended with -norm if same N5)")
 		private String normdatasets = null;
 
 		@Override
 		public Void call() throws Exception {
 
+			final boolean sameN5;
+
 			if ( output == null || output.length() == 0 )
+			{
 				output = input;
+				sameN5 = true;
+			}
+			else
+			{
+				sameN5 = true;
+			}
 
 			final N5FSReader n5in = N5IO.openN5( new File( input ) );
 			final File n5Path = new File( output );
@@ -53,7 +62,7 @@ public class Normalize implements Callable<Void> {
 			}
 
 			if ( normdatasets == null || normdatasets.length() == 0 )
-				outputDatasets = inputDatasets.stream().map( in -> in + "-norm" ).collect( Collectors.toList() );
+				outputDatasets = inputDatasets.stream().map( in -> sameN5 ? in + "-norm" : in ).collect( Collectors.toList() );
 			else
 				outputDatasets = Arrays.asList( normdatasets.split( "," ) );
 
