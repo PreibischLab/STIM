@@ -72,10 +72,11 @@ public class RenderImage implements Callable<Void> {
 	@Option(names = {"-sf", "--smoothnessFactor"}, required = false, description = "factor for the sigma of the gaussian used for rendering, corresponds to smoothness, e.g -sf 2.0 (default: 1.5)")
 	private double smoothnessFactor = 1.5;
 
+	@Option(names = {"--ignoreTransforms"}, required = false, description = "ignore the transforms stored in the metadata when rendering (default: false)")
+	private boolean ignoreTransforms = false;
+
 	@Override
 	public Void call() throws Exception {
-
-		final boolean useTransform = true;
 
 		final N5FSReader n5 = N5IO.openN5( new File( input ) );
 
@@ -113,7 +114,7 @@ public class RenderImage implements Callable<Void> {
 			if ( stAssembly != null )
 				data.add( new ValuePair<STData, AffineTransform2D>(
 						stAssembly.data(),
-						useTransform ? stAssembly.transform() : new AffineTransform2D() ) );
+						ignoreTransforms ? new AffineTransform2D() : stAssembly.transform() ) );
 		}
 
 		if ( data.size() == 0 )
