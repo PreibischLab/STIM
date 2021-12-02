@@ -21,6 +21,8 @@ A great example dataset is provided by the [SlideSeq paper](https://science.scie
    1. [Pairwise Alignment](#Pairwise-Alignment)
    2. [View Pairwise Alignment](#View-Pairwise-Alignment)
    3. [Global Optimization and ICP refinement](#Global-Optimization-and-ICP-refinement)
+8. [Wrapping in Python](#Wrapping-in-Python)
+9. [Java Code Examples](#Java-Code-Examples)
 
 ## Installation Instructions
 
@@ -174,3 +176,13 @@ The results of the alignment will be shown by default using a gene (selected aut
 ### View Pairwise Alignment
 
 ### Global Optimization and ICP refinement
+
+## Wrapping in Python
+
+A python wrapper, stimwrap https://github.com/rajewsky-lab/stimwrap,
+provides an interface to extract datasets and their attributes from an
+N5 container created by STIM.
+
+## Java Code Examples
+
+There some example classes in the Java package that can help you getting started with programming in STIM.
