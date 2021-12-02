@@ -7,16 +7,20 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
+import bdv.tools.brightness.ConverterSetup;
 import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
+import bdv.viewer.ConverterSetups;
 import bdv.viewer.DisplayMode;
+import bdv.viewer.SourceAndConverter;
 import data.STDataUtils;
 import filter.FilterFactory;
 import filter.MedianFilterFactory;
 import imglib2.TransformedIterableRealInterval;
 import net.imglib2.Interval;
 import net.imglib2.RealRandomAccessible;
+import net.imglib2.converter.Converter;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
@@ -56,9 +60,9 @@ public class RenderThread implements Runnable
 
 		this.options = BdvOptions.options().is2D().numRenderingThreads( Runtime.getRuntime().availableProcessors() );
 		this.bdv = BdvFunctions.show( Views.extendZero( ArrayImgs.doubles( 1, 1 ) ), interval, "", options );
-		bdv.setDisplayRange( min, max );
-		bdv.setDisplayRangeBounds( minRange, maxRange );
 		bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
+		bdv.setDisplayRangeBounds( minRange, maxRange );
+		bdv.setDisplayRange( min, max );
 	}
 
 	@Override
@@ -115,8 +119,26 @@ public class RenderThread implements Runnable
 
 				BdvStackSource< ? > old = bdv;
 
+				final double oldMin = getMinDisplayRange( old );
+				final double oldMax = getMaxDisplayRange( old );
+				final double oldBoundsMin = getMinDisplayRangeBounds( old );
+				final double oldBoundsMax = getMaxDisplayRangeBounds( old );
+
+				if ( oldMin != -1 )
+					min = oldMin;
+				if ( oldMax != -1 )
+					max = oldMax;
+
+				if ( oldBoundsMin != -1 )
+					minRange = oldBoundsMin;
+				if ( oldBoundsMax != -1 )
+					maxRange = oldBoundsMax;
+
+				//System.out.println( oldMax + "," + oldMax + " / " + oldBoundsMin + "," + oldBoundsMax );
+
 				bdv = BdvFunctions.show( renderRRA, interval, gene, options.addTo( old ) );
-				bdv.setDisplayRange( getMinDisplayRange( old ), getMaxDisplayRange( old ) );
+
+				bdv.setDisplayRange( min, max );
 				bdv.setDisplayRangeBounds( minRange, maxRange );
 				bdv.setCurrent();
 				old.removeFromBdv();
@@ -133,17 +155,37 @@ public class RenderThread implements Runnable
 
 	public static double getMinDisplayRange( BdvStackSource< ? > bdv )
 	{
+		if ( bdv == null || bdv.getSources().size() == 0 )
+			return -1;
+
+		final ConverterSetup cs = bdv.getBdvHandle().getConverterSetups().getConverterSetup( bdv.getSources().get( 0 ) );
+
+		return cs.getDisplayRangeMin();
+	}
+
+	public static double getMaxDisplayRange( BdvStackSource< ? > bdv )
+	{
+		if ( bdv == null || bdv.getSources().size() == 0 )
+			return -1;
+
+		final ConverterSetup cs = bdv.getBdvHandle().getConverterSetups().getConverterSetup( bdv.getSources().get( 0 ) );
+
+		return cs.getDisplayRangeMax();
+	}
+
+	public static double getMinDisplayRangeBounds( BdvStackSource< ? > bdv )
+	{
 		if ( bdv == null || bdv.getConverterSetups().size() == 0 || bdv.getBdvHandle().getSetupAssignments().getMinMaxGroups().size() == 0 )
-			return 0;
+			return -1;
 		
 		return bdv.getBdvHandle().getSetupAssignments().getMinMaxGroup( 
 				bdv.getConverterSetups().iterator().next() ).getMinBoundedValue().getCurrentValue();
 	}
 
-	public static double getMaxDisplayRange( BdvStackSource< ? > bdv )
+	public static double getMaxDisplayRangeBounds( BdvStackSource< ? > bdv )
 	{
 		if ( bdv == null || bdv.getConverterSetups().size() == 0 || bdv.getBdvHandle().getSetupAssignments().getMinMaxGroups().size() == 0 )
-			return 0;
+			return -1;
 		
 		return bdv.getBdvHandle().getSetupAssignments().getMinMaxGroup( 
 				bdv.getConverterSetups().iterator().next() ).getMaxBoundedValue().getCurrentValue();
