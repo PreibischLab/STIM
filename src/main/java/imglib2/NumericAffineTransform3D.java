@@ -4,6 +4,7 @@ import net.imglib2.img.NativeImg;
 import net.imglib2.img.basictypeaccess.DoubleAccess;
 import net.imglib2.img.basictypeaccess.array.DoubleArray;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.type.Index;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.NativeTypeFactory;
 import net.imglib2.type.numeric.NumericType;
@@ -247,5 +248,11 @@ public class NumericAffineTransform3D implements NumericType< NumericAffineTrans
 	{
 		for ( int j = 0; j < 12; ++j )
 			setAtBase( j, Math.pow( getAtBase( j ), c ) );
+	}
+
+	@Override
+	public Index index() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

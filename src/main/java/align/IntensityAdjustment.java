@@ -11,29 +11,25 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.Random;
 
 import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
-import org.netlib.util.doubleW;
 
 import align.GlobalOptSIFT.Matches;
-import data.NormalizingSTData;
 import data.STData;
 import data.STDataStatistics;
 import filter.Filters;
 import filter.GaussianFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
-import ij.ImageJ;
 import io.N5IO;
 import io.Path;
 import mpicbg.models.Affine1D;
 import mpicbg.models.AffineModel1D;
-import mpicbg.models.AffineModel2D;
 import mpicbg.models.IdentityModel;
 import mpicbg.models.IllDefinedDataPointsException;
 import mpicbg.models.InterpolatedAffineModel1D;
@@ -43,24 +39,16 @@ import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
 import mpicbg.models.Tile;
 import mpicbg.models.TileConfiguration;
-import mpicbg.models.TileUtil;
 import mpicbg.models.TranslationModel1D;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.KDTree;
 import net.imglib2.RealCursor;
-import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
-import net.imglib2.neighborsearch.RadiusNeighborSearch;
-import net.imglib2.neighborsearch.RadiusNeighborSearchOnKDTree;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
-import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
-import render.Render;
 import util.Threads;
-import weka.Run;
 
 public class IntensityAdjustment
 {
