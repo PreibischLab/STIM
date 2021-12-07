@@ -222,6 +222,8 @@ The global optimization after ICP will run until the maximum number of iteration
 
 The results are displayed by default. The smoothness factor can be changed using `-sf` (default: 4.0), the gene can be selected using `-g` (default: Calm2).
 
+## Minimal Example Instructions
+
 ## Wrapping in Python
 
 A python wrapper, stimwrap https://github.com/rajewsky-lab/stimwrap,
@@ -231,5 +233,3 @@ N5 container created by STIM.
 ## Java Code Examples
 
 There some example classes in the Java package that can help you getting started with programming in STIM.
-
-## Minimal Example Instructions
