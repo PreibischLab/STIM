@@ -22,9 +22,9 @@ A **minimal example** of a two-slice Visium dataset is available [here](https://
    1. [Pairwise Alignment](#Pairwise-Alignment)
    2. [View Pairwise Alignment](#View-Pairwise-Alignment)
    3. [Global Optimization and ICP refinement](#Global-Optimization-and-ICP-refinement)
-8. [Wrapping in Python](#Wrapping-in-Python)
-9. [Java Code Examples](#Java-Code-Examples)
-10. [Minimal Example Instructions](#Minimal-Example-Instructions)
+9. [Minimal Example Instructions](#Minimal-Example-Instructions)
+9. [Wrapping in Python](#Wrapping-in-Python)
+10. [Java Code Examples](#Java-Code-Examples) 
 
 ## Installation Instructions
 
