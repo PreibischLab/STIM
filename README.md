@@ -241,8 +241,17 @@ The results are displayed by default. The smoothness factor can be changed using
 
 1. To get started please follow the [Installation Instructions](#Installation-Instructions) to clone and build **STIM**. It might be easiest to **not** install into `$HOME/bin` but rather just call `./install` during the installation process.
 
-2. Next, please download the example Visium data from [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view?usp=sharing) and store the zip file in the same directory that contains the executables (assuming you just did `./install`). *Note: your browser might automatically unzip the data, here we assume that it is still in the zip file.*
+2. Next, please download the example Visium data from [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view?usp=sharing) and store the zip file in the same directory that contains the executables (assuming you just did `./install`).
+***Note: your browser might automatically unzip the data, we cover both cases during the resaving step below.***
 
+3. Now we resave the data into an N5 container for efficent storage and access to the dataset. Assuming the data is in the downloaded `visium.zip` file in the same directory as the executables do:
+```bash
+./st-resave
+-i visium.zip/section1_locations.csv,visium.zip/section1_reads.csv,sec1
+-i visium.zip/section2_locations.csv,visium.zip/section2_reads.csv,sec2
+-o visium.n5
+```
+It will automatically load the `*.csv` files from within the zipped file and create a `visium.n5` folder containing the re-saved dataset.
 
 ## Wrapping in Python
 
