@@ -3,7 +3,7 @@
 <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/Projection low-res-rgb.gif" alt="Example rendering of calm-2, ptgds, mbp" width="280">
 
 STIM is a framework for managing, storage, viewing, and processing spatial transcriptomics data, which builds on the powerful libraries [Imglib2](https://github.com/imglib/imglib2), [N5](https://github.com/saalfeldlab/n5), [BigDataViewer](https://github.com/bigdataviewer) and [Fiji](https://fiji.sc). It allows to efficiently access spatial transcriptomics data "classically" as values, or render them as images at arbitrary resolution. Latter allows to apply computer vision techniques to spatially resolved sequencing datasets. STIM highlights the potential by: 
- * efficient interactive rendering
+ * efficient interactive rendering (using ImageJ/Fiji & BigDataViewer)
  * image filtering framework for irregularly-spaced datasets
  * alignment of spatial dataset slides using SIFT, ICP and RANSAC combined with global optimization
 
