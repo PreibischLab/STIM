@@ -253,6 +253,12 @@ The results are displayed by default. The smoothness factor can be changed using
 ```
 It will automatically load the `*.csv` files from within the zipped file and create a `visium.n5` folder containing the re-saved dataset. The entire resaving process should take about 10 seconds on a modern notebook with an SSD. ***Note: if your browser automatically unzipped the data, just change `visium.zip` to the respective folder name, most likely `visium`***
 
+4. Next, we will simply take a look at the data. 
+```bash
+./st-explorer -i visium.n5 -c '0,110'
+```
+First, type `calm2` into the search gene box. Using `-c '0,110'` we already set the display range to more or less match this dataset. You can manually change it by clicking in the BigDataViewer window and press `s` to bring up the brightness dialog. As you switch between **sec1** and **sec2** you'll see that they are not aligned. Feel free to play with the **Visualization Options** in the explorer, e.g. move **Gauss Rendering** to 0.5 to get a sharper image and then play with the **Median Filter** radius to filter the data.
+
 ## Wrapping in Python
 
 A python wrapper, stimwrap https://github.com/rajewsky-lab/stimwrap,
