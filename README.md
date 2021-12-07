@@ -9,7 +9,7 @@ STIM is a framework for managing, storage, viewing, and processing spatial trans
 
 A **great example** dataset is provided by the [SlideSeq paper](https://science.sciencemag.org/content/363/6434/1463.long) and can be downloaded [here](https://portals.broadinstitute.org/single_cell/study/slide-seq-study). 
 
-A **minimal example** of a two-slice Visium dataset is available [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view?usp=sharing). We provide an [detailed walk-through for this dataset below to get you started](#Minimal-Example-Instructions).
+A **minimal example** of a two-slice Visium dataset is available [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view&export=download). We provide an [detailed walk-through for this dataset below to get you started](#Minimal-Example-Instructions).
 
 ## Contents
 1. [Installation Instructions](#Installation-Instructions)
@@ -241,7 +241,8 @@ The results are displayed by default. The smoothness factor can be changed using
 
 1. To get started please follow the [Installation Instructions](#Installation-Instructions) to clone and build **STIM**. It might be easiest to **not** install into `$HOME/bin` but rather just call `./install` during the installation process.
 
-2. Next, please download the example Visium data from [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view?usp=sharing) and store the zip file in the same directory that contains the executables (assuming you just did `./install`).
+2. Next, please download the example Visium data from [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view&export=download) and store the zip file in the same directory that contains the executables (assuming you just did `./install`).
+
 
 ## Wrapping in Python
 
