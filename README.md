@@ -7,11 +7,9 @@ STIM is a framework for managing, storage, viewing, and processing spatial trans
  * image filtering framework for irregularly-spaced datasets
  * alignment of spatial dataset slides using SIFT, ICP and RANSAC combined with global optimization
 
-A minimal example for a two-slice Visium dataset is available [here](https://drive.google.com/file/d/1EXtivmBbuJfdvI-XJJWCi5_T-meEzd5g/view?usp=sharing).
+A **great example** dataset is provided by the [SlideSeq paper](https://science.sciencemag.org/content/363/6434/1463.long) and can be downloaded [here](https://portals.broadinstitute.org/single_cell/study/slide-seq-study). 
 
-A great example dataset is provided by the [SlideSeq paper](https://science.sciencemag.org/content/363/6434/1463.long) and can be downloaded from [here](https://portals.broadinstitute.org/single_cell/study/slide-seq-study). 
-
-
+A **minimal example** of a two-slice Visium dataset is available [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view?usp=sharing). We provide an detailed walk-through for this dataset below to get you started.
 
 ## Contents
 1. [Installation Instructions](#Installation-Instructions)
@@ -26,6 +24,7 @@ A great example dataset is provided by the [SlideSeq paper](https://science.scie
    3. [Global Optimization and ICP refinement](#Global-Optimization-and-ICP-refinement)
 8. [Wrapping in Python](#Wrapping-in-Python)
 9. [Java Code Examples](#Java-Code-Examples)
+10. [Minimal Example Instructions](#Minimal-Example-Instructions)
 
 ## Installation Instructions
 
