@@ -246,10 +246,10 @@ The results are displayed by default. The smoothness factor can be changed using
 
 3. Now we resave the data into an N5 container for efficent storage and access to the dataset. Assuming the data is in the downloaded `visium.zip` file in the same directory as the executables do:
 ```bash
-./st-resave
--i visium.zip/section1_locations.csv,visium.zip/section1_reads.csv,sec1
--i visium.zip/section2_locations.csv,visium.zip/section2_reads.csv,sec2
--o visium.n5
+./st-resave \
+   -i visium.zip/section1_locations.csv,visium.zip/section1_reads.csv,sec1 \
+   -i visium.zip/section2_locations.csv,visium.zip/section2_reads.csv,sec2 \
+   -o visium.n5
 ```
 It will automatically load the `*.csv` files from within the zipped file and create a `visium.n5` folder containing the re-saved dataset.
 
