@@ -63,7 +63,7 @@ If the n5 directory exists new datasets will be added (example above:`name`, `Pu
 
 _Optionally_, cell type predictions can be imported as part of the resaving step, in this case each input consists of **four entries**, `locations.csv` file, a `reads.csv` file, **a `celltypes.csv` file**,and a user-defined `dataset name`. Please note that missing barcodes in celltypes.csv will be excluded from the dataset. This way you can filter locations with bad expression values.
 
-_Optionally_, the datasets can be directly log-normalized before resaving (recommended). The **locations file** should contain a header for `barcode (id), xcoord and ycoord`, followed by the entries:
+_Optionally_, the datasets can be directly log-normalized before resaving. The **locations file** should contain a header for `barcode (id), xcoord and ycoord`, followed by the entries:
 ```
 barcodes,xcoord,ycoord
 TCACGTAGAAACC,3091.01234567901,2471.88888888889
@@ -89,7 +89,7 @@ ACCGTCTGAATTC,40
 ```
 
 ## Normalization
-You can run the normalization also independently after resaving. The tool can resave selected or all datasets of an N5 container into the same or a new N5:
+You can run the normalization also independently after resaving if desired. The tool can resave selected or all datasets of an N5 container into the same or a new N5:
 ```bash
 ./st-normalize \
      -i '/path/input.n5' \
