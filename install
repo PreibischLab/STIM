@@ -32,7 +32,6 @@ mvn -Dmdep.outputFile=cp.txt -Dmdep.includeScope=runtime dependency:build-classp
 
 echo ""
 echo "Installing 'st-explorer' command into" $INSTALL_DIR
-echo ""
 
 echo '#!/bin/bash' > st-explorer
 echo '' >> st-explorer
@@ -45,9 +44,7 @@ echo -n $(cat cp.txt) >> st-explorer
 echo ' \' >> st-explorer
 echo '  cmd.View "$@"' >> st-explorer
 
-
 echo "Installing 'st-render' command into" $INSTALL_DIR
-echo ""
 
 echo '#!/bin/bash' > st-render
 echo '' >> st-render
@@ -60,9 +57,7 @@ echo -n $(cat cp.txt) >> st-render
 echo ' \' >> st-render
 echo '  cmd.RenderImage "$@"' >> st-render
 
-
 echo "Installing 'st-bdv-view' command into" $INSTALL_DIR
-echo ""
 
 echo '#!/bin/bash' > st-bdv-view
 echo '' >> st-bdv-view
@@ -75,9 +70,7 @@ echo -n $(cat cp.txt) >> st-bdv-view
 echo ' \' >> st-bdv-view
 echo '  cmd.DisplayStackedSlides "$@"' >> st-bdv-view
 
-
 echo "Installing 'st-resave' command into" $INSTALL_DIR
-echo ""
 
 echo '#!/bin/bash' > st-resave
 echo '' >> st-resave
@@ -91,7 +84,6 @@ echo ' \' >> st-resave
 echo '  cmd.Resave "$@"' >> st-resave
 
 echo "Installing 'st-normalize' command into" $INSTALL_DIR
-echo ""
 
 echo '#!/bin/bash' > st-normalize
 echo '' >> st-normalize
@@ -104,9 +96,7 @@ echo -n $(cat cp.txt) >> st-normalize
 echo ' \' >> st-normalize
 echo '  cmd.Normalize "$@"' >> st-normalize
 
-
 echo "Installing 'st-align-pairs' command into" $INSTALL_DIR
-echo ""
 
 echo '#!/bin/bash' > st-align-pairs
 echo '' >> st-align-pairs
@@ -119,9 +109,7 @@ echo -n $(cat cp.txt) >> st-align-pairs
 echo ' \' >> st-align-pairs
 echo '  cmd.PairwiseSectionAligner "$@"' >> st-align-pairs
 
-
 echo "Installing 'st-align-pairs-view' command into" $INSTALL_DIR
-echo ""
 
 echo '#!/bin/bash' > st-align-pairs-view
 echo '' >> st-align-pairs-view
@@ -135,7 +123,6 @@ echo ' \' >> st-align-pairs-view
 echo '  cmd.ViewPairwiseAlignment "$@"' >> st-align-pairs-view
 
 echo "Installing 'st-align-global' command into" $INSTALL_DIR
-echo ""
 
 echo '#!/bin/bash' > st-align-global
 echo '' >> st-align-global
