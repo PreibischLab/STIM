@@ -214,6 +214,12 @@ Prior to computing the final optimum, we try to identify if there are pairs of s
 
 `--maxAllowedError` specifies the maximally allowed error during global optimization (default: 300.0 for slideseq). The optimization will run until the maximum number of iterations `--maxIterations` if the error remains above `--maxAllowedError`. `--minAllowedError` sets the minimum number of iterations that will be performed. *Note: These parameters usually do not need to change*. 
 
+`--skipICP` skips the more compute intense ICP refinement step. If sufficent numbers of correspondences are found in the pairwise matching (e.g. >300), this can be advisable. `--icpIterations` defines the maximum number of ICP iterations for each pair of slides (default: 100). `--icpErrorFraction` describes the distance at which sequenced locations will be assigned as correspondences in ICP, relative to median distance between all locations (default: 1.0). `--maxAllowedErrorICP` is the maximum error allowed during ICP runs (after each model fit) - here also consult the results of pairwise matching to identify a reasonable number (default: 140.0 for slideseq). 
+
+The global optimization after ICP will run until the maximum number of iterations `--maxIterationsICP` if the error remains above `--maxAllowedError`. `--minIterationsICP` sets the minimum number of iterations that will be performed. *Note: These parameters usually do not need to change*. 
+
+The results are displayed by default. The smoothness factor can be changed using `-sf` (default: 4.0), the gene can be selected using `-g` (default: Calm2).
+
 ## Wrapping in Python
 
 A python wrapper, stimwrap https://github.com/rajewsky-lab/stimwrap,
