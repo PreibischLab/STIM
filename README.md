@@ -165,15 +165,25 @@ The pairwise alignment uses SIFT to align pairs of 2d slices. _**Important note:
 ```
 Datasets from the selected N5 `-i` will be aligned in pairs. Datasets and their ordering can be optionally defined using `-d`, otherwise all datasets will be used in the order as defined in the N5 container. The comparison range (±slices to be aligned) can be defined using `-r`, by default it is set to 2. Genes to be used can be specified manually using `-g`, or a specified number of genes `-n` with the highest standard deviation in the expression signal will be used. By default, 100 genes will be automatically selected.
 
-The images used for alignment are rendered as in the viewing programs above. The scaling of the images can be changed using `-s` (default: 0.05 or 5%), and the smoothness factor can be changed using `-sf` (default: 4.0). If a registration was run before, the application will quit. Previous results can be overwritten using `--overwrite`.
+The images used for alignment are rendered as in the viewing programs above. The scaling of the images can be changed using `-s` (default: 0.05 or 5%), and the smoothness factor can be changed using `-sf` (default: 4.0). If a registration was run before and transformations are already stored, the application will quit. To compute anyways, previous results can be overwritten using `--overwrite`.
 
 The alignment itself has more paramters that can be adjusted. The maximal error (default 250.0) for the RANSAC matching in SIFT can be adjusted using `-e`, the minimally required number of RANSAC inliers per tested gene can be changed using `--minNumInliersGene` (default: 5), and the minimal number of inliers over all genes can be adjusted using `--minNumInliers` (default: 30).
 
 The results of the alignment will be shown by default using a gene (selected automatically or defined via `--renderingGene`, which can be deactivated using `--hidePairwiseRendering`. 
 
-
-
 ### View Pairwise Alignment
+
+This command allows to manually inspect pairwise alignments between slices and to test out the effect of different transformation models (from fully rigid to fully affine). It uses all identified corresponding points to compute the respective transformation that minimizes the distance between all points.
+```bash
+./st-align-pairs-view \
+     -i '/path/directory.n5' \
+     -g Calm2 \
+     [-d 'Puck_180528_20,Puck_180528_22'] \
+     [-s 0.05] \
+     [-sf 4.0] \
+     [-m 1.0] \
+```
+Pairs of datasets `-d` from the selected N5 `-i` will be visualized for a gene of choice defined by `-g`. If `-d` is omitted, all pairs will be displayed. The images are rendered as explained above. The scaling of the images can be changed using `-s` (default: 0.05 or 5%), and the smoothness factor can be changed using `-sf` (default: 4.0). Importantly, `-m` allows to set the lambda of the transformation model(s) that will be used, for which we use 2D interpolated model(s) (affine/rigid). Lambda defines the degree of rigidity, fully affine is 0.0, fully rigid is 1.0 (default: 1.0 - rigid). A sensible choice might be 0.1.
 
 ### Global Optimization and ICP refinement
 
