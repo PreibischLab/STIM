@@ -12,7 +12,7 @@ A **great example** dataset is provided by the [SlideSeq paper](https://science.
 A **minimal example** of a two-slice Visium dataset is available [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view?usp=sharing). **We provide a [detailed walk-through for this dataset below to get you started](#Tutorial-on-small-example).** *Note: we highly recommend this tutorial as a starting point for using STIM. If you have any questions, feature requests or concerns please open an issue here on GitHub.*
 
 ## Contents
-1. [Tutorial on small example](#Tutorial-on-small-example)
+1. **[Tutorial on small example](#Tutorial-on-small-example)**
 2. [Installation Instructions](#Installation-Instructions)
 3. [Resaving](#Resaving)
 4. [Normalization](#Normalization)
