@@ -224,6 +224,8 @@ The results are displayed by default. The smoothness factor can be changed using
 
 ## Minimal Example Instructions
 
+1. To get started please follow the [Installation Instructions](#Installation-Instructions) to clone and build **STIM**.
+
 ## Wrapping in Python
 
 A python wrapper, stimwrap https://github.com/rajewsky-lab/stimwrap,
