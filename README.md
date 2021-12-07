@@ -49,6 +49,21 @@ All dependencies will be downloaded and managed by maven automatically.
 
 This currently installs several tools, `st-resave, st-normalize, st-explorer, st-render, st-bdv-view, st-align-pairs, st-align-pairs-view, st-align-global`.
 
+The process should finish with a message similar to this (here we only called `./install` thus installing in the code directory):
+```bash
+Installing 'st-explorer' command into /Users/spreibi/Downloads/stim_test/stim
+Installing 'st-render' command into /Users/spreibi/Downloads/stim_test/stim
+Installing 'st-bdv-view' command into /Users/spreibi/Downloads/stim_test/stim
+Installing 'st-resave' command into /Users/spreibi/Downloads/stim_test/stim
+Installing 'st-normalize' command into /Users/spreibi/Downloads/stim_test/stim
+Installing 'st-align-pairs' command into /Users/spreibi/Downloads/stim_test/stim
+Installing 'st-align-pairs-view' command into /Users/spreibi/Downloads/stim_test/stim
+Installing 'st-align-global' command into /Users/spreibi/Downloads/stim_test/stim
+
+Installation directory equals current directory, we are done.
+Installation finished.
+```
+
 ## Resaving
 Resave (compressed) textfiles to the N5 format (and optionally `--normalize`) using
 ```bash
