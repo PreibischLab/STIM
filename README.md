@@ -13,7 +13,6 @@ A **minimal example** of a two-slice Visium dataset is available [here](https://
 
 ## Contents
 1. [Tutorial on small example](#Tutorial-on-small-example)
-
 2. [Installation Instructions](#Installation-Instructions)
 3. [Resaving](#Resaving)
 4. [Normalization](#Normalization)
