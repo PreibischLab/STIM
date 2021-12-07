@@ -9,7 +9,7 @@ STIM is a framework for managing, storage, viewing, and processing spatial trans
 
 A **great example** dataset is provided by the [SlideSeq paper](https://science.sciencemag.org/content/363/6434/1463.long) and can be downloaded [here](https://portals.broadinstitute.org/single_cell/study/slide-seq-study). 
 
-A **minimal example** of a two-slice Visium dataset is available [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view?usp=sharing). We provide an detailed walk-through for this dataset below to get you started.
+A **minimal example** of a two-slice Visium dataset is available [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view?usp=sharing). We provide an [detailed walk-through for this dataset below to get you started](#Minimal-Example-Instructions).
 
 ## Contents
 1. [Installation Instructions](#Installation-Instructions)
