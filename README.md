@@ -224,7 +224,9 @@ The results are displayed by default. The smoothness factor can be changed using
 
 ## Minimal Example Instructions
 
-1. To get started please follow the [Installation Instructions](#Installation-Instructions) to clone and build **STIM**.
+1. To get started please follow the [Installation Instructions](#Installation-Instructions) to clone and build **STIM**. It might be easiest to **not** install into `$HOME/bin` but rather just call `./install` during the installation process.
+
+2. Next, please download the example Visium data from [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view?usp=sharing) and store the zip file in the same directory that contains the executables (assuming you just did `./install`).
 
 ## Wrapping in Python
 
