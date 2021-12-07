@@ -181,11 +181,38 @@ This command allows to manually inspect pairwise alignments between slices and t
      [-d 'Puck_180528_20,Puck_180528_22'] \
      [-s 0.05] \
      [-sf 4.0] \
-     [-m 1.0] \
+     [-l 1.0] \
 ```
-Pairs of datasets `-d` from the selected N5 `-i` will be visualized for a gene of choice defined by `-g`. If `-d` is omitted, all pairs will be displayed. The images are rendered as explained above. The scaling of the images can be changed using `-s` (default: 0.05 or 5%), and the smoothness factor can be changed using `-sf` (default: 4.0). Importantly, `-m` allows to set the lambda of the transformation model(s) that will be used, for which we use 2D interpolated model(s) (affine/rigid). Lambda defines the degree of rigidity, fully affine is 0.0, fully rigid is 1.0 (default: 1.0 - rigid). A sensible choice might be 0.1.
+Pairs of datasets `-d` from the selected N5 `-i` will be visualized for a gene of choice defined by `-g`. If `-d` is omitted, all pairs will be displayed. The images are rendered as explained above. The scaling of the images can be changed using `-s` (default: 0.05 or 5%), and the smoothness factor can be changed using `-sf` (default: 4.0). Importantly, `-l` allows to set the lambda of the 2D interpolated transformation model(s) (affine/rigid). Specifically, lambda defines the degree of rigidity, fully affine is 0.0, fully rigid is 1.0 (default: 1.0 - rigid). A sensible choice might be 0.1.
 
 ### Global Optimization and ICP refinement
+
+The global optimization step minimizes the distance between all corresponding points across all pairs of slices (at least two) and includes an optional refinement step using the iterative closest point (ICP) algorithm.
+```bash
+./st-align-global \
+     -i '/path/directory.n5' \
+     [-d 'Puck_180528_20,Puck_180528_22'] \
+     [-l 0.1] \
+     [--maxAllowedError] \
+     [--maxIterations] \
+     [--minIterations] \
+     [--relativeThreshold] \
+     [--absoluteThreshold] \
+     [--ignoreQuality] \
+     [--skipICP] \
+     [--icpIterations] \
+     [--icpErrorFraction] \
+     [--maxAllowedErrorICP] \
+     [--maxIterationsICP] \
+     [--minIterationsICP] \
+     [-sf 4.0] \
+     [-g Calm2] \
+```
+By default, all datasets of the specified N5 container `-i` will be optimized, a subset of datasets can be selected using `-d`. `-l` allows to set the lambda of the 2D interpolated transformation model(s) that will be used for each slice. Lambda defines the degree of rigidity, fully affine is 0.0, fully rigid is 1.0 (default: 0.1 - 10% rigid, 90% affine). 
+
+Prior to computing the final optimum, we try to identify if there are pairs of slices that contain wrong correspondences. To do this, we test for global consistency of the alignment and potentially remove pairs that differ significantly from the consensus of all the other pairs. There are a few parameters to adjust this process. `--ignoreQuality` ignores the amount of RANSAC inlier ratio as a way to measure their quality, otherwise it is used determine which pairwise connections to remove during global optimization (default: false). `--relativeThreshold` sets the relative threshold for dropping pairwise connections, i.e. if the pairwise error is n-times higher than the average error (default: 3.0). `--absoluteThreshold` defines the absolute error threshold for dropping pairwise connections. The errors of the pairwise matching process provide a reasonable number, the global error shouldn't be much higher than the pairwise errors, althought it is expected to be higher since it is a more constraint problem (default: 160.0 for slideseq).
+
+`--maxAllowedError` specifies the maximally allowed error during global optimization (default: 300.0 for slideseq). The optimization will run until the maximum number of iterations `--maxIterations` if the error remains above `--maxAllowedError`. `--minAllowedError` sets the minimum number of iterations that will be performed. *Note: These parameters usually do not need to change*. 
 
 ## Wrapping in Python
 
