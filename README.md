@@ -259,6 +259,12 @@ It will automatically load the `*.csv` files from within the zipped file and cre
 ```
 First, type `calm2` into the search gene box. Using `-c '0,110'` we already set the display range to more or less match this dataset. You can manually change it by clicking in the BigDataViewer window and press `s` to bring up the brightness dialog. As you switch between **sec1** and **sec2** you'll see that they are not aligned. Feel free to play with the **Visualization Options** in the explorer, e.g. move **Gauss Rendering** to 0.5 to get a sharper image and then play with the **Median Filter** radius to filter the data.
 
+5. Now, we will create a TIFF image for gene Calm2 and Mbp.
+```bash
+./st-render -i visium.n5 -g 'Calm2,Mbp' -sf 0.5
+```
+You can now for example overlay both images into a two-channel image using `Image > Color > Merge Channels` and select **Calm2** as magenta and **Mbp** as green.
+
 ## Wrapping in Python
 
 A python wrapper, stimwrap https://github.com/rajewsky-lab/stimwrap,
