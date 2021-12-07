@@ -12,19 +12,70 @@ A **great example** dataset is provided by the [SlideSeq paper](https://science.
 A **minimal example** of a two-slice Visium dataset is available [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view?usp=sharing). **We provide a [detailed walk-through for this dataset below to get you started](#Minimal-Example-Instructions).** *Note: we highly recommend this tutorial as a starting point for using STIM. If you have any questions, feature requests or concerns please open an issue here on GitHub.*
 
 ## Contents
-1. [Installation Instructions](#Installation-Instructions)
-2. [Resaving](#Resaving)
-3. [Normalization](#Normalization)
-4. [Iteractive Viewing Application](#Iteractive-Viewing-Application)
-5. [Render images and view or save as TIFF](#Render-images-and-view-or-save-as-TIFF)
-6. [View selected genes for an entire N5 as 2D/3D using BigDataViewer](#View-selected-genes-for-an-entire-N5-as-2D-or-3D-using-BigDataViewer)
-7. [Alignment of 2D slices](#Alignment-of-2D-slices)
+1. [Minimal Example Instructions](#Minimal-Example-Instructions)
+2. [Installation Instructions](#Installation-Instructions)
+3. [Resaving](#Resaving)
+4. [Normalization](#Normalization)
+5. [Iteractive Viewing Application](#Iteractive-Viewing-Application)
+6. [Render images and view or save as TIFF](#Render-images-and-view-or-save-as-TIFF)
+7. [View selected genes for an entire N5 as 2D/3D using BigDataViewer](#View-selected-genes-for-an-entire-N5-as-2D-or-3D-using-BigDataViewer)
+8. [Alignment of 2D slices](#Alignment-of-2D-slices)
    1. [Pairwise Alignment](#Pairwise-Alignment)
    2. [View Pairwise Alignment](#View-Pairwise-Alignment)
    3. [Global Optimization and ICP refinement](#Global-Optimization-and-ICP-refinement)
-9. [Minimal Example Instructions](#Minimal-Example-Instructions)
 9. [Wrapping in Python](#Wrapping-in-Python)
 10. [Java Code Examples](#Java-Code-Examples) 
+
+## Minimal Example Instructions
+
+1. To get started please follow the [Installation Instructions](#Installation-Instructions) to clone and build **STIM**. It might be easiest to **not** install into `$HOME/bin` but rather just call `./install` during the installation process.
+
+2. Next, please download the example Visium data from [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view?usp=sharing) and store the zip file in the same directory that contains the executables (assuming you just did `./install`).
+***Note: your browser might automatically unzip the data, we cover both cases during the resaving step below.***
+
+3. Now we resave the data into an N5 container for efficent storage and access to the dataset. Assuming the data is in the downloaded `visium.zip` file in the same directory as the executables do:
+```bash
+./st-resave \
+   -i visium.zip/section1_locations.csv,visium.zip/section1_reads.csv,sec1 \
+   -i visium.zip/section2_locations.csv,visium.zip/section2_reads.csv,sec2 \
+   -o visium.n5
+```
+It will automatically load the `*.csv` files from within the zipped file and create a `visium.n5` folder containing the re-saved dataset. The entire resaving process should take about 10 seconds on a modern notebook with an SSD. ***Note: if your browser automatically unzipped the data, just change `visium.zip` to the respective folder name, most likely `visium`***
+
+4. Next, we will simply take a look at the data. 
+```bash
+./st-explorer -i visium.n5 -c '0,110'
+```
+First, type `calm2` into the search gene box. Using `-c '0,110'` we already set the display range to more or less match this dataset. You can manually change it by clicking in the BigDataViewer window and press `s` to bring up the brightness dialog. As you switch between **sec1** and **sec2** you'll see that they are not aligned. Feel free to play with the **Visualization Options** in the explorer, e.g. move **Gauss Rendering** to 0.5 to get a sharper image and then play with the **Median Filter** radius to filter the data.
+
+5. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/overlay calm2-mbp.png" alt="Example overlay of calm-2, mbp" width="280">Now, we will create a TIFF image for gene Calm2 and Mbp.
+```bash
+./st-render -i visium.n5 -g 'Calm2,Mbp' -sf 0.5
+```
+You can now for example overlay both images into a two-channel image using `Image > Color > Merge Channels` and select **Calm2** as magenta and **Mbp** as green. By flipping through the slices (sec1 and sec2) you will again realize that they are not aligned. You could for example convert this image to RGB `Image > Type > RGB Color` and then save it as TIFF, JPEG or AVI (e.g JPEG compression). **These can be added to your presentation or paper for example, check out my beautiful AVI** [here](https://github.com/PreibischLab/STIM/blob/master/src/main/resources/calm2-mbp.avi) (you need to click download on the right top). You could render a bigger image setting `-s 0.1`. ***Note: Please check the documentation of [ImageJ](https://imagej.net) and [Fiji](http://fiji.sc) for further help with how to further process images.***
+
+6. Next, we will perform alignment of the two slices. We will use 15 automatically selected genes `-n` (the more the better, but it is also slower), a maximum error of 100 `--maxEpsilon` and require at least 30 inliers per gene `--minNumInliersGene` (this dataset is more robust than the SlideSeq one). **The alignment process takes around 1-2 minutes on a modern notebook.** *Note: at this point no transformations are stored within the N5 container, but only the list of corresponding points.*
+```bash
+./st-align-pairs -i visium.n5 -n 15 -sf 0.5 --maxEpsilon 100 --minNumInliersGene 30
+```
+
+7. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/align_mt-Nd4-1.gif" alt="Example alignment" width="480"> Now we will visualize before/after alignment of this pair of slices. To achieve this, we create two independent images, one using `st-render` (see above) and one using `st-align-pairs-view` on the automatically selected gene **mt-Nd4**. `st-render` will display the sections unaligned, while `st-align-pairs-view` will show them aligned. 
+```bash
+./st-render -i visium.n5 -sf 0.5 -g mt-Nd4
+./st-align-pairs-view -i visium.n5 -sf 0.5 -g mt-Nd4
+```
+*Note: to create the GIF shown I saved both images independently, opened them in Fiji, cropped them, combined them, converted them to 8-bit color, set framerate to 1 fps, and saved it as one GIF.* 
+
+8. Finally, we perform the global alignment. In this particular case, it is identical to the pairwise alignment process as we only have two sections. However, we still need to do it so the **final transformations for the sections are stored in the N5.** After that, `st-explorer`, `st-bdv-view` and `st-render` will take these transformations into account when displaying the data This final processing step usually only takes a few seconds.
+```bash
+./st-align-global -i visium.n5 --absoluteThreshold 100 -sf 0.5 --lambda 0.0 --skipICP
+```
+
+9. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/bdv-calm2-mbp-mtnd4.png" alt="Example alignment" width="240">The final dataset can for example be visualized and interactively explored using BigDataViewer. Therefore, we specify three genes `-g Calm2,Mbp,mt-Nd4`, a crisper rendering `-sf 0.6`, and a relative z-spacing between the two planes that shows them close to each other `-z 3`. Of course, the same data can be visualized using `st-explorer` and `st-render`.
+```bash
+./st-bdv-view -i visium.n5 -g Calm2,Mbp,mt-Nd4 -c '0,90' -sf 0.6 -z 3
+```
+We encourage you to use this small dataset as a starting point for playing with and extending **STIM**. If you have any questions, feature requests or concerns please open an issue here on GitHub. Thanks so much!
 
 ## Installation Instructions
 
@@ -236,57 +287,6 @@ Prior to computing the final optimum, we try to identify if there are pairs of s
 The global optimization after ICP will run until the maximum number of iterations `--maxIterationsICP` if the error remains above `--maxAllowedError`. `--minIterationsICP` sets the minimum number of iterations that will be performed. *Note: These parameters usually do not need to change*. 
 
 The results are displayed by default. The smoothness factor can be changed using `-sf` (default: 4.0), the gene can be selected using `-g` (default: Calm2).
-
-## Minimal Example Instructions
-
-1. To get started please follow the [Installation Instructions](#Installation-Instructions) to clone and build **STIM**. It might be easiest to **not** install into `$HOME/bin` but rather just call `./install` during the installation process.
-
-2. Next, please download the example Visium data from [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view?usp=sharing) and store the zip file in the same directory that contains the executables (assuming you just did `./install`).
-***Note: your browser might automatically unzip the data, we cover both cases during the resaving step below.***
-
-3. Now we resave the data into an N5 container for efficent storage and access to the dataset. Assuming the data is in the downloaded `visium.zip` file in the same directory as the executables do:
-```bash
-./st-resave \
-   -i visium.zip/section1_locations.csv,visium.zip/section1_reads.csv,sec1 \
-   -i visium.zip/section2_locations.csv,visium.zip/section2_reads.csv,sec2 \
-   -o visium.n5
-```
-It will automatically load the `*.csv` files from within the zipped file and create a `visium.n5` folder containing the re-saved dataset. The entire resaving process should take about 10 seconds on a modern notebook with an SSD. ***Note: if your browser automatically unzipped the data, just change `visium.zip` to the respective folder name, most likely `visium`***
-
-4. Next, we will simply take a look at the data. 
-```bash
-./st-explorer -i visium.n5 -c '0,110'
-```
-First, type `calm2` into the search gene box. Using `-c '0,110'` we already set the display range to more or less match this dataset. You can manually change it by clicking in the BigDataViewer window and press `s` to bring up the brightness dialog. As you switch between **sec1** and **sec2** you'll see that they are not aligned. Feel free to play with the **Visualization Options** in the explorer, e.g. move **Gauss Rendering** to 0.5 to get a sharper image and then play with the **Median Filter** radius to filter the data.
-
-5. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/overlay calm2-mbp.png" alt="Example overlay of calm-2, mbp" width="280">Now, we will create a TIFF image for gene Calm2 and Mbp.
-```bash
-./st-render -i visium.n5 -g 'Calm2,Mbp' -sf 0.5
-```
-You can now for example overlay both images into a two-channel image using `Image > Color > Merge Channels` and select **Calm2** as magenta and **Mbp** as green. By flipping through the slices (sec1 and sec2) you will again realize that they are not aligned. You could for example convert this image to RGB `Image > Type > RGB Color` and then save it as TIFF, JPEG or AVI (e.g JPEG compression). **These can be added to your presentation or paper for example, check out my beautiful AVI** [here](https://github.com/PreibischLab/STIM/blob/master/src/main/resources/calm2-mbp.avi) (you need to click download on the right top). You could render a bigger image setting `-s 0.1`. ***Note: Please check the documentation of [ImageJ](https://imagej.net) and [Fiji](http://fiji.sc) for further help with how to further process images.***
-
-6. Next, we will perform alignment of the two slices. We will use 15 automatically selected genes `-n` (the more the better, but it is also slower), a maximum error of 100 `--maxEpsilon` and require at least 30 inliers per gene `--minNumInliersGene` (this dataset is more robust than the SlideSeq one). **The alignment process takes around 1-2 minutes on a modern notebook.** *Note: at this point no transformations are stored within the N5 container, but only the list of corresponding points.*
-```bash
-./st-align-pairs -i visium.n5 -n 15 -sf 0.5 --maxEpsilon 100 --minNumInliersGene 30
-```
-
-7. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/align_mt-Nd4-1.gif" alt="Example alignment" width="480"> Now we will visualize before/after alignment of this pair of slices. To achieve this, we create two independent images, one using `st-render` (see above) and one using `st-align-pairs-view` on the automatically selected gene **mt-Nd4**. `st-render` will display the sections unaligned, while `st-align-pairs-view` will show them aligned. 
-```bash
-./st-render -i visium.n5 -sf 0.5 -g mt-Nd4
-./st-align-pairs-view -i visium.n5 -sf 0.5 -g mt-Nd4
-```
-*Note: to create the GIF shown I saved both images independently, opened them in Fiji, cropped them, combined them, converted them to 8-bit color, set framerate to 1 fps, and saved it as one GIF.* 
-
-8. Finally, we perform the global alignment. In this particular case, it is identical to the pairwise alignment process as we only have two sections. However, we still need to do it so the **final transformations for the sections are stored in the N5.** After that, `st-explorer`, `st-bdv-view` and `st-render` will take these transformations into account when displaying the data This final processing step usually only takes a few seconds.
-```bash
-./st-align-global -i visium.n5 --absoluteThreshold 100 -sf 0.5 --lambda 0.0 --skipICP
-```
-
-9. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/bdv-calm2-mbp-mtnd4.png" alt="Example alignment" width="240">The final dataset can for example be visualized and interactively explored using BigDataViewer. Therefore, we specify three genes `-g Calm2,Mbp,mt-Nd4`, a crisper rendering `-sf 0.6`, and a relative z-spacing between the two planes that shows them close to each other `-z 3`. Of course, the same data can be visualized using `st-explorer` and `st-render`.
-```bash
-./st-bdv-view -i visium.n5 -g Calm2,Mbp,mt-Nd4 -c '0,90' -sf 0.6 -z 3
-```
-We encourage you to use this small dataset as a starting point for playing with and extending **STIM**. If you have any questions, feature requests or concerns please open an issue here on GitHub. Thanks so much!
 
 ## Wrapping in Python
 
