@@ -251,7 +251,7 @@ The results are displayed by default. The smoothness factor can be changed using
    -i visium.zip/section2_locations.csv,visium.zip/section2_reads.csv,sec2 \
    -o visium.n5
 ```
-It will automatically load the `*.csv` files from within the zipped file and create a `visium.n5` folder containing the re-saved dataset.
+It will automatically load the `*.csv` files from within the zipped file and create a `visium.n5` folder containing the re-saved dataset. The entire resaving process should take about 10 seconds on a modern notebook with an SSD. ***Note: if your browser automatically unzipped the data, just change `visium.zip` to the respective folder name, most likely `visium`***
 
 ## Wrapping in Python
 
