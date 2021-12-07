@@ -47,7 +47,7 @@ Install into your favorite local binary `$PATH` (or leave empty for using the ch
 ```
 All dependencies will be downloaded and managed by maven automatically.
 
-This currently installs several tools, `st-resave, st-normalize, st-view, st-render`.
+This currently installs several tools, `st-resave, st-normalize, st-explorer, st-render, st-bdv-view, st-align-pairs, st-align-pairs-view, st-align-global`.
 
 ## Resaving
 Resave (compressed) textfiles to the N5 format (and optionally `--normalize`) using
