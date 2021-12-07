@@ -38,7 +38,7 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 	@Option(names = {"-sf", "--smoothnessFactor"}, required = false, description = "factor for the sigma of the gaussian used for rendering, corresponds to smoothness, e.g -sf 2.0 (default: 4.0)")
 	private double smoothnessFactor = 4.0;
 
-	@Option(names = {"-m", "--model"}, required = false, description = "for rendering we use a 2D interpolated model (affine/rigid). The number defines the degree of rigidity, fully affine is 0.0, fully rigid is 1.0 (default: 1.0 - rigid)")
+	@Option(names = {"-l", "--lambda"}, required = false, description = "for rendering we use a 2D interpolated model (affine/rigid). The number defines the degree of rigidity, fully affine is 0.0, fully rigid is 1.0 (default: 1.0 - rigid)")
 	private double model = 1.0;
 
 	@Override
@@ -80,6 +80,9 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 				stdata.add( N5IO.readN5( n5, dataset ) );
 			}
 		}
+
+		if ( gene != null && gene.length() > 0 )
+			AlignTools.defaultGene = gene;
 
 		new ImageJ();
 

@@ -206,10 +206,11 @@ public class PairwiseSectionAligner implements Callable<Void> {
 					}
 		
 					System.out.println( "Added desired genes, number of genes now " + genesToTest.size() + ": " );
-					for ( String g : genesToTest )
-						System.out.print( g + " ");
-					System.out.println();
 				}
+
+				for ( String g : genesToTest )
+					System.out.print( g + " ");
+				System.out.println();
 
 				/*
 				if ( loadGenes != null && loadGenes.length() > 0 )
@@ -251,8 +252,6 @@ public class PairwiseSectionAligner implements Callable<Void> {
 				final boolean saveResult = true;
 				final boolean visualizeResult = !hidePairwiseRendering;
 
-				System.out.println( "Aligning ... ");
-
 				if ( visualizeResult )
 				{
 					if ( renderingGene == null )
@@ -266,6 +265,12 @@ public class PairwiseSectionAligner implements Callable<Void> {
 					AlignTools.defaultGene = renderingGene;
 				}
 
+				System.out.println( "Gene used for rendering: " + renderingGene );
+
+				System.out.println( "Aligning ... ");
+
+				long time = System.currentTimeMillis();
+
 				// hard case: -i /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d1 Puck_180602_15 -d2 Puck_180602_16 -n 30
 				// even harder: -i /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d1 Puck_180602_20 -d2 Puck_180602_18 -n 100 --overwrite
 				PairwiseSIFT.pairwiseSIFT(
@@ -275,6 +280,9 @@ public class PairwiseSectionAligner implements Callable<Void> {
 						p, scale, smoothnessFactor, maxEpsilon,
 						minNumInliers, minNumInliersGene,
 						saveResult, visualizeResult, Threads.numThreads() );
+
+				System.out.println( "Took " + (System.currentTimeMillis() - time)/1000 + " sec." );
+
 			}
 		}
 

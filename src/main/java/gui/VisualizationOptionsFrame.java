@@ -28,7 +28,7 @@ public class VisualizationOptionsFrame extends JFrame
 		setDefaultCloseOperation( JFrame.DISPOSE_ON_CLOSE );
 
 		final JTextField textMedian = new JTextField( 3 );
-		final JSlider sliderMedian = new JSlider( 0, 100, 0 );
+		final JSlider sliderMedian = new JSlider( 0, 1000, 0 );
 
 		final JTextField textGauss = new JTextField( 2 );
 		final JSlider sliderGauss = new JSlider( 0, 1000, 100 ); // maps to 0-10

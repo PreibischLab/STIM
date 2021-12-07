@@ -402,11 +402,14 @@ public class PairwiseSIFT
 		}
 
 		if ( visualizeResult && inliers.size() >= minNumInliers )
-			AlignTools.visualizePair(
+		{
+			ImagePlus rendered = AlignTools.visualizePair(
 					stDataA, stDataB,
 					new AffineTransform2D(),
 					AlignTools.modelToAffineTransform2D( modelGlobal ).inverse(),
-					smoothnessFactor ).setTitle( stDataAname + "-" + stDataBname + "-inliers-" + inliers.size() );
+					smoothnessFactor );
+			rendered.setTitle( stDataAname + "-" + stDataBname + "-inliers-" + inliers.size() + " (" + AlignTools.defaultGene + ")" );
+		}
 
 		// compute errors
 		// reset world coordinates & compute error

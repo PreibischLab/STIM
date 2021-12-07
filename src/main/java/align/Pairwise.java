@@ -178,7 +178,7 @@ public class Pairwise
 		final ArrayList< Pair< String, Double > > listA = ExtractGeneLists.sortByStDevIntensity( stdataA, numThreads );
 		final ArrayList< Pair< String, Double > > listB = ExtractGeneLists.sortByStDevIntensity( stdataB, numThreads );
 
-		System.out.println( "Took " + (System.currentTimeMillis() - time) );
+		System.out.println( "Took " + (System.currentTimeMillis() - time) + " ms." );
 
 		// now we want to find the combination of genes where both have high variance
 		// we therefore sort them by the sum of ranks of both lists

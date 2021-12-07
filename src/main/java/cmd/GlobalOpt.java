@@ -30,7 +30,7 @@ public class GlobalOpt implements Callable<Void> {
 	@Option(names = {"--ignoreQuality"}, required = false, description = "ignore the amount of RANSAC inlier ratio, otherwise used it to determine - if necessary - which pairwise connections to remove during global optimization (default: false)")
 	private boolean ignoreQuality = false;
 
-	@Option(names = {"--lambda"}, required = false, description = "lambda of the affine model regularized with the rigid model, 0.0 means fully affine, 1.0 means just rigid (default: 0.1)")
+	@Option(names = {"-l", "--lambda"}, required = false, description = "lambda of the affine model regularized with the rigid model, 0.0 means fully affine, 1.0 means just rigid (default: 0.1)")
 	private double lambda = 0.1;
 
 	@Option(names = {"--maxAllowedError"}, required = false, description = "maximally allowed error during global optimization (default: 300.0 for slideseq)")
@@ -55,16 +55,16 @@ public class GlobalOpt implements Callable<Void> {
 	@Option(names = {"--icpIterations"}, required = false, description = "maximum number of ICP iterations for each pair of slides (default: 100)")
 	private int icpIterations = 100;
 
-	@Option(names = {"--icpErrorFraction"}, required = false, description = "distance at which locations will be assigned as corresponding during ICP, relative to median distance between all locations (default: 0.5)")
+	@Option(names = {"--icpErrorFraction"}, required = false, description = "distance at which locations will be assigned as corresponding during ICP, relative to median distance between all locations (default: 1.0)")
 	private double icpErrorFraction = 1.0;
 
 	@Option(names = {"--maxAllowedErrorICP"}, required = false, description = "maximum error allowed during ICP runs after model fit - consult the results of pairwise matching to identify a reasonable number (default: 140.0 for slideseq)")
 	private double maxAllowedErrorICP = 140.0;
 
-	@Option(names = {"--maxIterationsICP"}, required = false, description = "maximum number of iterations during ICP (default: 3000)")
+	@Option(names = {"--maxIterationsICP"}, required = false, description = "maximum number of iterations during ICP (default: 500)")
 	private int maxIterationsICP = 500;
 
-	@Option(names = {"--minIterationsICP"}, required = false, description = "minimum number of iterations during ICP (default: 3000)")
+	@Option(names = {"--minIterationsICP"}, required = false, description = "minimum number of iterations during ICP (default: 500)")
 	private int minIterationsICP = 500;
 
 	@Option(names = {"-sf", "--smoothnessFactor"}, required = false, description = "FOR DISPLAY ONLY: factor for the sigma of the gaussian used for rendering, corresponds to smoothness, e.g -sf 2.0 (default: 1.5)")

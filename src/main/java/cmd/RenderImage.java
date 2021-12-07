@@ -112,9 +112,15 @@ public class RenderImage implements Callable<Void> {
 					N5IO.openDataset(n5, dataset);
 
 			if ( stAssembly != null )
+			{
+				System.out.println( "Assigning transform to " + dataset );
+
 				data.add( new ValuePair<STData, AffineTransform2D>(
 						stAssembly.data(),
 						ignoreTransforms ? new AffineTransform2D() : stAssembly.transform() ) );
+
+				System.out.println( stAssembly.transform() );
+			}
 		}
 
 		if ( data.size() == 0 )
