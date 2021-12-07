@@ -265,6 +265,11 @@ First, type `calm2` into the search gene box. Using `-c '0,110'` we already set 
 ```
 You can now for example overlay both images into a two-channel image using `Image > Color > Merge Channels` and select **Calm2** as magenta and **Mbp** as green. By flipping through the slices (sec1 and sec2) you will again realize that they are not aligned. You could for example convert this image to RGB `Image > Type > RGB Color` and then save it as TIFF, JPEG or AVI (e.g JPEG compression). These can be added to your presentation or paper for example, check out my beautiful **AVI** [here](https://github.com/PreibischLab/STIM/blob/master/src/main/resources/calm2-mbp.avi) (you need to click download on the right top). You could render a bigger image setting `-s 0.1`. ***Note: Please check the documentation of [ImageJ](https://imagej.net) and [Fiji](http://fiji.sc) for further help with how to process images***
 
+6. Next, we will perform alignment of the two slices. We will use 100 automatically selected genes, a maximum error of 100 and require at least 30 inliers per gene (this dataset is more robust than the SlideSeq one).
+```bash
+./st-align-pairs -i visium.n5 -g 100 -sf 0.5 -e 100 --minNumInliersGene 30
+```
+
 ## Wrapping in Python
 
 A python wrapper, stimwrap https://github.com/rajewsky-lab/stimwrap,
