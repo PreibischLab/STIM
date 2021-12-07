@@ -282,7 +282,7 @@ You can now for example overlay both images into a two-channel image using `Imag
 ./st-align-global -i visium.n5 --absoluteThreshold 100 -sf 0.5 --lambda 0.0 --skipICP
 ```
 
-9. The final dataset can for example be visualized and interactively explored using BigDataViewer. 
+9. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/bdv-calm2-mbp-mtnd4.png" alt="Example alignment" width="480">The final dataset can for example be visualized and interactively explored using BigDataViewer. Therefore, we specify three genes, a crisper rendering, and a relative z-spacing between the two planes that shows them close to each other.
 ```bash
 ./st-bdv-view -i visium.n5 -g Calm2,Mbp,mt-Nd4 -c '0,90' -sf 0.6 -z 3
 ```
