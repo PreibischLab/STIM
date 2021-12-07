@@ -270,7 +270,7 @@ You can now for example overlay both images into a two-channel image using `Imag
 ./st-align-pairs -i visium.n5 -n 15 -sf 0.5 --maxEpsilon 100 --minNumInliersGene 30
 ```
 
-7. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/align_mt-Nd4-1.gif" alt="Example alignment" width="480"> Now we will visualize before/after alignment of this pair of slices. 
+7. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/align_mt-Nd4-1.gif" alt="Example alignment" width="480"> Now we will visualize before/after alignment of this pair of slices. To achieve this, we create two independent images, one using `st-render` (see above) and one using `st-align-pairs-view` on the automatically selected gene **mt-Nd4**.
  
 ## Wrapping in Python
 
