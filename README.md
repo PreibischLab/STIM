@@ -277,9 +277,14 @@ You can now for example overlay both images into a two-channel image using `Imag
 ```
 *Note: to create the GIF shown I saved both images independently, opened them in Fiji, cropped them, combined them, converted them to 8-bit color, set framerate to 1 fps, and saved it as one GIF.* 
 
-8. Finally, we perform the global alignment. In this particular case, it is identical to the pairwise alignment process as we only have two sections. However, we still need to do it so the **final transformations for the sections are stored in the N5.** After that, `st-explorer`, `st-bdv-view` and `st-render` will take these transformations into account when displaying the data.
+8. Finally, we perform the global alignment. In this particular case, it is identical to the pairwise alignment process as we only have two sections. However, we still need to do it so the **final transformations for the sections are stored in the N5.** After that, `st-explorer`, `st-bdv-view` and `st-render` will take these transformations into account when displaying the data This final processing step usually only takes a few seconds.
 ```bash
 ./st-align-global -i visium.n5 --absoluteThreshold 100 -sf 0.5 --lambda 0.0 --skipICP
+```
+
+9. The final dataset can for example be visualized and interactively explored using BigDataViewer. 
+```bash
+./st-bdv-view -i visium.n5 -g Calm2,Mbp,mt-Nd4 -c '0,90' -sf 0.6 -z 3
 ```
 
 ## Wrapping in Python
