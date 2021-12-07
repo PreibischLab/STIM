@@ -7,8 +7,9 @@ STIM is a framework for managing, storage, viewing, and processing spatial trans
  * image filtering framework for irregularly-spaced datasets
  * alignment of spatial dataset slides using SIFT, ICP and RANSAC combined with global optimization
 
-A great example dataset is provided by the [SlideSeq paper](https://science.sciencemag.org/content/363/6434/1463.long) and can be downloaded from [here](https://portals.broadinstitute.org/single_cell/study/slide-seq-study). 
+A **great example** dataset is provided by the [SlideSeq paper](https://science.sciencemag.org/content/363/6434/1463.long) and can be downloaded [here](https://portals.broadinstitute.org/single_cell/study/slide-seq-study). 
 
+A **minimal example** of a two-slice Visium dataset is available [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view?usp=sharing). **We provide a [detailed walk-through for this dataset below to get you started](#Minimal-Example-Instructions).** *Note: we highly recommend this tutorial as a starting point for using STIM. If you have any questions, feature requests or concerns please open an issue here on GitHub.*
 
 ## Contents
 1. [Installation Instructions](#Installation-Instructions)
@@ -21,8 +22,9 @@ A great example dataset is provided by the [SlideSeq paper](https://science.scie
    1. [Pairwise Alignment](#Pairwise-Alignment)
    2. [View Pairwise Alignment](#View-Pairwise-Alignment)
    3. [Global Optimization and ICP refinement](#Global-Optimization-and-ICP-refinement)
-8. [Wrapping in Python](#Wrapping-in-Python)
-9. [Java Code Examples](#Java-Code-Examples)
+9. [Minimal Example Instructions](#Minimal-Example-Instructions)
+9. [Wrapping in Python](#Wrapping-in-Python)
+10. [Java Code Examples](#Java-Code-Examples) 
 
 ## Installation Instructions
 
@@ -45,7 +47,22 @@ Install into your favorite local binary `$PATH` (or leave empty for using the ch
 ```
 All dependencies will be downloaded and managed by maven automatically.
 
-This currently installs several tools, `st-resave, st-normalize, st-view, st-render`.
+This currently installs several tools, `st-resave, st-normalize, st-explorer, st-render, st-bdv-view, st-align-pairs, st-align-pairs-view, st-align-global`.
+
+The process should finish with a message similar to this (here we only called `./install` thus installing in the code directory):
+```bash
+Installing 'st-explorer' command into /Users/spreibi/Downloads/stim_test/stim
+Installing 'st-render' command into /Users/spreibi/Downloads/stim_test/stim
+Installing 'st-bdv-view' command into /Users/spreibi/Downloads/stim_test/stim
+Installing 'st-resave' command into /Users/spreibi/Downloads/stim_test/stim
+Installing 'st-normalize' command into /Users/spreibi/Downloads/stim_test/stim
+Installing 'st-align-pairs' command into /Users/spreibi/Downloads/stim_test/stim
+Installing 'st-align-pairs-view' command into /Users/spreibi/Downloads/stim_test/stim
+Installing 'st-align-global' command into /Users/spreibi/Downloads/stim_test/stim
+
+Installation directory equals current directory, we are done.
+Installation finished.
+```
 
 ## Resaving
 Resave (compressed) textfiles to the N5 format (and optionally `--normalize`) using
@@ -61,7 +78,7 @@ If the n5 directory exists new datasets will be added (example above:`name`, `Pu
 
 _Optionally_, cell type predictions can be imported as part of the resaving step, in this case each input consists of **four entries**, `locations.csv` file, a `reads.csv` file, **a `celltypes.csv` file**,and a user-defined `dataset name`. Please note that missing barcodes in celltypes.csv will be excluded from the dataset. This way you can filter locations with bad expression values.
 
-_Optionally_, the datasets can be directly log-normalized before resaving (recommended). The **locations file** should contain a header for `barcode (id), xcoord and ycoord`, followed by the entries:
+_Optionally_, the datasets can be directly log-normalized before resaving. The **locations file** should contain a header for `barcode (id), xcoord and ycoord`, followed by the entries:
 ```
 barcodes,xcoord,ycoord
 TCACGTAGAAACC,3091.01234567901,2471.88888888889
@@ -87,7 +104,7 @@ ACCGTCTGAATTC,40
 ```
 
 ## Normalization
-You can run the normalization also independently after resaving. The tool can resave selected or all datasets of an N5 container into the same or a new N5:
+You can run the normalization also independently after resaving if desired. The tool can resave selected or all datasets of an N5 container into the same or a new N5:
 ```bash
 ./st-normalize \
      -i '/path/input.n5' \
@@ -165,17 +182,111 @@ The pairwise alignment uses SIFT to align pairs of 2d slices. _**Important note:
 ```
 Datasets from the selected N5 `-i` will be aligned in pairs. Datasets and their ordering can be optionally defined using `-d`, otherwise all datasets will be used in the order as defined in the N5 container. The comparison range (±slices to be aligned) can be defined using `-r`, by default it is set to 2. Genes to be used can be specified manually using `-g`, or a specified number of genes `-n` with the highest standard deviation in the expression signal will be used. By default, 100 genes will be automatically selected.
 
-The images used for alignment are rendered as in the viewing programs above. The scaling of the images can be changed using `-s` (default: 0.05 or 5%), and the smoothness factor can be changed using `-sf` (default: 4.0). If a registration was run before, the application will quit. Previous results can be overwritten using `--overwrite`.
+The images used for alignment are rendered as in the viewing programs above. The scaling of the images can be changed using `-s` (default: 0.05 or 5%), and the smoothness factor can be changed using `-sf` (default: 4.0). If a registration was run before and transformations are already stored, the application will quit. To compute anyways, previous results can be overwritten using `--overwrite`.
 
 The alignment itself has more paramters that can be adjusted. The maximal error (default 250.0) for the RANSAC matching in SIFT can be adjusted using `-e`, the minimally required number of RANSAC inliers per tested gene can be changed using `--minNumInliersGene` (default: 5), and the minimal number of inliers over all genes can be adjusted using `--minNumInliers` (default: 30).
 
 The results of the alignment will be shown by default using a gene (selected automatically or defined via `--renderingGene`, which can be deactivated using `--hidePairwiseRendering`. 
 
-
-
 ### View Pairwise Alignment
 
+This command allows to manually inspect pairwise alignments between slices and to test out the effect of different transformation models (from fully rigid to fully affine). It uses all identified corresponding points to compute the respective transformation that minimizes the distance between all points.
+```bash
+./st-align-pairs-view \
+     -i '/path/directory.n5' \
+     -g Calm2 \
+     [-d 'Puck_180528_20,Puck_180528_22'] \
+     [-s 0.05] \
+     [-sf 4.0] \
+     [-l 1.0] \
+```
+Pairs of datasets `-d` from the selected N5 `-i` will be visualized for a gene of choice defined by `-g`. If `-d` is omitted, all pairs will be displayed. The images are rendered as explained above. The scaling of the images can be changed using `-s` (default: 0.05 or 5%), and the smoothness factor can be changed using `-sf` (default: 4.0). Importantly, `-l` allows to set the lambda of the 2D interpolated transformation model(s) (affine/rigid). Specifically, lambda defines the degree of rigidity, fully affine is 0.0, fully rigid is 1.0 (default: 1.0 - rigid). A sensible choice might be 0.1.
+
 ### Global Optimization and ICP refinement
+
+The global optimization step minimizes the distance between all corresponding points across all pairs of slices (at least two) and includes an optional refinement step using the iterative closest point (ICP) algorithm.
+```bash
+./st-align-global \
+     -i '/path/directory.n5' \
+     [-d 'Puck_180528_20,Puck_180528_22'] \
+     [-l 0.1] \
+     [--maxAllowedError] \
+     [--maxIterations] \
+     [--minIterations] \
+     [--relativeThreshold] \
+     [--absoluteThreshold] \
+     [--ignoreQuality] \
+     [--skipICP] \
+     [--icpIterations] \
+     [--icpErrorFraction] \
+     [--maxAllowedErrorICP] \
+     [--maxIterationsICP] \
+     [--minIterationsICP] \
+     [-sf 4.0] \
+     [-g Calm2] \
+```
+By default, all datasets of the specified N5 container `-i` will be optimized, a subset of datasets can be selected using `-d`. `-l` allows to set the lambda of the 2D interpolated transformation model(s) that will be used for each slice. Lambda defines the degree of rigidity, fully affine is 0.0, fully rigid is 1.0 (default: 0.1 - 10% rigid, 90% affine). 
+
+Prior to computing the final optimum, we try to identify if there are pairs of slices that contain wrong correspondences. To do this, we test for global consistency of the alignment and potentially remove pairs that differ significantly from the consensus of all the other pairs. There are a few parameters to adjust this process. `--ignoreQuality` ignores the amount of RANSAC inlier ratio as a way to measure their quality, otherwise it is used determine which pairwise connections to remove during global optimization (default: false). `--relativeThreshold` sets the relative threshold for dropping pairwise connections, i.e. if the pairwise error is n-times higher than the average error (default: 3.0). `--absoluteThreshold` defines the absolute error threshold for dropping pairwise connections. The errors of the pairwise matching process provide a reasonable number, the global error shouldn't be much higher than the pairwise errors, althought it is expected to be higher since it is a more constraint problem (default: 160.0 for slideseq).
+
+`--maxAllowedError` specifies the maximally allowed error during global optimization (default: 300.0 for slideseq). The optimization will run until the maximum number of iterations `--maxIterations` if the error remains above `--maxAllowedError`. `--minAllowedError` sets the minimum number of iterations that will be performed. *Note: These parameters usually do not need to change*. 
+
+`--skipICP` skips the more compute intense ICP refinement step. If sufficent numbers of correspondences are found in the pairwise matching (e.g. >300), this can be advisable. `--icpIterations` defines the maximum number of ICP iterations for each pair of slides (default: 100). `--icpErrorFraction` describes the distance at which sequenced locations will be assigned as correspondences in ICP, relative to median distance between all locations (default: 1.0). `--maxAllowedErrorICP` is the maximum error allowed during ICP runs (after each model fit) - here also consult the results of pairwise matching to identify a reasonable number (default: 140.0 for slideseq). 
+
+The global optimization after ICP will run until the maximum number of iterations `--maxIterationsICP` if the error remains above `--maxAllowedError`. `--minIterationsICP` sets the minimum number of iterations that will be performed. *Note: These parameters usually do not need to change*. 
+
+The results are displayed by default. The smoothness factor can be changed using `-sf` (default: 4.0), the gene can be selected using `-g` (default: Calm2).
+
+## Minimal Example Instructions
+
+1. To get started please follow the [Installation Instructions](#Installation-Instructions) to clone and build **STIM**. It might be easiest to **not** install into `$HOME/bin` but rather just call `./install` during the installation process.
+
+2. Next, please download the example Visium data from [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view?usp=sharing) and store the zip file in the same directory that contains the executables (assuming you just did `./install`).
+***Note: your browser might automatically unzip the data, we cover both cases during the resaving step below.***
+
+3. Now we resave the data into an N5 container for efficent storage and access to the dataset. Assuming the data is in the downloaded `visium.zip` file in the same directory as the executables do:
+```bash
+./st-resave \
+   -i visium.zip/section1_locations.csv,visium.zip/section1_reads.csv,sec1 \
+   -i visium.zip/section2_locations.csv,visium.zip/section2_reads.csv,sec2 \
+   -o visium.n5
+```
+It will automatically load the `*.csv` files from within the zipped file and create a `visium.n5` folder containing the re-saved dataset. The entire resaving process should take about 10 seconds on a modern notebook with an SSD. ***Note: if your browser automatically unzipped the data, just change `visium.zip` to the respective folder name, most likely `visium`***
+
+4. Next, we will simply take a look at the data. 
+```bash
+./st-explorer -i visium.n5 -c '0,110'
+```
+First, type `calm2` into the search gene box. Using `-c '0,110'` we already set the display range to more or less match this dataset. You can manually change it by clicking in the BigDataViewer window and press `s` to bring up the brightness dialog. As you switch between **sec1** and **sec2** you'll see that they are not aligned. Feel free to play with the **Visualization Options** in the explorer, e.g. move **Gauss Rendering** to 0.5 to get a sharper image and then play with the **Median Filter** radius to filter the data.
+
+5. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/overlay calm2-mbp.png" alt="Example overlay of calm-2, mbp" width="280">Now, we will create a TIFF image for gene Calm2 and Mbp.
+```bash
+./st-render -i visium.n5 -g 'Calm2,Mbp' -sf 0.5
+```
+You can now for example overlay both images into a two-channel image using `Image > Color > Merge Channels` and select **Calm2** as magenta and **Mbp** as green. By flipping through the slices (sec1 and sec2) you will again realize that they are not aligned. You could for example convert this image to RGB `Image > Type > RGB Color` and then save it as TIFF, JPEG or AVI (e.g JPEG compression). **These can be added to your presentation or paper for example, check out my beautiful AVI** [here](https://github.com/PreibischLab/STIM/blob/master/src/main/resources/calm2-mbp.avi) (you need to click download on the right top). You could render a bigger image setting `-s 0.1`. ***Note: Please check the documentation of [ImageJ](https://imagej.net) and [Fiji](http://fiji.sc) for further help with how to further process images.***
+
+6. Next, we will perform alignment of the two slices. We will use 15 automatically selected genes `-n` (the more the better, but it is also slower), a maximum error of 100 `--maxEpsilon` and require at least 30 inliers per gene `--minNumInliersGene` (this dataset is more robust than the SlideSeq one). **The alignment process takes around 1-2 minutes on a modern notebook.** *Note: at this point no transformations are stored within the N5 container, but only the list of corresponding points.*
+```bash
+./st-align-pairs -i visium.n5 -n 15 -sf 0.5 --maxEpsilon 100 --minNumInliersGene 30
+```
+
+7. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/align_mt-Nd4-1.gif" alt="Example alignment" width="480"> Now we will visualize before/after alignment of this pair of slices. To achieve this, we create two independent images, one using `st-render` (see above) and one using `st-align-pairs-view` on the automatically selected gene **mt-Nd4**. `st-render` will display the sections unaligned, while `st-align-pairs-view` will show them aligned. 
+```bash
+./st-render -i visium.n5 -sf 0.5 -g mt-Nd4
+./st-align-pairs-view -i visium.n5 -sf 0.5 -g mt-Nd4
+```
+*Note: to create the GIF shown I saved both images independently, opened them in Fiji, cropped them, combined them, converted them to 8-bit color, set framerate to 1 fps, and saved it as one GIF.* 
+
+8. Finally, we perform the global alignment. In this particular case, it is identical to the pairwise alignment process as we only have two sections. However, we still need to do it so the **final transformations for the sections are stored in the N5.** After that, `st-explorer`, `st-bdv-view` and `st-render` will take these transformations into account when displaying the data This final processing step usually only takes a few seconds.
+```bash
+./st-align-global -i visium.n5 --absoluteThreshold 100 -sf 0.5 --lambda 0.0 --skipICP
+```
+
+9. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/bdv-calm2-mbp-mtnd4.png" alt="Example alignment" width="240">The final dataset can for example be visualized and interactively explored using BigDataViewer. Therefore, we specify three genes `-g Calm2,Mbp,mt-Nd4`, a crisper rendering `-sf 0.6`, and a relative z-spacing between the two planes that shows them close to each other `-z 3`. Of course, the same data can be visualized using `st-explorer` and `st-render`.
+```bash
+./st-bdv-view -i visium.n5 -g Calm2,Mbp,mt-Nd4 -c '0,90' -sf 0.6 -z 3
+```
+We encourage you to use this small dataset as a starting point for playing with and extending **STIM**. If you have any questions, feature requests or concerns please open an issue here on GitHub. Thanks so much!
 
 ## Wrapping in Python
 
