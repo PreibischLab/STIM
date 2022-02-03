@@ -71,6 +71,9 @@ public class PairwiseSectionAligner implements Callable<Void> {
 	@Option(names = {"--hidePairwiseRendering"}, required = false, description = "do not show pairwise renderings that apply the 2D rigid models (default: false - showing them)")
 	private boolean hidePairwiseRendering = false;
 
+	@Option(names = {"--spark"}, required = false, description = "use spark")
+	private boolean sparkProcessing = true;
+
 	//-i /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d 'Puck_180602_20,Puck_180602_18,Puck_180602_17,Puck_180602_16,Puck_180602_15,Puck_180531_23,Puck_180531_22,Puck_180531_19,Puck_180531_18,Puck_180531_17,Puck_180531_13,Puck_180528_22,Puck_180528_20' -n 100 --overwrite
 
 	@Override
@@ -124,6 +127,10 @@ public class PairwiseSectionAligner implements Callable<Void> {
 				stdata.add( N5IO.readN5( n5, dataset ) );
 			}
 		}
+
+		final SparkConf conf = new SparkConf().setAppName("PairwiseSectionAligner").setMaster("local");
+		final JavaSparkContext sc = new JavaSparkContext(conf);
+		sc.setLogLevel("ERROR");
 
 		// iterate once just to be sure we will not crash half way through because something exists
 		for ( int i = 0; i < stdata.size() - 1; ++i )
@@ -273,14 +280,23 @@ public class PairwiseSectionAligner implements Callable<Void> {
 
 				// hard case: -i /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d1 Puck_180602_15 -d2 Puck_180602_16 -n 30
 				// even harder: -i /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d1 Puck_180602_20 -d2 Puck_180602_18 -n 100 --overwrite
-				PairwiseSIFT.pairwiseSIFT(
-						stData1, dataset1, stData2, dataset2,
-						new RigidModel2D(), new RigidModel2D(),
-						n5File, new ArrayList<>( genesToTest ),
-						p, scale, smoothnessFactor, maxEpsilon,
-						minNumInliers, minNumInliersGene,
-						saveResult, visualizeResult, Threads.numThreads() );
-
+				if (sparkProcessing){
+					PairwiseSIFT.sparkPairwiseSIFT(
+							input, dataset1, dataset2,
+							new RigidModel2D(), new RigidModel2D(),
+							new ArrayList<>(genesToTest),
+							p, scale, smoothnessFactor, maxEpsilon,
+							minNumInliers, minNumInliersGene,
+							saveResult, visualizeResult, sc);
+				}else {
+					PairwiseSIFT.pairwiseSIFT(
+							stData1, dataset1, stData2, dataset2,
+							new RigidModel2D(), new RigidModel2D(),
+							n5File, new ArrayList<>(genesToTest),
+							p, scale, smoothnessFactor, maxEpsilon,
+							minNumInliers, minNumInliersGene,
+							saveResult, visualizeResult, Threads.numThreads());
+				}
 				System.out.println( "Took " + (System.currentTimeMillis() - time)/1000 + " sec." );
 
 			}
