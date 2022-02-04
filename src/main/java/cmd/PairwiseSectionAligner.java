@@ -7,6 +7,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.Callable;
 
+import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.joml.Math;
 
@@ -127,10 +129,13 @@ public class PairwiseSectionAligner implements Callable<Void> {
 				stdata.add( N5IO.readN5( n5, dataset ) );
 			}
 		}
+		JavaSparkContext sc = null;
 
-		final SparkConf conf = new SparkConf().setAppName("PairwiseSectionAligner").setMaster("local");
-		final JavaSparkContext sc = new JavaSparkContext(conf);
-		sc.setLogLevel("ERROR");
+		if(sparkProcessing){
+			final SparkConf conf = new SparkConf().setAppName("PairwiseSectionAligner").setMaster("local");
+			sc = new JavaSparkContext(conf);
+			sc.setLogLevel("ERROR");
+		}
 
 		// iterate once just to be sure we will not crash half way through because something exists
 		for ( int i = 0; i < stdata.size() - 1; ++i )

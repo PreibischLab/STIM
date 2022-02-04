@@ -217,7 +217,6 @@ public class PairwiseSIFT {
 
         final double[] transform = tS.getRowPackedCopy();
         final double[] serializedModelPairwise = Serializers.serializeRigidModel2D(modelPairwise);
-        final double[] serializedModelGlobal = Serializers.serializeRigidModel2D(modelGlobal);
 
         final String input = inputPath;
         final String stDataAname = stDataA_name;
