@@ -9,6 +9,7 @@ import ij.process.ImageProcessor;
 import imglib2.ImgLib2Util;
 import io.N5IO;
 import io.Path;
+import java.util.function.Supplier;
 import mpicbg.ij.FeatureTransform;
 import mpicbg.ij.SIFT;
 import mpicbg.ij.util.Util;
@@ -36,7 +37,6 @@ import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.joml.Math;
 import util.Threads;
-import util.spark.Serializers;
 
 import java.io.File;
 import java.io.IOException;
@@ -195,12 +195,12 @@ public class PairwiseSIFT {
         }
     }
 
-    public static void sparkPairwiseSIFT(
+    public static <M extends Affine2D<M> & Model<M>, N extends Affine2D<N> & Model<N>, SM extends Supplier<M> & Serializable> void sparkPairwiseSIFT(
             final String inputPath,
             final String stDataA_name,
             final String stDataB_name,
-            final RigidModel2D modelPairwise,
-            final RigidModel2D modelGlobal,
+            final SM modelPairwise,
+            final N modelGlobal,
             final List<String> genesToTest,
             final SIFTParam p,
             final double scal,
@@ -216,7 +216,6 @@ public class PairwiseSIFT {
         tS.scale(scal);
 
         final double[] transform = tS.getRowPackedCopy();
-        final double[] serializedModelPairwise = Serializers.serializeRigidModel2D(modelPairwise);
 
         final String input = inputPath;
         final String stDataAname = stDataA_name;
@@ -296,8 +295,8 @@ public class PairwiseSIFT {
             }
 
             // prefilter the candidates
-            final RigidModel2D model = Serializers.deserializeRigidModel2D(serializedModelPairwise);//new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), 0.1 );//new RigidModel2D();
-            final List<PointMatch> inliers = consensus(candidatesTmp, model, minNumInliersPerGene, maxEpsilon);
+            //new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), 0.1 );//new RigidModel2D();
+            final List<PointMatch> inliers = consensus(candidatesTmp, modelPairwise.get(), minNumInliersPerGene, maxEpsilon);
 
             // reset world coordinates & compute error
             double error = Double.NaN, maxError = Double.NaN, minError = Double.NaN;

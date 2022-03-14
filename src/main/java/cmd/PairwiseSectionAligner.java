@@ -1,12 +1,14 @@
 package cmd;
 
 import java.io.File;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.Callable;
 
+import java.util.function.Supplier;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
@@ -288,7 +290,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 				if (sparkProcessing){
 					PairwiseSIFT.sparkPairwiseSIFT(
 							input, dataset1, dataset2,
-							new RigidModel2D(), new RigidModel2D(),
+							(Supplier<RigidModel2D> & Serializable)(() -> new RigidModel2D()), new RigidModel2D(),
 							new ArrayList<>(genesToTest),
 							p, scale, smoothnessFactor, maxEpsilon,
 							minNumInliers, minNumInliersGene,
