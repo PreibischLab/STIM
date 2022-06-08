@@ -263,6 +263,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 					}
 
 					AlignTools.defaultGene = renderingGene;
+					AlignTools.defaultScale = scale;
 				}
 
 				System.out.println( "Gene used for rendering: " + renderingGene );
