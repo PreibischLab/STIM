@@ -114,6 +114,7 @@ Installing 'st-align-global' command into /Users/spreibi/Downloads/stim_test/sti
 Installation directory equals current directory, we are done.
 Installation finished.
 ```
+The installation should take around 1 minute.
 
 ## Resaving
 Resave (compressed) textfiles to the N5 format (and optionally `--normalize`) using
