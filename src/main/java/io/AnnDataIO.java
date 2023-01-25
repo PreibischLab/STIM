@@ -14,37 +14,132 @@ public class AnnDataIO
 
 		final IHDF5Reader dataStore = HDF5Factory.openForReading(file);
 
-		// read out main data array (may be sparse)
-		final double[][] X = reconstructMatrixfromSparse(dataStore);
+		System.out.println("The root has some meta-information.");
+		printStringAttribute(dataStore,"/", "encoding-type");
+		printStringAttribute(dataStore,"/", "encoding-version");
 
-		// observation names
-		final String[] observations = dataStore.readStringArray("obs/_index");
-		System.out.println( "read " + observations.length + " observations.");
-		for ( final String observation : observations )
-			System.out.println(observation);
+		System.out.println();
+		System.out.println("The main matrix is stored in CSR/CSC format");
+		printIntArrayAttribute(dataStore, "X", "shape");
+		printStringAttribute(dataStore, "X", "encoding-type");
+		printStringAttribute(dataStore, "X", "encoding-version");
+		printDoubleArray(dataStore, "X/data");
+		printIntArray(dataStore, "X/indices");
+		printIntArray(dataStore, "X/indptr");
+		final double[][] X = reconstructMatrixfromSparse(dataStore, "X");
 
-		// number of variable names
-		final String[] variables = dataStore.readStringArray("var/_index");
-		System.out.println("read " + variables.length + " variable names.");
+		System.out.println();
+		System.out.println("Information about datasets can also be inferred");
+		String type = dataStore.getDataSetInformation("X/data").getTypeInformation().getRawDataClass().toString();
+		long[] shape = dataStore.getDataSetInformation("X/data").getDimensions();
+		System.out.println("X/data is of type " + type + " and has shape (" + shape[0] +",)");
 
-		// multidimensional annotations
-		final double[] multiDimAnnotation = dataStore.readDoubleArray("varm/gene_stuff");
-		System.out.println("read " + multiDimAnnotation.length + " annotations.");
+		System.out.println();
+		System.out.println("Layers are matrices with the same layout as X");
+		printIntArrayAttribute(dataStore, "layers/log_transformed", "shape");
+		printStringAttribute(dataStore, "layers/log_transformed", "encoding-type");
+		printStringAttribute(dataStore, "layers/log_transformed", "encoding-version");
+		printDoubleArray(dataStore, "layers/log_transformed/data");
+		printIntArray(dataStore, "layers/log_transformed/indices");
+		printIntArray(dataStore, "layers/log_transformed/indptr");
+		final double[][] Y = reconstructMatrixfromSparse(dataStore, "layers/log_transformed");
+
+		System.out.println();
+		System.out.println("Variable/observation can have names and types (=1-dimensional annotations)");
+		printStringArray(dataStore, "var/_index");
+		printStringArray(dataStore, "obs/_index");
+		printStringArray(dataStore, "obs/cell_type/categories");
+		printIntArray(dataStore, "obs/cell_type/codes");
+
+		System.out.println();
+		System.out.println("Multidimensional annotations are stored as separate fields");
+		printDoubleArray(dataStore, "varm/gene_stuff");
+		printDoubleArray(dataStore, "obsm/X_umap");
+		type = dataStore.getDataSetInformation("obsm/X_umap").getTypeInformation().getRawDataClass().toString();
+		shape = dataStore.getDataSetInformation("obsm/X_umap").getDimensions();
+		System.out.println("obsm/X_umap is of type " + type + " and has shape (" + shape[0] + "," + shape[1] + ")");
+
+		System.out.println();
+		System.out.println("Pairwise relationships within variables/observations are stored in varp/obsp");
+
+		System.out.println();
+		System.out.println("Everything else goes into uns");
+		printDoubleArray(dataStore, "uns/random");
 	}
 
-	private static double[][] reconstructMatrixfromSparse(IHDF5Reader data) {
-		final String encoding = data.getStringAttribute("X", "encoding-type");
-		final String version = data.getStringAttribute("X", "encoding-version");
-		final int[] shape = data.getIntArrayAttribute("X", "shape");
+	private static void printStringAttribute(IHDF5Reader data, String path, String attribute) {
+		final String value = data.getStringAttribute(path, attribute);
+		System.out.println("<" + path + " (attribute: " + attribute + ")> string: " + value);
+	}
+
+	private static void printIntArrayAttribute(IHDF5Reader data, String path, String attribute) {
+		final int[] value = data.getIntArrayAttribute(path, attribute);
+		int end = Math.min(5, value.length);
+
+		StringBuilder str = createArrayPretext(path + " (attribute: " + attribute + ")", "int", value.length);
+		for ( int i=0; i<end; i++) { str.append(" ").append(value[i]); }
+		if ( end < value.length ) { str.append(" ..."); }
+
+		System.out.println(str);
+	}
+
+	private static void printIntArray(IHDF5Reader data, String path) {
+		final int[] value = data.readIntArray(path);
+		int end = Math.min(5, value.length);
+
+		StringBuilder str = createArrayPretext(path, "int", value.length);
+		for ( int i=0; i<end; i++) { str.append(" ").append(value[i]); }
+		if ( end < value.length ) { str.append(" ..."); }
+
+		System.out.println(str);
+	}
+
+	private static void printDoubleArray(IHDF5Reader data, String path) {
+		final double[] value = data.readDoubleArray(path);
+		int end = Math.min(5, value.length);
+
+		StringBuilder str = createArrayPretext(path, "double", value.length);
+		for ( int i=0; i<end; i++) { str.append(" ").append(value[i]); }
+		if ( end < value.length ) { str.append(" ..."); }
+
+		System.out.println(str);
+	}
+
+	private static void printStringArray(IHDF5Reader data, String path) {
+		final String[] value = data.readStringArray(path);
+		int end = Math.min(5, value.length);
+
+		StringBuilder str = createArrayPretext(path, "string", value.length);
+		for ( int i=0; i<end; i++) { str.append(" ").append(value[i]); }
+		if ( end < value.length ) { str.append(" ..."); }
+
+		System.out.println(str);
+	}
+
+	private static StringBuilder createArrayPretext(String path, String type, int len) {
+		StringBuilder str = new StringBuilder("<")
+				.append(path)
+				.append("> ")
+				.append(type)
+				.append(" array (")
+				.append(len)
+				.append("):");
+		return str;
+	}
+
+	private static double[][] reconstructMatrixfromSparse(IHDF5Reader data, String path) {
+		final String encoding = data.getStringAttribute(path, "encoding-type");
+		final String version = data.getStringAttribute(path, "encoding-version");
+		final int[] shape = data.getIntArrayAttribute(path, "shape");
 		final int numVariables = shape[0];
 		final int numObservations = shape[1];
 
 		// store dense matrix in row-major order, initialized by default to 0.0d
 		double[][] matrix = new double[numVariables][numObservations];
 
-		final double[] compressedMatrix = data.readDoubleArray("X/data");
-		final int[] indices = data.readIntArray("X/indices");
-		final int[] indptr = data.readIntArray("X/indptr");
+		final double[] compressedMatrix = data.readDoubleArray(path + "/data");
+		final int[] indices = data.readIntArray(path + "/indices");
+		final int[] indptr = data.readIntArray(path + "/indptr");
 		if ( encoding.equals("csr_matrix") ) {
 			for ( int i=0; i<indptr.length-1; i++ ) {
 				for ( int k=indptr[i]; k<indptr[i+1]; k++ ) {
@@ -60,9 +155,6 @@ public class AnnDataIO
 		} else {
 			throw new UnsupportedOperationException( "Reconstructing sparse matrix not implemented for encoding " + encoding );
 		}
-
-		System.out.println("read array of " + numVariables + " variables and " + numObservations +
-				" observations from format " + encoding + " version " + version + ".");
 
 		return matrix;
 	}
