@@ -165,6 +165,11 @@
 			<artifactId>n5-imglib2</artifactId>
 			<version>3.5.1</version>
 		</dependency>
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-hdf5</artifactId>
+			<version>1.4.2</version>
+		</dependency>
 
 		<!-- CSV dependencies (just for testing on dauer data, remove later) -->
 		<dependency>

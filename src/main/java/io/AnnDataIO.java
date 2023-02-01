@@ -1,9 +1,13 @@
 package io;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
 
 import ch.systemsx.cisd.hdf5.HDF5Factory;
 import ch.systemsx.cisd.hdf5.IHDF5Reader;
+import org.janelia.saalfeldlab.n5.DatasetAttributes;
+import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 
 public class AnnDataIO
 {
@@ -13,16 +17,35 @@ public class AnnDataIO
 		final String file = "./data/test.h5ad";
 
 		final IHDF5Reader dataStore = HDF5Factory.openForReading(file);
+		final N5HDF5Reader n5 = new N5HDF5Reader(file);
+
+		final String groupName = n5.groupPath("X");
+		System.out.println("sucessfully loaded " + groupName);
+
+		DatasetAttributes attributes = n5.getDatasetAttributes("X/data");
+		final int nDim = attributes.getNumDimensions();
+		System.out.println("Number of dimensions: " + nDim);
+		final long[] dim = attributes.getDimensions();
+		System.out.println("Dimensions: " + dim[0]);
+		System.out.println("Data type: " + attributes.getDataType());
+		System.out.println("Compression: " + attributes.getCompression());
+		final int[] blkSize = attributes.getBlockSize();
+		System.out.println("Blocksize: " + blkSize[0]);
+		float[] data = (float[]) n5.readBlock("X/data", attributes, 0).getData();
+		for ( int i=0; i<25; i++ ) {
+			System.out.println(data[i]);
+		}
+		readLocations(n5);
 
 		System.out.println("The root has some meta-information.");
-		printStringAttribute(dataStore,"/", "encoding-type");
-		printStringAttribute(dataStore,"/", "encoding-version");
+		printStringAttribute(n5,"/", "encoding-type");
+		printStringAttribute(n5,"/", "encoding-version");
 
 		System.out.println();
 		System.out.println("The main matrix is stored in CSR/CSC format");
-		printIntArrayAttribute(dataStore, "X", "shape");
-		printStringAttribute(dataStore, "X", "encoding-type");
-		printStringAttribute(dataStore, "X", "encoding-version");
+		printIntArrayAttribute(n5, "X", "shape");
+		printStringAttribute(n5, "X", "encoding-type");
+		printStringAttribute(n5, "X", "encoding-version");
 		printDoubleArray(dataStore, "X/data");
 		printIntArray(dataStore, "X/indices");
 		printIntArray(dataStore, "X/indptr");
@@ -36,9 +59,9 @@ public class AnnDataIO
 
 		System.out.println();
 		System.out.println("Layers are matrices with the same layout as X");
-		printIntArrayAttribute(dataStore, "layers/log_transformed", "shape");
-		printStringAttribute(dataStore, "layers/log_transformed", "encoding-type");
-		printStringAttribute(dataStore, "layers/log_transformed", "encoding-version");
+		printIntArrayAttribute(n5, "layers/log_transformed", "shape");
+		printStringAttribute(n5, "layers/log_transformed", "encoding-type");
+		printStringAttribute(n5, "layers/log_transformed", "encoding-version");
 		printDoubleArray(dataStore, "layers/log_transformed/data");
 		printIntArray(dataStore, "layers/log_transformed/indices");
 		printIntArray(dataStore, "layers/log_transformed/indptr");
@@ -67,17 +90,18 @@ public class AnnDataIO
 		printDoubleArray(dataStore, "uns/random");
 	}
 
-	private static void printStringAttribute(IHDF5Reader data, String path, String attribute) {
-		final String value = data.getStringAttribute(path, attribute);
+	private static void printStringAttribute(N5HDF5Reader data, String path, String attribute) throws IOException {
+		final String value = data.getAttribute(path, attribute, String.class);
+
 		System.out.println("<" + path + " (attribute: " + attribute + ")> string: " + value);
 	}
 
-	private static void printIntArrayAttribute(IHDF5Reader data, String path, String attribute) {
-		final int[] value = data.getIntArrayAttribute(path, attribute);
+	private static void printIntArrayAttribute(N5HDF5Reader data, String path, String attribute) throws IOException {
+		final long[] value = data.getAttribute(path, attribute, long[].class);
 		int end = Math.min(5, value.length);
 
 		StringBuilder str = createArrayPretext(path + " (attribute: " + attribute + ")", "int", value.length);
-		for ( int i=0; i<end; i++) { str.append(" ").append(value[i]); }
+		for ( int i=0; i<end; i++) { str.append(" ").append((int)value[i]); }
 		if ( end < value.length ) { str.append(" ..."); }
 
 		System.out.println(str);
@@ -157,5 +181,31 @@ public class AnnDataIO
 		}
 
 		return matrix;
+	}
+
+	private static HashMap<String, double[]> readLocations(N5HDF5Reader data) throws IOException {
+		// location data is stored in the obs-related fields in anndata:
+		// obs/_index -> names; obsm/locations -> coordinates
+		DatasetAttributes attributes = data.getDatasetAttributes("obsm/locations");
+		final int dim = attributes.getNumDimensions();
+		final long[] shape = attributes.getDimensions();
+		final int nLocations = (int) shape[0];
+		int[] blockSize = attributes.getBlockSize();
+		for ( int i=0; i<dim; i++ )
+			if ( shape[i] != blockSize[i] )
+				throw new RuntimeException("Blocksize in dimension " + i + " not equal: " + shape[i] + " != " + blockSize[i]);
+
+		double[] block = (double[]) data.readBlock("obsm/locations", attributes, 0, 0).getData();
+		for ( int i = 0; i < nLocations; i++ ) {
+			double[] location = new double[dim];
+			for (int k = 0; k < dim; k++) {
+				location[k] = block[dim*i+k];
+			}
+		}
+
+		attributes = data.getDatasetAttributes("obs/_index");
+		ByteBuffer buffer = data.readBlock("obs/_index", attributes, 0).toByteBuffer();
+
+		return new HashMap<>();
 	}
 }
