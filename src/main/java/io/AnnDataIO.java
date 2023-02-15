@@ -21,22 +21,19 @@ public class AnnDataIO
 
 	public static void main( String[] args ) throws IOException
 	{
-		final String file = "./data/test.h5ad";
+		final String path = "./data/test.h5ad";
 
-		final IHDF5Reader hdf5Reader = HDF5Factory.openForReading(file);
-		final N5HDF5Reader n5Reader = new N5HDF5Reader(file);
+		final IHDF5Reader hdf5Reader = HDF5Factory.openForReading(path);
+		final N5HDF5Reader n5Reader = new N5HDF5Reader(path);
 
-		readSlideSeq(file);
-
-		final double[][] X = reconstructMatrixfromSparse(hdf5Reader, "X");
-
-		final double[][] Y = reconstructMatrixfromSparse(hdf5Reader, "layers/log_transformed");
-
+		final File file = new File(path);
+		System.out.println("Does the dataset contain celltypes? " + containsCelltypes(file));
+		STData stData = readSlideSeq(file);
 	}
 
-	public static STData readSlideSeq(final String anndataFile) throws IOException {
+	public static STData readSlideSeq(final File anndataFile) throws IOException {
 		long time = System.currentTimeMillis();
-		N5HDF5Reader n5Reader = new N5HDF5Reader(anndataFile);
+		N5HDF5Reader n5Reader = new N5HDF5Reader(anndataFile.getAbsolutePath());
 
 		final List<Pair<double[], String>> coordinateList = readSlideSeqCoordinates(n5Reader);
 		System.out.println("Read " + coordinateList.size() + " coordinates.");
@@ -130,4 +127,12 @@ public class AnnDataIO
 		return geneMap;
 	}
 
+	public static Boolean containsCelltypes(final File anndataFile) {
+		try (final N5HDF5Reader n5Reader = new N5HDF5Reader(anndataFile.getAbsolutePath())) {
+			return n5Reader.exists("/obs/cell_type");
+		}
+		catch (IOException e) {
+			return Boolean.FALSE;
+		}
+	}
 }
