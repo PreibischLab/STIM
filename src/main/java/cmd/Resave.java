@@ -44,156 +44,124 @@ public class Resave implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 
-		final File n5Path = new File( containerPath );
-		final N5FSWriter n5;
+		final File n5File = new File( containerPath );
 
-		if ( n5Path.exists() )
-		{
-			System.out.println( "N5 path '" + n5Path.getAbsolutePath() + "' exists, opening N5 container..." );
-			n5 = N5IO.openN5write( n5Path );
-		}
-		else
-		{
-			System.out.println( "N5 path '" + n5Path.getAbsolutePath() + "' does not exist, creating new N5 container..." );
-			n5 = N5IO.createN5( n5Path );
+		final N5FSWriter n5 = openOrCreate(n5File);
+
+		// TODO: can this guard be triggered at all? (-i is required)
+		if ( inputPaths == null || inputPaths.size() == 0 ) {
+			System.out.println("No input paths defined: " + inputPaths + ". Stopping.");
+			return null;
 		}
 
-		if ( inputPaths != null && inputPaths.size() > 0 )
-		{
-			int length = -1; // with or without celltypes?
+		int length = -1; // with or without celltypes?
 
-			for ( final String inputPath : inputPaths )
+		for ( final String inputPath : inputPaths )
+		{
+			String[] elements = inputPath.trim().split( "," );
+
+			if ( elements.length < 3 || elements.length > 4 ) {
+				System.out.println( "input path could not parsed, it does not have 3 arguments: [locations.csv,reads.csv,name] or 4 arguments [locations.csv,reads.csv,celltypes.csv,name]:" + inputPath + ", stopping." );
+				return null;
+			}
+
+			if ( length < 0 )
+				length = elements.length;
+			else if ( length != elements.length )
+				System.out.println( "WARNING: input path length not consistent. Some datasets with, others without cell type annotations!");
+
+			final File locationsFile = new File( elements[ 0 ].trim() );
+			final File readsFile = new File( elements[ 1 ].trim() );
+			final String dataset;
+			final File celltypeFile;
+
+			if ( elements.length == 3 )
 			{
-				String[] elements = inputPath.trim().split( "," );
-	
-				if ( elements.length < 3 || elements.length > 4 )
-				{
-					System.out.println( "input path could not parsed, it does not have 3 arguments: [locations.csv,reads.csv,name] or 4 arguments [locations.csv,reads.csv,celltypes.csv,name]:" + inputPath + ", stopping." );
-					return null;
-				}
-				else
-				{
-					if ( length < 0 )
-						length = elements.length;
-					else if ( length != elements.length )
-						System.out.println( "WARNING: input path length not consistent. Some datasets with, others without cell type annotations!");
+				celltypeFile = null;
+				dataset = elements[ 2 ];
+			}
+			else
+			{
+				celltypeFile = new File( elements[ 2 ].trim() );
+				dataset = elements[ 3 ];
+			}
 
-					final File locationsFile = new File( elements[ 0 ].trim() );
-					final File readsFile = new File( elements[ 1 ].trim() );
-					final String dataset;
-					final File celltypeFile;
+			System.out.println( "\nDataset='" + dataset + "'");
+			System.out.println( "Locations='" + locationsFile.getAbsolutePath() + "'");
+			System.out.println( "Reads='" +readsFile.getAbsolutePath() + "'" );
+			if ( celltypeFile != null )
+				System.out.println( "Celltypes='" +celltypeFile.getAbsolutePath() + "'" );
 
-					if ( elements.length == 3 )
-					{
-						celltypeFile = null;
-						dataset = elements[ 2 ];
-					}
-					else
-					{
-						celltypeFile = new File( elements[ 2 ].trim() );
-						dataset = elements[ 3 ];
-					}
+			if ( n5.exists( n5.groupPath( dataset ) ) )
+			{
+				System.out.println( "dataset already exists, stopping." );
+				return null;
+			}
 
-					System.out.println( "\nDataset='" + dataset + "'");
-					System.out.println( "Locations='" + locationsFile.getAbsolutePath() + "'");
-					System.out.println( "Reads='" +readsFile.getAbsolutePath() + "'" );
-					if ( celltypeFile != null )
-						System.out.println( "Celltypes='" +celltypeFile.getAbsolutePath() + "'" );
-
-					if ( n5.exists( n5.groupPath( dataset ) ) )
-					{
-						System.out.println( "dataset already exists, stopping." );
-						return null;
-					}
-
-					final BufferedReader locationsIn;
-
-					if ( !locationsFile.exists() ||
-						 locationsFile.getAbsolutePath().toLowerCase().endsWith( ".zip" ) ||
-						 locationsFile.getAbsolutePath().toLowerCase().endsWith( ".gz" ) ||
-						 locationsFile.getAbsolutePath().toLowerCase().endsWith( ".tar" ) )
-						locationsIn = openCompressedFile( locationsFile ); // try opening as compressed file
-					else
-						locationsIn = TextFileAccess.openFileRead( locationsFile );
-
-					if ( locationsIn == null )
-					{
-						System.out.println( "locations file does not exist and cannot be read from compressed file, stopping." );
-						return null;
-					}
-
-					final BufferedReader readsIn;
-
-					if ( !readsFile.exists() ||
-						 readsFile.getAbsolutePath().toLowerCase().endsWith( ".zip" ) ||
-						 readsFile.getAbsolutePath().toLowerCase().endsWith( ".gz" ) ||
-						 readsFile.getAbsolutePath().toLowerCase().endsWith( ".tar" ) )
-						readsIn = openCompressedFile( readsFile ); // try opening as compressed file
-					else
-						readsIn = TextFileAccess.openFileRead( readsFile );
-
-					if ( readsIn == null )
-					{
-						System.out.println( "reads file does not exist and cannot be read from compressed file, stopping." );
-						return null;
-					}
-
-					STData data;
-
-					if ( celltypeFile != null )
-					{
-						// load with celltype annotationg
-						final BufferedReader celltypeIn;
-	
-						if ( !celltypeFile.exists() ||
-								celltypeFile.getAbsolutePath().toLowerCase().endsWith( ".zip" ) ||
-								celltypeFile.getAbsolutePath().toLowerCase().endsWith( ".gz" ) ||
-								celltypeFile.getAbsolutePath().toLowerCase().endsWith( ".tar" ) )
-							celltypeIn = Resave.openCompressedFile( celltypeFile ); // try opening as compressed file
-						else
-							celltypeIn = TextFileAccess.openFileRead( celltypeFile );
-	
-						if ( celltypeIn == null )
-						{
-							System.out.println( "Could not open file '" + celltypeFile.getAbsolutePath() + "'. Stopping." );
-							return null;
-						}
-						else
-						{
-							System.out.println( "Loading file '" + celltypeFile.getAbsolutePath() + "' as label 'celltype'" );
-						}
-
-						data = TextFileIO.readSlideSeq(
-								locationsIn,
-								readsIn,
-								celltypeIn );
-					}
-					else
-					{
-						// load without celltype annotationg
-						data = TextFileIO.readSlideSeq(
-							locationsIn,
-							readsIn );
-					}
-
-					if ( normalize )
-					{
-						System.out.println( "Normalizing input ... " );
-						data =  new NormalizingSTData( data );
-					}
-
-					N5IO.writeN5( n5, dataset, data );
+			BufferedReader locationsIn, readsIn, celltypeIn = null;
+			try {
+				locationsIn = openCsvInput(locationsFile, "locations");
+				readsIn = openCsvInput(readsFile, "reads");
+				if (celltypeFile != null) {
+					// load with celltype annotationg
+					celltypeIn = openCsvInput(celltypeFile, "cell type");
+					System.out.println("Loading file '" + celltypeFile.getAbsolutePath() + "' as label 'celltype'");
 				}
 			}
-		}
-		else
-		{
-			System.out.println( "No input paths defined: " + inputPaths + ". Stopping.");
+			catch (IOException e) {
+				System.out.println(e.getMessage());
+				return null;
+			}
+
+			STData data;
+			if (celltypeIn != null) {
+				data = TextFileIO.readSlideSeq(locationsIn, readsIn, celltypeIn );
+			}
+			else {
+				// load without celltype annotationg
+				data = TextFileIO.readSlideSeq(locationsIn, readsIn);
+			}
+
+			if ( normalize ) {
+				System.out.println( "Normalizing input ... " );
+				data =  new NormalizingSTData( data );
+			}
+
+			N5IO.writeN5( n5, dataset, data );
 		}
 
 		System.out.println( "Done." );
 
 		return null;
+	}
+
+	private static BufferedReader openCsvInput(File file, String contentDescriptor) throws IOException, ArchiveException {
+		final BufferedReader reader;
+
+		if (!file.exists()
+				|| file.getAbsolutePath().toLowerCase().endsWith(".zip")
+				|| file.getAbsolutePath().toLowerCase().endsWith(".gz")
+				|| file.getAbsolutePath().toLowerCase().endsWith(".tar"))
+			reader = openCompressedFile(file);
+		else
+			reader = TextFileAccess.openFileRead(file);
+
+		if (reader == null) {
+			throw new IOException(contentDescriptor + " file does not exist and cannot be read from compressed file, stopping.");
+		}
+
+		return reader;
+	}
+
+	private static N5FSWriter openOrCreate(File n5File) throws IOException {
+		if (n5File.exists()) {
+			System.out.println( "N5 path '" + n5File.getAbsolutePath() + "' exists, opening N5 container..." );
+			return N5IO.openN5write(n5File);
+		}
+		else {
+			System.out.println( "N5 path '" + n5File.getAbsolutePath() + "' does not exist, creating new N5 container..." );
+			return N5IO.createN5(n5File);
+		}
 	}
 
 	public static BufferedReader openCompressedFile( final File file ) throws IOException, ArchiveException
@@ -233,9 +201,6 @@ public class Resave implements Callable<Void> {
 				pathInCompressed = null; // no path inside the archive specified, open first file that comes along
 			else
 				pathInCompressed = path.substring( index + length + 1, path.length() );
-
-			//System.out.println( compressedFile );
-			//System.out.println( pathInCompressed );
 
 			try
 			{
