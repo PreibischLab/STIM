@@ -1,13 +1,15 @@
 package io;
 
+import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 
 import ch.systemsx.cisd.hdf5.HDF5Factory;
 import ch.systemsx.cisd.hdf5.IHDF5Reader;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
+
+import data.STData;
 
 public class AnnDataIO
 {
@@ -19,136 +21,16 @@ public class AnnDataIO
 		final IHDF5Reader dataStore = HDF5Factory.openForReading(file);
 		final N5HDF5Reader n5 = new N5HDF5Reader(file);
 
-		final String groupName = n5.groupPath("X");
-		System.out.println("sucessfully loaded " + groupName);
+		HashMap<String, double[]> coordinates = readSlideSeqCoordinates(n5);
 
-		DatasetAttributes attributes = n5.getDatasetAttributes("X/data");
-		final int nDim = attributes.getNumDimensions();
-		System.out.println("Number of dimensions: " + nDim);
-		final long[] dim = attributes.getDimensions();
-		System.out.println("Dimensions: " + dim[0]);
-		System.out.println("Data type: " + attributes.getDataType());
-		System.out.println("Compression: " + attributes.getCompression());
-		final int[] blkSize = attributes.getBlockSize();
-		System.out.println("Blocksize: " + blkSize[0]);
-		float[] data = (float[]) n5.readBlock("X/data", attributes, 0).getData();
-		for ( int i=0; i<25; i++ ) {
-			System.out.println(data[i]);
-		}
-		readLocations(n5);
-
-		System.out.println("The root has some meta-information.");
-		printStringAttribute(n5,"/", "encoding-type");
-		printStringAttribute(n5,"/", "encoding-version");
-
-		System.out.println();
-		System.out.println("The main matrix is stored in CSR/CSC format");
-		printIntArrayAttribute(n5, "X", "shape");
-		printStringAttribute(n5, "X", "encoding-type");
-		printStringAttribute(n5, "X", "encoding-version");
-		printDoubleArray(dataStore, "X/data");
-		printIntArray(dataStore, "X/indices");
-		printIntArray(dataStore, "X/indptr");
 		final double[][] X = reconstructMatrixfromSparse(dataStore, "X");
 
-		System.out.println();
-		System.out.println("Information about datasets can also be inferred");
-		String type = dataStore.getDataSetInformation("X/data").getTypeInformation().getRawDataClass().toString();
-		long[] shape = dataStore.getDataSetInformation("X/data").getDimensions();
-		System.out.println("X/data is of type " + type + " and has shape (" + shape[0] +",)");
-
-		System.out.println();
-		System.out.println("Layers are matrices with the same layout as X");
-		printIntArrayAttribute(n5, "layers/log_transformed", "shape");
-		printStringAttribute(n5, "layers/log_transformed", "encoding-type");
-		printStringAttribute(n5, "layers/log_transformed", "encoding-version");
-		printDoubleArray(dataStore, "layers/log_transformed/data");
-		printIntArray(dataStore, "layers/log_transformed/indices");
-		printIntArray(dataStore, "layers/log_transformed/indptr");
 		final double[][] Y = reconstructMatrixfromSparse(dataStore, "layers/log_transformed");
 
-		System.out.println();
-		System.out.println("Variable/observation can have names and types (=1-dimensional annotations)");
-		printStringArray(dataStore, "var/_index");
-		printStringArray(dataStore, "obs/_index");
-		printStringArray(dataStore, "obs/cell_type/categories");
-		printIntArray(dataStore, "obs/cell_type/codes");
-
-		System.out.println();
-		System.out.println("Multidimensional annotations are stored as separate fields");
-		printDoubleArray(dataStore, "varm/gene_stuff");
-		printDoubleArray(dataStore, "obsm/X_umap");
-		type = dataStore.getDataSetInformation("obsm/X_umap").getTypeInformation().getRawDataClass().toString();
-		shape = dataStore.getDataSetInformation("obsm/X_umap").getDimensions();
-		System.out.println("obsm/X_umap is of type " + type + " and has shape (" + shape[0] + "," + shape[1] + ")");
-
-		System.out.println();
-		System.out.println("Pairwise relationships within variables/observations are stored in varp/obsp");
-
-		System.out.println();
-		System.out.println("Everything else goes into uns");
-		printDoubleArray(dataStore, "uns/random");
 	}
 
-	private static void printStringAttribute(N5HDF5Reader data, String path, String attribute) throws IOException {
-		final String value = data.getAttribute(path, attribute, String.class);
-
-		System.out.println("<" + path + " (attribute: " + attribute + ")> string: " + value);
-	}
-
-	private static void printIntArrayAttribute(N5HDF5Reader data, String path, String attribute) throws IOException {
-		final long[] value = data.getAttribute(path, attribute, long[].class);
-		int end = Math.min(5, value.length);
-
-		StringBuilder str = createArrayPretext(path + " (attribute: " + attribute + ")", "int", value.length);
-		for ( int i=0; i<end; i++) { str.append(" ").append((int)value[i]); }
-		if ( end < value.length ) { str.append(" ..."); }
-
-		System.out.println(str);
-	}
-
-	private static void printIntArray(IHDF5Reader data, String path) {
-		final int[] value = data.readIntArray(path);
-		int end = Math.min(5, value.length);
-
-		StringBuilder str = createArrayPretext(path, "int", value.length);
-		for ( int i=0; i<end; i++) { str.append(" ").append(value[i]); }
-		if ( end < value.length ) { str.append(" ..."); }
-
-		System.out.println(str);
-	}
-
-	private static void printDoubleArray(IHDF5Reader data, String path) {
-		final double[] value = data.readDoubleArray(path);
-		int end = Math.min(5, value.length);
-
-		StringBuilder str = createArrayPretext(path, "double", value.length);
-		for ( int i=0; i<end; i++) { str.append(" ").append(value[i]); }
-		if ( end < value.length ) { str.append(" ..."); }
-
-		System.out.println(str);
-	}
-
-	private static void printStringArray(IHDF5Reader data, String path) {
-		final String[] value = data.readStringArray(path);
-		int end = Math.min(5, value.length);
-
-		StringBuilder str = createArrayPretext(path, "string", value.length);
-		for ( int i=0; i<end; i++) { str.append(" ").append(value[i]); }
-		if ( end < value.length ) { str.append(" ..."); }
-
-		System.out.println(str);
-	}
-
-	private static StringBuilder createArrayPretext(String path, String type, int len) {
-		StringBuilder str = new StringBuilder("<")
-				.append(path)
-				.append("> ")
-				.append(type)
-				.append(" array (")
-				.append(len)
-				.append("):");
-		return str;
+	public static STData readSlideSeq(final File anndataFile) {
+		return null;
 	}
 
 	private static double[][] reconstructMatrixfromSparse(IHDF5Reader data, String path) {
@@ -183,29 +65,30 @@ public class AnnDataIO
 		return matrix;
 	}
 
-	private static HashMap<String, double[]> readLocations(N5HDF5Reader data) throws IOException {
+	private static HashMap<String, double[]> readSlideSeqCoordinates(N5HDF5Reader data) throws IOException {
 		// location data is stored in the obs-related fields in anndata:
 		// obs/_index -> names; obsm/locations -> coordinates
-		DatasetAttributes attributes = data.getDatasetAttributes("obsm/locations");
-		final int dim = attributes.getNumDimensions();
-		final long[] shape = attributes.getDimensions();
-		final int nLocations = (int) shape[0];
-		int[] blockSize = attributes.getBlockSize();
-		for ( int i=0; i<dim; i++ )
-			if ( shape[i] != blockSize[i] )
-				throw new RuntimeException("Blocksize in dimension " + i + " not equal: " + shape[i] + " != " + blockSize[i]);
+		final IHDF5Reader dataStore = HDF5Factory.openForReading(data.getFilename());
+		String[] barcodes = dataStore.readStringArray("obs/_index");
+		int numCoordinates = barcodes.length;
 
+		DatasetAttributes attributes = data.getDatasetAttributes("obsm/locations");
+
+		if (numCoordinates != (int) attributes.getDimensions()[1])
+			throw new RuntimeException("Number of barcodes does not match number of coordinates.");
+
+		// coordinates are stored row-wise in python
+		final HashMap<String, double[]> coordinates = new HashMap<>();
+		final int dim = attributes.getNumDimensions();
 		double[] block = (double[]) data.readBlock("obsm/locations", attributes, 0, 0).getData();
-		for ( int i = 0; i < nLocations; i++ ) {
-			double[] location = new double[dim];
-			for (int k = 0; k < dim; k++) {
-				location[k] = block[dim*i+k];
-			}
+
+		for ( int i=0; i<numCoordinates; ++i ) {
+			final double[] coordinate = new double[dim];
+			for (int j = 0; j < dim; j++)
+				coordinate[j] = block[i*dim + j];
+			coordinates.put(barcodes[i], coordinate);
 		}
 
-		attributes = data.getDatasetAttributes("obs/_index");
-		ByteBuffer buffer = data.readBlock("obs/_index", attributes, 0).toByteBuffer();
-
-		return new HashMap<>();
+		return coordinates;
 	}
 }
