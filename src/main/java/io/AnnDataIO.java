@@ -38,13 +38,13 @@ public class AnnDataIO
 		long time = System.currentTimeMillis();
 		N5HDF5Reader n5Reader = new N5HDF5Reader(anndataFile);
 
-		final HashMap<String, double[]> coordinateMap = readSlideSeqCoordinates(n5Reader);
-		System.out.println("Read " + coordinateMap.keySet().size() + " coordinates.");
+		final List<Pair<double[], String>> coordinateList = readSlideSeqCoordinates(n5Reader);
+		System.out.println("Read " + coordinateList.size() + " coordinates.");
 
-		final Pair<List<Pair<double[], String>>, HashMap<String, double[]>> geneData = readSlideSeqGenes(n5Reader, coordinateMap);
-		System.out.println("Read data for " + geneData.getB().keySet().size() + " genes.");
+		final HashMap<String, double[]> geneData = readSlideSeqGenes(n5Reader);
+		System.out.println("Read data for " + geneData.keySet().size() + " genes.");
 
-		final STData data = new STDataText(geneData.getA(), geneData.getB());
+		final STData data = new STDataText(coordinateList, geneData);
 
 		System.out.println("Parsing took " + (System.currentTimeMillis() - time) + " ms.");
 
@@ -83,7 +83,7 @@ public class AnnDataIO
 		return matrix;
 	}
 
-	private static HashMap<String, double[]> readSlideSeqCoordinates(final N5HDF5Reader n5Reader) throws IOException {
+	private static List<Pair<double[], String>> readSlideSeqCoordinates(final N5HDF5Reader n5Reader) throws IOException {
 		// location data is stored in the obs-related fields in anndata:
 		// obs/_index -> names; obsm/locations -> coordinates
 		final IHDF5Reader hdf5Reader = HDF5Factory.openForReading(n5Reader.getFilename());
@@ -96,7 +96,7 @@ public class AnnDataIO
 			throw new RuntimeException("Number of barcodes does not match number of coordinates.");
 
 		// coordinates are stored row-wise in python
-		final HashMap<String, double[]> coordinates = new HashMap<>();
+		final ArrayList<Pair<double[], String>> coordinates = new ArrayList<>();
 		final int dim = attributes.getNumDimensions();
 		double[] block = (double[]) n5Reader.readBlock("obsm/locations", attributes, 0, 0).getData();
 
@@ -104,39 +104,30 @@ public class AnnDataIO
 			final double[] coordinate = new double[dim];
 			for (int j = 0; j < dim; j++)
 				coordinate[j] = block[i*dim + j];
-			coordinates.put(barcodes[i], coordinate);
+			coordinates.add(new ValuePair<>(coordinate, barcodes[i]));
 		}
 
 		return coordinates;
 	}
 
-	public static Pair<List<Pair<double[], String>>, HashMap<String, double[]>> readSlideSeqGenes(
-			final N5HDF5Reader n5Reader,
-			final HashMap<String, double[]> coordinateMap) throws IOException {
+	public static HashMap<String, double[]> readSlideSeqGenes(final N5HDF5Reader n5Reader) throws IOException {
 
 		final ArrayList<Pair<double[], String>> coordinates = new ArrayList<>();
 		final HashMap<String, double[]> geneMap = new HashMap<>();
 
-		// TODO: avoid reading coordinate names for the second time, here
 		final IHDF5Reader hdf5Reader = HDF5Factory.openForReading(n5Reader.getFilename());
 		String[] geneNames = hdf5Reader.readStringArray("var/_index");
-		String[] coordinateNames = hdf5Reader.readStringArray("obs/_index");
 		final long[] shape = n5Reader.getAttribute("X", "shape", long[].class);
 
-		if (coordinateMap.keySet().size() != shape[0])
-			throw new RuntimeException("Number of locations inconsistent with matrix X.");
 		if (geneNames.length != shape[1])
 			throw new RuntimeException("Number of genes inconsistent with matrix X.");
-
-		for (String coordinate : coordinateNames)
-			coordinates.add(new ValuePair<>(coordinateMap.get(coordinate), coordinate));
 
 		// X is stored row-wise
 		final double[][] X = reconstructMatrixfromSparse(hdf5Reader, "X");
 		for (int i=0; i<geneNames.length; ++i)
 			geneMap.put(geneNames[i], X[i]);
 
-		return new ValuePair<>(coordinates, geneMap);
+		return geneMap;
 	}
 
 }
