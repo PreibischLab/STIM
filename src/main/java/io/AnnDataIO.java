@@ -83,6 +83,7 @@ public class AnnDataIO
 	private static List<Pair<double[], String>> readSlideSeqCoordinates(final N5HDF5Reader n5Reader) throws IOException {
 		// location data is stored in the obs-related fields in anndata:
 		// obs/_index -> names; obsm/locations -> coordinates
+		// TODO: coordinate field is not always named 'locations' or of type double!
 		final IHDF5Reader hdf5Reader = HDF5Factory.openForReading(n5Reader.getFilename());
 		String[] barcodes = hdf5Reader.readStringArray("obs/_index");
 		int numCoordinates = barcodes.length;

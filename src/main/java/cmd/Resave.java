@@ -7,6 +7,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -14,6 +15,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
+import io.AnnDataIO;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -54,72 +56,60 @@ public class Resave implements Callable<Void> {
 			return null;
 		}
 
-		int length = -1; // with or without celltypes?
+		List<Boolean> hasCelltypeAnnotations = new ArrayList<Boolean>();
 
+		int length = -1; // with or without celltypes?
 		for ( final String inputPath : inputPaths )
 		{
 			String[] elements = inputPath.trim().split( "," );
 
-			if ( elements.length < 3 || elements.length > 4 ) {
-				System.out.println( "input path could not parsed, it does not have 3 arguments: [locations.csv,reads.csv,name] or 4 arguments [locations.csv,reads.csv,celltypes.csv,name]:" + inputPath + ", stopping." );
+			if ( elements.length < 2 || elements.length > 4 ) {
+				System.out.println( "Input path could not parsed, it needs to be of the form: [data.h5ad,name] or [locations.csv,reads.csv,[celltypes.csv,]name]." );
 				return null;
 			}
 
-			if ( length < 0 )
-				length = elements.length;
-			else if ( length != elements.length )
-				System.out.println( "WARNING: input path length not consistent. Some datasets with, others without cell type annotations!");
-
-			final File locationsFile = new File( elements[ 0 ].trim() );
-			final File readsFile = new File( elements[ 1 ].trim() );
-			final String dataset;
-			final File celltypeFile;
-
-			if ( elements.length == 3 )
-			{
-				celltypeFile = null;
-				dataset = elements[ 2 ];
-			}
-			else
-			{
-				celltypeFile = new File( elements[ 2 ].trim() );
-				dataset = elements[ 3 ];
-			}
-
-			System.out.println( "\nDataset='" + dataset + "'");
-			System.out.println( "Locations='" + locationsFile.getAbsolutePath() + "'");
-			System.out.println( "Reads='" +readsFile.getAbsolutePath() + "'" );
-			if ( celltypeFile != null )
-				System.out.println( "Celltypes='" +celltypeFile.getAbsolutePath() + "'" );
-
-			if ( n5.exists( n5.groupPath( dataset ) ) )
-			{
-				System.out.println( "dataset already exists, stopping." );
+			final String dataset = elements[elements.length-1];
+			if (n5.exists(n5.groupPath(dataset))) {
+				System.out.println( "dataset " + dataset + " already exists, stopping." );
 				return null;
 			}
-
-			BufferedReader locationsIn, readsIn, celltypeIn = null;
-			try {
-				locationsIn = openCsvInput(locationsFile, "locations");
-				readsIn = openCsvInput(readsFile, "reads");
-				if (celltypeFile != null) {
-					// load with celltype annotationg
-					celltypeIn = openCsvInput(celltypeFile, "cell type");
-					System.out.println("Loading file '" + celltypeFile.getAbsolutePath() + "' as label 'celltype'");
-				}
-			}
-			catch (IOException e) {
-				System.out.println(e.getMessage());
-				return null;
-			}
+			System.out.println("\nDataset='" + dataset + "'");
 
 			STData data;
-			if (celltypeIn != null) {
-				data = TextFileIO.readSlideSeq(locationsIn, readsIn, celltypeIn );
+			if (elements.length == 2) { // means: input is an anndata file
+				final File anndataFile = new File(elements[0].trim());
+				System.out.println( "Locations='" + anndataFile.getAbsolutePath() + "'");
+				data = AnnDataIO.readSlideSeq(anndataFile);
+				hasCelltypeAnnotations.add(AnnDataIO.containsCelltypes(anndataFile));
 			}
-			else {
-				// load without celltype annotationg
-				data = TextFileIO.readSlideSeq(locationsIn, readsIn);
+			else { // means: input consists of csv files (with optional file for celltypes)
+				final File locationsFile = new File(elements[0].trim());
+				final File readsFile = new File(elements[1].trim());
+				final File celltypeFile = (elements.length == 3) ? null : new File(elements[2].trim());
+
+				System.out.println("Locations='" + locationsFile.getAbsolutePath() + "'");
+				System.out.println("Reads='" + readsFile.getAbsolutePath() + "'");
+
+				BufferedReader locationsIn, readsIn, celltypeIn = null;
+				try {
+					locationsIn = openCsvInput(locationsFile, "locations");
+					readsIn = openCsvInput(readsFile, "reads");
+					if (celltypeFile != null) {
+						System.out.println("Loading file '" + celltypeFile.getAbsolutePath() + "' as label 'celltype'");
+						celltypeIn = openCsvInput(celltypeFile, "cell type");
+					}
+				} catch (IOException e) {
+					System.out.println(e.getMessage());
+					return null;
+				}
+
+				if (celltypeIn == null) {
+					data = TextFileIO.readSlideSeq(locationsIn, readsIn);
+					hasCelltypeAnnotations.add(Boolean.FALSE);
+				} else {
+					data = TextFileIO.readSlideSeq(locationsIn, readsIn, celltypeIn);
+					hasCelltypeAnnotations.add(Boolean.TRUE);
+				}
 			}
 
 			if ( normalize ) {
@@ -130,6 +120,9 @@ public class Resave implements Callable<Void> {
 			N5IO.writeN5( n5, dataset, data );
 		}
 
+		Boolean celltypeAnnotationsAreConsistent = hasCelltypeAnnotations.stream().allMatch(hasCelltypeAnnotations.get(0)::equals);
+		if (!celltypeAnnotationsAreConsistent)
+			System.out.println( "WARNING: input path length not consistent. Some datasets with, others without cell type annotations!");
 		System.out.println( "Done." );
 
 		return null;
