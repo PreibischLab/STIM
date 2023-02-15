@@ -8,6 +8,7 @@ import java.util.List;
 
 import ch.systemsx.cisd.hdf5.HDF5Factory;
 import ch.systemsx.cisd.hdf5.IHDF5Reader;
+import data.STDataText;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
@@ -25,8 +26,7 @@ public class AnnDataIO
 		final IHDF5Reader hdf5Reader = HDF5Factory.openForReading(file);
 		final N5HDF5Reader n5Reader = new N5HDF5Reader(file);
 
-		HashMap<String, double[]> coordinates = readSlideSeqCoordinates(n5Reader);
-		Pair<?, ?> geneExpr = readSlideSeqGenes(n5Reader, coordinates);
+		readSlideSeq(file);
 
 		final double[][] X = reconstructMatrixfromSparse(hdf5Reader, "X");
 
@@ -34,8 +34,21 @@ public class AnnDataIO
 
 	}
 
-	public static STData readSlideSeq(final File anndataFile) {
-		return null;
+	public static STData readSlideSeq(final String anndataFile) throws IOException {
+		long time = System.currentTimeMillis();
+		N5HDF5Reader n5Reader = new N5HDF5Reader(anndataFile);
+
+		final HashMap<String, double[]> coordinateMap = readSlideSeqCoordinates(n5Reader);
+		System.out.println("Read " + coordinateMap.keySet().size() + " coordinates.");
+
+		final Pair<List<Pair<double[], String>>, HashMap<String, double[]>> geneData = readSlideSeqGenes(n5Reader, coordinateMap);
+		System.out.println("Read data for " + geneData.getB().keySet().size() + " genes.");
+
+		final STData data = new STDataText(geneData.getA(), geneData.getB());
+
+		System.out.println("Parsing took " + (System.currentTimeMillis() - time) + " ms.");
+
+		return data;
 	}
 
 	private static double[][] reconstructMatrixfromSparse(IHDF5Reader hdf5Reader, String path) {
