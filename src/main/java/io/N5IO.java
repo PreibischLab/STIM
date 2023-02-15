@@ -343,7 +343,7 @@ public class N5IO
 		}
 		else if ( metadataList.size() > 0 )
 		{
-			System.out.println( "Reading " + metadataList.size() + " metadata extries from N5." );
+			System.out.println( "Reading " + metadataList.size() + " metadata entries from N5." );
 
 			for ( final String metadata : metadataList )
 			{
@@ -367,13 +367,13 @@ public class N5IO
 			throw new IOException( "n (dimensionality) stored in the metadata does not match size of locations datastructure" );
 
 		if ( locations.dimension( 0 ) != numLocations )
-			throw new IOException( "numLoctions stored in the metadata does not match size of locations datastructure" );
+			throw new IOException( "numLocations stored in the metadata does not match size of locations datastructure" );
 
 		if ( exprValues.dimension( 1 ) != numLocations )
-			throw new IOException( "numLoctions stored in the metadata does not match size of exprValues datastructure" );
+			throw new IOException( "numLocations stored in the metadata does not match size of exprValues datastructure" );
 
 		if ( exprValues.dimension( 0 ) != numGenes )
-			throw new IOException( "numLoctions stored in the metadata does not match size of exprValues datastructure" );
+			throw new IOException( "numLocations stored in the metadata does not match size of exprValues datastructure" );
 
 		System.out.println( "Loading N5 '" + n5.getBasePath() + "', dataset '" + datasetName + "' took " + ( System.currentTimeMillis() - time ) + " ms." );
 

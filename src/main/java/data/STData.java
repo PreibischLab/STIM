@@ -111,7 +111,7 @@ public interface STData extends IterableRealInterval< RealLocalizable >
 	public void setExpValues( final String geneName, final double[] values );
 
 	/**
-	 * Creates a copy of the dataset that can be edited and resavd
+	 * Creates a copy of the dataset that can be edited and resaved
 	 *
 	 * @return a copy of the STData object that holds all data in a writable form (e.g. ImgLib2 CellImg)
 	 */

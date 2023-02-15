@@ -29,11 +29,11 @@ public class View implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 
-		final File n5Path = new File( containerPath );
+		final File n5File = new File( containerPath );
 
-		if ( !n5Path.exists() )
+		if ( !n5File.exists() )
 		{
-			System.out.println( "'" + n5Path.getAbsolutePath() + "' does not exist. Stopping." );
+			System.out.println( "'" + n5File.getAbsolutePath() + "' does not exist. Stopping." );
 			return null;
 		}
 

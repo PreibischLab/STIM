@@ -22,14 +22,14 @@ import net.imglib2.view.Views;
 
 public abstract class STDataAbstract implements STData
 {
-	final int n, numLocations, numGenes;
+	final int numDimensions, numLocations, numGenes;
 
 	public STDataAbstract(
-			final int n,
+			final int numDimensions,
 			final int numLocations,
 			final int numGenes )
 	{
-		this.n = n;
+		this.numDimensions = numDimensions;
 		this.numLocations = numLocations;
 		this.numGenes = numGenes;
 	}
@@ -102,7 +102,7 @@ public abstract class STDataAbstract implements STData
 	*/
 
 	@Override
-	public int numDimensions() { return n; }
+	public int numDimensions() { return numDimensions; }
 
 	@Override
 	public long numLocations() { return numLocations; }

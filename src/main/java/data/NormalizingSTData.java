@@ -89,7 +89,7 @@ public class NormalizingSTData implements STData
 	}
 
 	@Override
-	public double[] getExpValuesCopy( String geneName )
+	public double[] getExpValuesCopy( final String geneName )
 	{
 		final IterableInterval< DoubleType > exprValues = Views.flatIterable( getExprValues( geneName ) );
 
