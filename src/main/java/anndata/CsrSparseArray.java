@@ -60,13 +60,11 @@ public class CsrSparseArray extends AbstractAnnDataField {
 
         System.out.println("A(0,1) = " + A.get(0,1));
 
-        System.out.print("Row 1: ");
-        Arrays.stream(A.getRow(1)).forEach(x -> System.out.print(x + " "));
-        System.out.println();
-
-        System.out.print("Row 3: ");
-        Arrays.stream(A.getRow(3)).forEach(x -> System.out.print(x + " "));
-        System.out.println();
+        for (int i=0; i<4; ++i) {
+            System.out.print("Row " + i + ": ");
+            Arrays.stream(A.getRow(i)).forEach(x -> System.out.print(x + " "));
+            System.out.println();
+        }
 
         System.out.print("Column 1: ");
         Arrays.stream(A.getColumn(1)).forEach(x -> System.out.print(x + " "));
