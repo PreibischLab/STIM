@@ -11,6 +11,9 @@ public class DenseArray extends AbstractAnnDataField {
     public DenseArray(final int numRows, final int numColumns, final double[] data) {
         super(numRows, numColumns);
         this.data = data;
+
+        if (data.length != numRows*numColumns)
+            throw new IllegalArgumentException("Dense array data has to match the array's size.");
     }
 
     protected int linearIndex(final int i, final int j) {
