@@ -15,7 +15,7 @@ public class CscSparseArray extends CsrSparseArray {
         return this.numRows;
     }
 
-    public double get(int i, int j) {
+    public Double get(int i, int j) {
         return super.get(j, i);
     }
 

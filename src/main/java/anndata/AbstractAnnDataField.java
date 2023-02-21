@@ -1,13 +1,17 @@
 package anndata;
 
-public abstract class AbstractAnnDataField {
+import java.util.List;
+
+public abstract class AbstractAnnDataField<BaseType, ArrayType>{
 
     protected final int numRows;
     protected final int numColumns;
+    protected final ArrayType data;
 
-    public AbstractAnnDataField(final int numRows, final int numColumns) {
+    protected AbstractAnnDataField(final int numRows, final int numColumns, final ArrayType data) {
         this.numRows = numRows;
         this.numColumns = numColumns;
+        this.data = data;
     }
 
     public int getNumRows() {
@@ -18,9 +22,9 @@ public abstract class AbstractAnnDataField {
         return this.numColumns;
     }
 
-    public abstract double get(final int i, final int j);
+    public abstract BaseType get(final int i, final int j);
 
-    public abstract double[] getRow(final int i);
+    public abstract ArrayType getRow(final int i);
 
-    public abstract double[] getColumn(final int j);
+    public abstract ArrayType getColumn(final int j);
 }

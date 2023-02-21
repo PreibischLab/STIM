@@ -3,14 +3,10 @@ package anndata;
 import java.util.Arrays;
 import java.util.stream.IntStream;
 
-public class DenseArray extends AbstractAnnDataField {
-
-    // dense array stored in row-major order
-    protected final double[] data;
+public class DenseArray extends AbstractAnnDataField<Double, double[]> {
 
     public DenseArray(final int numRows, final int numColumns, final double[] data) {
-        super(numRows, numColumns);
-        this.data = data;
+        super(numRows, numColumns, data);
 
         if (data.length != numRows*numColumns)
             throw new IllegalArgumentException("Dense array data has to match the array's size.");
@@ -21,7 +17,7 @@ public class DenseArray extends AbstractAnnDataField {
     }
 
     @Override
-    public double get(final int i, final int j) {
+    public Double get(final int i, final int j) {
         return data[linearIndex(i,j)];
     }
 

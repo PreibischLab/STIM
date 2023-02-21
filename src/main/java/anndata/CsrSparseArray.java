@@ -2,15 +2,13 @@ package anndata;
 
 import java.util.Arrays;
 
-public class CsrSparseArray extends AbstractAnnDataField {
+public class CsrSparseArray extends AbstractAnnDataField<Double, double[]> {
 
-    protected final double[] data;
     protected final int[] colIndex;
     protected final int[] rowPointer;
 
     public CsrSparseArray(int numRows, int numColumns, double[] data, int[] colIndex, int[] rowPointer) {
-        super(numRows, numColumns);
-        this.data = data;
+        super(numRows, numColumns, data);
         this.colIndex = colIndex;
         this.rowPointer = rowPointer;
 
@@ -19,7 +17,7 @@ public class CsrSparseArray extends AbstractAnnDataField {
     }
 
     @Override
-    public double get(int i, int j) {
+    public Double get(int i, int j) {
         double element = 0.0;
         for (int k=rowPointer[i]; k<rowPointer[i+1]; ++k) {
             if (colIndex[k] == j) {
