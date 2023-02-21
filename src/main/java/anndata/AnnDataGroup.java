@@ -5,8 +5,8 @@ import java.util.HashMap;
 public class AnnDataGroup extends AnnDataField<AnnDataField, AnnDataField[]> {
 
     final protected HashMap<String, AnnDataField> dataMap;
-    protected AnnDataGroup() {
-        super(0, 0, null);
+    protected AnnDataGroup(int rowRestriction, int columnRestriction) {
+        super(rowRestriction, columnRestriction, null);
         dataMap = new HashMap<String, AnnDataField>();
     }
 
@@ -15,6 +15,9 @@ public class AnnDataGroup extends AnnDataField<AnnDataField, AnnDataField[]> {
     }
 
     public void put(final String name, final AnnDataField field) {
+        if ((numRows != 0 && field.numRows != numRows)
+                | (numColumns != 0 && field.numColumns != numColumns))
+            throw new IllegalArgumentException("Field size not compatible with group.");
         dataMap.put(name, field);
     }
 
