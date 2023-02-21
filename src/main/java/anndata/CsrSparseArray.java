@@ -2,7 +2,7 @@ package anndata;
 
 import java.util.Arrays;
 
-public class CsrSparseArray extends AbstractAnnDataField<Double, double[]> {
+public class CsrSparseArray extends AnnDataField<Double, double[]> {
 
     protected final int[] colIndex;
     protected final int[] rowPointer;

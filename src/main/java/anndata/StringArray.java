@@ -2,7 +2,7 @@ package anndata;
 
 import java.util.Arrays;
 
-public class StringArray extends AbstractAnnDataField<String, String[]> {
+public class StringArray extends AnnDataField<String, String[]> {
 
     public StringArray(final int numRows, final int numColumns, final String[] data) {
         super(numRows, numColumns, data);
