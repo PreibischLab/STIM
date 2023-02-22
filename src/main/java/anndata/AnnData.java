@@ -1,5 +1,8 @@
 package anndata;
 
+import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
+
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,5 +44,11 @@ public class AnnData {
 
         adata.get("layers").put("test", new DenseArray(2, 3, new double[]{1,1,1,1,1,1}));
         AnnDataField field = adata.get("layers").get("test");
+    }
+
+    protected AnnDataEncoding readElementEncoding(N5HDF5Reader reader, String path) throws IOException {
+        final String type = reader.getAttribute(path, "encoding-type", String.class);
+        final String version = reader.getAttribute(path, "encoding-version", String.class);
+        return new AnnDataEncoding(type, version);
     }
 }
