@@ -1,11 +1,11 @@
 package anndata;
 
-import net.imglib2.util.Pair;
+import ch.systemsx.cisd.hdf5.HDF5Factory;
+import ch.systemsx.cisd.hdf5.IHDF5Reader;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,18 +52,28 @@ public class AnnData {
         return new DenseArray((int) shape[0], (int) shape[1], block);
     }
 
+    protected static String[] readPrimitiveStringArray(N5HDF5Reader reader, String path) {
+        final IHDF5Reader hdf5Reader = HDF5Factory.openForReading(reader.getFilename());
+        return hdf5Reader.readStringArray(path);
+    }
+
+    protected static StringArray readStringArray(N5HDF5Reader reader, String path) {
+        return readStringArray(reader, path, false);
+    }
+
+    protected static StringArray readStringArray(N5HDF5Reader reader, String path, boolean asRow) {
+        String[] block = readPrimitiveStringArray(reader, path);
+        return asRow ? new StringArray(1, block.length, block) : new StringArray(block.length, 1, block);
+    }
+
     public static void main(String[] args) throws IOException {
         String path = "./data/test.h5ad";
         N5HDF5Reader reader = new N5HDF5Reader(path);
+
         DenseArray field = AnnData.readDenseArray(reader, "/obsm/locations");
-        AnnData adata = new AnnData(
-                new DenseArray(2, 3, new double[]{1,2,3,4,5,6}),
-                new StringArray(1, 3, new String[]{"101", "011", "111"}),
-                new CategoricalArray(2, 1, new String[]{"a cell"}, new int[]{0, 0}));
+        StringArray varNames = AnnData.readStringArray(reader, "/var/_index", true);
+        StringArray obsNames = AnnData.readStringArray(reader, "/obs/_index");
 
-        adata.get("layers").put("test", new DenseArray(2, 3, new double[]{1,1,1,1,1,1}));
-        AnnDataField test = adata.get("layers").get("test");
-
-
+        AnnData adata = new AnnData(field, varNames, obsNames);
     }
 }
