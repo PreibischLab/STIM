@@ -2,8 +2,13 @@ package anndata;
 
 import ch.systemsx.cisd.hdf5.HDF5Factory;
 import ch.systemsx.cisd.hdf5.IHDF5Reader;
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.type.numeric.integer.IntType;
+import net.imglib2.type.numeric.real.DoubleType;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
+import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -66,14 +71,64 @@ public class AnnData {
         return asRow ? new StringArray(1, block.length, block) : new StringArray(block.length, 1, block);
     }
 
+    protected static CategoricalArray readCategoricalArray(N5HDF5Reader reader, String path) throws IOException {
+        return readCategoricalArray(reader, path, false);
+    }
+
+    protected static CategoricalArray readCategoricalArray(N5HDF5Reader reader, String path, boolean asRow) throws IOException {
+        final DatasetAttributes attributes = reader.getDatasetAttributes(path + "/codes");
+
+        final String[] categoryNames = readPrimitiveStringArray(reader, path + "/categories");
+        final byte[] rawIndex = (byte[]) reader.readBlock(path + "/codes", attributes, 0).getData();
+        final int[] index = new int[rawIndex.length];
+        for (int i=0; i<index.length; ++i)
+            index[i] = (int)rawIndex[i];
+
+        return asRow ? new CategoricalArray(1, index.length, categoryNames, index)
+                : new CategoricalArray(index.length, 1, categoryNames, index);
+    }
+
+    protected static CscSparseArray readCscSparseArray(N5HDF5Reader reader, String path) throws IOException {
+        final long[] shape = reader.getAttribute(path, "shape", long[].class);
+        DatasetAttributes attributes = reader.getDatasetAttributes(path + "/data");
+        final double[] data = (double[]) reader.readBlock(path + "/data", attributes, 0).getData();
+        attributes = reader.getDatasetAttributes(path + "/indices");
+        final int[] indices = (int[]) reader.readBlock(path + "/indices", attributes, 0).getData();
+        attributes = reader.getDatasetAttributes(path + "/indptr");
+        final int[] indptr = (int[]) reader.readBlock(path + "/indptr", attributes, 0).getData();
+        return new CscSparseArray((int) shape[0], (int) shape[1], data, indices, indptr);
+    }
+
+    protected static CsrSparseArray readCsrSparseArray(N5HDF5Reader reader, String path) throws IOException {
+        final long[] shape = reader.getAttribute(path, "shape", long[].class);
+        DatasetAttributes attributes = reader.getDatasetAttributes(path + "/data");
+        final double[] data = (double[]) reader.readBlock(path + "/data", attributes, 0).getData();
+        attributes = reader.getDatasetAttributes(path + "/indices");
+        final int[] indices = (int[]) reader.readBlock(path + "/indices", attributes, 0).getData();
+        attributes = reader.getDatasetAttributes(path + "/indptr");
+        final int[] indptr = (int[]) reader.readBlock(path + "/indptr", attributes, 0).getData();
+        return new CsrSparseArray((int) shape[0], (int) shape[1], data, indices, indptr);
+    }
+
     public static void main(String[] args) throws IOException {
         String path = "./data/test.h5ad";
         N5HDF5Reader reader = new N5HDF5Reader(path);
 
-        DenseArray field = AnnData.readDenseArray(reader, "/obsm/locations");
-        StringArray varNames = AnnData.readStringArray(reader, "/var/_index", true);
-        StringArray obsNames = AnnData.readStringArray(reader, "/obs/_index");
+        DenseArray X = AnnData.readDenseArray(reader, "/obsm/locations");
+        StringArray varNames = new StringArray(2, 1, new String[]{"x", "y"});
+        StringArray obsNames = AnnData.readStringArray(reader, "/obs/_index", true);
 
-        AnnData adata = new AnnData(field, varNames, obsNames);
+        AnnData adata = new AnnData(X, obsNames, varNames);
+
+        CategoricalArray celltypes = readCategoricalArray(reader,  "/obs/cell_type");
+        RandomAccessibleInterval<DoubleType> data = N5Utils.open(reader, "/obsm/locations");
+
+        RandomAccessibleInterval<DoubleType> sparseData = N5Utils.open(reader, "/X/data");
+        RandomAccessibleInterval<IntType> indices = N5Utils.open(reader, "/X/indices");
+        RandomAccessibleInterval<IntType> indptr = N5Utils.open(reader, "/X/indptr");
+
+        AbstractCompressedStorageRai<DoubleType> sparse = new AbstractCompressedStorageRai<>(sparseData, indices, indptr);
+
+        ImageJFunctions.show(sparse);
     }
 }
