@@ -5,6 +5,7 @@ import ch.systemsx.cisd.hdf5.IHDF5Reader;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.cache.img.CachedCellImg;
 import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.integer.LongType;
 import net.imglib2.type.numeric.real.DoubleType;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
@@ -125,11 +126,12 @@ public class AnnData {
         RandomAccessibleInterval<DoubleType> data = N5Utils.open(reader, "/obsm/locations");
 
         CachedCellImg<DoubleType, ?> sparseData = N5Utils.open(reader, "/X/data");
-        CachedCellImg<LongType, ?> indices = N5Utils.open(reader, "/X/indices");
-        CachedCellImg<LongType, ?> indptr = N5Utils.open(reader, "/X/indptr");
+        CachedCellImg<IntType, ?> indices = N5Utils.open(reader, "/X/indices");
+        CachedCellImg<IntType, ?> indptr = N5Utils.open(reader, "/X/indptr");
 
         final long[] shape = reader.getAttribute("/X", "shape", long[].class);
-        AbstractCompressedStorageRai<DoubleType> sparse = new AbstractCompressedStorageRai<>(shape[0], shape [1], sparseData, indices, indptr);
+        AbstractCompressedStorageRai<DoubleType, IntType> sparse
+                = new AbstractCompressedStorageRai<>(shape[0], shape [1], sparseData, indices, indptr);
 
         ImageJFunctions.show(sparse);
     }

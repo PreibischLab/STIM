@@ -1,29 +1,28 @@
 package anndata;
 
-import net.imglib2.Cursor;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.img.Img;
-import net.imglib2.img.ImgFactory;
 import net.imglib2.img.NativeImg;
 import net.imglib2.type.NativeType;
-import net.imglib2.type.numeric.integer.LongType;
+import net.imglib2.type.numeric.IntegerType;
+import net.imglib2.type.numeric.NumericType;
 
-import java.util.Iterator;
-
-public class AbstractCompressedStorageRai<T extends NativeType<T>> implements RandomAccessibleInterval<T> {
+public class AbstractCompressedStorageRai<
+        DataType extends NativeType<DataType> & NumericType<DataType>,
+        IndexType extends NativeType<IndexType> & IntegerType<IndexType>>
+        implements RandomAccessibleInterval<DataType> {
 
     protected final long[] max;
-    protected final NativeImg<T, ?> data;
-    protected final NativeImg<LongType, ?> indices;
-    protected final NativeImg<LongType, ?> indptr;
+    protected final NativeImg<DataType, ?> data;
+    protected final NativeImg<IndexType, ?> indices;
+    protected final NativeImg<IndexType, ?> indptr;
 
     public AbstractCompressedStorageRai(
             long numRows,
-            long numCols, NativeImg<T, ?> data,
-            NativeImg<LongType, ?> indices,
-            NativeImg<LongType, ?> indptr) {
+            long numCols, NativeImg<DataType, ?> data,
+            NativeImg<IndexType, ?> indices,
+            NativeImg<IndexType, ?> indptr) {
         this.data = data;
         this.indices = indices;
         this.indptr = indptr;
@@ -46,12 +45,12 @@ public class AbstractCompressedStorageRai<T extends NativeType<T>> implements Ra
     }
 
     @Override
-    public RandomAccess<T> randomAccess() {
-        return new CsrRandomAccess<T>(this);
+    public RandomAccess<DataType> randomAccess() {
+        return new CsrRandomAccess<DataType, IndexType>(this);
     }
 
     @Override
-    public RandomAccess<T> randomAccess(Interval interval) {
+    public RandomAccess<DataType> randomAccess(Interval interval) {
         return randomAccess();
     }
 }

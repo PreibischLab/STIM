@@ -2,41 +2,47 @@ package anndata;
 
 import net.imglib2.*;
 import net.imglib2.type.NativeType;
-import net.imglib2.type.numeric.integer.LongType;
+import net.imglib2.type.numeric.IntegerType;
+import net.imglib2.type.numeric.NumericType;
 
-public class CsrRandomAccess<T extends NativeType<T>>
+public class CsrRandomAccess<
+        DataType extends NativeType<DataType> & NumericType<DataType>,
+        IndexType extends NativeType<IndexType> & IntegerType<IndexType>>
         extends AbstractLocalizable
-        implements RandomAccess<T> {
+        implements RandomAccess<DataType> {
 
-    protected final AbstractCompressedStorageRai<T> rai;
-    protected final RandomAccess<T> dataAccess;
-    protected final RandomAccess<LongType> indicesAccess;
-    protected final RandomAccess<LongType> indptrAccess;
+    protected final AbstractCompressedStorageRai<DataType, IndexType> rai;
+    protected final RandomAccess<DataType> dataAccess;
+    protected final RandomAccess<IndexType> indicesAccess;
+    protected final RandomAccess<IndexType> indptrAccess;
+    protected final DataType fillValue;
+    protected final DataType valueToReturn;
 
-    public CsrRandomAccess(AbstractCompressedStorageRai<T> rai) {
+    public CsrRandomAccess(AbstractCompressedStorageRai<DataType, IndexType> rai) {
         super(rai.numDimensions());
 
         this.rai = rai;
-        this.dataAccess = rai.data.randomAccess();
-        this.indicesAccess = rai.indices.randomAccess();
-        this.indptrAccess = rai.indptr.randomAccess();
+        dataAccess = rai.data.randomAccess();
+        indicesAccess = rai.indices.randomAccess();
+        indptrAccess = rai.indptr.randomAccess();
+
+        valueToReturn = dataAccess.get().createVariable();
+        fillValue = valueToReturn.createVariable();
+        fillValue.setZero();
     }
 
-    public CsrRandomAccess(CsrRandomAccess<T> ra) {
-        super(ra.numDimensions());
-
-        this.rai = ra.rai;
-        this.dataAccess = rai.data.randomAccess();
-        this.indicesAccess = rai.indices.randomAccess();
-        this.indptrAccess = rai.indptr.randomAccess();
+    public CsrRandomAccess(CsrRandomAccess<DataType, IndexType> ra) {
+        this(ra.rai);
 
         for (int d = 0; d < n; ++d) {
             setPosition(ra.getLongPosition(d), d);
         }
     }
 
+
+
     @Override
-    public RandomAccess<T> copyRandomAccess() {
+    public RandomAccess<DataType> copyRandomAccess() {
         return new CsrRandomAccess<>(this);
     }
 
@@ -114,13 +120,12 @@ public class CsrRandomAccess<T extends NativeType<T>>
     }
 
     @Override
-    public T get() {
-        dataAccess.setPosition(0, 0);
-        return dataAccess.get();
+    public DataType get() {
+        return fillValue;
     }
 
     @Override
-    public Sampler<T> copy() {
+    public Sampler<DataType> copy() {
         return copyRandomAccess();
     }
 }
