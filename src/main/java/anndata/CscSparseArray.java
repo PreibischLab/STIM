@@ -2,6 +2,7 @@ package anndata;
 
 import java.util.Arrays;
 
+// todo: anndata likes to store X as float32 != double
 public class CscSparseArray extends CsrSparseArray {
     public CscSparseArray(int numRows, int numColumns, double[] data, int[] colIndex, int[] rowPointer) {
         super(numColumns, numRows, data, colIndex, rowPointer);
