@@ -121,7 +121,23 @@ public class CsrRandomAccess<
 
     @Override
     public DataType get() {
-        return fillValue;
+        indptrAccess.setPosition(position[0], 0);
+        indicesAccess.setPosition(indptrAccess.get().getIntegerLong(), 0);
+
+        indptrAccess.fwd(0);
+        final long end = indptrAccess.get().getIntegerLong();
+
+        while (indicesAccess.get().getIntegerLong() < position[1]
+                && indicesAccess.getLongPosition(0) < end) {
+            indicesAccess.fwd(0);
+        }
+        if (indicesAccess.get().getIntegerLong() == position[1]) {
+            dataAccess.setPosition(indicesAccess.get().getIntegerLong(), 0);
+            return dataAccess.get();
+        }
+        else {
+            return fillValue;
+        }
     }
 
     @Override
