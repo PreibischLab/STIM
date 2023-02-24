@@ -121,23 +121,49 @@ public class CsrRandomAccess<
 
     @Override
     public DataType get() {
-        indptrAccess.setPosition(position[0], 0);
-        indicesAccess.setPosition(indptrAccess.get().getIntegerLong(), 0);
-
+        // determine range of indices to search
+        indptrAccess.setPosition(targetPointer(), 0);
+        final long start = indptrAccess.get().getIntegerLong();
         indptrAccess.fwd(0);
-        final long end = indptrAccess.get().getIntegerLong();
+        final long end = indptrAccess.get().getIntegerLong() - 1;
+        final long currentPosition = indicesAccess.getLongPosition(0);
 
-        while (indicesAccess.get().getIntegerLong() < position[1]
-                && indicesAccess.getLongPosition(0) < end) {
-            indicesAccess.fwd(0);
+        if (currentPosition < start || currentPosition > end) {
+            indicesAccess.setPosition(start, 0);
         }
-        if (indicesAccess.get().getIntegerLong() == position[1]) {
+
+        // determine search direction (in case it doesn't start at 'start')
+        if (indicesAccess.get().getIntegerLong() < targetCursor()) {
+            while (indicesAccess.get().getIntegerLong() < targetCursor()
+                    && indicesAccess.getLongPosition(0) < end) {
+                indicesAccess.fwd(0);
+            }
+        }
+        else {
+            while (indicesAccess.get().getIntegerLong() > targetCursor()
+                    && indicesAccess.getLongPosition(0) > start) {
+                indicesAccess.bck(0);
+            }
+        }
+
+        if (indicesAccess.get().getIntegerLong() == targetCursor()) {
             dataAccess.setPosition(indicesAccess.get().getIntegerLong(), 0);
             return dataAccess.get();
         }
         else {
             return fillValue;
         }
+    }
+
+    protected void forwardSearchTo(final long ind) {
+    }
+
+    protected long targetCursor() {
+        return position[1];
+    }
+
+    protected long targetPointer() {
+        return position[0];
     }
 
     @Override
