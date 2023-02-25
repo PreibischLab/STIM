@@ -147,7 +147,7 @@ public class CsrRandomAccess<
         }
 
         if (indicesAccess.get().getIntegerLong() == targetCursor()) {
-            dataAccess.setPosition(indicesAccess.get().getIntegerLong(), 0);
+            dataAccess.setPosition(indicesAccess.getLongPosition(0), 0);
             return dataAccess.get();
         }
         else {
@@ -159,11 +159,11 @@ public class CsrRandomAccess<
     }
 
     protected long targetCursor() {
-        return position[1];
+        return position[0];
     }
 
     protected long targetPointer() {
-        return position[0];
+        return position[1];
     }
 
     @Override
