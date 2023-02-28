@@ -2,10 +2,13 @@ package anndata;
 
 import ch.systemsx.cisd.hdf5.HDF5Factory;
 import ch.systemsx.cisd.hdf5.IHDF5Reader;
+import data.STData;
+import data.STDataImgLib2;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RandomAccess;
 import net.imglib2.cache.img.CachedCellImg;
 import net.imglib2.img.Img;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.NumericType;
 import net.imglib2.type.numeric.IntegerType;
@@ -15,6 +18,7 @@ import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 public class AnnDataUtils {
@@ -94,6 +98,30 @@ public class AnnDataUtils {
         }
 
         return Arrays.asList(names);
+    }
+
+    public static void main(String[] args) throws IOException {
+        String path = "./data/test.h5ad";
+        N5HDF5Reader reader = new N5HDF5Reader(path);
+
+        List<String> barcodes = AnnDataUtils.readAnnotation(reader, "/var/_index");
+        List<String> geneNames = AnnDataUtils.readAnnotation(reader, "/obs/_index");
+        List<String> cellTypes = AnnDataUtils.readAnnotation(reader,  "/obs/cell_type");
+
+        RandomAccessibleInterval locations = AnnDataUtils.readData(reader, "/obsm/locations");
+        RandomAccessibleInterval sparse = AnnDataUtils.readData(reader, "/X");
+
+        final HashMap<String, Integer> geneLookup = new HashMap<>();
+        for (int i = 0; i < geneNames.size(); ++i ) {
+            geneLookup.put(geneNames.get(i), i);
+        }
+
+        STData stdata = new STDataImgLib2(locations, sparse, geneNames, barcodes, geneLookup);
+
+        for (String name : cellTypes)
+            System.out.println(name);
+
+        ImageJFunctions.show(sparse);
     }
 
     protected enum AnnDataFieldType {
