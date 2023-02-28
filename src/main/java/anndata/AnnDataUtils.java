@@ -1,19 +1,26 @@
 package anndata;
 
+import ch.systemsx.cisd.hdf5.HDF5Factory;
+import ch.systemsx.cisd.hdf5.IHDF5Reader;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.RandomAccess;
 import net.imglib2.cache.img.CachedCellImg;
+import net.imglib2.img.Img;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.NumericType;
+import net.imglib2.type.numeric.IntegerType;
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 public class AnnDataUtils {
 
     public static RandomAccessibleInterval<?> readData(N5Reader reader, String path) throws IOException {
-        AnnDataFieldType type = getFieldType(reader, path);
+        final AnnDataFieldType type = getFieldType(reader, path);
 
         switch (type) {
             case DENSE_ARRAY:
@@ -34,21 +41,59 @@ public class AnnDataUtils {
     }
 
     protected static <T extends NativeType<T> & NumericType<T>> RandomAccessibleInterval<T> openCsrArray(N5Reader reader, String path) throws IOException {
-        CachedCellImg<T, ?> sparseData = N5Utils.open(reader, "/X/data");
-        CachedCellImg<?, ?> indices = N5Utils.open(reader, "/X/indices");
-        CachedCellImg<?, ?> indptr = N5Utils.open(reader, "/X/indptr");
+        final CachedCellImg<T, ?> sparseData = N5Utils.open(reader, "/X/data");
+        final CachedCellImg<?, ?> indices = N5Utils.open(reader, "/X/indices");
+        final CachedCellImg<?, ?> indptr = N5Utils.open(reader, "/X/indptr");
 
         final long[] shape = reader.getAttribute("/X", "shape", long[].class);
         return new CsrRandomAccessibleInterval(shape[1], shape[0], sparseData, indices, indptr);
     }
 
     protected static <T extends NativeType<T> & NumericType<T>> RandomAccessibleInterval<T> openCscArray(N5Reader reader, String path) throws IOException {
-        CachedCellImg<T, ?> sparseData = N5Utils.open(reader, "/X/data");
-        CachedCellImg<?, ?> indices = N5Utils.open(reader, "/X/indices");
-        CachedCellImg<?, ?> indptr = N5Utils.open(reader, "/X/indptr");
+        final CachedCellImg<T, ?> sparseData = N5Utils.open(reader, "/X/data");
+        final CachedCellImg<?, ?> indices = N5Utils.open(reader, "/X/indices");
+        final CachedCellImg<?, ?> indptr = N5Utils.open(reader, "/X/indptr");
 
         final long[] shape = reader.getAttribute("/X", "shape", long[].class);
         return new CscRandomAccessibleInterval(shape[1], shape[0], sparseData, indices, indptr);
+    }
+
+    public static List<String> readAnnotation(N5Reader reader, String path) throws IOException {
+        final AnnDataFieldType type = getFieldType(reader, path);
+
+        switch (type) {
+            case STRING_ARRAY:
+                return readStringList(reader, path);
+            case CATEGORICAL_ARRAY:
+                return readCategoricalList(reader, path);
+            default:
+                throw new IOException("Reading annotations for " + type.toString() + " not supported.");
+        }
+    }
+
+    protected static List<String> readStringList(N5Reader reader, String path) {
+        final String[] array = readPrimitiveStringArray((N5HDF5Reader) reader, path);
+        return Arrays.asList(array);
+    }
+
+    protected static String[] readPrimitiveStringArray(N5HDF5Reader reader, String path) {
+        final IHDF5Reader hdf5Reader = HDF5Factory.openForReading(reader.getFilename());
+        return hdf5Reader.readStringArray(path);
+    }
+
+    protected static List<String> readCategoricalList(N5Reader reader, String path) throws IOException {
+        final String[] categoryNames = readPrimitiveStringArray((N5HDF5Reader) reader, path + "/categories");
+        final Img<?> category = N5Utils.open(reader, path + "/codes");
+        final RandomAccess<? extends IntegerType> ra = (RandomAccess<? extends IntegerType>) category.randomAccess();
+
+        // assume that minimal index = 0
+        final int max = (int) category.max(0);
+        final String[] names = new String[max];
+        for (int i = 0; i < max; ++i) {
+            names[i] = categoryNames[ra.setPositionAndGet(i).getInteger()];
+        }
+
+        return Arrays.asList(names);
     }
 
     protected enum AnnDataFieldType {

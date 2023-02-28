@@ -120,23 +120,22 @@ public class AnnData {
         String path = "./data/test.h5ad";
         N5HDF5Reader reader = new N5HDF5Reader(path);
 
-        StringArray varNames = new StringArray(2, 1, new String[]{"x", "y"});
-        StringArray obsNames = AnnData.readStringArray(reader, "/obs/_index", true);
-
-        CategoricalArray celltypes = readCategoricalArray(reader,  "/obs/cell_type");
+        List<String> barcodes = AnnDataUtils.readAnnotation(reader, "/var/_index");
+        List<String> geneNames = AnnDataUtils.readAnnotation(reader, "/obs/_index");
+        List<String> cellTypes = AnnDataUtils.readAnnotation(reader,  "/obs/cell_type");
 
         RandomAccessibleInterval locations = AnnDataUtils.readData(reader, "/obsm/locations");
         RandomAccessibleInterval sparse = AnnDataUtils.readData(reader, "/X");
 
-        IHDF5Reader hdf5Reader = HDF5Factory.openForReading(path);
-        final List<String> geneNames = Arrays.asList(hdf5Reader.readStringArray("/obs/_index"));
-        final List<String> barcodeNames = Arrays.asList(hdf5Reader.readStringArray("/var/_index"));
         final HashMap<String, Integer> geneLookup = new HashMap<>();
         for (int i = 0; i < geneNames.size(); ++i ) {
             geneLookup.put(geneNames.get(i), i);
         }
 
-        STData stdata = new STDataImgLib2(locations, sparse, geneNames, barcodeNames, geneLookup);
+        STData stdata = new STDataImgLib2(locations, sparse, geneNames, barcodes, geneLookup);
+
+        for (String name : cellTypes)
+            System.out.println(name);
 
         ImageJFunctions.show(sparse);
     }
