@@ -131,7 +131,7 @@ public class AnnData {
 
         final long[] shape = reader.getAttribute("/X", "shape", long[].class);
         AbstractCompressedStorageRai<DoubleType, IntType> sparse
-                = new AbstractCompressedStorageRai<>(shape[1], shape[0], sparseData, indices, indptr);
+                = new CsrRandomAccessibleInterval(shape[1], shape[0], sparseData, indices, indptr);
 
         ImageJFunctions.show(sparse);
     }

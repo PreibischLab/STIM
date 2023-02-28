@@ -5,7 +5,7 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.NumericType;
 
-public class CsrRandomAccess<
+public class SparseRandomAccess<
         DataType extends NativeType<DataType> & NumericType<DataType>,
         IndexType extends NativeType<IndexType> & IntegerType<IndexType>>
         extends AbstractLocalizable
@@ -18,7 +18,7 @@ public class CsrRandomAccess<
     protected final DataType fillValue;
     protected final DataType valueToReturn;
 
-    public CsrRandomAccess(AbstractCompressedStorageRai<DataType, IndexType> rai) {
+    public SparseRandomAccess(AbstractCompressedStorageRai<DataType, IndexType> rai) {
         super(rai.numDimensions());
 
         this.rai = rai;
@@ -31,7 +31,7 @@ public class CsrRandomAccess<
         fillValue.setZero();
     }
 
-    public CsrRandomAccess(CsrRandomAccess<DataType, IndexType> ra) {
+    public SparseRandomAccess(SparseRandomAccess<DataType, IndexType> ra) {
         this(ra.rai);
 
         for (int d = 0; d < n; ++d) {
@@ -43,7 +43,7 @@ public class CsrRandomAccess<
 
     @Override
     public RandomAccess<DataType> copyRandomAccess() {
-        return new CsrRandomAccess<>(this);
+        return new SparseRandomAccess<>(this);
     }
 
     @Override
@@ -122,7 +122,7 @@ public class CsrRandomAccess<
     @Override
     public DataType get() {
         // determine range of indices to search
-        indptrAccess.setPosition(targetPointer(), 0);
+        indptrAccess.setPosition(rai.targetPointer(position), 0);
         final long start = indptrAccess.get().getIntegerLong();
         indptrAccess.fwd(0);
         final long end = indptrAccess.get().getIntegerLong() - 1;
@@ -133,37 +133,27 @@ public class CsrRandomAccess<
         }
 
         // determine search direction (in case it doesn't start at 'start')
-        if (indicesAccess.get().getIntegerLong() < targetCursor()) {
-            while (indicesAccess.get().getIntegerLong() < targetCursor()
+        if (indicesAccess.get().getIntegerLong() < rai.targetCursor(position)) {
+            while (indicesAccess.get().getIntegerLong() < rai.targetCursor(position)
                     && indicesAccess.getLongPosition(0) < end) {
                 indicesAccess.fwd(0);
             }
         }
         else {
-            while (indicesAccess.get().getIntegerLong() > targetCursor()
+            while (indicesAccess.get().getIntegerLong() > rai.targetCursor(position)
                     && indicesAccess.getLongPosition(0) > start) {
                 indicesAccess.bck(0);
             }
         }
 
-        if (indicesAccess.get().getIntegerLong() == targetCursor()) {
+        if (indicesAccess.get().getIntegerLong() == rai.targetCursor(position)) {
             dataAccess.setPosition(indicesAccess.getLongPosition(0), 0);
             return dataAccess.get();
         }
         else {
+            fillValue.setZero();
             return fillValue;
         }
-    }
-
-    protected void forwardSearchTo(final long ind) {
-    }
-
-    protected long targetCursor() {
-        return position[0];
-    }
-
-    protected long targetPointer() {
-        return position[1];
     }
 
     @Override
