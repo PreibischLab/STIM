@@ -1,6 +1,55 @@
 package anndata;
 
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.cache.img.CachedCellImg;
+import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.NumericType;
+import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
+
+import java.io.IOException;
+import java.util.List;
+
 public class AnnDataUtils {
+
+    public static RandomAccessibleInterval<?> readData(N5Reader reader, String path) throws IOException {
+        AnnDataFieldType type = getFieldType(reader, path);
+
+        switch (type) {
+            case DENSE_ARRAY:
+                return N5Utils.open(reader, path);
+            case CSR_MATRIX:
+                return openCsrArray(reader, path);
+            case CSC_MATRIX:
+                return openCscArray(reader, path);
+            default:
+                throw new IOException("Reading data for " + type.toString() + " not supported.");
+        }
+    }
+
+    public static AnnDataFieldType getFieldType(N5Reader reader, String path) throws IOException {
+        final String encoding = reader.getAttribute(path, "encoding-type", String.class);
+        final String version = reader.getAttribute(path, "encoding-version", String.class);
+        return AnnDataFieldType.fromString(encoding, version);
+    }
+
+    protected static <T extends NativeType<T> & NumericType<T>> RandomAccessibleInterval<T> openCsrArray(N5Reader reader, String path) throws IOException {
+        CachedCellImg<T, ?> sparseData = N5Utils.open(reader, "/X/data");
+        CachedCellImg<?, ?> indices = N5Utils.open(reader, "/X/indices");
+        CachedCellImg<?, ?> indptr = N5Utils.open(reader, "/X/indptr");
+
+        final long[] shape = reader.getAttribute("/X", "shape", long[].class);
+        return new CsrRandomAccessibleInterval(shape[1], shape[0], sparseData, indices, indptr);
+    }
+
+    protected static <T extends NativeType<T> & NumericType<T>> RandomAccessibleInterval<T> openCscArray(N5Reader reader, String path) throws IOException {
+        CachedCellImg<T, ?> sparseData = N5Utils.open(reader, "/X/data");
+        CachedCellImg<?, ?> indices = N5Utils.open(reader, "/X/indices");
+        CachedCellImg<?, ?> indptr = N5Utils.open(reader, "/X/indptr");
+
+        final long[] shape = reader.getAttribute("/X", "shape", long[].class);
+        return new CscRandomAccessibleInterval(shape[1], shape[0], sparseData, indices, indptr);
+    }
 
     protected enum AnnDataFieldType {
 

@@ -2,6 +2,8 @@ package anndata;
 
 import ch.systemsx.cisd.hdf5.HDF5Factory;
 import ch.systemsx.cisd.hdf5.IHDF5Reader;
+import data.STData;
+import data.STDataImgLib2;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.cache.img.CachedCellImg;
 import net.imglib2.img.display.imagej.ImageJFunctions;
@@ -13,7 +15,9 @@ import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class AnnData {
@@ -116,22 +120,23 @@ public class AnnData {
         String path = "./data/test.h5ad";
         N5HDF5Reader reader = new N5HDF5Reader(path);
 
-        DenseArray X = AnnData.readDenseArray(reader, "/obsm/locations");
         StringArray varNames = new StringArray(2, 1, new String[]{"x", "y"});
         StringArray obsNames = AnnData.readStringArray(reader, "/obs/_index", true);
 
-        AnnData adata = new AnnData(X, obsNames, varNames);
-
         CategoricalArray celltypes = readCategoricalArray(reader,  "/obs/cell_type");
-        RandomAccessibleInterval<DoubleType> data = N5Utils.open(reader, "/obsm/locations");
 
-        CachedCellImg<DoubleType, ?> sparseData = N5Utils.open(reader, "/X/data");
-        CachedCellImg<IntType, ?> indices = N5Utils.open(reader, "/X/indices");
-        CachedCellImg<IntType, ?> indptr = N5Utils.open(reader, "/X/indptr");
+        RandomAccessibleInterval locations = AnnDataUtils.readData(reader, "/obsm/locations");
+        RandomAccessibleInterval sparse = AnnDataUtils.readData(reader, "/X");
 
-        final long[] shape = reader.getAttribute("/X", "shape", long[].class);
-        AbstractCompressedStorageRai<DoubleType, IntType> sparse
-                = new CsrRandomAccessibleInterval(shape[1], shape[0], sparseData, indices, indptr);
+        IHDF5Reader hdf5Reader = HDF5Factory.openForReading(path);
+        final List<String> geneNames = Arrays.asList(hdf5Reader.readStringArray("/obs/_index"));
+        final List<String> barcodeNames = Arrays.asList(hdf5Reader.readStringArray("/var/_index"));
+        final HashMap<String, Integer> geneLookup = new HashMap<>();
+        for (int i = 0; i < geneNames.size(); ++i ) {
+            geneLookup.put(geneNames.get(i), i);
+        }
+
+        STData stdata = new STDataImgLib2(locations, sparse, geneNames, barcodeNames, geneLookup);
 
         ImageJFunctions.show(sparse);
     }
