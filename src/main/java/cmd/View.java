@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 
+import io.AnnDataIO;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 
 import gui.RenderThread;
@@ -56,7 +57,11 @@ public class View implements Callable<Void> {
 
 		final ArrayList< STDataAssembly > data;
 
-		if ( datasets == null || datasets.size() == 0 )
+		if (containerPath.endsWith(".h5ad")) {
+			data = new ArrayList<>();
+			data.add(AnnDataIO.openAllDatasets(new File(containerPath)));
+		}
+		else if ( datasets == null || datasets.size() == 0 )
 		{
 			data = N5IO.openAllDatasets( new File( containerPath ) );
 		}

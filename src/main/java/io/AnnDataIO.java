@@ -2,17 +2,28 @@ package io;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 import anndata.AnnDataUtils;
 import data.STDataImgLib2;
+import data.STDataStatistics;
+import gui.STDataAssembly;
+import gui.STDataExplorer;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.converter.Converters;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.basictypeaccess.array.IntArray;
+import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.realtransform.AffineTransform;
+import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.integer.IntType;
+import net.imglib2.type.numeric.integer.LongType;
+import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.view.Views;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 
@@ -21,32 +32,74 @@ import data.STData;
 public class AnnDataIO
 {
 	private static final String celltypePath = "/obs/cell_type";
-	private static final String locationPath = "/obsm/locations";
+	private static final String locationPath = "/obsm/spatial";
 
 	public static void main( String[] args ) throws IOException
 	{
-		final String path = "./data/test.h5ad";
+		final String path = "./data/human-lymph-node.h5ad";
 		final File file = new File(path);
 
 		STData stData = readSlideSeq(file);
+
+//		ImageJFunctions.show(stData.getAllExprValues());
+		final ArrayList< STDataAssembly > data;
+
+		data = new ArrayList<>();
+		data.add(AnnDataIO.openAllDatasets(new File(path)));
+
+		// ignore potentially saved intensity adjustments
+		for ( final STDataAssembly d : data )
+			d.intensityTransform().set( 1.0, 0.0 );
+
+		// Gene to look at: IGKC, mean filter > 0, Gauß filter ~ 0.1
+		new STDataExplorer( data );
+
+	}
+
+	public static STDataAssembly openAllDatasets(final File anndataFile) throws IOException {
+		final N5HDF5Reader reader = openAnnData(anndataFile);
+
+		STData stData = readSlideSeq(anndataFile);
+
+		if (stData == null)
+			return null;
+
+		final STDataStatistics stat = new STDataStatistics(stData);
+
+		final AffineTransform2D transform = new AffineTransform2D();
+		final AffineTransform intesityTransform = new AffineTransform(1);
+		intesityTransform.set(1, 0);
+
+		return new STDataAssembly(stData, stat, transform, intesityTransform);
+	}
+
+	public static N5HDF5Reader openAnnData(final File anndataFile) throws IOException {
+		if (!anndataFile.exists())
+			throw new RuntimeException("AnnData-path '" + anndataFile.getAbsolutePath() + "' does not exist." );
+
+		return new N5HDF5Reader(anndataFile.getAbsolutePath());
 	}
 
 	public static STData readSlideSeq(final File anndataFile) throws IOException {
 		long time = System.currentTimeMillis();
 		N5Reader reader = new N5HDF5Reader(anndataFile.getAbsolutePath());
 
-		List<String> barcodes = AnnDataUtils.readAnnotation(reader, "/var/_index");
-		List<String> geneNames = AnnDataUtils.readAnnotation(reader, "/obs/_index");
+		List<String> geneNames = AnnDataUtils.readAnnotation(reader, "/var/_index");
+		List<String> barcodes = AnnDataUtils.readAnnotation(reader, "/obs/_index");
 
 		final HashMap<String, Integer> geneLookup = new HashMap<>();
 		for (int i = 0; i < geneNames.size(); ++i ) {
 			geneLookup.put(geneNames.get(i), i);
 		}
 
-		RandomAccessibleInterval locations = AnnDataUtils.readData(reader, locationPath);
+		// permute locations, since this is required by STData
+		RandomAccessibleInterval<LongType> locations =
+				Views.permute((RandomAccessibleInterval<LongType>) AnnDataUtils.readData(reader, locationPath), 0, 1);
 		RandomAccessibleInterval expressionVals = AnnDataUtils.readData(reader, "/X");
+		final RandomAccessibleInterval<DoubleType> convertedLocations = Converters.convert(
+				locations, (i, o) -> o.set(i.getRealDouble()), new DoubleType());
 
-		STData stdata = new STDataImgLib2(locations, expressionVals, geneNames, barcodes, geneLookup);
+		STData stdata = new STDataImgLib2(convertedLocations, expressionVals, geneNames, barcodes, geneLookup);
 
 		if (containsCelltypes(anndataFile)) {
 			Img<IntType> celltypeIds = getCelltypeIds(reader);
