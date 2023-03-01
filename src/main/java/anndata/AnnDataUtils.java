@@ -19,7 +19,7 @@ import java.util.List;
 
 public class AnnDataUtils {
 
-    public static RandomAccessibleInterval<?> readData(N5Reader reader, String path) throws IOException {
+    public static RandomAccessibleInterval readData(N5Reader reader, String path) throws IOException {
         final AnnDataFieldType type = getFieldType(reader, path);
 
         switch (type) {

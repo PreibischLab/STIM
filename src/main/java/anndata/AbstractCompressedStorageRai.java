@@ -19,15 +19,15 @@ abstract public class AbstractCompressedStorageRai<
     protected final NativeImg<IndexType, ?> indptr;
 
     public AbstractCompressedStorageRai(
-            long numRows,
             long numCols,
+            long numRows,
             NativeImg<DataType, ?> data,
             NativeImg<IndexType, ?> indices,
             NativeImg<IndexType, ?> indptr) {
         this.data = data;
         this.indices = indices;
         this.indptr = indptr;
-        this.max = new long[]{numRows-1, numCols-1};
+        this.max = new long[]{numCols-1, numRows-1};
     }
 
     @Override

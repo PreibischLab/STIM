@@ -39,8 +39,6 @@ public class SparseRandomAccess<
         }
     }
 
-
-
     @Override
     public RandomAccess<DataType> copyRandomAccess() {
         return new SparseRandomAccess<>(this);
