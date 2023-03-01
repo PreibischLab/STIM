@@ -20,7 +20,8 @@ abstract public class AbstractCompressedStorageRai<
 
     public AbstractCompressedStorageRai(
             long numRows,
-            long numCols, NativeImg<DataType, ?> data,
+            long numCols,
+            NativeImg<DataType, ?> data,
             NativeImg<IndexType, ?> indices,
             NativeImg<IndexType, ?> indptr) {
         this.data = data;

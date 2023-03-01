@@ -2,13 +2,10 @@ package anndata;
 
 import ch.systemsx.cisd.hdf5.HDF5Factory;
 import ch.systemsx.cisd.hdf5.IHDF5Reader;
-import data.STData;
-import data.STDataImgLib2;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RandomAccess;
 import net.imglib2.cache.img.CachedCellImg;
 import net.imglib2.img.Img;
-import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.NumericType;
 import net.imglib2.type.numeric.IntegerType;
@@ -18,7 +15,6 @@ import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 
 public class AnnDataUtils {
@@ -44,19 +40,19 @@ public class AnnDataUtils {
         return AnnDataFieldType.fromString(encoding, version);
     }
 
-    protected static <T extends NativeType<T> & NumericType<T>> RandomAccessibleInterval<T> openCsrArray(N5Reader reader, String path) throws IOException {
-        final CachedCellImg<T, ?> sparseData = N5Utils.open(reader, "/X/data");
-        final CachedCellImg<?, ?> indices = N5Utils.open(reader, "/X/indices");
-        final CachedCellImg<?, ?> indptr = N5Utils.open(reader, "/X/indptr");
+    protected static <T extends NativeType<T> & NumericType<T>> CsrRandomAccessibleInterval openCsrArray(N5Reader reader, String path) throws IOException {
+        final CachedCellImg<T, ?> sparseData = N5Utils.open(reader, path + "/data");
+        final CachedCellImg<?, ?> indices = N5Utils.open(reader, path + "/indices");
+        final CachedCellImg<?, ?> indptr = N5Utils.open(reader, path + "/indptr");
 
         final long[] shape = reader.getAttribute("/X", "shape", long[].class);
         return new CsrRandomAccessibleInterval(shape[1], shape[0], sparseData, indices, indptr);
     }
 
-    protected static <T extends NativeType<T> & NumericType<T>> RandomAccessibleInterval<T> openCscArray(N5Reader reader, String path) throws IOException {
-        final CachedCellImg<T, ?> sparseData = N5Utils.open(reader, "/X/data");
-        final CachedCellImg<?, ?> indices = N5Utils.open(reader, "/X/indices");
-        final CachedCellImg<?, ?> indptr = N5Utils.open(reader, "/X/indptr");
+    protected static <T extends NativeType<T> & NumericType<T>> CscRandomAccessibleInterval openCscArray(N5Reader reader, String path) throws IOException {
+        final CachedCellImg<T, ?> sparseData = N5Utils.open(reader, path + "/data");
+        final CachedCellImg<?, ?> indices = N5Utils.open(reader, path + "/indices");
+        final CachedCellImg<?, ?> indptr = N5Utils.open(reader, path + "/indptr");
 
         final long[] shape = reader.getAttribute("/X", "shape", long[].class);
         return new CscRandomAccessibleInterval(shape[1], shape[0], sparseData, indices, indptr);
@@ -100,31 +96,8 @@ public class AnnDataUtils {
         return Arrays.asList(names);
     }
 
-    public static void main(String[] args) throws IOException {
-        String path = "./data/test.h5ad";
-        N5HDF5Reader reader = new N5HDF5Reader(path);
 
-        List<String> barcodes = AnnDataUtils.readAnnotation(reader, "/var/_index");
-        List<String> geneNames = AnnDataUtils.readAnnotation(reader, "/obs/_index");
-        List<String> cellTypes = AnnDataUtils.readAnnotation(reader,  "/obs/cell_type");
-
-        RandomAccessibleInterval locations = AnnDataUtils.readData(reader, "/obsm/locations");
-        RandomAccessibleInterval sparse = AnnDataUtils.readData(reader, "/X");
-
-        final HashMap<String, Integer> geneLookup = new HashMap<>();
-        for (int i = 0; i < geneNames.size(); ++i ) {
-            geneLookup.put(geneNames.get(i), i);
-        }
-
-        STData stdata = new STDataImgLib2(locations, sparse, geneNames, barcodes, geneLookup);
-
-        for (String name : cellTypes)
-            System.out.println(name);
-
-        ImageJFunctions.show(sparse);
-    }
-
-    protected enum AnnDataFieldType {
+    public enum AnnDataFieldType {
 
         ANNDATA("anndata", "0.1.0"),
         DENSE_ARRAY("array", "0.2.0"),
