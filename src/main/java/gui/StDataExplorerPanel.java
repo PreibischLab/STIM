@@ -206,16 +206,10 @@ public class StDataExplorerPanel extends JPanel
 			{
 				String input = text.getText().trim().toLowerCase();
 
-				final boolean startsWith;
-
-				if ( input.startsWith( "_" ) )
+				final boolean searchFromBeginning = input.startsWith( "_" );
+				if ( searchFromBeginning )
 				{
-					startsWith = true;
-					input = input.substring( 1, input.length() );
-				}
-				else
-				{
-					startsWith = false;
+					input = input.substring( 1 );
 				}
 
 				final String search = input;
@@ -225,7 +219,7 @@ public class StDataExplorerPanel extends JPanel
 
 				for ( final String s : allGenesLowerCase )
 				{
-					if ( startsWith ? s.toLowerCase().startsWith( search ) : s.toLowerCase().contains( search ) )
+					if ( searchFromBeginning ? s.toLowerCase().startsWith( search ) : s.toLowerCase().contains( search ) )
 					{
 						final int row = geneToLocation.get( s );
 						System.out.println( search  + " >> " + s + " @ " + row  );
@@ -258,10 +252,9 @@ public class StDataExplorerPanel extends JPanel
 					{
 						this.visFrame = new VisualizationOptionsFrame( this );
 					}
-					else
+					else if ( this.visFrame.isVisible() )
 					{
-						if ( this.visFrame.isVisible() )
-							this.visFrame.dispose();
+						this.visFrame.dispose();
 					}
 				} );
 
