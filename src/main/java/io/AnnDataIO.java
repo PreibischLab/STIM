@@ -5,14 +5,23 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 
 import anndata.AnnDataUtils;
+import data.STData;
 import data.STDataImgLib2;
 import data.STDataStatistics;
-import data.STDataUtils;
 import gui.STDataAssembly;
-import gui.STDataExplorer;
 import ij.ImageJ;
+import net.imglib2.Cursor;
+import net.imglib2.FinalInterval;
+import net.imglib2.Interval;
+import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.converter.Converters;
@@ -21,20 +30,17 @@ import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.basictypeaccess.array.IntArray;
 import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.integer.LongType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Intervals;
-import net.imglib2.view.IntervalView;
+import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 import render.Render;
-
-import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
-
-import data.STData;
+import util.Grid;
 
 public class AnnDataIO
 {
@@ -58,6 +64,10 @@ public class AnnDataIO
 		for ( final STDataAssembly d : data )
 			d.intensityTransform().set( 1.0, 0.0 );
 
+		new ImageJ();
+		ImageJFunctions.show( multiThreadedDisplay( data.get( 0 ) ) ).setDisplayRange( 0 , 2048 );
+		SimpleMultiThreading.threadHaltUnClean();
+
 		// TODO: I would copy the Decoded RAI, and see if errors are still there
 		System.out.println( "Interval: " + Intervals.expand( data.get( 0 ).data().getRenderInterval(), -4000 ) );
 		final RealRandomAccessible< DoubleType > renderRRA = Render.getRealRandomAccessible( data.get( 0 ), "IGKC", 0.1, new ArrayList<>() );
@@ -70,6 +80,74 @@ public class AnnDataIO
 		// Gene to look at: IGKC, mean filter > 0, Gauß filter ~ 0.1
 		//new STDataExplorer( data );
 
+	}
+
+	protected static RandomAccessibleInterval< DoubleType > multiThreadedDisplay( final STDataAssembly data )
+	{
+		final Interval interval =  data.data().getRenderInterval();
+		final List<long[][]> grid =
+				Grid.create(
+						interval.dimensionsAsLongArray(),
+						new int[] { 512, 512 } );
+		final long[] min = interval.minAsLongArray();
+
+		System.out.println( "Computing " + grid.size() + " blocks ... " );
+
+		final RandomAccessibleInterval< DoubleType > rendered =
+				Views.translate( ArrayImgs.doubles( interval.dimensionsAsLongArray() ), min );
+
+		final long time = System.currentTimeMillis();
+
+		final ExecutorService ex = Executors.newFixedThreadPool( 16 );
+
+		ex.submit(() ->
+			grid.parallelStream().forEach(
+					gridBlock -> {
+						try {
+							final long[] offset = new long[ gridBlock[ 0 ].length ];
+							for ( int d = 0; d < offset.length; ++d )
+								offset[ d ] = gridBlock[ 0 ][ d ] + min[ d ];
+	
+							final Interval block =
+									Intervals.translate(
+											new FinalInterval( gridBlock[1] ), // blocksize
+											offset ); // block offset + min of the rendered image
+	
+							System.out.println( "computing block: " + Util.printInterval( block ) );
+	
+							final RealRandomAccessible< DoubleType > renderRRA = Render.getRealRandomAccessible( data, "IGKC", 0.1, new ArrayList<>() );
+							final RandomAccess< DoubleType > ra = Views.raster( renderRRA ).randomAccess();
+							final Cursor< DoubleType> cursor = Views.flatIterable( Views.interval( rendered, block ) ).localizingCursor();
+	
+							while ( cursor.hasNext() )
+							{
+								final DoubleType t = cursor.next();
+								ra.setPosition( cursor );
+								t.set( ra.get().get() );
+							}
+						}
+						catch (Exception e) 
+						{
+							System.out.println( "Error computing block offset=" + Util.printCoordinates( gridBlock[0] ) + "' ... " );
+							e.printStackTrace();
+						}
+					} )
+			);
+
+		try
+		{
+			ex.shutdown();
+			ex.awaitTermination( 10000000, TimeUnit.HOURS);
+			System.out.println( "done computing ... " + ( System.currentTimeMillis() - time ) + " ms.");
+		}
+		catch (InterruptedException e)
+		{
+			System.out.println( "Failed to compute. Error: " + e );
+			e.printStackTrace();
+			return null ;
+		}
+
+		return rendered;
 	}
 
 	public static STDataAssembly openAllDatasets(final File anndataFile) throws IOException {
