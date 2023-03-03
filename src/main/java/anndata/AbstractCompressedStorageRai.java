@@ -9,21 +9,21 @@ import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.NumericType;
 
 abstract public class AbstractCompressedStorageRai<
-        DataType extends NativeType<DataType> & NumericType<DataType>,
-        IndexType extends NativeType<IndexType> & IntegerType<IndexType>>
-        implements RandomAccessibleInterval<DataType> {
+        D extends NativeType<D> & NumericType<D>,
+        I extends NativeType<I> & IntegerType<I>>
+        implements RandomAccessibleInterval<D> {
 
     protected final long[] max;
-    protected final NativeImg<DataType, ?> data;
-    protected final NativeImg<IndexType, ?> indices;
-    protected final NativeImg<IndexType, ?> indptr;
+    protected final NativeImg<D, ?> data;
+    protected final NativeImg<I, ?> indices;
+    protected final NativeImg<I, ?> indptr;
 
     public AbstractCompressedStorageRai(
             long numCols,
             long numRows,
-            NativeImg<DataType, ?> data,
-            NativeImg<IndexType, ?> indices,
-            NativeImg<IndexType, ?> indptr) {
+            NativeImg<D, ?> data,
+            NativeImg<I, ?> indices,
+            NativeImg<I, ?> indptr) {
         this.data = data;
         this.indices = indices;
         this.indptr = indptr;
@@ -46,12 +46,12 @@ abstract public class AbstractCompressedStorageRai<
     }
 
     @Override
-    public RandomAccess<DataType> randomAccess() {
-        return new SparseRandomAccess<DataType, IndexType>(this);
+    public RandomAccess<D> randomAccess() {
+        return new SparseRandomAccess<D, I>(this);
     }
 
     @Override
-    public RandomAccess<DataType> randomAccess(Interval interval) {
+    public RandomAccess<D> randomAccess(Interval interval) {
         return randomAccess();
     }
 

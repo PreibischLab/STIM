@@ -49,7 +49,7 @@ public class AnnDataIO
 
 	public static void main( String[] args ) throws IOException
 	{
-		final String path = "/Users/preibischs/Documents/BIMSB/Publications/imglib2-st/anndata/human-lymph-node.h5ad";
+		final String path = System.getProperty("user.dir") + "/data/human-lymph-node.h5ad";
 		final File file = new File(path);
 
 		STData stData = readSlideSeq(file);

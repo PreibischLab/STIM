@@ -6,19 +6,18 @@ import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.NumericType;
 
 public class SparseRandomAccess<
-        DataType extends NativeType<DataType> & NumericType<DataType>,
-        IndexType extends NativeType<IndexType> & IntegerType<IndexType>>
+        D extends NativeType<D> & NumericType<D>,
+        I extends NativeType<I> & IntegerType<I>>
         extends AbstractLocalizable
-        implements RandomAccess<DataType> {
+        implements RandomAccess<D> {
 
-    protected final AbstractCompressedStorageRai<DataType, IndexType> rai;
-    protected final RandomAccess<DataType> dataAccess;
-    protected final RandomAccess<IndexType> indicesAccess;
-    protected final RandomAccess<IndexType> indptrAccess;
-    protected final DataType fillValue;
-    //protected final DataType valueToReturn;
+    protected final AbstractCompressedStorageRai<D, I> rai;
+    protected final RandomAccess<D> dataAccess;
+    protected final RandomAccess<I> indicesAccess;
+    protected final RandomAccess<I> indptrAccess;
+    protected final D fillValue;
 
-    public SparseRandomAccess(AbstractCompressedStorageRai<DataType, IndexType> rai) {
+    public SparseRandomAccess(AbstractCompressedStorageRai<D, I> rai) {
         super(rai.numDimensions());
 
         this.rai = rai;
@@ -26,12 +25,11 @@ public class SparseRandomAccess<
         indicesAccess = rai.indices.randomAccess();
         indptrAccess = rai.indptr.randomAccess();
 
-        //valueToReturn = dataAccess.get().createVariable();
         fillValue = dataAccess.get().createVariable();
         fillValue.setZero();
     }
 
-    public SparseRandomAccess(SparseRandomAccess<DataType, IndexType> ra) {
+    public SparseRandomAccess(SparseRandomAccess<D, I> ra) {
         this(ra.rai);
 
         for (int d = 0; d < n; ++d) {
@@ -40,7 +38,7 @@ public class SparseRandomAccess<
     }
 
     @Override
-    public RandomAccess<DataType> copyRandomAccess() {
+    public RandomAccess<D> copyRandomAccess() {
         return new SparseRandomAccess<>(this);
     }
 
@@ -118,7 +116,7 @@ public class SparseRandomAccess<
     }
 
     @Override
-    public DataType get() {
+    public D get() {
         // determine range of indices to search
         indptrAccess.setPosition(rai.targetPointer(position), 0);
         final long start = indptrAccess.get().getIntegerLong();
@@ -145,7 +143,7 @@ public class SparseRandomAccess<
         }
 
         if (indicesAccess.get().getIntegerLong() == rai.targetCursor(position)) {
-            dataAccess.setPosition(indicesAccess.getLongPosition(0), 0);
+            dataAccess.setPosition(indicesAccess);
             return dataAccess.get();
         }
         else {
@@ -154,7 +152,7 @@ public class SparseRandomAccess<
     }
 
     @Override
-    public Sampler<DataType> copy() {
+    public Sampler<D> copy() {
         return copyRandomAccess();
     }
 }
