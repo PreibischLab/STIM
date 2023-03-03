@@ -16,7 +16,7 @@ public class SparseRandomAccess<
     protected final RandomAccess<IndexType> indicesAccess;
     protected final RandomAccess<IndexType> indptrAccess;
     protected final DataType fillValue;
-    protected final DataType valueToReturn;
+    //protected final DataType valueToReturn;
 
     public SparseRandomAccess(AbstractCompressedStorageRai<DataType, IndexType> rai) {
         super(rai.numDimensions());
@@ -26,8 +26,8 @@ public class SparseRandomAccess<
         indicesAccess = rai.indices.randomAccess();
         indptrAccess = rai.indptr.randomAccess();
 
-        valueToReturn = dataAccess.get().createVariable();
-        fillValue = valueToReturn.createVariable();
+        //valueToReturn = dataAccess.get().createVariable();
+        fillValue = dataAccess.get().createVariable();
         fillValue.setZero();
     }
 
@@ -149,7 +149,6 @@ public class SparseRandomAccess<
             return dataAccess.get();
         }
         else {
-            fillValue.setZero();
             return fillValue;
         }
     }

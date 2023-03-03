@@ -9,9 +9,12 @@ import java.util.List;
 import anndata.AnnDataUtils;
 import data.STDataImgLib2;
 import data.STDataStatistics;
+import data.STDataUtils;
 import gui.STDataAssembly;
 import gui.STDataExplorer;
+import ij.ImageJ;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.RealRandomAccessible;
 import net.imglib2.converter.Converters;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImg;
@@ -23,7 +26,11 @@ import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.integer.LongType;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.util.Intervals;
+import net.imglib2.view.IntervalView;
 import net.imglib2.view.Views;
+import render.Render;
+
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 
@@ -36,7 +43,7 @@ public class AnnDataIO
 
 	public static void main( String[] args ) throws IOException
 	{
-		final String path = "./data/human-lymph-node.h5ad";
+		final String path = "/Users/preibischs/Documents/BIMSB/Publications/imglib2-st/anndata/human-lymph-node.h5ad";
 		final File file = new File(path);
 
 		STData stData = readSlideSeq(file);
@@ -51,8 +58,17 @@ public class AnnDataIO
 		for ( final STDataAssembly d : data )
 			d.intensityTransform().set( 1.0, 0.0 );
 
+		// TODO: I would copy the Decoded RAI, and see if errors are still there
+		System.out.println( "Interval: " + Intervals.expand( data.get( 0 ).data().getRenderInterval(), -4000 ) );
+		final RealRandomAccessible< DoubleType > renderRRA = Render.getRealRandomAccessible( data.get( 0 ), "IGKC", 0.1, new ArrayList<>() );
+		final RandomAccessibleInterval<DoubleType> img =
+				Views.interval( Views.raster( renderRRA ),
+				Intervals.expand( data.get( 0 ).data().getRenderInterval(), -10 ) );
+		new ImageJ();
+		ImageJFunctions.show( img );
+		
 		// Gene to look at: IGKC, mean filter > 0, Gauß filter ~ 0.1
-		new STDataExplorer( data );
+		//new STDataExplorer( data );
 
 	}
 
