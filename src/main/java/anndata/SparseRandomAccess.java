@@ -120,22 +120,24 @@ public class SparseRandomAccess<
         indptrAccess.setPosition(rai.targetPointer(position), 0);
         final long start = indptrAccess.get().getIntegerLong();
         indptrAccess.fwd(0);
-        final long end = indptrAccess.get().getIntegerLong() - 1;
+        final long end = indptrAccess.get().getIntegerLong();
 
         // todo: make this more efficient, e.g., by bisection
         indicesAccess.setPosition(start, 0);
-        while (indicesAccess.get().getIntegerLong() < rai.targetCursor(position)
-                && indicesAccess.getLongPosition(0) < end) {
-           indicesAccess.fwd(0);
+        while (indicesAccess.getLongPosition(0) < end) {
+            if (indicesAccess.get().getIntegerLong() < rai.targetCursor(position)) {
+                indicesAccess.fwd(0);
+            }
+            else if (indicesAccess.get().getIntegerLong() == rai.targetCursor(position)) {
+                dataAccess.setPosition(indicesAccess);
+                return dataAccess.get();
+            }
+            else {
+                break;
+            }
         }
 
-        if (indicesAccess.get().getIntegerLong() == rai.targetCursor(position)) {
-            dataAccess.setPosition(indicesAccess);
-            return dataAccess.get();
-        }
-        else {
-            return fillValue;
-        }
+        return fillValue;
     }
 
     @Override
