@@ -65,8 +65,7 @@ public class SparseRandomAccess<
     @Override
     public void move(Localizable localizable) {
         for (int d = 0; d < n; ++d) {
-            final int distance = localizable.getIntPosition(d);
-            position[d] += distance;
+            position[d] += localizable.getIntPosition(d);
         }
     }
 
@@ -122,24 +121,12 @@ public class SparseRandomAccess<
         final long start = indptrAccess.get().getIntegerLong();
         indptrAccess.fwd(0);
         final long end = indptrAccess.get().getIntegerLong() - 1;
-        final long currentPosition = indicesAccess.getLongPosition(0);
 
-        if (currentPosition < start || currentPosition > end) {
-            indicesAccess.setPosition(start, 0);
-        }
-
-        // determine search direction (in case it doesn't start at 'start')
-        if (indicesAccess.get().getIntegerLong() < rai.targetCursor(position)) {
-            while (indicesAccess.get().getIntegerLong() < rai.targetCursor(position)
-                    && indicesAccess.getLongPosition(0) < end) {
-                indicesAccess.fwd(0);
-            }
-        }
-        else {
-            while (indicesAccess.get().getIntegerLong() > rai.targetCursor(position)
-                    && indicesAccess.getLongPosition(0) > start) {
-                indicesAccess.bck(0);
-            }
+        // todo: make this more efficient, e.g., by bisection
+        indicesAccess.setPosition(start, 0);
+        while (indicesAccess.get().getIntegerLong() < rai.targetCursor(position)
+                && indicesAccess.getLongPosition(0) < end) {
+           indicesAccess.fwd(0);
         }
 
         if (indicesAccess.get().getIntegerLong() == rai.targetCursor(position)) {

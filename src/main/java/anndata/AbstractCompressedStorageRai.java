@@ -14,9 +14,9 @@ abstract public class AbstractCompressedStorageRai<
         implements RandomAccessibleInterval<D> {
 
     protected final long[] max;
-    protected final NativeImg<D, ?> data;
-    protected final NativeImg<I, ?> indices;
-    protected final NativeImg<I, ?> indptr;
+    protected final RandomAccessibleInterval<D> data;
+    protected final RandomAccessibleInterval<I> indices;
+    protected final RandomAccessibleInterval<I> indptr;
 
     public AbstractCompressedStorageRai(
             long numCols,

@@ -8,7 +8,18 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
+import bdv.util.BdvFunctions;
+import bdv.util.BdvOptions;
+import bdv.util.BdvStackSource;
+import bdv.viewer.DisplayMode;
+import data.STDataUtils;
+import filter.FilterFactory;
+import filter.MedianFilterFactory;
+import gui.STDataExplorer;
+import imglib2.TransformedIterableRealInterval;
+import net.imglib2.*;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 
@@ -18,12 +29,6 @@ import data.STDataImgLib2;
 import data.STDataStatistics;
 import gui.STDataAssembly;
 import ij.ImageJ;
-import net.imglib2.Cursor;
-import net.imglib2.FinalInterval;
-import net.imglib2.Interval;
-import net.imglib2.RandomAccess;
-import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.RealRandomAccessible;
 import net.imglib2.converter.Converters;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImg;
@@ -41,6 +46,8 @@ import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 import render.Render;
 import util.Grid;
+
+import static gui.RenderThread.*;
 
 public class AnnDataIO
 {
@@ -64,21 +71,32 @@ public class AnnDataIO
 		for ( final STDataAssembly d : data )
 			d.intensityTransform().set( 1.0, 0.0 );
 
-		new ImageJ();
-		ImageJFunctions.show( multiThreadedDisplay( data.get( 0 ) ) ).setDisplayRange( 0 , 2048 );
-		SimpleMultiThreading.threadHaltUnClean();
+//		new ImageJ();
+//		ImageJFunctions.show( multiThreadedDisplay( data.get( 0 ) ) ).setDisplayRange( 0 , 2048 );
+//		SimpleMultiThreading.threadHaltUnClean();
+
+		Interval interval = data.get(0).data().getRenderInterval();
+		// todo: if filter factory list is not empty, the picture is visualized correctly, since the filter copies data
+		List<FilterFactory<DoubleType, DoubleType>> filterFactories = new ArrayList<>();
+//		filterFactories.add( new MedianFilterFactory<>( new DoubleType( 0 ), 0 ) );
+		BdvOptions options = BdvOptions.options().is2D().numRenderingThreads(Runtime.getRuntime().availableProcessors());
+		final RealRandomAccessible<DoubleType> renderRRA = Render.getRealRandomAccessible( data.get(0), "IGKC", 0.4, filterFactories );
+		BdvStackSource<DoubleType> bdv = BdvFunctions.show(renderRRA, interval, "", options);
+		bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
+		bdv.setDisplayRangeBounds( minRange, maxRange );
+		bdv.setDisplayRange( min, 200*max );
 
 		// TODO: I would copy the Decoded RAI, and see if errors are still there
-		System.out.println( "Interval: " + Intervals.expand( data.get( 0 ).data().getRenderInterval(), -4000 ) );
-		final RealRandomAccessible< DoubleType > renderRRA = Render.getRealRandomAccessible( data.get( 0 ), "IGKC", 0.1, new ArrayList<>() );
-		final RandomAccessibleInterval<DoubleType> img =
-				Views.interval( Views.raster( renderRRA ),
-				Intervals.expand( data.get( 0 ).data().getRenderInterval(), -10 ) );
-		new ImageJ();
-		ImageJFunctions.show( img );
+//		System.out.println( "Interval: " + Intervals.expand( data.get( 0 ).data().getRenderInterval(), -4000 ) );
+//		final RealRandomAccessible< DoubleType > renderRRA = Render.getRealRandomAccessible( data.get( 0 ), "IGKC", 0.1, new ArrayList<>() );
+//		final RandomAccessibleInterval<DoubleType> img =
+//				Views.interval( Views.raster( renderRRA ),
+//				Intervals.expand( data.get( 0 ).data().getRenderInterval(), -10 ) );
+//		new ImageJ();
+//		ImageJFunctions.show( img );
 		
 		// Gene to look at: IGKC, mean filter > 0, Gauß filter ~ 0.1
-		//new STDataExplorer( data );
+//		new STDataExplorer( data );
 
 	}
 
@@ -161,10 +179,10 @@ public class AnnDataIO
 		final STDataStatistics stat = new STDataStatistics(stData);
 
 		final AffineTransform2D transform = new AffineTransform2D();
-		final AffineTransform intesityTransform = new AffineTransform(1);
-		intesityTransform.set(1, 0);
+		final AffineTransform intensityTransform = new AffineTransform(1);
+		intensityTransform.set(1, 0);
 
-		return new STDataAssembly(stData, stat, transform, intesityTransform);
+		return new STDataAssembly(stData, stat, transform, intensityTransform);
 	}
 
 	public static N5HDF5Reader openAnnData(final File anndataFile) throws IOException {
