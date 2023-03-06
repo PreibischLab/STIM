@@ -26,7 +26,7 @@ public class SparseRandomAccess<
         indptrAccess = rai.indptr.randomAccess();
 
         fillValue = dataAccess.get().createVariable();
-        fillValue.setZero();
+        fillValue.setOne();
     }
 
     public SparseRandomAccess(SparseRandomAccess<D, I> ra) {
@@ -117,25 +117,27 @@ public class SparseRandomAccess<
     @Override
     public D get() {
         // determine range of indices to search
-        indptrAccess.setPosition(rai.targetPointer(position), 0);
+        final long ptr = rai.targetPointer(position);
+        indptrAccess.setPosition(ptr, 0);
         final long start = indptrAccess.get().getIntegerLong();
-        indptrAccess.fwd(0);
-        final long end = indptrAccess.get().getIntegerLong();
+        indptrAccess.setPosition(ptr + 1L, 0);
+//        indptrAccess.fwd(0);
+//        final long end = indptrAccess.get().getIntegerLong();
 
         // todo: make this more efficient, e.g., by bisection
-        indicesAccess.setPosition(start, 0);
-        while (indicesAccess.getLongPosition(0) < end) {
-            if (indicesAccess.get().getIntegerLong() < rai.targetCursor(position)) {
-                indicesAccess.fwd(0);
-            }
-            else if (indicesAccess.get().getIntegerLong() == rai.targetCursor(position)) {
-                dataAccess.setPosition(indicesAccess);
-                return dataAccess.get();
-            }
-            else {
-                break;
-            }
-        }
+//        indicesAccess.setPosition(start, 0);
+//        while (indicesAccess.getLongPosition(0) < end) {
+//            if (indicesAccess.get().getIntegerLong() < rai.targetCursor(position)) {
+//                indicesAccess.fwd(0);
+//            }
+//            else if (indicesAccess.get().getIntegerLong() == rai.targetCursor(position)) {
+//                dataAccess.setPosition(indicesAccess);
+//                return dataAccess.get();
+//            }
+//            else {
+//                break;
+//            }
+//        }
 
         return fillValue;
     }

@@ -79,12 +79,13 @@ public class AnnDataIO
 		// todo: if filter factory list is not empty, the picture is visualized correctly, since the filter copies data
 		List<FilterFactory<DoubleType, DoubleType>> filterFactories = new ArrayList<>();
 //		filterFactories.add( new MedianFilterFactory<>( new DoubleType( 0 ), 0 ) );
+		System.out.println("Available processors: " + Runtime.getRuntime().availableProcessors());
 		BdvOptions options = BdvOptions.options().is2D().numRenderingThreads(Runtime.getRuntime().availableProcessors());
 		final RealRandomAccessible<DoubleType> renderRRA = Render.getRealRandomAccessible( data.get(0), "IGKC", 0.4, filterFactories );
 		BdvStackSource<DoubleType> bdv = BdvFunctions.show(renderRRA, interval, "", options);
 		bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
 		bdv.setDisplayRangeBounds( minRange, maxRange );
-		bdv.setDisplayRange( min, 200*max );
+		bdv.setDisplayRange( min, max );
 
 		// TODO: I would copy the Decoded RAI, and see if errors are still there
 //		System.out.println( "Interval: " + Intervals.expand( data.get( 0 ).data().getRenderInterval(), -4000 ) );
