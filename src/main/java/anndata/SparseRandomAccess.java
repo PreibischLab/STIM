@@ -33,7 +33,7 @@ public class SparseRandomAccess<
         this(ra.rai);
 
         for (int d = 0; d < n; ++d) {
-            setPosition(ra.getLongPosition(d), d);
+            position[d] = ra.getLongPosition(d);
         }
     }
 
@@ -65,7 +65,7 @@ public class SparseRandomAccess<
     @Override
     public void move(Localizable localizable) {
         for (int d = 0; d < n; ++d) {
-            position[d] += localizable.getIntPosition(d);
+            position[d] += localizable.getLongPosition(d);
         }
     }
 
@@ -86,7 +86,7 @@ public class SparseRandomAccess<
     @Override
     public void setPosition(Localizable localizable) {
         for (int d = 0; d < n; ++d) {
-            position[d]  = localizable.getIntPosition(d);
+            position[d]  = localizable.getLongPosition(d);
         }
     }
 
