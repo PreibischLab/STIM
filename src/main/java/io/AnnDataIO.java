@@ -38,6 +38,7 @@ import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
+import net.imglib2.realtransform.Scale2D;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.integer.LongType;
@@ -73,6 +74,7 @@ public class AnnDataIO
 		RandomAccessibleInterval<DoubleType> loc = data.data().getLocations();
 		RandomAccessibleInterval<DoubleType> values = data.data().getAllExprValues();
 
+		/*
 		RandomAccessibleInterval<DoubleType> loc2 = ArrayImgs.doubles( loc.dimensionsAsLongArray() );
 		RandomAccessibleInterval<DoubleType> values2 = ArrayImgs.doubles( values.dimensionsAsLongArray() );
 
@@ -87,45 +89,46 @@ public class AnnDataIO
 
 		while ( in.hasNext() )
 			out.next().set( in.next() );
-
+		*/
 		final HashMap<String, Integer> geneLookup = new HashMap<>();
 		for (int i = 0; i < data.data().getGeneNames().size(); ++i )
 			geneLookup.put(data.data().getGeneNames().get(i), i);
 
-		data = new STDataAssembly( new STDataImgLib2(loc, values2, data.data().getGeneNames(), data.data().getBarcodes(), geneLookup ) );
+		AffineTransform2D t = new AffineTransform2D();
+		//t.scale( 0.25, 0.25 );
+		//t.translate( 1000, 1000 );
+		data = new STDataAssembly( new STDataImgLib2(loc, values, data.data().getGeneNames(), data.data().getBarcodes(), geneLookup ), data.statistics(), t, new AffineTransform( 1 ) );
 
 		//data = N5IO.openAllDatasets( new File( System.getProperty("user.dir") + "/data/10x-Visium.n5" ) ).get( 0 );
 		//gene = "Calm2";
 
-//		new ImageJ();
-//		ImageJFunctions.show( multiThreadedDisplay( data.get( 0 ) ) ).setDisplayRange( 0 , 2048 );
-//		SimpleMultiThreading.threadHaltUnClean();
+		//new ImageJ();
+		//ImageJFunctions.show( multiThreadedDisplay( data ) ).setDisplayRange( 0 , 1 );
+		//SimpleMultiThreading.threadHaltUnClean();
 
 		Interval interval = data.data().getRenderInterval();
 		System.out.println( "render interval: " + Util.printInterval( interval ) );
 		System.out.println( "exp value base matrix: " + Util.printInterval( data.data().getAllExprValues() ) );
 		System.out.println("Available processors: " + Runtime.getRuntime().availableProcessors());
 
+
 		// todo: if filter factory list is not empty, the picture is visualized correctly, since the filter copies data
 		List<FilterFactory<DoubleType, DoubleType>> filterFactories = new ArrayList<>();
 //		filterFactories.add( new MedianFilterFactory<>( new DoubleType( 0 ), 0 ) );
 		BdvOptions options = BdvOptions.options().is2D().numRenderingThreads(Runtime.getRuntime().availableProcessors());
 
-		final RealRandomAccessible<DoubleType> renderRRA = Render.getRealRandomAccessible( data, gene, 0.4, filterFactories );
+		final RealRandomAccessible<DoubleType> renderRRA = Render.getRealRandomAccessible( data, gene, 0.1, filterFactories );
 		BdvStackSource<DoubleType> bdv = BdvFunctions.show(renderRRA, interval, "", options);
 		bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
 		bdv.setDisplayRangeBounds( minRange, maxRange );
-		bdv.setDisplayRange( min, max );
+		bdv.setDisplayRange( min, 1 );
+
 
 		// TODO: I would copy the Decoded RAI, and see if errors are still there
-//		System.out.println( "Interval: " + Intervals.expand( data.get( 0 ).data().getRenderInterval(), -4000 ) );
-//		final RealRandomAccessible< DoubleType > renderRRA = Render.getRealRandomAccessible( data.get( 0 ), "IGKC", 0.1, new ArrayList<>() );
-//		final RandomAccessibleInterval<DoubleType> img =
-//				Views.interval( Views.raster( renderRRA ),
-//				Intervals.expand( data.get( 0 ).data().getRenderInterval(), -10 ) );
-//		new ImageJ();
-//		ImageJFunctions.show( img );
-		
+		//final RealRandomAccessible< DoubleType > renderRRA = Render.getRealRandomAccessible( data, gene, 0.1, new ArrayList<>() );
+		//final RandomAccessibleInterval<DoubleType> img = Views.interval( Views.raster( renderRRA ), data.data().getRenderInterval() );
+		//new ImageJ(); ImageJFunctions.show( img );
+
 		// Gene to look at: IGKC, mean filter > 0, Gauß filter ~ 0.1
 //		new STDataExplorer( data );
 

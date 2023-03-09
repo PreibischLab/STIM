@@ -4,6 +4,7 @@ import net.imglib2.*;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.NumericType;
+import net.imglib2.util.Util;
 
 public class SparseRandomAccess<
         D extends NativeType<D> & NumericType<D>,
@@ -116,11 +117,23 @@ public class SparseRandomAccess<
 
     @Override
     public D get() {
+    	long ptr=-12122,start=-12122;
+    	try
+    	{
         // determine range of indices to search
-        final long ptr = rai.targetPointer(position);
+        ptr = rai.targetPointer(position);
         indptrAccess.setPosition(ptr, 0);
-        final long start = indptrAccess.get().getIntegerLong();
+        start = indptrAccess.get().getIntegerLong();
         indptrAccess.setPosition(ptr + 1L, 0);
+    	}
+    	catch (Exception e )
+    	{
+			System.out.println( "ptr: "  + ptr  );
+			System.out.println( "indptr: " + Util.printInterval(rai.indptr) );
+			e.printStackTrace();
+			System.exit( 0 );
+			throw new ArrayIndexOutOfBoundsException();
+    	}
 //        indptrAccess.fwd(0);
 //        final long end = indptrAccess.get().getIntegerLong();
 

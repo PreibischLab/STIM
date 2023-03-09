@@ -6,11 +6,13 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealCursor;
 import net.imglib2.Sampler;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.util.Util;
 
 public class ExpValueRealCursor< T > implements RealCursor< T >
 {
 	final LocationRealCursor locationCursor;
 	final Cursor< T > valueCursor;
+	final IterableInterval< T > values;
 
 	public ExpValueRealCursor(
 			final RandomAccessibleInterval< DoubleType > locations,
@@ -20,18 +22,35 @@ public class ExpValueRealCursor< T > implements RealCursor< T >
 
 		// we need a special hyperslice or cursor here that returns a different part of the big 2d RAI 
 		this.valueCursor = values.localizingCursor();
+		this.values = values;
 	}
 
 	protected ExpValueRealCursor( final ExpValueRealCursor< T > realCursor )
 	{
 		this.locationCursor = realCursor.locationCursor.copyCursor();
 		this.valueCursor = realCursor.valueCursor.copyCursor();
+		this.values = realCursor.values;
 	}
 
 	@Override
 	public T get()
 	{
-		return valueCursor.get();
+		try
+		{
+			final T type = valueCursor.get();
+			return type;
+		}
+		catch( Exception e )
+		{
+			System.out.println( Util.printInterval( values ) );
+			System.out.println( valueCursor.getIntPosition( 0 ) );
+			e.printStackTrace();
+			System.exit( 0 );
+
+
+			return null;
+			// throw new RuntimeException( "we caught it: " + e );
+		}
 	}
 
 	@Override
