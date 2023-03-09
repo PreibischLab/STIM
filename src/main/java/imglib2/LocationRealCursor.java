@@ -57,7 +57,8 @@ public class LocationRealCursor implements RealCursor< RealLocalizable >
 	public void jumpFwd( final long steps )
 	{
 		index += steps;
-		ra.fwd( (int)steps );
+		//ra.fwd( (int)steps );
+		ra.move( steps, 0 );
 		updatePos();
 	}
 
