@@ -38,6 +38,7 @@ import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
+import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.integer.LongType;
 import net.imglib2.type.numeric.real.DoubleType;
@@ -59,29 +60,58 @@ public class AnnDataIO
 		final String path = System.getProperty("user.dir") + "/data/human-lymph-node.h5ad";
 		final File file = new File(path);
 
-		STData stData = readSlideSeq(file);
+		//STData stData = readSlideSeq(file);
 
 //		ImageJFunctions.show(stData.getAllExprValues());
-		final ArrayList< STDataAssembly > data;
+		//final ArrayList< STDataAssembly > data;
+		STDataAssembly data;
+		String gene;
 
-		data = new ArrayList<>();
-		data.add(AnnDataIO.openAllDatasets(new File(path)));
+		data = AnnDataIO.openAllDatasets(new File(path));
+		gene = "IGKC";
 
-		// ignore potentially saved intensity adjustments
-		for ( final STDataAssembly d : data )
-			d.intensityTransform().set( 1.0, 0.0 );
+		RandomAccessibleInterval<DoubleType> loc = data.data().getLocations();
+		RandomAccessibleInterval<DoubleType> values = data.data().getAllExprValues();
+
+		RandomAccessibleInterval<DoubleType> loc2 = ArrayImgs.doubles( loc.dimensionsAsLongArray() );
+		RandomAccessibleInterval<DoubleType> values2 = ArrayImgs.doubles( values.dimensionsAsLongArray() );
+
+		Cursor<DoubleType> in = Views.flatIterable( loc ).cursor();
+		Cursor<DoubleType> out = Views.flatIterable( loc2 ).cursor();
+
+		while ( in.hasNext() )
+			out.next().set( in.next() );
+
+		in = Views.flatIterable( values ).cursor();
+		out = Views.flatIterable( values2 ).cursor();
+
+		while ( in.hasNext() )
+			out.next().set( in.next() );
+
+		final HashMap<String, Integer> geneLookup = new HashMap<>();
+		for (int i = 0; i < data.data().getGeneNames().size(); ++i )
+			geneLookup.put(data.data().getGeneNames().get(i), i);
+
+		data = new STDataAssembly( new STDataImgLib2(loc, values2, data.data().getGeneNames(), data.data().getBarcodes(), geneLookup ) );
+
+		//data = N5IO.openAllDatasets( new File( System.getProperty("user.dir") + "/data/10x-Visium.n5" ) ).get( 0 );
+		//gene = "Calm2";
 
 //		new ImageJ();
 //		ImageJFunctions.show( multiThreadedDisplay( data.get( 0 ) ) ).setDisplayRange( 0 , 2048 );
 //		SimpleMultiThreading.threadHaltUnClean();
 
-		Interval interval = data.get(0).data().getRenderInterval();
+		Interval interval = data.data().getRenderInterval();
+		System.out.println( "render interval: " + Util.printInterval( interval ) );
+		System.out.println( "exp value base matrix: " + Util.printInterval( data.data().getAllExprValues() ) );
+		System.out.println("Available processors: " + Runtime.getRuntime().availableProcessors());
+
 		// todo: if filter factory list is not empty, the picture is visualized correctly, since the filter copies data
 		List<FilterFactory<DoubleType, DoubleType>> filterFactories = new ArrayList<>();
 //		filterFactories.add( new MedianFilterFactory<>( new DoubleType( 0 ), 0 ) );
-		System.out.println("Available processors: " + Runtime.getRuntime().availableProcessors());
 		BdvOptions options = BdvOptions.options().is2D().numRenderingThreads(Runtime.getRuntime().availableProcessors());
-		final RealRandomAccessible<DoubleType> renderRRA = Render.getRealRandomAccessible( data.get(0), "IGKC", 0.4, filterFactories );
+
+		final RealRandomAccessible<DoubleType> renderRRA = Render.getRealRandomAccessible( data, gene, 0.4, filterFactories );
 		BdvStackSource<DoubleType> bdv = BdvFunctions.show(renderRRA, interval, "", options);
 		bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
 		bdv.setDisplayRangeBounds( minRange, maxRange );
@@ -169,6 +199,7 @@ public class AnnDataIO
 		return rendered;
 	}
 
+	// TODO: ALL? opens just one ...
 	public static STDataAssembly openAllDatasets(final File anndataFile) throws IOException {
 		final N5HDF5Reader reader = openAnnData(anndataFile);
 
@@ -208,11 +239,15 @@ public class AnnDataIO
 		// permute locations, since this is required by STData
 		RandomAccessibleInterval<LongType> locations =
 				Views.permute((RandomAccessibleInterval<LongType>) AnnDataUtils.readData(reader, locationPath), 0, 1);
-		RandomAccessibleInterval expressionVals = AnnDataUtils.readData(reader, "/X");
 		final RandomAccessibleInterval<DoubleType> convertedLocations = Converters.convert(
 				locations, (i, o) -> o.set(i.getRealDouble()), new DoubleType());
 
-		STData stdata = new STDataImgLib2(convertedLocations, expressionVals, geneNames, barcodes, geneLookup);
+		RandomAccessibleInterval<RealType> expressionVals = AnnDataUtils.readData(reader, "/X");
+
+		final RandomAccessibleInterval<DoubleType> convertedexpressionVals = Converters.convert(
+				expressionVals, (i, o) -> o.set(i.getRealDouble()), new DoubleType());
+
+		STData stdata = new STDataImgLib2(convertedLocations, convertedexpressionVals, geneNames, barcodes, geneLookup);
 
 		if (containsCelltypes(anndataFile)) {
 			Img<IntType> celltypeIds = getCelltypeIds(reader);
