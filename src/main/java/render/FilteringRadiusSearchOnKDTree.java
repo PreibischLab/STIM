@@ -21,7 +21,7 @@ public class FilteringRadiusSearchOnKDTree< S, T > implements IntegratingNeighbo
 	{
 		this.n = tree.numDimensions();
 		this.tree = tree;
-		this.value = new SimpleSampler<>( filterFactory.create() );
+		this.value = new SimpleSampler<>( () -> filterFactory.create() );
 		this.filterFactory = filterFactory;
 		this.filter = filterFactory.createFilter( tree );
 	}

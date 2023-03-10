@@ -1,5 +1,7 @@
 package render;
 
+import java.util.function.Supplier;
+
 import net.imglib2.KDTree;
 import net.imglib2.RealLocalizable;
 import net.imglib2.Sampler;
@@ -9,7 +11,7 @@ import util.SimpleSampler;
 
 public class KNearestNeighborMaxDistanceSearchOnKDTree< T > extends KNearestNeighborSearchOnKDTree< T >
 {
-	final T outofbounds;
+	final Supplier<T> outofbounds;
 	final SimpleSampler< T > oobsSampler;
 	final SimpleRealLocalizable position;
 	final double maxSqDistance, maxDistance;
@@ -20,7 +22,7 @@ public class KNearestNeighborMaxDistanceSearchOnKDTree< T > extends KNearestNeig
 
 	int l = 0;
 
-	public KNearestNeighborMaxDistanceSearchOnKDTree( final KDTree< T > tree, final int k, final T outofbounds, final double maxDistance )
+	public KNearestNeighborMaxDistanceSearchOnKDTree( final KDTree< T > tree, final int k, final Supplier<T> outofbounds, final double maxDistance )
 	{
 		super( tree, k );
 

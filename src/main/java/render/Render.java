@@ -228,7 +228,7 @@ public class Render
 				new KNearestNeighborMaxDistanceSearchOnKDTree< T >(
 						new KDTree< T > ( data ),
 						numNeighbors,
-						outofbounds,
+						() -> outofbounds.copy(),
 						maxRadius ),
 				new InverseDistanceWeightingInterpolatorFactory< T >( p ) );
 	}
@@ -238,7 +238,7 @@ public class Render
 		return Views.interpolate(
 				new NearestNeighborMaxDistanceSearchOnKDTree< T >(
 						new KDTree< T > ( data ),
-						outofbounds,
+						() -> outofbounds.copy(),
 						maxRadius ),
 				new NearestNeighborSearchInterpolatorFactory< T >() );
 	}
