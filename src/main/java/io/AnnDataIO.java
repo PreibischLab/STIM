@@ -115,7 +115,7 @@ public class AnnDataIO
 		// todo: if filter factory list is not empty, the picture is visualized correctly, since the filter copies data
 		List<FilterFactory<DoubleType, DoubleType>> filterFactories = new ArrayList<>();
 //		filterFactories.add( new MedianFilterFactory<>( new DoubleType( 0 ), 0 ) );
-		BdvOptions options = BdvOptions.options().is2D().numRenderingThreads(100);//Runtime.getRuntime().availableProcessors());
+		BdvOptions options = BdvOptions.options().is2D().numRenderingThreads(Runtime.getRuntime().availableProcessors());
 
 		final RealRandomAccessible<DoubleType> renderRRA = Render.getRealRandomAccessible( data, gene, 0.1, filterFactories );
 		BdvStackSource<DoubleType> bdv = BdvFunctions.show(renderRRA, interval, "", options);
