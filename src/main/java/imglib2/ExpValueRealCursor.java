@@ -42,8 +42,7 @@ public class ExpValueRealCursor< T > implements RealCursor< T >
 		}
 		catch( Exception e )
 		{
-			System.out.println( Util.printInterval( values ) );
-			System.out.println( valueCursor.getIntPosition( 0 ) );
+			System.out.println( Integer.toHexString(hashCode()) + ": " + Util.printInterval( values ) + ", " + valueCursor.getIntPosition( 0 ) );
 			e.printStackTrace();
 			System.exit( 0 );
 

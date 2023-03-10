@@ -3,11 +3,15 @@ package anndata;
 import ch.systemsx.cisd.hdf5.HDF5Factory;
 import ch.systemsx.cisd.hdf5.IHDF5Reader;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.Cursor;
 import net.imglib2.RandomAccess;
 import net.imglib2.cache.img.CachedCellImg;
 import net.imglib2.img.Img;
+import net.imglib2.img.NativeImg;
+import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.NumericType;
+import net.imglib2.view.Views;
 import net.imglib2.type.numeric.IntegerType;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
@@ -42,8 +46,29 @@ public class AnnDataUtils {
 
     protected static <T extends NativeType<T> & NumericType<T>> CsrRandomAccessibleInterval openCsrArray(N5Reader reader, String path) throws IOException {
         final CachedCellImg<T, ?> sparseData = N5Utils.open(reader, path + "/data");
-        final CachedCellImg<?, ?> indices = N5Utils.open(reader, path + "/indices");
-        final CachedCellImg<?, ?> indptr = N5Utils.open(reader, path + "/indptr");
+        final CachedCellImg<?, ?> indicesRaw = N5Utils.open(reader, path + "/indices");
+        final CachedCellImg<?, ?> indptrRaw = N5Utils.open(reader, path + "/indptr");
+
+        NativeType t = Views.iterable( indicesRaw ).firstElement();
+        NativeType s = Views.iterable( indptrRaw ).firstElement();
+
+        System.out.println( t.getClass().getSimpleName() );
+        System.out.println( s.getClass().getSimpleName() );
+
+        NativeImg indices = new ArrayImgFactory( t ).create( indicesRaw );
+        NativeImg indptr = new ArrayImgFactory( s ).create( indptrRaw );
+
+        Cursor tc = Views.flatIterable( indicesRaw ).cursor();
+        Cursor toc = Views.flatIterable( indices ).cursor();
+
+        while ( tc.hasNext() )
+        	((IntegerType)toc.next()).setInteger( ((IntegerType)tc.next()).getIntegerLong() );
+
+        Cursor sc = Views.flatIterable( indptrRaw ).cursor();
+        Cursor soc = Views.flatIterable( indptr ).cursor();
+
+        while ( sc.hasNext() )
+        	((IntegerType)soc.next()).setInteger( ((IntegerType)sc.next()).getIntegerLong() );
 
         final long[] shape = reader.getAttribute("/X", "shape", long[].class);
         return new CsrRandomAccessibleInterval(shape[1], shape[0], sparseData, indices, indptr);

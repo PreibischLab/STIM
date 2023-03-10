@@ -5,6 +5,7 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.NumericType;
 import net.imglib2.util.Util;
+import net.imglib2.view.Views;
 
 public class SparseRandomAccess<
         D extends NativeType<D> & NumericType<D>,
@@ -22,20 +23,25 @@ public class SparseRandomAccess<
         super(rai.numDimensions());
 
         this.rai = rai;
-        dataAccess = rai.data.randomAccess();
-        indicesAccess = rai.indices.randomAccess();
-        indptrAccess = rai.indptr.randomAccess();
+        this.dataAccess = rai.data.randomAccess();
+        this.indicesAccess = rai.indices.randomAccess();
+        this.indptrAccess = rai.indptr.randomAccess();
 
-        fillValue = dataAccess.get().createVariable();
-        fillValue.setOne();
+        this.fillValue = Views.extendBorder( rai.data ).randomAccess().get().createVariable();
+        this.fillValue.setOne();
     }
 
     public SparseRandomAccess(SparseRandomAccess<D, I> ra) {
-        this(ra.rai);
+        super(ra.rai.numDimensions());
 
-        for (int d = 0; d < n; ++d) {
-            position[d] = ra.getLongPosition(d);
-        }
+        this.rai = ra.rai;
+        this.setPosition( ra );
+
+        this.indicesAccess = ra.indicesAccess.copyRandomAccess();
+        this.indptrAccess = ra.indptrAccess.copyRandomAccess();
+        this.dataAccess = ra.dataAccess.copyRandomAccess();
+        this.fillValue = ra.fillValue.createVariable();
+        this.fillValue.setOne();
     }
 
     @Override
@@ -128,8 +134,8 @@ public class SparseRandomAccess<
     	}
     	catch (Exception e )
     	{
-			System.out.println( "ptr: "  + ptr  );
-			System.out.println( "indptr: " + Util.printInterval(rai.indptr) );
+    		
+			System.out.println( Integer.toHexString(hashCode()) + ": " + "ptr: "  + ptr + " indptr: " + Util.printInterval(rai.indptr) );
 			e.printStackTrace();
 			System.exit( 0 );
 			throw new ArrayIndexOutOfBoundsException();

@@ -37,6 +37,7 @@ public class LocationRealCursor implements RealCursor< RealLocalizable >
 	protected LocationRealCursor( final LocationRealCursor l )
 	{
 		this.ra = l.ra.copyRandomAccess();
+		this.ra.setPosition( l.ra );
 		this.n = l.numDimensions();
 		this.pos = l.pos.clone();
 		this.lastIndex = l.lastIndex;
