@@ -23,7 +23,6 @@ public class SparseRandomAccess<
 
     public SparseRandomAccess(AbstractCompressedStorageRai<D, I> rai) {
         super(rai.numDimensions());
-        System.out.println( "instantiate");
         this.rai = rai;
         this.dataAccess = rai.data.randomAccess();
         this.indicesAccess = rai.indices.randomAccess();
