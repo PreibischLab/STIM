@@ -1,6 +1,7 @@
 package render;
 
 import java.awt.Color;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
@@ -22,9 +23,9 @@ import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.KDTree;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.RealCursor;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.converter.Converters;
-import net.imglib2.interpolation.neighborsearch.InverseDistanceWeightingInterpolator;
 import net.imglib2.interpolation.neighborsearch.InverseDistanceWeightingInterpolatorFactory;
 import net.imglib2.interpolation.neighborsearch.NearestNeighborSearchInterpolatorFactory;
 import net.imglib2.neighborsearch.KNearestNeighborSearchOnKDTree;
@@ -203,7 +204,7 @@ public class Render
 	public static < T extends RealType< T > > RealRandomAccessible< T > renderNN( final IterableRealInterval< T > data )
 	{
 		return Views.interpolate(
-				new NearestNeighborSearchOnKDTree< T >( new KDTree< T > ( data ) ),
+				new NearestNeighborSearchOnKDTree< T >(createParallelizableKDTreeFrom(data)),
 				new NearestNeighborSearchInterpolatorFactory< T >() );
 	}
 
@@ -213,7 +214,7 @@ public class Render
 			final double p )
 	{
 		return Views.interpolate(
-				new KNearestNeighborSearchOnKDTree< T >( new KDTree< T > ( data ), numNeighbors ),
+				new KNearestNeighborSearchOnKDTree< T >(createParallelizableKDTreeFrom(data), numNeighbors),
 				new InverseDistanceWeightingInterpolatorFactory< T >( p ) );
 	}
 
@@ -226,7 +227,7 @@ public class Render
 	{
 		return Views.interpolate(
 				new KNearestNeighborMaxDistanceSearchOnKDTree< T >(
-						new KDTree< T > ( data ),
+						createParallelizableKDTreeFrom(data),
 						numNeighbors,
 						() -> outofbounds.copy(),
 						maxRadius ),
@@ -237,7 +238,7 @@ public class Render
 	{
 		return Views.interpolate(
 				new NearestNeighborMaxDistanceSearchOnKDTree< T >(
-						new KDTree< T > ( data ),
+						createParallelizableKDTreeFrom(data),
 						() -> outofbounds.copy(),
 						maxRadius ),
 				new NearestNeighborSearchInterpolatorFactory< T >() );
@@ -247,7 +248,7 @@ public class Render
 	{
 		return Views.interpolate(
 				new FilteringRadiusSearchOnKDTree< S, T >( // data source (F)
-						new KDTree<> ( data ),
+						createParallelizableKDTreeFrom(data),
 						filterFactory ),
 				new IntegratingNeighborSearchInterpolatorFactory< T >() ); // interpolatorfactory (T,F)
 	}
@@ -293,4 +294,17 @@ public class Render
 		return new ARGBType( ARGBType.rgba(c.getRed(), c.getGreen(), c.getBlue(), c.getAlpha()));
 	}
 
+	protected static <T> KDTree<T> createParallelizableKDTreeFrom(IterableRealInterval<T> data) {
+		final List<RealCursor<T>> positions = new ArrayList<>();
+		final List<T> values = new ArrayList<>();
+
+		RealCursor<T> cursor = data.localizingCursor();
+		while (cursor.hasNext()) {
+			cursor.next();
+			positions.add(cursor.copyCursor());
+			values.add(cursor.get());
+		}
+
+		return new KDTree<T>(values, positions);
+	}
 }
