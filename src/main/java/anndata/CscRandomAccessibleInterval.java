@@ -1,9 +1,20 @@
 package anndata;
 
-import net.imglib2.img.NativeImg;
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.IntegerType;
+import net.imglib2.type.numeric.NumericType;
 
-public class CscRandomAccessibleInterval extends AbstractCompressedStorageRai{
-    public CscRandomAccessibleInterval(long numRows, long numCols, NativeImg data, NativeImg indices, NativeImg indptr) {
+public class CscRandomAccessibleInterval  <
+	D extends NativeType<D> & NumericType<D>,
+	I extends NativeType<I> & IntegerType<I>> extends AbstractCompressedStorageRai<D,I>
+{
+    public CscRandomAccessibleInterval(
+    		final long numRows,
+    		final long numCols,
+    		final RandomAccessibleInterval<D> data,
+    		final RandomAccessibleInterval<I> indices,
+    		final RandomAccessibleInterval<I> indptr) {
         super(numRows, numCols, data, indices, indptr);
     }
 

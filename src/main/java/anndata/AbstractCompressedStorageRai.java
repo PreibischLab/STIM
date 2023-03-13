@@ -3,7 +3,6 @@ package anndata;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.img.NativeImg;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.NumericType;
@@ -21,9 +20,9 @@ abstract public class AbstractCompressedStorageRai<
     public AbstractCompressedStorageRai(
             long numCols,
             long numRows,
-            NativeImg<D, ?> data,
-            NativeImg<I, ?> indices,
-            NativeImg<I, ?> indptr) {
+            RandomAccessibleInterval<D> data,
+            RandomAccessibleInterval<I> indices,
+            RandomAccessibleInterval<I> indptr) {
         this.data = data;
         this.indices = indices;
         this.indptr = indptr;
