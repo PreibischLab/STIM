@@ -1,15 +1,12 @@
 package anndata;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import net.imglib2.*;
-import net.imglib2.img.array.ArrayImg;
-import net.imglib2.img.array.ArrayRandomAccess;
+import net.imglib2.AbstractLocalizable;
+import net.imglib2.Localizable;
+import net.imglib2.RandomAccess;
+import net.imglib2.Sampler;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.NumericType;
-import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 
 public class SparseRandomAccess<
@@ -128,34 +125,15 @@ public class SparseRandomAccess<
         this.position[d] = position;
     }
 
-    final AtomicBoolean concurrent = new AtomicBoolean( false );
-    final AtomicInteger concurrentCount = new AtomicInteger(0);
     @Override
     public D get() {
-    	final int a = concurrentCount.getAndIncrement();
-    	//if ( a > 0 )
-    	//	System.out.println( "concurrent accesses: " + a );
-    	//if ( concurrent.getAndSet(true) )
-    	//	System.out.println( "concurrent access.");
 
-    	long ptr=-12122,start=-12122;
-    	try
-    	{
         // determine range of indices to search
-        ptr = rai.targetPointer(position);
+        final long ptr = rai.targetPointer(position);
         indptrAccess.setPosition(ptr, 0);
         //indptrAccess.setPosition(new long[] { ptr } ); // this fixes it too, but I think it only shadows a bug
-        start = indptrAccess.get().getIntegerLong();
+        final long start = indptrAccess.get().getIntegerLong();
         indptrAccess.setPosition(ptr + 1L, 0);
-    	}
-    	catch (Exception e )
-    	{
-    		System.out.println( "concurrent accesses: " + a );
-			System.out.println( Integer.toHexString(hashCode()) + ": " + "ptr: "  + ptr + " indptr: " + Util.printInterval(rai.indptr) );
-			e.printStackTrace();
-			System.exit( 0 );
-			throw new ArrayIndexOutOfBoundsException();
-    	}
 //        indptrAccess.fwd(0);
 //        final long end = indptrAccess.get().getIntegerLong();
 
@@ -174,7 +152,6 @@ public class SparseRandomAccess<
 //            }
 //        }
     	//concurrent.set(false);
-    	concurrentCount.decrementAndGet();
         return fillValue;
     }
 

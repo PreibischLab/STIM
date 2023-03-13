@@ -6,7 +6,6 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealCursor;
 import net.imglib2.Sampler;
 import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.util.Util;
 
 public class ExpValueRealCursor< T > implements RealCursor< T >
 {
@@ -35,21 +34,7 @@ public class ExpValueRealCursor< T > implements RealCursor< T >
 	@Override
 	public T get()
 	{
-		try
-		{
-			final T type = valueCursor.get();
-			return type;
-		}
-		catch( Exception e )
-		{
-			System.out.println( Integer.toHexString(hashCode()) + ": " + Util.printInterval( values ) + ", " + valueCursor.getIntPosition( 0 ) );
-			e.printStackTrace();
-			System.exit( 0 );
-
-
-			return null;
-			// throw new RuntimeException( "we caught it: " + e );
-		}
+		return valueCursor.get();
 	}
 
 	@Override
