@@ -30,9 +30,9 @@ public class AnnDataUtils {
             case DENSE_ARRAY:
                 return N5Utils.open(reader, path);
             case CSR_MATRIX:
-                return openCsrArray(reader, path);
+                return openCsrArray(reader, path); // row
             case CSC_MATRIX:
-                return openCscArray(reader, path);
+                return openCscArray(reader, path); // column
             default:
                 throw new IOException("Reading data for " + type.toString() + " not supported.");
         }
@@ -49,6 +49,7 @@ public class AnnDataUtils {
         final CachedCellImg<?, ?> indicesRaw = N5Utils.open(reader, path + "/indices");
         final CachedCellImg<?, ?> indptrRaw = N5Utils.open(reader, path + "/indptr");
 
+        // TODO: remove copying of sparse array into an ArrayImg
         NativeType t = Views.iterable( indicesRaw ).firstElement();
         NativeType s = Views.iterable( indptrRaw ).firstElement();
 

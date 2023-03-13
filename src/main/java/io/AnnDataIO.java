@@ -240,13 +240,14 @@ public class AnnDataIO
 		}
 
 		// permute locations, since this is required by STData
+		// locations is often a dense array
 		RandomAccessibleInterval<LongType> locations =
 				Views.permute((RandomAccessibleInterval<LongType>) AnnDataUtils.readData(reader, locationPath), 0, 1);
 		final RandomAccessibleInterval<DoubleType> convertedLocations = Converters.convert(
 				locations, (i, o) -> o.set(i.getRealDouble()), new DoubleType());
 
+		// expression values is often a sparse array
 		RandomAccessibleInterval<RealType> expressionVals = AnnDataUtils.readData(reader, "/X");
-
 		final RandomAccessibleInterval<DoubleType> convertedexpressionVals = Converters.convert(
 				expressionVals, (i, o) -> o.set(i.getRealDouble()), new DoubleType());
 

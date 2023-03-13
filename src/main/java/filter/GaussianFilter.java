@@ -47,6 +47,7 @@ public class GaussianFilter< S extends RealType< S >, T extends RealType< T > > 
 				final double dist = search.getDistance( i );
 				final double w = Math.exp( -( dist * dist ) / two_sq_sigma );
 
+				// hypothesis: these cursors are not copied again, so they are accessed in parallel
 				value += search.getSampler( i ).get().getRealDouble() * w;
 
 				if ( normalize == WeightType.BY_SUM_OF_WEIGHTS || normalize == WeightType.PARTIAL_BY_SUM_OF_WEIGHTS )

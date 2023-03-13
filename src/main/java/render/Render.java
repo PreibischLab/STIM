@@ -246,10 +246,10 @@ public class Render
 	public static < S, T > RealRandomAccessible< T > render( final IterableRealInterval< S > data, final RadiusSearchFilterFactory< S, T > filterFactory )
 	{
 		return Views.interpolate(
-				new FilteringRadiusSearchOnKDTree< S, T >(
+				new FilteringRadiusSearchOnKDTree< S, T >( // data source (F)
 						new KDTree<> ( data ),
 						filterFactory ),
-				new IntegratingNeighborSearchInterpolatorFactory< T >() );
+				new IntegratingNeighborSearchInterpolatorFactory< T >() ); // interpolatorfactory (T,F)
 	}
 
 	public static < T extends IntegerType< T > > RealRandomAccessible< ARGBType > convertToRGB( final RealRandomAccessible< T > rra, final T outofbounds, final ARGBType background, final HashMap<Long, ARGBType> lut )

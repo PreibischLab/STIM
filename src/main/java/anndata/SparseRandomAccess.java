@@ -42,6 +42,7 @@ public class SparseRandomAccess<
         this.rai = ra.rai;
         this.setPosition( ra );
 
+        // not implementing copy() methods here had no effect since only setPosition() is used
         this.indicesAccess = ra.indicesAccess.copyRandomAccess();
         this.indptrAccess = ra.indptrAccess.copyRandomAccess();
         this.dataAccess = ra.dataAccess.copyRandomAccess();

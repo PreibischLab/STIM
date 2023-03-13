@@ -43,8 +43,8 @@ public class GaussianFilterFactory< S extends RealType< S >, T extends RealType<
 	public Filter< T > createFilter( final KDTree< S > tree )
 	{
 		return new GaussianFilter< S, T >(
-				new RadiusNeighborSearchOnKDTree<>( tree ),
-				outofbounds,
+				new RadiusNeighborSearchOnKDTree<>( tree ), // TODO: is this copied?
+				outofbounds.copy(),
 				radius,
 				sigma,
 				normalize );
