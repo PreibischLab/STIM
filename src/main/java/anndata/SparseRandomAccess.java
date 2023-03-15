@@ -7,7 +7,6 @@ import net.imglib2.Sampler;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.NumericType;
-import net.imglib2.view.Views;
 
 public class SparseRandomAccess<
         D extends NativeType<D> & NumericType<D>,
@@ -28,7 +27,7 @@ public class SparseRandomAccess<
         this.indicesAccess = rai.indices.randomAccess();
         this.indptrAccess = rai.indptr.randomAccess();
 
-        this.fillValue = Views.extendBorder( rai.data ).randomAccess().get().createVariable();
+        this.fillValue = dataAccess.get().createVariable();
         this.fillValue.setOne();
     }
 
@@ -43,7 +42,7 @@ public class SparseRandomAccess<
         this.indptrAccess = ra.indptrAccess.copyRandomAccess();
         this.dataAccess = ra.dataAccess.copyRandomAccess();
         this.fillValue = ra.fillValue.createVariable();
-        this.fillValue.setOne();
+        this.fillValue.setZero();
     }
 
     @Override
@@ -128,29 +127,25 @@ public class SparseRandomAccess<
     public D get() {
 
         // determine range of indices to search
-        final long ptr = rai.targetPointer(position);
-        indptrAccess.setPosition(ptr, 0);
-        //indptrAccess.setPosition(new long[] { ptr } ); // this fixes it too, but I think it only shadows a bug
+        indptrAccess.setPosition(rai.targetPointer(position), 0);
         final long start = indptrAccess.get().getIntegerLong();
-        indptrAccess.setPosition(ptr + 1L, 0);
-//        indptrAccess.fwd(0);
-//        final long end = indptrAccess.get().getIntegerLong();
+        indptrAccess.fwd(0);
+        final long end = indptrAccess.get().getIntegerLong();
 
         // todo: make this more efficient, e.g., by bisection
-//        indicesAccess.setPosition(start, 0);
-//        while (indicesAccess.getLongPosition(0) < end) {
-//            if (indicesAccess.get().getIntegerLong() < rai.targetCursor(position)) {
-//                indicesAccess.fwd(0);
-//            }
-//            else if (indicesAccess.get().getIntegerLong() == rai.targetCursor(position)) {
-//                dataAccess.setPosition(indicesAccess);
-//                return dataAccess.get();
-//            }
-//            else {
-//                break;
-//            }
-//        }
-    	//concurrent.set(false);
+        indicesAccess.setPosition(start, 0);
+        while (indicesAccess.getLongPosition(0) < end) {
+            if (indicesAccess.get().getIntegerLong() < rai.targetCursor(position)) {
+                indicesAccess.fwd(0);
+            }
+            else if (indicesAccess.get().getIntegerLong() == rai.targetCursor(position)) {
+                dataAccess.setPosition(indicesAccess);
+                return dataAccess.get();
+            }
+            else {
+                break;
+            }
+        }
         return fillValue;
     }
 
