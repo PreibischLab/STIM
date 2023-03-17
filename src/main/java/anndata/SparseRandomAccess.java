@@ -28,7 +28,7 @@ public class SparseRandomAccess<
         this.indptrAccess = rai.indptr.randomAccess();
 
         this.fillValue = dataAccess.get().createVariable();
-        this.fillValue.setOne();
+        this.fillValue.setZero();
     }
 
     public SparseRandomAccess(SparseRandomAccess<D, I> ra) {
@@ -127,7 +127,7 @@ public class SparseRandomAccess<
     public D get() {
 
         // determine range of indices to search
-        indptrAccess.setPosition(rai.targetPointer(position), 0);
+        indptrAccess.setPosition(rai.ptr(position), 0);
         final long start = indptrAccess.get().getIntegerLong();
         indptrAccess.fwd(0);
         final long end = indptrAccess.get().getIntegerLong();
@@ -135,10 +135,10 @@ public class SparseRandomAccess<
         // todo: make this more efficient, e.g., by bisection
         indicesAccess.setPosition(start, 0);
         while (indicesAccess.getLongPosition(0) < end) {
-            if (indicesAccess.get().getIntegerLong() < rai.targetCursor(position)) {
+            if (indicesAccess.get().getIntegerLong() < rai.ind(position)) {
                 indicesAccess.fwd(0);
             }
-            else if (indicesAccess.get().getIntegerLong() == rai.targetCursor(position)) {
+            else if (indicesAccess.get().getIntegerLong() == rai.ind(position)) {
                 dataAccess.setPosition(indicesAccess);
                 return dataAccess.get();
             }
