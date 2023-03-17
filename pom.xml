@@ -171,6 +171,13 @@
 			<version>1.4.2</version>
 		</dependency>
 
+		<!-- JUnit framework -->
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 		<!-- CSV dependencies (just for testing on dauer data, remove later) -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
