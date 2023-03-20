@@ -128,24 +128,29 @@ public class SparseRandomAccess<
 
         // determine range of indices to search
         indptrAccess.setPosition(rai.ptr(position), 0);
-        final long start = indptrAccess.get().getIntegerLong();
+        long start = indptrAccess.get().getIntegerLong();
         indptrAccess.fwd(0);
-        final long end = indptrAccess.get().getIntegerLong();
+        long end = indptrAccess.get().getIntegerLong();
 
-        // todo: make this more efficient, e.g., by bisection
-        indicesAccess.setPosition(start, 0);
-        while (indicesAccess.getLongPosition(0) < end) {
-            if (indicesAccess.get().getIntegerLong() < rai.ind(position)) {
-                indicesAccess.fwd(0);
-            }
-            else if (indicesAccess.get().getIntegerLong() == rai.ind(position)) {
+        if (start == end)
+            return fillValue;
+
+        long current, currentInd;
+        do {
+            current = (start + end) / 2L;
+            indicesAccess.setPosition(current, 0);
+            currentInd = indicesAccess.get().getIntegerLong();
+
+            if (currentInd == rai.ind(position)) {
                 dataAccess.setPosition(indicesAccess);
                 return dataAccess.get();
             }
-            else {
-                break;
-            }
-        }
+            if (currentInd < rai.ind(position))
+                start = current;
+            if (currentInd > rai.ind(position))
+                end = current;
+        } while (current != start || (end - start) > 1L);
+
         return fillValue;
     }
 
