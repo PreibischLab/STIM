@@ -1,4 +1,3 @@
-import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -11,9 +10,7 @@ import anndata.CscRandomAccessibleInterval;
 import anndata.CsrRandomAccessibleInterval;
 import net.imglib2.RandomAccess;
 import net.imglib2.img.Img;
-import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
-import net.imglib2.type.Type;
 import net.imglib2.type.numeric.integer.LongType;
 import net.imglib2.type.numeric.real.DoubleType;
 import org.junit.Before;
@@ -31,11 +28,11 @@ public class SparseImageTest {
 
 	@Before
 	public void setupSparseImages() {
-		data = create1DImgFromList(new ArrayImgFactory<>(new DoubleType()),
+		data = TestUtils.create1DImgFromList(new ArrayImgFactory<>(new DoubleType()),
 				Stream.of(1.0, 1.0, 1.0, 1.0, 1.0).map(DoubleType::new).collect(Collectors.toList()));
-		indices = create1DImgFromList(new ArrayImgFactory<>(new LongType()),
+		indices = TestUtils.create1DImgFromList(new ArrayImgFactory<>(new LongType()),
 				Stream.of(2, 5, 0, 6, 9).map(LongType::new).collect(Collectors.toList()));
-		indptr = create1DImgFromList(new ArrayImgFactory<>(new LongType()),
+		indptr = TestUtils.create1DImgFromList(new ArrayImgFactory<>(new LongType()),
 				Stream.of(0, 1, 2, 3, 3, 3, 3, 3, 3, 5).map(LongType::new).collect(Collectors.toList()));
 
 		csr = new CsrRandomAccessibleInterval<>(10, 9, data, indices, indptr);
@@ -78,13 +75,5 @@ public class SparseImageTest {
 		for (int i = 0; i <= csr.max(0); ++i)
 			for (int j = 0; j <= csr.max(1); ++j)
 				assertEquals(raR.setPositionAndGet(i, j), raC.setPositionAndGet(j, i));
-	}
-
-	private <T extends Type<T>> Img<T> create1DImgFromList(ImgFactory<T> imgFactory, List<T> values) {
-		final Img<T> img = imgFactory.create(values.size());
-		final Iterator<T> valueIterator = values.iterator();
-		for (final T pixel : img)
-			pixel.set(valueIterator.next());
-		return img;
 	}
 }
