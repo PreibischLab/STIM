@@ -1,5 +1,3 @@
-package anndata;
-
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -8,6 +6,9 @@ import java.util.stream.Stream;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertArrayEquals;
 
+import anndata.AbstractCompressedStorageRai;
+import anndata.CscRandomAccessibleInterval;
+import anndata.CsrRandomAccessibleInterval;
 import net.imglib2.RandomAccess;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
