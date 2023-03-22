@@ -18,7 +18,7 @@ import net.imglib2.util.Pair;
 /**
  * A text-input based implementation that can be used to convert to e.g. N5.
  * 
- * Computes the ImgLib2 datastructures on demand from a list of locations and a HashMap of genename to expression values
+ * Computes the ImgLib2 datastructures on demand from a list of locations and a HashMap of geneName to expression values
  * 
  * 
  * @author spreibi
@@ -42,7 +42,7 @@ public class STDataText extends STDataImgLib2
 		for ( int i = 0; i < factory.geneNames.size(); ++i )
 			factory.geneLookup.put( factory.geneNames.get( i ), i );
 
-		factory.barcodes = locations.stream().map( p -> p.getB() ).collect( Collectors.toList() );
+		factory.barcodes = locations.stream().map(Pair::getB).collect( Collectors.toList() );
 		factory.locations = locationsToImgLib2( locations );
 		factory.exprValues = exprValuesToImgLib2( factory.geneNames, exprValues );
 
@@ -58,9 +58,9 @@ public class STDataText extends STDataImgLib2
 		final int n = locations.get( 0 ).getA().length;
 		final int numLocations = locations.size();
 
-		final Img< DoubleType > img = ArrayImgs.doubles( new long[] { numLocations, n } );
+		final Img< DoubleType > img = ArrayImgs.doubles(numLocations, n);
 
-		setLocations( locations.stream().map( p -> p.getA() ).collect( Collectors.toList() ), img );
+		setLocations( locations.stream().map(Pair::getA).collect( Collectors.toList() ), img );
 
 		return img;
 	}
@@ -92,7 +92,7 @@ public class STDataText extends STDataImgLib2
 
 	/**
 	 * @param geneList - the order of the genes defines the order in the imglib2 img
-	 * @param exprValues - a map that links genenames to their values
+	 * @param exprValues - a map that links geneNames to their values
 	 *
 	 * @return a 2d datastructure that holds all expression values, size: [numGenes x numLocations]
 	 */
@@ -101,7 +101,7 @@ public class STDataText extends STDataImgLib2
 		final long numGenes = geneList.size();
 		final long numLocations = exprValues.values().iterator().next().length;
 
-		final Img< DoubleType > img = new CellImgFactory< DoubleType >( new DoubleType(), 128 ).create( new long[] { numGenes, numLocations } );
+		final Img< DoubleType > img = new CellImgFactory<>( new DoubleType(), 128 ).create(numGenes, numLocations);
 		// TODO: use cursor
 		final RandomAccess< DoubleType > ra = img.randomAccess();
 

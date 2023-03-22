@@ -71,7 +71,7 @@ public class AnnDataUtils {
             case CATEGORICAL_ARRAY:
                 return readCategoricalList(reader, path);
             default:
-                throw new IOException("Reading annotations for " + type.toString() + " not supported.");
+                throw new IOException("Reading annotations for " + type + " not supported.");
         }
     }
 

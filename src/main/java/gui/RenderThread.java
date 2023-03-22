@@ -11,16 +11,13 @@ import bdv.tools.brightness.ConverterSetup;
 import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
-import bdv.viewer.ConverterSetups;
 import bdv.viewer.DisplayMode;
-import bdv.viewer.SourceAndConverter;
 import data.STDataUtils;
 import filter.FilterFactory;
 import filter.MedianFilterFactory;
 import imglib2.TransformedIterableRealInterval;
 import net.imglib2.Interval;
 import net.imglib2.RealRandomAccessible;
-import net.imglib2.converter.Converter;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
@@ -38,7 +35,7 @@ public class RenderThread implements Runnable
 	public static double max = 5;
 
 	protected final BdvOptions options;
-	protected BdvStackSource< ? > bdv = null;
+	protected BdvStackSource< ? > bdv;
 	protected final Interval interval;
 	protected final DoubleType outofbounds = new DoubleType( 0 );
 
@@ -110,12 +107,12 @@ public class RenderThread implements Runnable
 
 				System.out.println( "rendering gene: " + gene + " of slide: " + slide.data().toString() );
 
-				final List< FilterFactory< DoubleType, DoubleType > > filterFactorys = new ArrayList<>();
+				final List< FilterFactory< DoubleType, DoubleType > > filterFactories = new ArrayList<>();
 
 				if ( medianFilter > 0 )
-					filterFactorys.add( new MedianFilterFactory<>( new DoubleType( 0 ), medianFilter ) );
+					filterFactories.add( new MedianFilterFactory<>( new DoubleType( 0 ), medianFilter ) );
 
-				final RealRandomAccessible< DoubleType > renderRRA = Render.getRealRandomAccessible( slide, gene, gaussFactor, filterFactorys );
+				final RealRandomAccessible< DoubleType > renderRRA = Render.getRealRandomAccessible( slide, gene, gaussFactor, filterFactories );
 
 				BdvStackSource< ? > old = bdv;
 

@@ -6,7 +6,7 @@ import net.imglib2.type.numeric.RealType;
 
 public class GaussianFilterFactory< S extends RealType< S >, T extends RealType< T > > extends RadiusSearchFilterFactory< S, T >
 {
-	public static enum WeightType { NONE, BY_SUM_OF_WEIGHTS, BY_SUM_OF_SAMPLES, PARTIAL_BY_SUM_OF_WEIGHTS };
+	public enum WeightType { NONE, BY_SUM_OF_WEIGHTS, BY_SUM_OF_SAMPLES, PARTIAL_BY_SUM_OF_WEIGHTS }
 
 	final T outofbounds;
 	final double radius, sigma;

@@ -61,12 +61,12 @@ public interface STData extends IterableRealInterval< RealLocalizable >
 	public RandomAccessibleInterval< DoubleType > getAllExprValues();
 
 	/**
-	 * @return a reference to the (modifyable) 1d vector that holds all expression values of a gene by index, size: [numLocations]
+	 * @return a reference to the (modifiable) 1d vector that holds all expression values of a gene by index, size: [numLocations]
 	 */
 	public RandomAccessibleInterval< DoubleType > getExprValues( final String gene );
 
 	/**
-	 * @return a reference to the (modifyable) 1d vector that holds all expression values of a location, size: [numGenes]
+	 * @return a reference to the (modifiable) 1d vector that holds all expression values of a location, size: [numGenes]
 	 */
 	public RandomAccessibleInterval< DoubleType > getExprValues( final long locationIndex );
 
@@ -106,7 +106,7 @@ public interface STData extends IterableRealInterval< RealLocalizable >
 	 * will overwrite existing values
 	 * 
 	 * @param geneName - name of the gene
-	 * @param values - the values of each sequençed location, index corresponds to the location index in getLocations or getLocationsCopy
+	 * @param values - the values of each sequenced location, index corresponds to the location index in getLocations or getLocationsCopy
 	 */
 	public void setExpValues( final String geneName, final double[] values );
 

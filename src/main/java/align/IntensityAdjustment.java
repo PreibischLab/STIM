@@ -195,17 +195,7 @@ public class IntensityAdjustment
 		final Random rnd = new Random( 344 );
 		for ( final Entry< Pair< Integer, Integer >, ArrayList< PointMatch > > matches : intensityMatches.entrySet() )
 		{
-			Collections.sort( matches.getValue(), new Comparator<PointMatch>() {
-				@Override
-				public int compare(PointMatch o1, PointMatch o2) {
-					if ( o1.getWeight() == o2.getWeight() )
-						return 0;
-					else if ( o1.getWeight() < o2.getWeight() )
-						return 1;
-					else
-						return -1;
-				}
-			});
+			Collections.sort( matches.getValue(), (o1, o2) -> Double.compare(o2.getWeight(), o1.getWeight()));
 
 			ArrayList< PointMatch > newList = new ArrayList<>();
 			for ( int i = 0; i < Math.min( maxMatches * 2, matches.getValue().size() ) ; ++i )
@@ -428,8 +418,7 @@ public class IntensityAdjustment
 
 	private final static void addPointMatches( final List< ? extends PointMatch > correspondences, final Tile< ? > tileA, final Tile< ? > tileB )
 	{
-		final ArrayList< PointMatch > pm = new ArrayList<>();
-		pm.addAll( correspondences );
+		final ArrayList<PointMatch> pm = new ArrayList<>(correspondences);
 
 		if ( correspondences.size() > 0 )
 		{

@@ -26,7 +26,6 @@ public class ExpValueRealIterable< T > implements IterableRealInterval< T >
 			final RealInterval realInterval )
 	{
 		this.locations = locations;
-		//this.values = values;
 		this.realInterval = realInterval;
 		this.size = locations.dimension( 0 );
 		this.lastIndex = locations.dimension( 0 ) - 1;

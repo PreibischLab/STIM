@@ -490,7 +490,7 @@ public class Pairwise
 			}
 
 			if ( !inserted && topPeaks.size() < topN )
-				topPeaks.add( new ValuePair< PhaseCorrelationPeak2, Double >( newPeak, (double)deg ) );
+				topPeaks.add( new ValuePair< PhaseCorrelationPeak2, Double >( newPeak, deg ) );
 		}
 	}
 
@@ -523,7 +523,7 @@ public class Pairwise
 		final N5FSReader n5 = N5IO.openN5( new File( path + "slide-seq-normalized-gzip3.n5" ) );
 		final List< String > pucks = N5IO.listAllDatasets( n5 );
 
-		final ArrayList< STData > puckData = new ArrayList<STData>();
+		final ArrayList< STData > puckData = new ArrayList<>();
 		for ( final String puck : pucks )
 			puckData.add( N5IO.readN5( n5, puck ) );
 

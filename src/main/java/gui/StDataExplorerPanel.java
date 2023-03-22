@@ -266,35 +266,25 @@ public class StDataExplorerPanel extends JPanel
 		this.add( new JScrollPane( table ), BorderLayout.SOUTH );
 
 		// ensure that the cells are not made smaller to match the size,
-		// which introduces horizontal scrollbars if nessecary
+		// which introduces horizontal scrollbars if necessary
 		table.setAutoResizeMode( JTable.AUTO_RESIZE_OFF );
 
 		for ( int column = 0; column < tableModel.getColumnCount(); ++column )
 			table.getColumnModel().getColumn( column ).setPreferredWidth( 150 );
 
-		table.getSelectionModel().addListSelectionListener( new ListSelectionListener()
-		{
-			public void valueChanged( ListSelectionEvent e )
-			{
-				// Ignore extra messages.
-				if ( e.getValueIsAdjusting() )
-					return;
+		table.getSelectionModel().addListSelectionListener(e -> {
+			// Ignore extra messages.
+			if ( e.getValueIsAdjusting() )
+				return;
+			update();
+		});
 
-				update();
-			}
-		} );
-
-		table.getColumnModel().getSelectionModel().addListSelectionListener( new ListSelectionListener()
-		{
-			public void valueChanged( ListSelectionEvent e )
-			{
-				// Ignore extra messages.
-				if ( e.getValueIsAdjusting() )
-					return;
-
-				update();
-			}
-		} );
+		table.getColumnModel().getSelectionModel().addListSelectionListener(e -> {
+			// Ignore extra messages.
+			if ( e.getValueIsAdjusting() )
+				return;
+			update();
+		});
 
 		table.addMouseListener( new MouseListener()
 		{
@@ -349,14 +339,7 @@ public class StDataExplorerPanel extends JPanel
 		final JPopupMenu popupMenu = new JPopupMenu();
 		final JMenuItem deleteItem = new JMenuItem( "Delete" );
 
-		deleteItem.addActionListener(new ActionListener()
-		{
-			@Override
-			public void actionPerformed( final ActionEvent e )
-			{
-				System.out.println( "Right-click performed on table and choose DELETE" );
-			}
-		});
+		deleteItem.addActionListener(e -> System.out.println( "Right-click performed on table and choose DELETE" ));
 
 		popupMenu.add( deleteItem );
 

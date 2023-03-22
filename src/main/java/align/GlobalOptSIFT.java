@@ -40,7 +40,7 @@ public class GlobalOptSIFT
 		String puckAName = "";
 		String puckBName = "";
 
-		HashSet<String> genes = new HashSet<String>();
+		HashSet<String> genes = new HashSet<>();
 
 		public double quality()
 		{
@@ -115,7 +115,7 @@ public class GlobalOptSIFT
 			final double icpErrorFactor,
 			final double maxAllowedErrorICP,
 			final int numIterationsICP,
-			final int maxPlateauwhidthICP,
+			final int maxPlateauwidthICP,
 			final int numThreads,
 			final boolean skipDisplayResults,
 			final double smoothnessFactor,
@@ -123,7 +123,7 @@ public class GlobalOptSIFT
 	{
 		final N5FSReader n5 = N5IO.openN5( n5Path );
 
-		final ArrayList< STData > puckData = new ArrayList<STData>();
+		final ArrayList< STData > puckData = new ArrayList<>();
 		for ( final String puck : datasets )
 			puckData.add( N5IO.readN5( n5, puck ) );
 
@@ -384,7 +384,7 @@ public class GlobalOptSIFT
 					new ErrorStatistic( 500 + 1 ),
 					maxAllowedErrorICP,
 					numIterationsICP,
-					maxPlateauwhidthICP,
+					maxPlateauwidthICP,
 					1.0,
 					tileConfigICP,
 					tileConfigICP.getTiles(),
@@ -444,7 +444,7 @@ public class GlobalOptSIFT
 		final double icpErrorFraction = 2.0;
 		final double maxAllowedErrorICP = 140;
 		final int numIterationsICP = 3000;
-		final int maxPlateauwhidthICP = 500;
+		final int maxPlateauwidthICP = 500;
 
 		globalOpt(
 				n5Path, pucks,
@@ -460,7 +460,7 @@ public class GlobalOptSIFT
 				icpErrorFraction,
 				maxAllowedErrorICP,
 				numIterationsICP,
-				maxPlateauwhidthICP,
+				maxPlateauwidthICP,
 				Threads.numThreads(),
 				false,
 				AlignTools.defaultSmoothnessFactor,

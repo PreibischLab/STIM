@@ -6,10 +6,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
@@ -51,7 +47,6 @@ public class AnnDataIO
 	public static void main( String[] args ) throws IOException
 	{
 		final String path = System.getProperty("user.dir") + "/data/human-lymph-node.h5ad";
-		final File file = new File(path);
 
 		STDataAssembly data = AnnDataIO.openAllDatasets(new File(path));
 		String gene = "IGKC";
@@ -152,11 +147,7 @@ public class AnnDataIO
 		// for categorical arrays, this is redundant -> use codes directly?
 		for (int k = 0; k < cellTypes.size(); ++k) {
 			final String type = cellTypes.get(k);
-			Integer id = typeToIdMap.get(type);
-			if (null == id) {
-				id = typeToIdMap.size() + 1;
-				typeToIdMap.put(type, id);
-			}
+			Integer id = typeToIdMap.computeIfAbsent(type, k1 -> typeToIdMap.size() + 1);
 			celltypeIds[k] = id;
 		}
 

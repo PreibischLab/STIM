@@ -5,9 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
-import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import data.STData;
 import filter.FilterFactory;
@@ -59,9 +57,9 @@ public class Render
 			final STDataAssembly stdata,
 			final String gene,
 			final double renderSigmaFactor,
-			final List< FilterFactory< DoubleType, DoubleType > > filterFactorys )
+			final List< FilterFactory< DoubleType, DoubleType > > filterFactories )
 	{
-		final IterableRealInterval< DoubleType > data = getRealIterable( stdata, gene, filterFactorys );
+		final IterableRealInterval< DoubleType > data = getRealIterable( stdata, gene, filterFactories );
 
 		// gauss crisp
 		double gaussRenderSigma = stdata.statistics().getMedianDistance() * renderSigmaFactor;
@@ -76,9 +74,9 @@ public class Render
 	public static IterableRealInterval< DoubleType > getRealIterable(
 			final STDataAssembly stdata,
 			final String gene,
-			final List< FilterFactory< DoubleType, DoubleType > > filterFactorys )
+			final List< FilterFactory< DoubleType, DoubleType > > filterFactories )
 	{
-		return getRealIterable(stdata.data(), stdata.transform(), stdata.intensityTransform(), gene, filterFactorys);
+		return getRealIterable(stdata.data(), stdata.transform(), stdata.intensityTransform(), gene, filterFactories);
 	}
 
 	public static IterableRealInterval< DoubleType > getRealIterable(
@@ -86,7 +84,7 @@ public class Render
 			final AffineGet coordinateTransform,
 			final AffineGet intensityTransform,
 			final String gene,
-			final List< FilterFactory< DoubleType, DoubleType > > filterFactorys )
+			final List< FilterFactory< DoubleType, DoubleType > > filterFactories )
 	{
 		IterableRealInterval< DoubleType > data;
 
@@ -111,8 +109,8 @@ public class Render
 					coordinateTransform );
 
 		// filter the iterable
-		if ( filterFactorys != null )
-			for ( final FilterFactory<DoubleType, DoubleType> filterFactory : filterFactorys )
+		if ( filterFactories != null )
+			for ( final FilterFactory<DoubleType, DoubleType> filterFactory : filterFactories )
 				data = Filters.filter( data, filterFactory );
 
 		/*

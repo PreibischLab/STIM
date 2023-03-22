@@ -20,8 +20,6 @@ public class KNearestNeighborMaxDistanceSearchOnKDTree< T > extends KNearestNeig
 	final RealLocalizable[] points;
 	final double[] newbestSquDistances;
 
-	int l = 0;
-
 	public KNearestNeighborMaxDistanceSearchOnKDTree( final KDTree< T > tree, final int k, final Supplier<T> outofbounds, final double maxDistance )
 	{
 		super( tree, k );

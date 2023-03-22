@@ -143,9 +143,7 @@ public class N5IO
 		if ( !n5path.exists() )
 			throw new IOException( n5path.getAbsolutePath() + " does not exist, cannot open for writing." );
 
-		final N5FSWriter n5 = new N5FSWriter( n5path.getAbsolutePath() );
-
-		return n5;
+		return new N5FSWriter( n5path.getAbsolutePath() );
 	}
 
 	public static void writeN5(
@@ -277,9 +275,7 @@ public class N5IO
 		if ( !n5path.exists() )
 			throw new RuntimeException( "n5-path '" + n5path.getAbsolutePath() + "' does not exist." );
 
-		final N5FSReader n5 = new N5FSReader( n5path.getAbsolutePath() );
-
-		return n5;
+		return new N5FSReader( n5path.getAbsolutePath() );
 	}
 
 	public static List< String > listAllDatasets( final N5FSReader n5 ) throws IOException

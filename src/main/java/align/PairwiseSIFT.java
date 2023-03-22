@@ -32,10 +32,7 @@ import mpicbg.ij.SIFT;
 import mpicbg.ij.util.Util;
 import mpicbg.imagefeatures.Feature;
 import mpicbg.imagefeatures.FloatArray2DSIFT;
-import mpicbg.models.AbstractModel;
 import mpicbg.models.Affine2D;
-import mpicbg.models.AffineModel2D;
-import mpicbg.models.InterpolatedAffineModel2D;
 import mpicbg.models.Model;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.Point;
@@ -139,8 +136,8 @@ public class PairwiseSIFT
 	}
 	public static List< PointMatch > extractCandidates( final ImageProcessor ip1, final ImageProcessor ip2, final String gene, final SIFTParam p )
 	{
-		final List< Feature > fs1 = new ArrayList< Feature >();
-		final List< Feature > fs2 = new ArrayList< Feature >();
+		final List< Feature > fs1 = new ArrayList<>();
+		final List< Feature > fs2 = new ArrayList<>();
 
 		final FloatArray2DSIFT sift = new FloatArray2DSIFT( p.sift );
 
@@ -148,10 +145,10 @@ public class PairwiseSIFT
 		ijSIFT.extractFeatures( ip1, fs1 );
 		ijSIFT.extractFeatures( ip2, fs2 );
 
-		final List< PointMatch > candidates = new ArrayList< PointMatch >();
+		final List< PointMatch > candidates = new ArrayList<>();
 		FeatureTransform.matchFeatures( fs1, fs2, candidates, p.rod );
 
-		final List< PointMatch > candidatesST = new ArrayList< PointMatch >();
+		final List< PointMatch > candidatesST = new ArrayList<>();
 		for ( final PointMatch pm : candidates )
 			candidatesST.add(
 					new PointMatch(
@@ -163,7 +160,7 @@ public class PairwiseSIFT
 
 	public static ArrayList< PointMatch > consensus( final List< PointMatch > candidates, final Model< ? > model, final int minNumInliers, final double maxEpsilon )
 	{
-		final ArrayList< PointMatch > inliers = new ArrayList< PointMatch >();
+		final ArrayList< PointMatch > inliers = new ArrayList<>();
 
 		boolean modelFound;
 
@@ -195,8 +192,8 @@ public class PairwiseSIFT
 	{
 		if ( inliers.size() > 0 )
 		{
-			final ArrayList< Point > p1 = new ArrayList< Point >();
-			final ArrayList< Point > p2 = new ArrayList< Point >();
+			final ArrayList< Point > p1 = new ArrayList<>();
+			final ArrayList< Point > p2 = new ArrayList<>();
 
 			PointMatch.sourcePoints( inliers, p1 );
 			PointMatch.targetPoints( inliers, p2 );
@@ -373,7 +370,7 @@ public class PairwiseSIFT
 
 		if ( saveResult && inliers.size() >= minNumInliers )
 		{
-			final HashSet< String > genes = new HashSet< String >();
+			final HashSet< String > genes = new HashSet<>();
 			for ( final PointMatch pm : inliers )
 				genes.add( ((PointST)pm.getP1()).getGene() );
 
@@ -398,7 +395,7 @@ public class PairwiseSIFT
 					inliers,
 					pairwiseGroupName,
 					n5.getDatasetAttributes( pairwiseGroupName ),
-					new long[]{0});
+					0);
 		}
 
 		if ( visualizeResult && inliers.size() >= minNumInliers )
@@ -464,7 +461,7 @@ public class PairwiseSIFT
 		final N5FSReader n5 = N5IO.openN5( n5File );
 		final List< String > pucks = N5IO.listAllDatasets( n5 );
 
-		final ArrayList< STData > puckData = new ArrayList<STData>();
+		final ArrayList< STData > puckData = new ArrayList<>();
 		for ( final String puck : pucks )
 			puckData.add( N5IO.readN5( n5, puck ) );
 

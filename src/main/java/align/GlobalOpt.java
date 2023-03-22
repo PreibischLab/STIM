@@ -14,7 +14,6 @@ import org.janelia.saalfeldlab.n5.N5FSReader;
 
 import data.STData;
 import data.STDataUtils;
-import edu.mines.jtk.util.Threads;
 import ij.ImageJ;
 import io.N5IO;
 import io.Path;
@@ -219,10 +218,7 @@ public class GlobalOpt
 		double maxErr = tc.getMaxError();
 
 		// the minMaxError (0.75) makes sure that no links are dropped if the maximal error is already below a pixel
-		if ( ( ( avgErr*relativeThreshold < maxErr && maxErr > 0.75 ) || avgErr > absoluteThreshold ) )
-			return false;
-		else
-			return true;
+		return (!(avgErr * relativeThreshold < maxErr) || !(maxErr > 0.75)) && !(avgErr > absoluteThreshold);
 	}
 
 	public static Pair< Tile< ? >, Tile< ? > > removeLink(
@@ -308,7 +304,7 @@ public class GlobalOpt
 		final N5FSReader n5 = N5IO.openN5( new File( path + "slide-seq-normalized-gzip3.n5" ) );
 		final List< String > pucks = N5IO.listAllDatasets( n5 );
 
-		final ArrayList< STData > puckData = new ArrayList<STData>();
+		final ArrayList< STData > puckData = new ArrayList<>();
 		for ( final String puck : pucks )
 			puckData.add( N5IO.readN5( n5, puck ) );
 

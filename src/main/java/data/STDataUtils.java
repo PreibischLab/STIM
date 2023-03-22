@@ -135,7 +135,7 @@ public class STDataUtils
 
 	public static < R extends RealLocalizable > DistanceStats distanceStats( final KDTree< R > tree )
 	{
-		final KNearestNeighborSearch< R > search =  new KNearestNeighborSearchOnKDTree< R >( tree, 2 );
+		final KNearestNeighborSearch< R > search =  new KNearestNeighborSearchOnKDTree<>( tree, 2 );
 
 		final double[] values = new double[ (int)tree.size() ];
 		double min = Double.MAX_VALUE;

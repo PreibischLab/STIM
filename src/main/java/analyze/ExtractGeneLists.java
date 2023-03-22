@@ -11,7 +11,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import data.STData;
-import mpicbg.models.PointMatch;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.RealSum;
@@ -51,7 +50,7 @@ public class ExtractGeneLists
 
 				return stDevLocal;
 			});
-		};
+		}
 
 		final ExecutorService service = Threads.createFixedExecutorService( numThreads );
 
@@ -85,14 +84,7 @@ public class ExtractGeneLists
 			stDev.add( new ValuePair<>( gene, Math.sqrt( stdev.getSum() / data.numLocations() ) ) );
 		}
 		*/
-		Collections.sort( stDev, new Comparator< Pair< String, Double > >()
-		{
-			@Override
-			public int compare( Pair< String, Double > o1, Pair< String, Double > o2 )
-			{
-				return o2.getB().compareTo( o1.getB() );
-			}
-		} );
+		Collections.sort( stDev, (o1, o2) -> o2.getB().compareTo( o1.getB() ));
 
 		return stDev;
 	}
@@ -110,14 +102,7 @@ public class ExtractGeneLists
 			avgs.add( new ValuePair<>( gene, sum.getSum() / data.numLocations() ) );
 		}
 
-		Collections.sort( avgs, new Comparator< Pair< String, Double > >()
-		{
-			@Override
-			public int compare( Pair< String, Double > o1, Pair< String, Double > o2 )
-			{
-				return o2.getB().compareTo( o1.getB() );
-			}
-		} );
+		Collections.sort( avgs, (o1, o2) -> o2.getB().compareTo( o1.getB() ));
 
 		return avgs;
 	}

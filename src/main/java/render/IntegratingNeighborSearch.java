@@ -5,7 +5,7 @@ import net.imglib2.RealLocalizable;
 import net.imglib2.Sampler;
 
 /**
- * Integrating neighbor search in an Euclidean space. The interface describes
+ * Integrating neighbor search in a Euclidean space. The interface describes
  * implementations that perform the search (and potential filtering) around a
  * specific location and provide access to that value.
  * 
@@ -14,7 +14,7 @@ import net.imglib2.Sampler;
 public interface IntegratingNeighborSearch< T > extends EuclideanSpace
 {
 	/**
-	 * Perform intgrating-neighbor search for a reference coordinate.
+	 * Perform integrating-neighbor search for a reference coordinate.
 	 * 
 	 * @param reference
 	 */

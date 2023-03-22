@@ -32,7 +32,7 @@ public class HDF510xImporter
 		//for ( final String name : geneNames )
 		//	System.out.println( name );
 
-		// pointers for indicies and data (|barcodes|+1) > from (inclusive), to (exclusive)
+		// pointers for indices and data (|barcodes|+1) > from (inclusive), to (exclusive)
 		final long[] indptrs = reader.readLongArray( "matrix/indptr" );
 		System.out.println( "read " + indptrs.length + " pointers.");
 		//for ( final long indptr : indptrs )
@@ -42,7 +42,7 @@ public class HDF510xImporter
 		final int[] data = reader.readIntArray( "matrix/data" );
 		System.out.println( "read " + data.length + " data entries.");
 
-		// loading "indicies" (gene?)
+		// loading "indices" (gene?)
 		final int[] indices = reader.readIntArray( "matrix/indices" );
 		System.out.println( "read " + data.length + " indices entries.");
 

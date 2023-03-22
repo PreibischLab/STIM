@@ -63,20 +63,8 @@ abstract public class AbstractCompressedStorageRai<
         return randomAccess();
     }
 
-    /**
-     * Returns the index of the continuous dimension.
-     *
-     * @param position
-     * @return entry of position corresponds to continuous dimension
-     */
     abstract protected long ind(long[] position);
 
-    /**
-     * Returns the index of the non-continuous dimension.
-     *
-     * @param position
-     * @return entry of position corresponds to non-continuous dimension
-     */
     abstract protected long ptr(long[] position);
 
 }
