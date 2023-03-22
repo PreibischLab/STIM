@@ -1,6 +1,7 @@
 import data.STData;
 import data.STDataImgLib2;
 import data.STDataN5;
+import data.STDataStatistics;
 import data.STDataText;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccess;
@@ -46,6 +47,18 @@ public class DataTest {
 		assertArrayEquals(new long[]{0, 0}, actual);
 		interval.max(actual);
 		assertArrayEquals(new long[]{1, 1}, actual);
+	}
+
+	@ParameterizedTest
+	@MethodSource("createDataInstances")
+	public void statistics_are_correct(STData data) {
+		// nearest neighbor distances: 2x 1 (nodes 1 and 5), 3x 1/2 (nodes 2, 3, and 4)
+		STDataStatistics statistics = new STDataStatistics(data);
+
+		assertEquals(0.7, statistics.getMeanDistance(), 1e-8);
+		assertEquals(0.5, statistics.getMedianDistance(), 1e-8);
+		assertEquals(0.5, statistics.getMinDistance(), 1e-8);
+		assertEquals(1.0, statistics.getMaxDistance(), 1e-8);
 	}
 
 	protected static List<Named<STData>> createDataInstances() {
