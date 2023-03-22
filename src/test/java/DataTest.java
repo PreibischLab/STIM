@@ -1,3 +1,4 @@
+import data.NormalizingSTData;
 import data.STData;
 import data.STDataImgLib2;
 import data.STDataN5;
@@ -6,6 +7,7 @@ import data.STDataText;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.RealCursor;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.ValuePair;
@@ -20,6 +22,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,6 +30,8 @@ import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Named.named;
 
 
@@ -61,6 +66,38 @@ public class DataTest {
 		assertEquals(1.0, statistics.getMaxDistance(), 1e-8);
 	}
 
+	@ParameterizedTest
+	@MethodSource("createDataInstances")
+	public void zero_expression_is_zero(STData data) {
+		RealCursor<DoubleType> cursor = data.getExprData("Gene 1").localizingCursor();
+		while (cursor.hasNext())
+			assertEquals(0.0, cursor.next().getRealDouble(), 1e-8);
+	}
+
+	@ParameterizedTest
+	@MethodSource("createDataInstances")
+	public void nonzero_expression_is_not_constant(STData data) {
+		RealCursor<DoubleType> cursor = data.getExprData("Gene 3").localizingCursor();
+		double firstValue = cursor.next().getRealDouble();
+		while (cursor.hasNext())
+			assertNotEquals(firstValue, cursor.next().getRealDouble(), 1e-8);
+	}
+
+	@ParameterizedTest
+	@MethodSource("createDataInstances")
+	public void locations_are_inserted_correctly(STData data) {
+		RealCursor<DoubleType> cursor = data.getExprData("Gene 2").localizingCursor();
+		List<double[]> locations = data.getLocationsCopy();
+		double[] actualPosition = new double[2];
+
+		while (cursor.hasNext()) {
+			cursor.fwd();
+			cursor.localize(actualPosition);
+			assertTrue(locations.stream().anyMatch((loc) -> Arrays.equals(loc, actualPosition)));
+		}
+	}
+
+
 	protected static List<Named<STData>> createDataInstances() {
 		/* Create locations  5 - 4
 		   with the          |   3
@@ -73,10 +110,10 @@ public class DataTest {
 		textLocations.add(new ValuePair(new double[]{0.0, 1.0}, "101"));
 
 		final HashMap<String, double[]> textExprValues = new HashMap<>();
-		textExprValues.put("Gene 1", IntStream.range(0, 5).mapToDouble((k) -> k).toArray());
-		textExprValues.put("Gene 2", IntStream.range(0, 5).mapToDouble((k) -> 5-k).toArray());
-		textExprValues.put("Gene 3", IntStream.range(0, 5).mapToDouble((k) -> 1.0).toArray());
-		textExprValues.put("Gene 4", IntStream.range(0, 5).mapToDouble((k) -> 0.0).toArray());
+		textExprValues.put("Gene 1", IntStream.range(0, 5).mapToDouble((k) -> 0.0).toArray());
+		textExprValues.put("Gene 2", IntStream.range(0, 5).mapToDouble((k) -> 1.0).toArray());
+		textExprValues.put("Gene 3", IntStream.range(0, 5).mapToDouble((k) -> k).toArray());
+		textExprValues.put("Gene 4", IntStream.range(0, 5).mapToDouble((k) -> 5-k).toArray());
 
 		List<Named<STData>> dataList = new ArrayList<>();
 		dataList.add(named("Text Data", new STDataText(textLocations, textExprValues)));
@@ -86,12 +123,12 @@ public class DataTest {
 
 		final RandomAccessibleInterval<DoubleType> locations = new ArrayImgFactory<>(new DoubleType()).create(barcodeNames.size(), 2);
 		for (int k = 0; k < barcodeNames.size(); k++) {
-			fillDimension(locations, textLocations.get(k).getA(), k, 1);
+			fillColumn(locations, textLocations.get(k).getA(), k);
 		}
 
 		final RandomAccessibleInterval<DoubleType> exprValues = new ArrayImgFactory<>(new DoubleType()).create(geneNames.size(), barcodeNames.size());
 		for (int k = 0; k < geneNames.size(); k++) {
-			fillDimension(exprValues, textExprValues.get("Gene " + (k+1)), k, 0);
+			fillColumn(exprValues, textExprValues.get("Gene " + (k+1)), k);
 		}
 
 		final HashMap<String, Integer> geneLookup = new HashMap<>();
@@ -109,15 +146,32 @@ public class DataTest {
 			throw new RuntimeException(e);
 		}
 
+		dataList.add(named("Normalized Data", new NormalizingSTData(dataList.get(2).getPayload())));
+
 		return dataList;
 	}
 
-	protected static void fillDimension(RandomAccessibleInterval<DoubleType> rai, double[] values, int index, int dim) {
-		RandomAccess<DoubleType> ra = rai.randomAccess();
-		ra.setPosition(index, (dim == 0) ? 1 : 0);
+	protected static List<String> provideNonconstantGenes() {
+		return Arrays.asList("Gene 1", "Gene 2");
+	}
 
-		for (int k = 0; k <= rai.max(dim); k++) {
-			ra.setPosition(k, dim);
+	protected static List<String> provideConstantGenes() {
+		return Arrays.asList("Gene 3", "Gene 4");
+	}
+
+	/**
+	 * Fill column
+	 *
+	 * @param rai 2d {@RandomAccessibleInterval} to fill
+	 * @param values array of double values to fill in
+	 * @param index index of the column
+	 */
+	protected static void fillColumn(RandomAccessibleInterval<DoubleType> rai, double[] values, int index) {
+		RandomAccess<DoubleType> ra = rai.randomAccess();
+		ra.setPosition(index, 0);
+
+		for (int k = 0; k < rai.dimension(1); k++) {
+			ra.setPosition(k, 1);
 			ra.get().set(values[k]);
 		}
 	}
