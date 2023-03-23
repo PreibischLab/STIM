@@ -48,7 +48,7 @@ public class AnnDataIO
 	{
 		final String path = System.getProperty("user.dir") + "/data/human-lymph-node.h5ad";
 
-		STDataAssembly data = AnnDataIO.openAllDatasets(new File(path));
+		STDataAssembly data = AnnDataIO.openAllDatasets(new File(path)).get(0);
 		String gene = "IGKC";
 
 		Interval interval = data.data().getRenderInterval();
@@ -70,20 +70,15 @@ public class AnnDataIO
 		new STDataExplorer(Arrays.asList(data));
 	}
 
-	// TODO: ALL? opens just one ...
-	public static STDataAssembly openAllDatasets(final File anndataFile) throws IOException {
-		STData stData = readSlideSeq(anndataFile);
+	public static ArrayList<STDataAssembly> openAllDatasets(final File anndataFile) throws IOException {
+		ArrayList<STDataAssembly> dataList = new ArrayList<>();
 
-		if (stData == null)
-			return null;
+		dataList.add(openDataset(anndataFile, "/X"));
+		for (final String layerName : allLayers(anndataFile)) {
+			dataList.add(openDataset(anndataFile, "/layer/" + layerName));
+		}
 
-		final STDataStatistics stat = new STDataStatistics(stData);
-
-		final AffineTransform2D transform = new AffineTransform2D();
-		final AffineTransform intensityTransform = new AffineTransform(1);
-		intensityTransform.set(1, 0);
-
-		return new STDataAssembly(stData, stat, transform, intensityTransform);
+		return dataList;
 	}
 
 	public static N5HDF5Reader openAnnData(final File anndataFile) throws IOException {
@@ -93,9 +88,13 @@ public class AnnDataIO
 		return new N5HDF5Reader(anndataFile.getAbsolutePath());
 	}
 
-	public static STData readSlideSeq(final File anndataFile) throws IOException {
+	public static STDataAssembly openDataset(final File anndataFile) throws IOException {
+		return openDataset(anndataFile, "/X");
+	}
+
+	public static STDataAssembly openDataset(final File anndataFile, String dataset) throws IOException {
 		long time = System.currentTimeMillis();
-		N5Reader reader = new N5HDF5Reader(anndataFile.getAbsolutePath());
+		N5Reader reader = openAnnData(anndataFile);
 
 		List<String> geneNames = AnnDataUtils.readAnnotation(reader, "/var/_index");
 		List<String> barcodes = AnnDataUtils.readAnnotation(reader, "/obs/_index");
@@ -117,21 +116,26 @@ public class AnnDataIO
 		final RandomAccessibleInterval<DoubleType> convertedExpressionVals = Converters.convert(
 				expressionVals, (i, o) -> o.set(i.getRealDouble()), new DoubleType());
 
-		STData stdata = new STDataImgLib2(convertedLocations, convertedExpressionVals, geneNames, barcodes, geneLookup);
+		STData stData = new STDataImgLib2(convertedLocations, convertedExpressionVals, geneNames, barcodes, geneLookup);
 
 		if (containsCelltypes(anndataFile)) {
 			Img<IntType> celltypeIds = getCelltypeIds(reader);
-			stdata.getMetaData().put("celltype", celltypeIds);
+			stData.getMetaData().put("celltype", celltypeIds);
 			System.out.println("Loading '" + celltypePath + "' as label 'celltype'.");
 		}
 
 		System.out.println("Parsing took " + (System.currentTimeMillis() - time) + " ms.");
 
-		return stdata;
+		final STDataStatistics stat = new STDataStatistics(stData);
+		final AffineTransform2D transform = new AffineTransform2D();
+		final AffineTransform intensityTransform = new AffineTransform(1);
+		intensityTransform.set(1, 0);
+
+		return new STDataAssembly(stData, stat, transform, intensityTransform);
 	}
 
 	public static Boolean containsCelltypes(final File anndataFile) {
-		try (final N5HDF5Reader n5Reader = new N5HDF5Reader(anndataFile.getAbsolutePath())) {
+		try (final N5HDF5Reader n5Reader = openAnnData(anndataFile)) {
 			return n5Reader.exists(celltypePath);
 		}
 		catch (IOException e) {
@@ -152,5 +156,10 @@ public class AnnDataIO
 		}
 
 		return ArrayImgs.ints(celltypeIds, celltypeIds.length);
+	}
+
+	public static List<String> allLayers(final File anndataFile) throws IOException {
+		final N5Reader n5Reader = openAnnData(anndataFile);
+		return Arrays.asList(n5Reader.list("/layers"));
 	}
 }

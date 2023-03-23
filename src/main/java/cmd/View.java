@@ -58,8 +58,7 @@ public class View implements Callable<Void> {
 		final ArrayList< STDataAssembly > data;
 
 		if (containerPath.endsWith(".h5ad")) {
-			data = new ArrayList<>();
-			data.add(AnnDataIO.openAllDatasets(new File(containerPath)));
+			data = AnnDataIO.openAllDatasets(new File(containerPath));
 		}
 		else if ( datasets == null || datasets.size() == 0 )
 		{

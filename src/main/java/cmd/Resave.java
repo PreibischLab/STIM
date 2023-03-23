@@ -79,7 +79,7 @@ public class Resave implements Callable<Void> {
 			if (elements.length == 2) { // means: input is an anndata file
 				final File anndataFile = new File(elements[0].trim());
 				System.out.println( "Locations='" + anndataFile.getAbsolutePath() + "'");
-				data = AnnDataIO.readSlideSeq(anndataFile);
+				data = AnnDataIO.openDataset(anndataFile).data();
 				hasCelltypeAnnotations.add(AnnDataIO.containsCelltypes(anndataFile));
 			}
 			else { // means: input consists of csv files (with optional file for celltypes)
