@@ -13,7 +13,9 @@ import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
 import filter.FilterFactory;
 import gui.STDataExplorer;
-import net.imglib2.*;
+import net.imglib2.Interval;
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.RealRandomAccessible;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 
@@ -37,7 +39,11 @@ import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 import render.Render;
 
-import static gui.RenderThread.*;
+import static gui.RenderThread.max;
+import static gui.RenderThread.maxRange;
+import static gui.RenderThread.min;
+import static gui.RenderThread.minRange;
+
 
 public class AnnDataIO
 {
