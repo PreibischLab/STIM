@@ -7,12 +7,14 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 import io.AnnDataIO;
+import io.SpatialDataIO;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 
 import gui.RenderThread;
 import gui.STDataAssembly;
 import gui.STDataExplorer;
 import io.N5IO;
+import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 
@@ -59,7 +61,8 @@ public class View implements Callable<Void> {
 
 		if (containerPath.endsWith(".h5ad")) {
 			data = new ArrayList<>();
-			data.add(AnnDataIO.openDataset(new File(containerPath)));
+			SpatialDataIO stio = new AnnDataIO(containerPath, N5HDF5Reader::new);
+			data.add(stio.readData());
 		}
 		else if ( datasets == null || datasets.size() == 0 )
 		{

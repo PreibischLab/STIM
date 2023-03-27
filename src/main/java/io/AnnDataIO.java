@@ -44,8 +44,8 @@ import static gui.RenderThread.minRange;
 
 public class AnnDataIO extends SpatialDataIO {
 
-	AnnDataIO(String path, N5Reader n5) {
-		super(path, n5);
+	public AnnDataIO(String path, N5Constructor n5Constructor) {
+		super(path, n5Constructor);
 
 		if (!(n5 instanceof N5HDF5Reader))
 			throw new IllegalArgumentException("IO for AnnData currently only supports hdf5.");
@@ -58,7 +58,8 @@ public class AnnDataIO extends SpatialDataIO {
 	{
 		final String path = System.getProperty("user.dir") + "/data/human-lymph-node.h5ad";
 
-		STDataAssembly data = AnnDataIO.openDataset(new File(path));
+		SpatialDataIO stio = new AnnDataIO(path, N5HDF5Reader::new);
+		STDataAssembly data = stio.readData();
 		String gene = "IGKC";
 
 		Interval interval = data.data().getRenderInterval();
@@ -82,10 +83,7 @@ public class AnnDataIO extends SpatialDataIO {
 
 	@Override
 	public STDataAssembly readData() throws IOException {
-		File anndataFile = new File(path);
-		String dataset = "/X";
 		long time = System.currentTimeMillis();
-		N5Reader reader = openAnnData(anndataFile);
 
 		List<String> geneNames = readGeneNames();
 		List<String> barcodes = readBarcodes();
@@ -100,8 +98,8 @@ public class AnnDataIO extends SpatialDataIO {
 		RandomAccessibleInterval<DoubleType> exprValues = readExpressionValues();
 		STData stData = new STDataImgLib2(locations, exprValues, geneNames, barcodes, geneLookup);
 
-		if (containsCelltypes(anndataFile)) {
-			Img<IntType> celltypeIds = getCelltypeIds(reader);
+		if (containsCellTypes()) {
+			Img<IntType> celltypeIds = getCelltypeIds(n5);
 			stData.getMetaData().put("celltype", celltypeIds);
 			System.out.println("Loading '" + "/obs/cell_type" + "' as label 'celltype'.");
 		}
@@ -134,29 +132,9 @@ public class AnnDataIO extends SpatialDataIO {
 		return Converters.convert(expressionVals, (i, o) -> o.set(i.getRealDouble()), new DoubleType());
 	}
 
-	public static N5HDF5Reader openAnnData(final File anndataFile) throws IOException {
-		if (!anndataFile.exists())
-			throw new RuntimeException("AnnData-path '" + anndataFile.getAbsolutePath() + "' does not exist." );
-
-		return new N5HDF5Reader(anndataFile.getAbsolutePath());
-	}
-
-	public static STDataAssembly openDataset(final File anndataFile) throws IOException {
-		return openDataset(anndataFile, "/X");
-	}
-
-	public static STDataAssembly openDataset(final File anndataFile, String dataset) throws IOException {
-		SpatialDataIO io = new AnnDataIO(anndataFile.getAbsolutePath(), openAnnData(anndataFile));
-		return io.readData();
-	}
-
-	public static Boolean containsCelltypes(final File anndataFile) {
-		try (final N5HDF5Reader n5Reader = openAnnData(anndataFile)) {
-			return n5Reader.exists("/obs/cell_type");
-		}
-		catch (IOException e) {
-			return Boolean.FALSE;
-		}
+	@Override
+	public Boolean containsCellTypes() {
+		return n5.exists("/obs/cell_type");
 	}
 
 	public static ArrayImg<IntType, IntArray> getCelltypeIds(final N5Reader reader) throws IOException {
@@ -173,12 +151,6 @@ public class AnnDataIO extends SpatialDataIO {
 
 		return ArrayImgs.ints(celltypeIds, celltypeIds.length);
 	}
-
-	public static List<String> allLayers(final File anndataFile) throws IOException {
-		final N5Reader n5Reader = openAnnData(anndataFile);
-		return Arrays.asList(n5Reader.list("/layers"));
-	}
-
 
 	@Override
 	public JsonElement readMetaData() {

@@ -2,16 +2,12 @@ package io;
 
 import com.google.gson.JsonElement;
 import data.STData;
-import data.STDataN5;
 import data.STDataStatistics;
 import gui.STDataAssembly;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.img.Img;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
-import net.imglib2.type.Type;
 import net.imglib2.type.numeric.real.DoubleType;
-import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 
@@ -24,9 +20,14 @@ public abstract class SpatialDataIO {
 	protected final N5Reader n5;
 	protected boolean readOnly = true;
 
-	SpatialDataIO(String path, N5Reader n5) {
+	public SpatialDataIO(String path, N5Constructor n5Constructor) {
 		this.path = path;
-		this.n5 = n5;
+		try {
+			this.n5 = n5Constructor.apply(path);
+		}
+		catch (IOException e) {
+			throw new SpatialDataIOException("Could not open file: " + path + "\n" + e.getMessage());
+		}
 
 		if (n5 instanceof N5Writer)
 			readOnly = false;
@@ -45,6 +46,8 @@ public abstract class SpatialDataIO {
 	protected abstract List<String> readGeneNames();
 
 	protected abstract List<String> readCellTypes();
+
+	public abstract Boolean containsCellTypes();
 
 	public abstract void writeData(STDataAssembly data) throws IOException;
 
@@ -67,6 +70,11 @@ public abstract class SpatialDataIO {
 		intensityTransform.set(1, 0);
 
 		return new STDataAssembly(data, stat, transform, intensityTransform);
+	}
+
+	// custom functional interface, since Function<String, N5Reader> doesn't throw IOException
+	public interface N5Constructor {
+		public N5Reader apply(String path) throws IOException;
 	}
 
 	public static class SpatialDataIOException extends RuntimeException {

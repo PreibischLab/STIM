@@ -16,6 +16,7 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
 import io.AnnDataIO;
+import io.SpatialDataIO;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -29,6 +30,7 @@ import data.STData;
 import io.N5IO;
 import io.TextFileAccess;
 import io.TextFileIO;
+import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 
@@ -77,10 +79,11 @@ public class Resave implements Callable<Void> {
 
 			STData data;
 			if (elements.length == 2) { // means: input is an anndata file
-				final File anndataFile = new File(elements[0].trim());
-				System.out.println( "Locations='" + anndataFile.getAbsolutePath() + "'");
-				data = AnnDataIO.openDataset(anndataFile).data();
-				hasCelltypeAnnotations.add(AnnDataIO.containsCelltypes(anndataFile));
+				String path = elements[0].trim();
+				System.out.println( "Locations='" + path + "'");
+				SpatialDataIO stio = new AnnDataIO(path, N5HDF5Reader::new);
+				data = stio.readData().data();
+				hasCelltypeAnnotations.add(stio.containsCellTypes());
 			}
 			else { // means: input consists of csv files (with optional file for celltypes)
 				final File locationsFile = new File(elements[0].trim());
