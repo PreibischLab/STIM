@@ -43,32 +43,6 @@ public class N5IO
 	public static int[] defaultBlockSize = new int[] { 512, 512 };
 	public static int defaultBlockLength = 1024;
 
-	public static void main( String[] args ) throws IOException, InterruptedException, ExecutionException
-	{
-		STData stdata = STDataUtils.createTestDataSet();
-
-		final File n5path = new File( Path.getPath() + "patterns_examples_2d/small.n5" );
-		System.out.println( "n5-path: " + n5path.getAbsolutePath() );
-
-		// write N5
-		writeN5( createN5( n5path ), "data", stdata );
-
-		// load N5
-		stdata = readN5( n5path, "data" );
-
-		// display
-		final IterableRealInterval< DoubleType > data = stdata.getExprData( "Pcp4" );
-
-		final STDataStatistics stStats = new STDataStatistics( stdata );
-
-		final double displayRadius = stStats.getMedianDistance() / 2.0;
-		double gaussRenderSigma = stStats.getMedianDistance() / 4; 
-		double gaussRenderRadius = displayRadius;
-		final DoubleType outofbounds = new DoubleType( 0 );
-
-		BdvFunctions.show( Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, WeightType.NONE ) ), stdata.getRenderInterval(), "Pcp4_gauss1", BdvOptions.options().is2D() ).setDisplayRange( 0, 4 );
-	}
-
 	public static STDataAssembly openDataset( final File n5Path, final String dataset ) throws IOException
 	{
 		return openDataset(N5IO.openN5( n5Path ), dataset );

@@ -56,7 +56,7 @@ public class Resave implements Callable<Void> {
 			return null;
 		}
 
-		List<Boolean> hasCelltypeAnnotations = new ArrayList<Boolean>();
+		List<Boolean> hasCelltypeAnnotations = new ArrayList<>();
 
 		int length = -1; // with or without celltypes?
 		for ( final String inputPath : inputPaths )
