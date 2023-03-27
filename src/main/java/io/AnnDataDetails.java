@@ -1,17 +1,16 @@
-package anndata;
+package io;
 
+import anndata.CscRandomAccessibleInterval;
+import anndata.CsrRandomAccessibleInterval;
 import ch.systemsx.cisd.hdf5.HDF5Factory;
 import ch.systemsx.cisd.hdf5.IHDF5Reader;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.Cursor;
 import net.imglib2.RandomAccess;
 import net.imglib2.cache.img.CachedCellImg;
 import net.imglib2.img.Img;
-import net.imglib2.img.NativeImg;
-import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.NumericType;
-import net.imglib2.view.Views;
+import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.IntegerType;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
@@ -21,20 +20,27 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-public class AnnDataUtils {
+import static io.SpatialDataIO.SpatialDataIOException;
 
-    public static RandomAccessibleInterval readData(N5Reader reader, String path) throws IOException {
-        final AnnDataFieldType type = getFieldType(reader, path);
 
-        switch (type) {
-            case DENSE_ARRAY:
-                return N5Utils.open(reader, path);
-            case CSR_MATRIX:
-                return openCsrArray(reader, path); // row
-            case CSC_MATRIX:
-                return openCscArray(reader, path); // column
-            default:
-                throw new IOException("Reading data for " + type.toString() + " not supported.");
+class AnnDataDetails {
+
+    public static RandomAccessibleInterval<? extends RealType<?>> readArray(N5Reader reader, String path) {
+        try {
+            final AnnDataFieldType type = getFieldType(reader, path);
+            switch (type) {
+                case DENSE_ARRAY:
+                    return N5Utils.open(reader, path);
+                case CSR_MATRIX:
+                    return openCsrArray(reader, path); // row
+                case CSC_MATRIX:
+                    return openCscArray(reader, path); // column
+                default:
+                    throw new SpatialDataIOException("Reading data for " + type.toString() + " not supported.");
+            }
+        }
+        catch (IOException e) {
+            throw new SpatialDataIOException("Could not load dataset at '" + path + "'\n" + e.getMessage());
         }
     }
 
@@ -62,16 +68,20 @@ public class AnnDataUtils {
         return new CscRandomAccessibleInterval(shape[1], shape[0], sparseData, indices, indptr);
     }
 
-    public static List<String> readAnnotation(N5Reader reader, String path) throws IOException {
-        final AnnDataFieldType type = getFieldType(reader, path);
-
-        switch (type) {
-            case STRING_ARRAY:
-                return readStringList(reader, path);
-            case CATEGORICAL_ARRAY:
-                return readCategoricalList(reader, path);
-            default:
-                throw new IOException("Reading annotations for " + type + " not supported.");
+    public static List<String> readStringAnnotation(N5Reader reader, String path) {
+        try {
+            final AnnDataFieldType type = getFieldType(reader, path);
+            switch (type) {
+                case STRING_ARRAY:
+                    return readStringList(reader, path);
+                case CATEGORICAL_ARRAY:
+                    return readCategoricalList(reader, path);
+                default:
+                    throw new SpatialDataIOException("Reading string annotations for " + type + " not supported.");
+            }
+        }
+        catch (IOException e) {
+            throw new SpatialDataIOException("Could not load string dataset at '" + path + "'\n" + e.getMessage());
         }
     }
 

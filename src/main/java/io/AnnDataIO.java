@@ -1,6 +1,5 @@
 package io;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,9 +19,6 @@ import net.imglib2.RealRandomAccessible;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 
-import anndata.AnnDataUtils;
-import data.STData;
-import data.STDataImgLib2;
 import gui.STDataAssembly;
 import net.imglib2.converter.Converters;
 import net.imglib2.img.Img;
@@ -49,9 +45,6 @@ public class AnnDataIO extends SpatialDataIO {
 
 		if (!(n5 instanceof N5HDF5Reader))
 			throw new IllegalArgumentException("IO for AnnData currently only supports hdf5.");
-
-		// todo: split reading method into coordinates / expressions
-		// todo: implement write methods
 	}
 
 	public static void main( String[] args ) throws IOException
@@ -83,52 +76,28 @@ public class AnnDataIO extends SpatialDataIO {
 
 	@Override
 	public STDataAssembly readData() throws IOException {
-		long time = System.currentTimeMillis();
-
-		List<String> geneNames = readGeneNames();
-		List<String> barcodes = readBarcodes();
-
-		final HashMap<String, Integer> geneLookup = new HashMap<>();
-		for (int i = 0; i < geneNames.size(); ++i ) {
-			geneLookup.put(geneNames.get(i), i);
-		}
-
-		// expression values is often a sparse array
-		RandomAccessibleInterval<DoubleType> locations = readLocations();
-		RandomAccessibleInterval<DoubleType> exprValues = readExpressionValues();
-		STData stData = new STDataImgLib2(locations, exprValues, geneNames, barcodes, geneLookup);
+		STDataAssembly stDataAssembly = super.readData();
 
 		if (containsCellTypes()) {
 			Img<IntType> celltypeIds = getCelltypeIds(n5);
-			stData.getMetaData().put("celltype", celltypeIds);
+			stDataAssembly.data().getMetaData().put("celltype", celltypeIds);
 			System.out.println("Loading '" + "/obs/cell_type" + "' as label 'celltype'.");
 		}
 
-		System.out.println("Parsing took " + (System.currentTimeMillis() - time) + " ms.");
-
-		return createTrivialAssembly(stData);
+		return stDataAssembly;
 	}
 
 	@Override
 	protected RandomAccessibleInterval<DoubleType> readLocations() {
-		RandomAccessibleInterval<? extends RealType<?>> locations;
-		try {
-			// transpose locations, since AnnData stores them as columns
-			locations = Views.permute(AnnDataUtils.readData(n5, "/obsm/spatial"), 0, 1);
-		} catch (IOException e) {
-			throw new SpatialDataIOException("Could not load locations:" + e.getMessage());
-		}
+		// transpose locations, since AnnData stores them as columns
+		RandomAccessibleInterval<? extends RealType<?>> locations = Views.permute(
+				AnnDataDetails.readArray(n5, "/obsm/spatial"), 0, 1);
 		return Converters.convert(locations, (i, o) -> o.set(i.getRealDouble()), new DoubleType());
 	}
 
 	@Override
 	protected RandomAccessibleInterval<DoubleType> readExpressionValues() {
-		RandomAccessibleInterval<? extends RealType<?>> expressionVals;
-		try {
-			expressionVals = AnnDataUtils.readData(n5, "/X");
-		} catch (IOException e) {
-			throw new SpatialDataIOException("Could not load expression values:" + e.getMessage());
-		}
+		RandomAccessibleInterval<? extends RealType<?>> expressionVals = AnnDataDetails.readArray(n5, "/X");
 		return Converters.convert(expressionVals, (i, o) -> o.set(i.getRealDouble()), new DoubleType());
 	}
 
@@ -138,7 +107,7 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	public static ArrayImg<IntType, IntArray> getCelltypeIds(final N5Reader reader) throws IOException {
-		final List<String> cellTypes = AnnDataUtils.readAnnotation(reader, "/obs/cell_type");
+		final List<String> cellTypes = AnnDataDetails.readStringAnnotation(reader, "/obs/cell_type");
 		final HashMap<String, Integer> typeToIdMap = new HashMap<>();
 		final int[] celltypeIds = new int[cellTypes.size()];
 
@@ -159,22 +128,12 @@ public class AnnDataIO extends SpatialDataIO {
 
 	@Override
 	protected List<String> readBarcodes() {
-		try {
-			return AnnDataUtils.readAnnotation(n5, "/obs/_index");
-		}
-		catch (IOException e) {
-			throw new SpatialDataIOException("Could not load barcodes:" + e.getMessage());
-		}
+		return AnnDataDetails.readStringAnnotation(n5, "/obs/_index");
 	}
 
 	@Override
 	protected List<String> readGeneNames() {
-		try {
-			return AnnDataUtils.readAnnotation(n5, "/var/_index");
-		}
-		catch (IOException e) {
-			throw new SpatialDataIOException("Could not load gene names:" + e.getMessage());
-		}
+		return AnnDataDetails.readStringAnnotation(n5, "/var/_index");
 	}
 
 	@Override

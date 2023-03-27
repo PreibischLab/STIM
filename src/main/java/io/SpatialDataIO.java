@@ -2,6 +2,7 @@ package io;
 
 import com.google.gson.JsonElement;
 import data.STData;
+import data.STDataImgLib2;
 import data.STDataStatistics;
 import gui.STDataAssembly;
 import net.imglib2.RandomAccessibleInterval;
@@ -12,6 +13,7 @@ import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 
 public abstract class SpatialDataIO {
@@ -33,7 +35,25 @@ public abstract class SpatialDataIO {
 			readOnly = false;
 	}
 
-	public abstract STDataAssembly readData() throws IOException;
+	public STDataAssembly readData() throws IOException {
+		long time = System.currentTimeMillis();
+
+		List<String> geneNames = readGeneNames();
+		List<String> barcodes = readBarcodes();
+
+		final HashMap<String, Integer> geneLookup = new HashMap<>();
+		for (int i = 0; i < geneNames.size(); ++i ) {
+			geneLookup.put(geneNames.get(i), i);
+		}
+
+		RandomAccessibleInterval<DoubleType> locations = readLocations();
+		RandomAccessibleInterval<DoubleType> exprValues = readExpressionValues();
+
+		System.out.println("Parsing took " + (System.currentTimeMillis() - time) + " ms.");
+
+		STData stData = new STDataImgLib2(locations, exprValues, geneNames, barcodes, geneLookup);
+		return createTrivialAssembly(stData);
+	}
 
 	protected abstract RandomAccessibleInterval<DoubleType> readLocations();
 
