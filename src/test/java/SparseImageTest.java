@@ -8,12 +8,14 @@ import anndata.AbstractCompressedStorageRai;
 import anndata.CscRandomAccessibleInterval;
 import anndata.CsrRandomAccessibleInterval;
 import net.imglib2.RandomAccess;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.type.Type;
 import net.imglib2.type.numeric.integer.LongType;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.view.Views;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Named;
@@ -24,6 +26,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Named.named;
 
 
@@ -48,24 +51,25 @@ public class SparseImageTest {
 	@ParameterizedTest
 	@MethodSource("setupSparseImages")
 	public void sparse_has_correct_number_of_nonzeros(AbstractCompressedStorageRai<DoubleType, LongType> sparse) {
-		int count = 0;
-		RandomAccess<DoubleType> ra = sparse.randomAccess();
-		for (int i = 0; i <= sparse.max(0); ++i)
-			for (int j = 0; j <= sparse.max(1); ++j)
-				if (ra.setPositionAndGet(i, j).getRealDouble() != 0.0)
-					++count;
+		assertEquals(5, AbstractCompressedStorageRai.getNumberOfNonzeros(sparse));
+	}
 
-		assertEquals(5, count);
+	@ParameterizedTest
+	@MethodSource("setupSparseImages")
+	public void conversion_to_sparse_is_correct(AbstractCompressedStorageRai<DoubleType, LongType> sparse) {
+		AbstractCompressedStorageRai<DoubleType, LongType> newCsr = AbstractCompressedStorageRai.convertToSparse(sparse, 0);
+		assertTrue(newCsr instanceof CsrRandomAccessibleInterval);
+		assertRaiEquals(sparse, newCsr);
+		AbstractCompressedStorageRai<DoubleType, LongType> newCsc = AbstractCompressedStorageRai.convertToSparse(sparse, 1);
+		assertTrue(newCsc instanceof CscRandomAccessibleInterval);
+		assertRaiEquals(sparse, newCsc);
 	}
 
 	@Test
 	public void CSC_is_CSR_transposed() {
 		CsrRandomAccessibleInterval<DoubleType, LongType> csr = setupCsr();
-		RandomAccess<DoubleType> raR = csr.randomAccess();
-		RandomAccess<DoubleType> raC = setupCsc().randomAccess();
-		for (int i = 0; i <= csr.max(0); ++i)
-			for (int j = 0; j <= csr.max(1); ++j)
-				assertEquals(raR.setPositionAndGet(i, j), raC.setPositionAndGet(j, i));
+		CscRandomAccessibleInterval<DoubleType, LongType> csc = setupCsc();
+		assertRaiEquals(csr, Views.permute(csc, 0, 1));
 	}
 
 	public CsrRandomAccessibleInterval<DoubleType, LongType> setupCsr() {
@@ -95,5 +99,17 @@ public class SparseImageTest {
 		for (final T pixel : img)
 			pixel.set(valueIterator.next());
 		return img;
+	}
+
+	protected static <T extends Type<T>> void assertRaiEquals(RandomAccessibleInterval<T> expected, RandomAccessibleInterval<T> actual) {
+		assertEquals(expected.dimension(0), actual.dimension(0), "Number of columns does not coincide.");
+		assertEquals(expected.dimension(1), actual.dimension(1), "Number of rows does not coincide.");
+
+		RandomAccess<T> raExpected = expected.randomAccess();
+		RandomAccess<T> raActual = actual.randomAccess();
+		for (int i = 0; i < expected.dimension(0); ++i)
+			for (int j = 0; j < expected.dimension(1); ++j)
+				assertEquals(raExpected.setPositionAndGet(i, j), raActual.setPositionAndGet(i, j),
+						"Rai's differ on entry (" + i + "," + j +")");
 	}
 }
