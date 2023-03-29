@@ -9,20 +9,31 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.real.DoubleType;
+import org.janelia.saalfeldlab.n5.Compression;
+import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public abstract class SpatialDataIO {
 
 	protected final String path;
 	protected final N5Reader n5;
 	protected boolean readOnly = true;
+	protected N5Options options;
 
 	public SpatialDataIO(String path, N5Constructor n5Constructor) {
+		if (path == null)
+			throw new SpatialDataIOException("No path to N5 given.");
+
+		boolean fileAlreadyExists = (new File(path)).exists();
+
 		this.path = path;
 		try {
 			this.n5 = n5Constructor.apply(path);
@@ -31,8 +42,16 @@ public abstract class SpatialDataIO {
 			throw new SpatialDataIOException("Could not open file: " + path + "\n" + e.getMessage());
 		}
 
-		if (n5 instanceof N5Writer)
-			readOnly = false;
+		if (n5 instanceof N5Writer) {
+			if (fileAlreadyExists)
+				throw new SpatialDataIOException(path + " already exists, cannot save.");
+			this.readOnly = false;
+		}
+
+		options = new N5Options(
+				new int[]{512, 512},
+				new GzipCompression(3),
+				Executors.newFixedThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2)));
 	}
 
 	public STDataAssembly readData() throws IOException {
@@ -53,6 +72,20 @@ public abstract class SpatialDataIO {
 
 		STData stData = new STDataImgLib2(locations, exprValues, geneNames, barcodes, geneLookup);
 		return createTrivialAssembly(stData);
+	}
+
+	public void setBlockSize(int... blockSize) {
+		if (blockSize.length != 2)
+			throw new IllegalArgumentException("Block size must be two dimensional.");
+		options.blockSize = blockSize;
+	}
+
+	public void setCompression(Compression compression) {
+		options.compression = compression;
+	}
+
+	public void setExecutorService(ExecutorService exec) {
+		options.exec = exec;
 	}
 
 	protected abstract RandomAccessibleInterval<DoubleType> readLocations();
@@ -102,6 +135,19 @@ public abstract class SpatialDataIO {
 
 		public SpatialDataIOException(String message) {
 			super(message);
+		}
+	}
+
+	class N5Options {
+
+		int[] blockSize;
+		Compression compression;
+		ExecutorService exec;
+
+		public N5Options(int[] blockSize, Compression compression, ExecutorService exec) {
+			this.blockSize = blockSize;
+			this.compression = compression;
+			this.exec = exec;
 		}
 	}
 }

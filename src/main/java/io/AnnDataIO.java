@@ -11,12 +11,14 @@ import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
 import com.google.gson.JsonElement;
+import data.STData;
 import filter.FilterFactory;
 import gui.STDataExplorer;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 
 import gui.STDataAssembly;
@@ -36,9 +38,11 @@ import static gui.RenderThread.max;
 import static gui.RenderThread.maxRange;
 import static gui.RenderThread.min;
 import static gui.RenderThread.minRange;
+import static io.AnnDataDetails.AnnDataFieldType;
 
 
 public class AnnDataIO extends SpatialDataIO {
+
 
 	public AnnDataIO(String path, N5Constructor n5Constructor) {
 		super(path, n5Constructor);
@@ -76,6 +80,9 @@ public class AnnDataIO extends SpatialDataIO {
 
 	@Override
 	public STDataAssembly readData() throws IOException {
+		if (!AnnDataDetails.isValidAnnData(n5))
+			throw new IOException(path + " is not a valid AnnData file.");
+
 		STDataAssembly stDataAssembly = super.readData();
 
 		if (containsCellTypes()) {
@@ -106,7 +113,7 @@ public class AnnDataIO extends SpatialDataIO {
 		return n5.exists("/obs/cell_type");
 	}
 
-	public static ArrayImg<IntType, IntArray> getCelltypeIds(final N5Reader reader) throws IOException {
+	public static ArrayImg<IntType, IntArray> getCelltypeIds(final N5Reader reader) {
 		final List<String> cellTypes = AnnDataDetails.readStringAnnotation(reader, "/obs/cell_type");
 		final HashMap<String, Integer> typeToIdMap = new HashMap<>();
 		final int[] celltypeIds = new int[cellTypes.size()];
@@ -142,7 +149,26 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	public void writeData(STDataAssembly data) throws IOException {
+		if (readOnly)
+			throw new SpatialDataIOException("N5 only opened for reading.");
 
+		N5Writer writer = (N5Writer) n5;
+		STData stData = data.data();
+
+		System.out.print( "Saving AnnData '" + path + "' ... " );
+		long time = System.currentTimeMillis();
+
+		AnnDataDetails.writeEncoding(writer, "/", AnnDataFieldType.ANNDATA);
+
+		AnnDataDetails.writeArray(writer, "/X", Views.permute(stData.getAllExprValues(), 0, 1), options, AnnDataFieldType.CSR_MATRIX);
+
+		AnnDataDetails.createDataFrame(writer, "/obs", stData.getBarcodes());
+		AnnDataDetails.createDataFrame(writer, "/var", stData.getGeneNames());
+
+		AnnDataDetails.createMapping(writer, "/obsm");
+		AnnDataDetails.writeArray(writer, "/obsm/locations", stData.getLocations(), options);
+
+		System.out.println( "took " + ( System.currentTimeMillis() - time ) + " ms." );
 	}
 
 	@Override

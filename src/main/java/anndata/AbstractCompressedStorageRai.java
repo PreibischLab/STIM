@@ -125,6 +125,18 @@ abstract public class AbstractCompressedStorageRai<
         return randomAccess();
     }
 
+    public RandomAccessibleInterval<D> getDataArray() {
+        return data;
+    }
+
+    public RandomAccessibleInterval<I> getIndicesArray() {
+        return indices;
+    }
+
+    public RandomAccessibleInterval<I> getIndexPointerArray() {
+        return indptr;
+    }
+
     abstract protected long ind(long[] position);
 
     abstract protected long ptr(long[] position);

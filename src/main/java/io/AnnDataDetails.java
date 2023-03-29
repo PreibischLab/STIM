@@ -1,9 +1,11 @@
 package io;
 
+import anndata.AbstractCompressedStorageRai;
 import anndata.CscRandomAccessibleInterval;
 import anndata.CsrRandomAccessibleInterval;
 import ch.systemsx.cisd.hdf5.HDF5Factory;
 import ch.systemsx.cisd.hdf5.IHDF5Reader;
+import ch.systemsx.cisd.hdf5.IHDF5StringWriter;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RandomAccess;
 import net.imglib2.cache.img.CachedCellImg;
@@ -13,12 +15,16 @@ import net.imglib2.type.numeric.NumericType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.IntegerType;
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
+import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
+import io.SpatialDataIO.N5Options;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import static io.SpatialDataIO.SpatialDataIOException;
 
@@ -55,7 +61,7 @@ class AnnDataDetails {
         final CachedCellImg<?, ?> indices = N5Utils.open(reader, path + "/indices");
         final CachedCellImg<?, ?> indptr = N5Utils.open(reader, path + "/indptr");
 
-        final long[] shape = reader.getAttribute("/X", "shape", long[].class);
+        final long[] shape = reader.getAttribute(path, "shape", long[].class);
         return new CsrRandomAccessibleInterval(shape[1], shape[0], sparseData, indices, indptr);
     }
 
@@ -64,7 +70,7 @@ class AnnDataDetails {
         final CachedCellImg<?, ?> indices = N5Utils.open(reader, path + "/indices");
         final CachedCellImg<?, ?> indptr = N5Utils.open(reader, path + "/indptr");
 
-        final long[] shape = reader.getAttribute("/X", "shape", long[].class);
+        final long[] shape = reader.getAttribute(path, "shape", long[].class);
         return new CscRandomAccessibleInterval(shape[1], shape[0], sparseData, indices, indptr);
     }
 
@@ -97,8 +103,8 @@ class AnnDataDetails {
 
     protected static List<String> readCategoricalList(N5Reader reader, String path) throws IOException {
         final String[] categoryNames = readPrimitiveStringArray((N5HDF5Reader) reader, path + "/categories");
-        final Img<?> category = N5Utils.open(reader, path + "/codes");
-        final RandomAccess<? extends IntegerType> ra = (RandomAccess<? extends IntegerType>) category.randomAccess();
+        final Img<? extends IntegerType<?>> category = N5Utils.open(reader, path + "/codes");
+        final RandomAccess<? extends IntegerType<?>> ra = category.randomAccess();
 
         // assume that minimal index = 0
         final int max = (int) category.max(0);
@@ -110,6 +116,104 @@ class AnnDataDetails {
         return Arrays.asList(names);
     }
 
+    public static boolean isValidAnnData(N5Reader n5) {
+        try {
+            return getFieldType(n5, "/").toString().equals(AnnDataFieldType.ANNDATA.toString());
+        }
+        catch (IOException e) {
+            return false;
+        }
+    }
+
+    public void createMapping(String path) {
+
+    }
+
+    public static void writeEncoding(N5Writer writer, String path, AnnDataFieldType type) throws IOException {
+        writer.setAttribute(path, "encoding-type", type.encoding);
+        writer.setAttribute(path, "encoding-version", type.version);
+    }
+
+    public static <T extends NativeType<T> & NumericType<T>> void writeArray(
+            N5Writer writer,
+            String path,
+            RandomAccessibleInterval<T> data,
+            N5Options options) {
+        AnnDataFieldType type = AnnDataFieldType.DENSE_ARRAY;
+        if (data instanceof CsrRandomAccessibleInterval)
+            type = AnnDataFieldType.CSR_MATRIX;
+        if (data instanceof CscRandomAccessibleInterval)
+            type = AnnDataFieldType.CSC_MATRIX;
+        writeArray(writer, path, data, options, type);
+    }
+
+    public static <T extends NativeType<T> & NumericType<T>> void writeArray(
+            N5Writer writer,
+            String path,
+            RandomAccessibleInterval<T> data,
+            N5Options options,
+            AnnDataFieldType type) {
+        try {
+            if (type == AnnDataFieldType.DENSE_ARRAY)
+                N5Utils.save(data, writer, path, options.blockSize, options.compression, options.exec);
+            else if (type == AnnDataFieldType.CSR_MATRIX || type == AnnDataFieldType.CSC_MATRIX)
+                writeSparseArray(writer, path, data, options, type);
+            else
+                throw new SpatialDataIOException("Writing array data for " + type.toString() + " not supported.");
+        }
+        catch (IOException | ExecutionException | InterruptedException e) {
+            throw new SpatialDataIOException("Could not load dataset at '" + path + "'\n" + e.getMessage());
+        }
+    }
+
+    public static <T extends NativeType<T> & NumericType<T>> void writeSparseArray(
+            N5Writer writer,
+            String path,
+            RandomAccessibleInterval<T> data,
+            N5Options options,
+            AnnDataFieldType type) throws IOException, ExecutionException, InterruptedException {
+
+        if (type != AnnDataFieldType.CSR_MATRIX && type != AnnDataFieldType.CSC_MATRIX)
+            throw new IllegalArgumentException("Sparse array type must be CSR or CSC.");
+
+        AbstractCompressedStorageRai<T, ?> sparse;
+        final boolean typeFitsData = (type == AnnDataFieldType.CSR_MATRIX && data instanceof CsrRandomAccessibleInterval)
+                || (type == AnnDataFieldType.CSC_MATRIX && data instanceof CscRandomAccessibleInterval);
+        if (typeFitsData) {
+           sparse = (AbstractCompressedStorageRai<T, ?>) data;
+        }
+        else {
+            final int leadingDim = (type == AnnDataFieldType.CSR_MATRIX) ? 0 : 1;
+            sparse = AbstractCompressedStorageRai.convertToSparse(data, leadingDim);
+        }
+
+        writer.createGroup(path);
+        writer.setAttribute(path, "shape", new int[]{(int) data.dimension(1), (int) data.dimension(0)});
+
+        int[] blockSize = {options.blockSize[0]*options.blockSize[1]};
+        N5Utils.save(sparse.getDataArray(), writer, path + "/data", blockSize, options.compression, options.exec);
+        N5Utils.save(sparse.getIndicesArray(), writer, path + "/indices", blockSize, options.compression, options.exec);
+        N5Utils.save(sparse.getIndexPointerArray(), writer, path + "/indptr", blockSize, options.compression, options.exec);
+    }
+
+    public static void createDataFrame(N5Writer writer, String path, List<String> index) throws IOException {
+        writer.createGroup(path);
+        writeEncoding(writer, path, AnnDataFieldType.DATA_FRAME);
+        writer.setAttribute(path, "_index", "_index");
+        // this should be an empty attribute, which N5 doesn't support -> use "" as surrogate
+        writer.setAttribute(path, "column-order", "");
+        writePrimitiveStringArray((N5HDF5Writer) writer, path + "/_index", index.toArray(new String[0]));
+    }
+
+    protected static void writePrimitiveStringArray(N5HDF5Writer writer, String path, String[] array) {
+        final IHDF5StringWriter stringWriter = HDF5Factory.open(writer.getFilename()).string();
+        stringWriter.writeArrayVL(path, array);
+    }
+
+    protected static void createMapping(N5Writer writer, String path) throws IOException {
+        writer.createGroup(path);
+        writeEncoding(writer, path, AnnDataFieldType.MAPPING);
+    }
 
     public enum AnnDataFieldType {
 
