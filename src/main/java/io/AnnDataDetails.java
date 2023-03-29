@@ -1,6 +1,6 @@
 package io;
 
-import anndata.AbstractCompressedStorageRai;
+import anndata.CompressedStorageRai;
 import anndata.CscRandomAccessibleInterval;
 import anndata.CsrRandomAccessibleInterval;
 import ch.systemsx.cisd.hdf5.HDF5Factory;
@@ -180,15 +180,15 @@ class AnnDataDetails {
         if (type != AnnDataFieldType.CSR_MATRIX && type != AnnDataFieldType.CSC_MATRIX)
             throw new IllegalArgumentException("Sparse array type must be CSR or CSC.");
 
-        AbstractCompressedStorageRai<T, ?> sparse;
+        CompressedStorageRai<T, ?> sparse;
         final boolean typeFitsData = (type == AnnDataFieldType.CSR_MATRIX && data instanceof CsrRandomAccessibleInterval)
                 || (type == AnnDataFieldType.CSC_MATRIX && data instanceof CscRandomAccessibleInterval);
         if (typeFitsData) {
-           sparse = (AbstractCompressedStorageRai<T, ?>) data;
+           sparse = (CompressedStorageRai<T, ?>) data;
         }
         else {
             final int leadingDim = (type == AnnDataFieldType.CSR_MATRIX) ? 0 : 1;
-            sparse = AbstractCompressedStorageRai.convertToSparse(data, leadingDim);
+            sparse = CompressedStorageRai.convertToSparse(data, leadingDim);
         }
 
         int[] blockSize = {options.blockSize[0]*options.blockSize[1]};

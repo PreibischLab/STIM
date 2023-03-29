@@ -3,7 +3,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import anndata.AbstractCompressedStorageRai;
+import anndata.CompressedStorageRai;
 import anndata.CscRandomAccessibleInterval;
 import anndata.CsrRandomAccessibleInterval;
 import net.imglib2.RandomAccess;
@@ -46,17 +46,17 @@ public class SparseImageTest {
 
 	@ParameterizedTest
 	@MethodSource("setupSparseImages")
-	public void sparse_has_correct_number_of_nonzeros(AbstractCompressedStorageRai<DoubleType, LongType> sparse) {
-		assertEquals(5, AbstractCompressedStorageRai.getNumberOfNonzeros(sparse));
+	public void sparse_has_correct_number_of_nonzeros(CompressedStorageRai<DoubleType, LongType> sparse) {
+		assertEquals(5, CompressedStorageRai.getNumberOfNonzeros(sparse));
 	}
 
 	@ParameterizedTest
 	@MethodSource("setupSparseImages")
-	public void conversion_to_sparse_is_correct(AbstractCompressedStorageRai<DoubleType, LongType> sparse) {
-		AbstractCompressedStorageRai<DoubleType, LongType> newCsr = AbstractCompressedStorageRai.convertToSparse(sparse, 0);
+	public void conversion_to_sparse_is_correct(CompressedStorageRai<DoubleType, LongType> sparse) {
+		CompressedStorageRai<DoubleType, LongType> newCsr = CompressedStorageRai.convertToSparse(sparse, 0);
 		assertTrue(newCsr instanceof CsrRandomAccessibleInterval);
 		TestUtils.assertRaiEquals(sparse, newCsr);
-		AbstractCompressedStorageRai<DoubleType, LongType> newCsc = AbstractCompressedStorageRai.convertToSparse(sparse, 1);
+		CompressedStorageRai<DoubleType, LongType> newCsc = CompressedStorageRai.convertToSparse(sparse, 1);
 		assertTrue(newCsc instanceof CscRandomAccessibleInterval);
 		TestUtils.assertRaiEquals(sparse, newCsc);
 	}
@@ -76,7 +76,7 @@ public class SparseImageTest {
 		return (CscRandomAccessibleInterval<DoubleType, LongType>) setupSparseImages().get(1).getPayload();
 	}
 
-	protected static List<Named<AbstractCompressedStorageRai<DoubleType, LongType>>> setupSparseImages() {
+	protected static List<Named<CompressedStorageRai<DoubleType, LongType>>> setupSparseImages() {
 		Img<DoubleType> data = TestUtils.create1DImgFromList(new ArrayImgFactory<>(new DoubleType()),
 				Stream.of(1.0, 1.0, 1.0, 1.0, 1.0).map(DoubleType::new).collect(Collectors.toList()));
 		Img<LongType> indices = TestUtils.create1DImgFromList(new ArrayImgFactory<>(new LongType()),

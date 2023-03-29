@@ -7,7 +7,7 @@ import net.imglib2.type.numeric.NumericType;
 
 public class CscRandomAccessibleInterval  <
 	D extends NativeType<D> & NumericType<D>,
-	I extends NativeType<I> & IntegerType<I>> extends AbstractCompressedStorageRai<D,I>
+	I extends NativeType<I> & IntegerType<I>> extends CompressedStorageRai<D,I>
 {
     public CscRandomAccessibleInterval(
     		final long numCols,

@@ -10,7 +10,7 @@ import net.imglib2.type.numeric.NumericType;
 import net.imglib2.type.numeric.integer.LongType;
 import net.imglib2.view.Views;
 
-abstract public class AbstractCompressedStorageRai<
+abstract public class CompressedStorageRai<
         D extends NativeType<D> & NumericType<D>,
         I extends NativeType<I> & IntegerType<I>>
         implements RandomAccessibleInterval<D> {
@@ -20,7 +20,7 @@ abstract public class AbstractCompressedStorageRai<
     protected final RandomAccessibleInterval<I> indices;
     protected final RandomAccessibleInterval<I> indptr;
 
-    public AbstractCompressedStorageRai(
+    public CompressedStorageRai(
             long numCols,
             long numRows,
             RandomAccessibleInterval<D> data,
@@ -41,11 +41,11 @@ abstract public class AbstractCompressedStorageRai<
             throw new IllegalArgumentException("Indptr array does not fit number of slices.");
     }
 
-    public static <T extends NativeType<T> & NumericType<T>> AbstractCompressedStorageRai<T, LongType> convertToSparse(RandomAccessibleInterval<T> rai) {
+    public static <T extends NativeType<T> & NumericType<T>> CompressedStorageRai<T, LongType> convertToSparse(RandomAccessibleInterval<T> rai) {
         return convertToSparse(rai, 0); // CSR per default
     }
 
-    public static <T extends NativeType<T> & NumericType<T>> AbstractCompressedStorageRai<T, LongType> convertToSparse(RandomAccessibleInterval<T> rai, int leadingDimension) {
+    public static <T extends NativeType<T> & NumericType<T>> CompressedStorageRai<T, LongType> convertToSparse(RandomAccessibleInterval<T> rai, int leadingDimension) {
         if (leadingDimension != 0 && leadingDimension != 1)
             throw new IllegalArgumentException("Leading dimension in sparse array must be 0 or 1.");
 
