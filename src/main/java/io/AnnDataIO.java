@@ -43,6 +43,7 @@ import static io.AnnDataDetails.AnnDataFieldType;
 
 public class AnnDataIO extends SpatialDataIO {
 
+	protected static String locationPath = "/obsm/spatial";
 
 	public AnnDataIO(String path, N5Constructor n5Constructor) {
 		super(path, n5Constructor);
@@ -98,7 +99,7 @@ public class AnnDataIO extends SpatialDataIO {
 	protected RandomAccessibleInterval<DoubleType> readLocations() {
 		// transpose locations, since AnnData stores them as columns
 		RandomAccessibleInterval<? extends RealType<?>> locations = Views.permute(
-				AnnDataDetails.readArray(n5, "/obsm/spatial"), 0, 1);
+				AnnDataDetails.readArray(n5, locationPath), 0, 1);
 		return Converters.convert(locations, (i, o) -> o.set(i.getRealDouble()), new DoubleType());
 	}
 
@@ -160,13 +161,13 @@ public class AnnDataIO extends SpatialDataIO {
 
 		AnnDataDetails.writeEncoding(writer, "/", AnnDataFieldType.ANNDATA);
 
-		AnnDataDetails.writeArray(writer, "/X", Views.permute(stData.getAllExprValues(), 0, 1), options, AnnDataFieldType.CSR_MATRIX);
+		AnnDataDetails.writeArray(writer, "/X", stData.getAllExprValues(), options, AnnDataFieldType.CSR_MATRIX);
 
 		AnnDataDetails.createDataFrame(writer, "/obs", stData.getBarcodes());
 		AnnDataDetails.createDataFrame(writer, "/var", stData.getGeneNames());
 
 		AnnDataDetails.createMapping(writer, "/obsm");
-		AnnDataDetails.writeArray(writer, "/obsm/locations", stData.getLocations(), options);
+		AnnDataDetails.writeArray(writer, locationPath, Views.permute(stData.getLocations(), 0, 1), options);
 
 		System.out.println( "took " + ( System.currentTimeMillis() - time ) + " ms." );
 	}

@@ -139,6 +139,7 @@ class AnnDataDetails {
             String path,
             RandomAccessibleInterval<T> data,
             N5Options options) {
+
         AnnDataFieldType type = AnnDataFieldType.DENSE_ARRAY;
         if (data instanceof CsrRandomAccessibleInterval)
             type = AnnDataFieldType.CSR_MATRIX;
@@ -153,6 +154,7 @@ class AnnDataDetails {
             RandomAccessibleInterval<T> data,
             N5Options options,
             AnnDataFieldType type) {
+
         try {
             if (type == AnnDataFieldType.DENSE_ARRAY)
                 N5Utils.save(data, writer, path, options.blockSize, options.compression, options.exec);
@@ -160,6 +162,8 @@ class AnnDataDetails {
                 writeSparseArray(writer, path, data, options, type);
             else
                 throw new SpatialDataIOException("Writing array data for " + type.toString() + " not supported.");
+            writer.setAttribute(path, "shape", new long[]{data.dimension(1), data.dimension(0)});
+            writeEncoding(writer, path, type);
         }
         catch (IOException | ExecutionException | InterruptedException e) {
             throw new SpatialDataIOException("Could not load dataset at '" + path + "'\n" + e.getMessage());
@@ -187,10 +191,8 @@ class AnnDataDetails {
             sparse = AbstractCompressedStorageRai.convertToSparse(data, leadingDim);
         }
 
-        writer.createGroup(path);
-        writer.setAttribute(path, "shape", new int[]{(int) data.dimension(1), (int) data.dimension(0)});
-
         int[] blockSize = {options.blockSize[0]*options.blockSize[1]};
+        writer.createGroup(path);
         N5Utils.save(sparse.getDataArray(), writer, path + "/data", blockSize, options.compression, options.exec);
         N5Utils.save(sparse.getIndicesArray(), writer, path + "/indices", blockSize, options.compression, options.exec);
         N5Utils.save(sparse.getIndexPointerArray(), writer, path + "/indptr", blockSize, options.compression, options.exec);
@@ -202,7 +204,9 @@ class AnnDataDetails {
         writer.setAttribute(path, "_index", "_index");
         // this should be an empty attribute, which N5 doesn't support -> use "" as surrogate
         writer.setAttribute(path, "column-order", "");
+
         writePrimitiveStringArray((N5HDF5Writer) writer, path + "/_index", index.toArray(new String[0]));
+        writeEncoding(writer, path + "/_index", AnnDataFieldType.STRING_ARRAY);
     }
 
     protected static void writePrimitiveStringArray(N5HDF5Writer writer, String path, String[] array) {
