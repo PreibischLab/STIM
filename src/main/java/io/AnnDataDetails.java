@@ -11,7 +11,6 @@ import net.imglib2.RandomAccess;
 import net.imglib2.cache.img.CachedCellImg;
 import net.imglib2.img.Img;
 import net.imglib2.type.NativeType;
-import net.imglib2.type.numeric.NumericType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.IntegerType;
 import org.janelia.saalfeldlab.n5.N5Reader;
@@ -56,7 +55,7 @@ class AnnDataDetails {
         return AnnDataFieldType.fromString(encoding, version);
     }
 
-    protected static <T extends NativeType<T> & NumericType<T>> CsrRandomAccessibleInterval openCsrArray(N5Reader reader, String path) throws IOException {
+    protected static <T extends NativeType<T> & RealType<T>> CsrRandomAccessibleInterval openCsrArray(N5Reader reader, String path) throws IOException {
         final CachedCellImg<T, ?> sparseData = N5Utils.open(reader, path + "/data");
         final CachedCellImg<?, ?> indices = N5Utils.open(reader, path + "/indices");
         final CachedCellImg<?, ?> indptr = N5Utils.open(reader, path + "/indptr");
@@ -65,7 +64,7 @@ class AnnDataDetails {
         return new CsrRandomAccessibleInterval(shape[1], shape[0], sparseData, indices, indptr);
     }
 
-    protected static <T extends NativeType<T> & NumericType<T>> CscRandomAccessibleInterval openCscArray(N5Reader reader, String path) throws IOException {
+    protected static <T extends NativeType<T> & RealType<T>> CscRandomAccessibleInterval openCscArray(N5Reader reader, String path) throws IOException {
         final CachedCellImg<T, ?> sparseData = N5Utils.open(reader, path + "/data");
         final CachedCellImg<?, ?> indices = N5Utils.open(reader, path + "/indices");
         final CachedCellImg<?, ?> indptr = N5Utils.open(reader, path + "/indptr");
@@ -134,7 +133,7 @@ class AnnDataDetails {
         writer.setAttribute(path, "encoding-version", type.version);
     }
 
-    public static <T extends NativeType<T> & NumericType<T>> void writeArray(
+    public static <T extends NativeType<T> & RealType<T>> void writeArray(
             N5Writer writer,
             String path,
             RandomAccessibleInterval<T> data,
@@ -148,7 +147,7 @@ class AnnDataDetails {
         writeArray(writer, path, data, options, type);
     }
 
-    public static <T extends NativeType<T> & NumericType<T>> void writeArray(
+    public static <T extends NativeType<T> & RealType<T>> void writeArray(
             N5Writer writer,
             String path,
             RandomAccessibleInterval<T> data,
@@ -170,7 +169,7 @@ class AnnDataDetails {
         }
     }
 
-    public static <T extends NativeType<T> & NumericType<T>> void writeSparseArray(
+    public static <T extends NativeType<T> & RealType<T>> void writeSparseArray(
             N5Writer writer,
             String path,
             RandomAccessibleInterval<T> data,
