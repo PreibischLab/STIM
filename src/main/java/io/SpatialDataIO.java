@@ -126,8 +126,9 @@ public abstract class SpatialDataIO {
 	}
 
 	// custom functional interface, since Function<String, N5Reader> doesn't throw IOException
+	@FunctionalInterface
 	public interface N5Constructor {
-		public N5Reader apply(String path) throws IOException;
+		N5Reader apply(String path) throws IOException;
 	}
 
 	public static class SpatialDataIOException extends RuntimeException {

@@ -17,6 +17,7 @@ import gui.STDataExplorer;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
+import net.imglib2.type.NativeType;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
@@ -99,13 +100,13 @@ public class AnnDataIO extends SpatialDataIO {
 	protected RandomAccessibleInterval<DoubleType> readLocations() {
 		// transpose locations, since AnnData stores them as columns
 		RandomAccessibleInterval<? extends RealType<?>> locations = Views.permute(
-				AnnDataDetails.readArray(n5, locationPath), 0, 1);
+				(RandomAccessibleInterval<? extends RealType<?>>) AnnDataDetails.readArray(n5, locationPath), 0, 1);
 		return Converters.convert(locations, (i, o) -> o.set(i.getRealDouble()), new DoubleType());
 	}
 
 	@Override
 	protected RandomAccessibleInterval<DoubleType> readExpressionValues() {
-		RandomAccessibleInterval<? extends RealType<?>> expressionVals = AnnDataDetails.readArray(n5, "/X");
+		RandomAccessibleInterval<? extends RealType<?>> expressionVals = (RandomAccessibleInterval<? extends RealType<?>>) AnnDataDetails.readArray(n5, "/X");
 		return Converters.convert(expressionVals, (i, o) -> o.set(i.getRealDouble()), new DoubleType());
 	}
 
