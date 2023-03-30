@@ -184,8 +184,8 @@ class AnnDataDetails {
             sparse = CompressedStorageRai.convertToSparse(data, leadingDim);
         }
 
-        int[] blockSize = {options.blockSize[0]*options.blockSize[1]};
         writer.createGroup(path);
+        int[] blockSize = (options.blockSize.length == 1) ? options.blockSize : new int[]{options.blockSize[0]*options.blockSize[1]};
         N5Utils.save(sparse.getDataArray(), writer, path + "/data", blockSize, options.compression, options.exec);
         N5Utils.save(sparse.getIndicesArray(), writer, path + "/indices", blockSize, options.compression, options.exec);
         N5Utils.save(sparse.getIndexPointerArray(), writer, path + "/indptr", blockSize, options.compression, options.exec);

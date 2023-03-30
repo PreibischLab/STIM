@@ -5,7 +5,6 @@ import io.AnnDataIO;
 import io.SpatialDataIO;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
-import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.junit.jupiter.api.AfterEach;
@@ -16,8 +15,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertLinesMatch;
@@ -73,9 +70,9 @@ public class IOTest {
 	public void io_works_for_transformations() throws IOException {
 		STData data = TestUtils.createTestDataSet();
 		STDataStatistics stats = new STDataStatistics(data);
-		final AffineTransform2D transform = new AffineTransform2D();
 		final AffineTransform intensityTransform = new AffineTransform(1);
 		intensityTransform.set(2, 1);
+		final AffineTransform2D transform = new AffineTransform2D();
 		transform.rotate(3.14159 / 4);
 		STDataAssembly expected = new STDataAssembly(data, stats, transform, intensityTransform);
 

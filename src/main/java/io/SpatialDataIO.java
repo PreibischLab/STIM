@@ -6,8 +6,11 @@ import data.STDataImgLib2;
 import data.STDataStatistics;
 import gui.STDataAssembly;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.realtransform.AffineSet;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
+import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.DoubleType;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.GzipCompression;
@@ -26,6 +29,7 @@ public abstract class SpatialDataIO {
 	protected final N5Reader n5;
 	protected boolean readOnly = true;
 	protected N5Options options;
+	protected N5Options options1d;
 
 	public SpatialDataIO(String path, N5Reader reader) {
 		if (path == null)
@@ -37,6 +41,10 @@ public abstract class SpatialDataIO {
 
 		options = new N5Options(
 				new int[]{512, 512},
+				new GzipCompression(3),
+				Executors.newFixedThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2)));
+		options1d = new N5Options(
+				new int[]{512*512},
 				new GzipCompression(3),
 				Executors.newFixedThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2)));
 	}
@@ -55,24 +63,38 @@ public abstract class SpatialDataIO {
 		RandomAccessibleInterval<DoubleType> locations = readLocations();
 		RandomAccessibleInterval<DoubleType> exprValues = readExpressionValues();
 
-		System.out.println("Parsing took " + (System.currentTimeMillis() - time) + " ms.");
-
 		STData stData = new STDataImgLib2(locations, exprValues, geneNames, barcodes, geneLookup);
-		return createTrivialAssembly(stData);
+
+		AffineTransform intensityTransform = new AffineTransform(1);
+		readAndSetTransformation(intensityTransform, "intensity_transform");
+		AffineTransform2D transform = new AffineTransform2D();
+		readAndSetTransformation(transform, "transform");
+
+		System.out.println("Parsing took " + (System.currentTimeMillis() - time) + " ms.");
+		return new STDataAssembly(stData, new STDataStatistics(stData), transform, intensityTransform);
 	}
 
 	public void setBlockSize(int... blockSize) {
 		if (blockSize.length != 2)
 			throw new IllegalArgumentException("Block size must be two dimensional.");
 		options.blockSize = blockSize;
+		options1d.blockSize = new int[]{blockSize[0] * blockSize[1]};
+	}
+
+	protected N5Writer getN5asWriter() {
+		if (readOnly)
+			throw new SpatialDataIOException("Trying to write to read-only N5.");
+		return (N5Writer) n5;
 	}
 
 	public void setCompression(Compression compression) {
 		options.compression = compression;
+		options1d.compression = compression;
 	}
 
 	public void setExecutorService(ExecutorService exec) {
 		options.exec = exec;
+		options1d.exec = exec;
 	}
 
 	protected abstract RandomAccessibleInterval<DoubleType> readLocations();
@@ -89,6 +111,8 @@ public abstract class SpatialDataIO {
 
 	public abstract Boolean containsCellTypes();
 
+	protected abstract <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(AffineSet transform, String name);
+
 	public abstract void writeData(STDataAssembly data) throws IOException;
 
 	protected abstract void writeLocations(RandomAccessibleInterval<DoubleType> locations);
@@ -102,15 +126,6 @@ public abstract class SpatialDataIO {
 	protected abstract void writeGeneNames(List<String> geneNames);
 
 	protected abstract void writeCellTypes(List<String> cellTypes);
-
-	protected STDataAssembly createTrivialAssembly(STData data) {
-		final STDataStatistics stat = new STDataStatistics(data);
-		final AffineTransform2D transform = new AffineTransform2D();
-		final AffineTransform intensityTransform = new AffineTransform(1);
-		intensityTransform.set(1, 0);
-
-		return new STDataAssembly(data, stat, transform, intensityTransform);
-	}
 
 	public static class SpatialDataIOException extends RuntimeException {
 		public SpatialDataIOException() {}

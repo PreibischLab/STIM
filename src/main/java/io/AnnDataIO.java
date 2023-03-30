@@ -15,8 +15,12 @@ import data.STData;
 import filter.FilterFactory;
 import gui.STDataExplorer;
 import net.imglib2.Interval;
+import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
+import net.imglib2.realtransform.AffineGet;
+import net.imglib2.realtransform.AffineSet;
+import net.imglib2.type.NativeType;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
@@ -129,6 +133,17 @@ public class AnnDataIO extends SpatialDataIO {
 		return ArrayImgs.ints(celltypeIds, celltypeIds.length);
 	}
 
+	protected <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(AffineSet transform, String name) {
+		RandomAccessibleInterval<T> trafoValues = AnnDataDetails.readArray(n5, "/uns/" + name);
+		RandomAccess<T> ra = trafoValues.randomAccess();
+		int n = (int) trafoValues.dimension(0);
+		double[] convertedValues = new double[n];
+
+		for (int k = 0; k < n; k++)
+			convertedValues[k] = ra.setPositionAndGet(k).getRealDouble();
+		transform.set(convertedValues);
+	}
+
 	@Override
 	public JsonElement readMetaData() {
 		return null;
@@ -150,10 +165,7 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	public void writeData(STDataAssembly data) throws IOException {
-		if (readOnly)
-			throw new SpatialDataIOException("N5 only opened for reading.");
-
-		N5Writer writer = (N5Writer) n5;
+		N5Writer writer = getN5asWriter();
 		STData stData = data.data();
 
 		System.out.print( "Saving AnnData '" + path + "' ... " );
@@ -169,7 +181,17 @@ public class AnnDataIO extends SpatialDataIO {
 		AnnDataDetails.createMapping(writer, "/obsm");
 		AnnDataDetails.writeArray(writer, locationPath, Views.permute(stData.getLocations(), 0, 1), options);
 
+		AnnDataDetails.createMapping(writer, "/uns");
+		writeTransformation(data.transform(), "transform");
+		writeTransformation(data.intensityTransform(), "intensity_transform");
+
 		System.out.println( "took " + ( System.currentTimeMillis() - time ) + " ms." );
+	}
+
+	protected void writeTransformation(AffineGet transform, String name) {
+		N5Writer writer = getN5asWriter();
+		double[] trafoValues = transform.getRowPackedCopy();
+		AnnDataDetails.writeArray(writer, "/uns/" + name, ArrayImgs.doubles(trafoValues, trafoValues.length), options1d);
 	}
 
 	@Override
