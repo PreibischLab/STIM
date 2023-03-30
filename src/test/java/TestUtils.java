@@ -6,6 +6,7 @@ import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
+import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.Type;
@@ -31,14 +32,6 @@ public class TestUtils {
 			for (int j = 0; j < expected.dimension(1); ++j)
 				assertEquals(raExpected.setPositionAndGet(i, j), raActual.setPositionAndGet(i, j),
 						"Rai's differ on entry (" + i + "," + j +")");
-	}
-
-	public static  <T extends Type<T>> Img<T> create1DImgFromList(ImgFactory<T> imgFactory, List<T> values) {
-		final Img<T> img = imgFactory.create(values.size());
-		final Iterator<T> valueIterator = values.iterator();
-		for (final T pixel : img)
-			pixel.set(valueIterator.next());
-		return img;
 	}
 
 	public static STData createTestDataSet() {

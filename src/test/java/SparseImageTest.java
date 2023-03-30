@@ -9,6 +9,7 @@ import anndata.CsrRandomAccessibleInterval;
 import net.imglib2.RandomAccess;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.type.numeric.integer.LongType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.view.Views;
@@ -77,12 +78,9 @@ public class SparseImageTest {
 	}
 
 	protected static List<Named<CompressedStorageRai<DoubleType, LongType>>> setupSparseImages() {
-		Img<DoubleType> data = TestUtils.create1DImgFromList(new ArrayImgFactory<>(new DoubleType()),
-				Stream.of(1.0, 1.0, 1.0, 1.0, 1.0).map(DoubleType::new).collect(Collectors.toList()));
-		Img<LongType> indices = TestUtils.create1DImgFromList(new ArrayImgFactory<>(new LongType()),
-				Stream.of(2, 5, 0, 6, 9).map(LongType::new).collect(Collectors.toList()));
-		Img<LongType> indptr = TestUtils.create1DImgFromList(new ArrayImgFactory<>(new LongType()),
-				Stream.of(0, 1, 2, 3, 3, 3, 3, 3, 3, 5).map(LongType::new).collect(Collectors.toList()));
+		Img<DoubleType> data = ArrayImgs.doubles(new double[]{1.0, 1.0, 1.0, 1.0, 1.0}, 5);
+		Img<LongType> indices = ArrayImgs.longs(new long[]{2L, 5L, 0L, 6L, 9L}, 5);
+		Img<LongType> indptr = ArrayImgs.longs(new long[]{0L, 1L, 2L, 3L, 3L, 3L, 3L, 3L, 3L, 5L}, 10);
 
 		return Arrays.asList(
 				named("CSR", new CsrRandomAccessibleInterval<>(10, 9, data, indices, indptr)),
