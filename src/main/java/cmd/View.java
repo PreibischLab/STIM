@@ -61,7 +61,7 @@ public class View implements Callable<Void> {
 
 		if (containerPath.endsWith(".h5ad")) {
 			data = new ArrayList<>();
-			SpatialDataIO stio = new AnnDataIO(containerPath, N5HDF5Reader::new);
+			SpatialDataIO stio = new AnnDataIO(containerPath, new N5HDF5Reader(containerPath));
 			data.add(stio.readData());
 		}
 		else if ( datasets == null || datasets.size() == 0 )

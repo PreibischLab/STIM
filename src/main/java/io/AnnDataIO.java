@@ -17,7 +17,6 @@ import gui.STDataExplorer;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
-import net.imglib2.type.NativeType;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
@@ -46,8 +45,8 @@ public class AnnDataIO extends SpatialDataIO {
 
 	protected static String locationPath = "/obsm/spatial";
 
-	public AnnDataIO(String path, N5Constructor n5Constructor) {
-		super(path, n5Constructor);
+	public AnnDataIO(String path, N5Reader reader) {
+		super(path, reader);
 
 		if (!(n5 instanceof N5HDF5Reader))
 			throw new IllegalArgumentException("IO for AnnData currently only supports hdf5.");
@@ -57,7 +56,7 @@ public class AnnDataIO extends SpatialDataIO {
 	{
 		final String path = System.getProperty("user.dir") + "/data/human-lymph-node.h5ad";
 
-		SpatialDataIO stio = new AnnDataIO(path, N5HDF5Reader::new);
+		SpatialDataIO stio = new AnnDataIO(path, new N5HDF5Reader(path));
 		STDataAssembly data = stio.readData();
 		String gene = "IGKC";
 

@@ -14,7 +14,6 @@ import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -28,25 +27,13 @@ public abstract class SpatialDataIO {
 	protected boolean readOnly = true;
 	protected N5Options options;
 
-	public SpatialDataIO(String path, N5Constructor n5Constructor) {
+	public SpatialDataIO(String path, N5Reader reader) {
 		if (path == null)
 			throw new SpatialDataIOException("No path to N5 given.");
 
-		boolean fileAlreadyExists = (new File(path)).exists();
-
 		this.path = path;
-		try {
-			this.n5 = n5Constructor.apply(path);
-		}
-		catch (IOException e) {
-			throw new SpatialDataIOException("Could not open file: " + path + "\n" + e.getMessage());
-		}
-
-		if (n5 instanceof N5Writer) {
-			if (fileAlreadyExists)
-				throw new SpatialDataIOException(path + " already exists, cannot save.");
-			this.readOnly = false;
-		}
+		this.n5 = reader;
+		readOnly = !(reader instanceof N5Writer);
 
 		options = new N5Options(
 				new int[]{512, 512},
@@ -123,12 +110,6 @@ public abstract class SpatialDataIO {
 		intensityTransform.set(1, 0);
 
 		return new STDataAssembly(data, stat, transform, intensityTransform);
-	}
-
-	// custom functional interface, since Function<String, N5Reader> doesn't throw IOException
-	@FunctionalInterface
-	public interface N5Constructor {
-		N5Reader apply(String path) throws IOException;
 	}
 
 	public static class SpatialDataIOException extends RuntimeException {

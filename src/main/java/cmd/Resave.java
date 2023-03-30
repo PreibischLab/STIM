@@ -81,7 +81,7 @@ public class Resave implements Callable<Void> {
 			if (elements.length == 2) { // means: input is an anndata file
 				String path = elements[0].trim();
 				System.out.println( "Locations='" + path + "'");
-				SpatialDataIO stio = new AnnDataIO(path, N5HDF5Reader::new);
+				SpatialDataIO stio = new AnnDataIO(path, new N5HDF5Reader(path));
 				data = stio.readData().data();
 				hasCelltypeAnnotations.add(stio.containsCellTypes());
 			}

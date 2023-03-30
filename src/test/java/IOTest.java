@@ -6,9 +6,8 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -23,7 +22,7 @@ public class IOTest {
 		STDataAssembly expected = TestUtils.createTrivialAssembly(TestUtils.createTestDataSet());
 
 		try {
-			SpatialDataIO sdio = new AnnDataIO(path, N5HDF5Writer::new);
+			SpatialDataIO sdio = new AnnDataIO(path, new N5HDF5Writer(path));
 			sdio.writeData(expected);
 			STDataAssembly actual = sdio.readData();
 
@@ -36,7 +35,9 @@ public class IOTest {
 			fail("Could not write / read file: " + e.getMessage());
 		}
 		finally {
-			Files.delete(Paths.get(path));
+			File file = new File(path);
+			if (file.exists())
+				file.delete();
 		}
 	}
 
