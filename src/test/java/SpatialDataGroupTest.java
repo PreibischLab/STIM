@@ -5,26 +5,23 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-public class SpatialDataGroupTest {
+public class SpatialDataGroupTest extends AbstractIOTest {
 
-	protected String groupPath = "data/group.n5";
+	protected String getPath() {
+		return "data/group.n5";
+	}
 
 	@Test
-	public void create_group() throws IOException {
-		SpatialDataGroup group = SpatialDataGroup.createNew(groupPath);
-		File file = new File(groupPath);
-		assertTrue(file.exists(), "File '" + groupPath + "' does not exist.");
+	public void new_empty_group_is_empty() throws IOException {
+		SpatialDataGroup group = SpatialDataGroup.createNew(getPath());
+		assertTrue((new File(getPath())).exists(), "File '" + getPath() + "' does not exist.");
 
 		List<String> datasets = group.getDatasets();
 		assertTrue(datasets.isEmpty(), "Dataset is not empty.");
-
-		if (file.exists())
-			file.delete();
 	}
 }

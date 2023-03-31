@@ -8,13 +8,10 @@ import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -23,26 +20,16 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-public class IOTest {
+public class IOTest extends AbstractIOTest {
 
-	protected String path = "data/tmp.h5ad";
-	protected File file;
-
-	@BeforeEach
-	public void setupFile() {
-		file = new File(path);
-	}
-
-	@AfterEach
-	public void cleanUp() {
-		if (file.exists())
-			file.delete();
+	protected String getPath() {
+		return "data/tmp.h5ad";
 	}
 
 	@Test
 	public void readonly_file_cannot_be_written() {
-		try (N5HDF5Writer writer = new N5HDF5Writer(path)) {
-			SpatialDataIO sdio = new AnnDataIO(path, new N5HDF5Reader(path));
+		try (N5HDF5Writer writer = new N5HDF5Writer(getPath())) {
+			SpatialDataIO sdio = new AnnDataIO(getPath(), new N5HDF5Reader(getPath()));
 			assertThrows(SpatialDataIOException.class, () -> sdio.writeData(null));
 		}
 		catch (Exception e) {
@@ -55,7 +42,7 @@ public class IOTest {
 		STDataAssembly expected = TestUtils.createTrivialAssembly(TestUtils.createTestDataSet());
 
 		try {
-			SpatialDataIO sdio = new AnnDataIO(path, new N5HDF5Writer(path));
+			SpatialDataIO sdio = new AnnDataIO(getPath(), new N5HDF5Writer(getPath()));
 			sdio.writeData(expected);
 			STDataAssembly actual = sdio.readData();
 
@@ -77,7 +64,7 @@ public class IOTest {
 		STDataAssembly expected = new STDataAssembly(data, stats, transform, intensityTransform);
 
 		try {
-			SpatialDataIO sdio = new AnnDataIO(path, new N5HDF5Writer(path));
+			SpatialDataIO sdio = new AnnDataIO(getPath(), new N5HDF5Writer(getPath()));
 			sdio.writeData(expected);
 			STDataAssembly actual = sdio.readData();
 
