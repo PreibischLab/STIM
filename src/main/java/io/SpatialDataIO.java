@@ -127,13 +127,6 @@ public abstract class SpatialDataIO {
 
 	protected abstract void writeCellTypes(List<String> cellTypes);
 
-	public static class SpatialDataIOException extends RuntimeException {
-		public SpatialDataIOException() {}
-
-		public SpatialDataIOException(String message) {
-			super(message);
-		}
-	}
 
 	class N5Options {
 

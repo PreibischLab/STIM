@@ -3,6 +3,7 @@ import data.STDataStatistics;
 import gui.STDataAssembly;
 import io.AnnDataIO;
 import io.SpatialDataIO;
+import io.SpatialDataIOException;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
@@ -24,12 +25,11 @@ import static org.junit.jupiter.api.Assertions.fail;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public class IOTest {
 
-	protected String path;
+	protected String path = "data/tmp.h5ad";
 	protected File file;
 
 	@BeforeEach
 	public void setupFile() {
-		path = "data/tmp.h5ad";
 		file = new File(path);
 	}
 
@@ -43,7 +43,7 @@ public class IOTest {
 	public void readonly_file_cannot_be_written() {
 		try (N5HDF5Writer writer = new N5HDF5Writer(path)) {
 			SpatialDataIO sdio = new AnnDataIO(path, new N5HDF5Reader(path));
-			assertThrows(SpatialDataIO.SpatialDataIOException.class, () -> sdio.writeData(null));
+			assertThrows(SpatialDataIOException.class, () -> sdio.writeData(null));
 		}
 		catch (Exception e) {
 			fail("Could not write / read file: " + e.getMessage());
@@ -67,7 +67,7 @@ public class IOTest {
 	}
 
 	@Test
-	public void io_works_for_transformations() throws IOException {
+	public void io_works_for_transformations() {
 		STData data = TestUtils.createTestDataSet();
 		STDataStatistics stats = new STDataStatistics(data);
 		final AffineTransform intensityTransform = new AffineTransform(1);

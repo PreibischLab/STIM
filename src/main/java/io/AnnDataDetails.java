@@ -24,8 +24,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-import static io.SpatialDataIO.SpatialDataIOException;
-
 
 class AnnDataDetails {
 
@@ -44,7 +42,7 @@ class AnnDataDetails {
             }
         }
         catch (IOException e) {
-            throw new SpatialDataIOException("Could not load dataset at '" + path + "'\n" + e.getMessage());
+            throw new SpatialDataIOException("Could not load dataset at '" + path + "'\n", e);
         }
     }
 
@@ -80,7 +78,7 @@ class AnnDataDetails {
             }
         }
         catch (IOException e) {
-            throw new SpatialDataIOException("Could not load string dataset at '" + path + "'\n" + e.getMessage());
+            throw new SpatialDataIOException("Could not load string dataset at '" + path + "'\n", e);
         }
     }
 
@@ -159,7 +157,7 @@ class AnnDataDetails {
             writeEncoding(writer, path, type);
         }
         catch (IOException | ExecutionException | InterruptedException e) {
-            throw new SpatialDataIOException("Could not load dataset at '" + path + "'\n" + e.getMessage());
+            throw new SpatialDataIOException("Could not load dataset at '" + path + "'\n", e);
         }
     }
 
