@@ -49,13 +49,4 @@ public class TestUtils {
 
 		return new STDataText(coordinates, geneMap);
 	}
-
-	public static STDataAssembly createTrivialAssembly(STData data) {
-		final STDataStatistics stat = new STDataStatistics(data);
-		final AffineTransform2D transform = new AffineTransform2D();
-		final AffineTransform intensityTransform = new AffineTransform(1);
-		intensityTransform.set(1, 0);
-
-		return new STDataAssembly(data, stat, transform, intensityTransform);
-	}
 }

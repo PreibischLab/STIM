@@ -39,7 +39,7 @@ public class IOTest extends AbstractIOTest {
 
 	@Test
 	public void io_with_simple_n5_works() {
-		STDataAssembly expected = TestUtils.createTrivialAssembly(TestUtils.createTestDataSet());
+		STDataAssembly expected = new STDataAssembly(TestUtils.createTestDataSet());
 
 		try {
 			SpatialDataIO sdio = new AnnDataIO(getPath(), new N5HDF5Writer(getPath()));
