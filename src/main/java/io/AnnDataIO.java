@@ -98,7 +98,7 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	@Override
-	protected RandomAccessibleInterval<DoubleType> readLocations() {
+	protected RandomAccessibleInterval<DoubleType> readLocations() throws IOException {
 		// transpose locations, since AnnData stores them as columns
 		RandomAccessibleInterval<? extends RealType<?>> locations = Views.permute(
 				(RandomAccessibleInterval<? extends RealType<?>>) AnnDataDetails.readArray(n5, locationPath), 0, 1);
@@ -106,7 +106,7 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	@Override
-	protected RandomAccessibleInterval<DoubleType> readExpressionValues() {
+	protected RandomAccessibleInterval<DoubleType> readExpressionValues() throws IOException {
 		RandomAccessibleInterval<? extends RealType<?>> expressionVals = (RandomAccessibleInterval<? extends RealType<?>>) AnnDataDetails.readArray(n5, "/X");
 		return Converters.convert(expressionVals, (i, o) -> o.set(i.getRealDouble()), new DoubleType());
 	}
@@ -116,7 +116,7 @@ public class AnnDataIO extends SpatialDataIO {
 		return n5.exists("/obs/cell_type");
 	}
 
-	public static ArrayImg<IntType, IntArray> getCelltypeIds(final N5Reader reader) {
+	public static ArrayImg<IntType, IntArray> getCelltypeIds(final N5Reader reader) throws IOException {
 		final List<String> cellTypes = AnnDataDetails.readStringAnnotation(reader, "/obs/cell_type");
 		final HashMap<String, Integer> typeToIdMap = new HashMap<>();
 		final int[] celltypeIds = new int[cellTypes.size()];
@@ -131,7 +131,7 @@ public class AnnDataIO extends SpatialDataIO {
 		return ArrayImgs.ints(celltypeIds, celltypeIds.length);
 	}
 
-	protected <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(AffineSet transform, String name) {
+	protected <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(AffineSet transform, String name) throws IOException {
 		RandomAccessibleInterval<T> trafoValues = AnnDataDetails.readArray(n5, "/uns/" + name);
 		RandomAccess<T> ra = trafoValues.randomAccess();
 		int n = (int) trafoValues.dimension(0);
@@ -143,12 +143,12 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	@Override
-	protected List<String> readBarcodes() {
+	protected List<String> readBarcodes() throws IOException {
 		return AnnDataDetails.readStringAnnotation(n5, "/obs/_index");
 	}
 
 	@Override
-	protected List<String> readGeneNames() {
+	protected List<String> readGeneNames() throws IOException {
 		return AnnDataDetails.readStringAnnotation(n5, "/var/_index");
 	}
 
@@ -160,7 +160,7 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	@Override
-	protected void writeTransformation(N5Writer writer, AffineGet transform, String name) {
+	protected void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException {
 		double[] trafoValues = transform.getRowPackedCopy();
 		AnnDataDetails.writeArray(writer, "/uns/" + name, ArrayImgs.doubles(trafoValues, trafoValues.length), options1d);
 	}
@@ -176,12 +176,12 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	@Override
-	protected void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations) {
+	protected void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations) throws IOException {
 		AnnDataDetails.writeArray(writer, locationPath, Views.permute(locations, 0, 1), options);
 	}
 
 	@Override
-	protected void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues) {
+	protected void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues) throws IOException {
 		AnnDataDetails.writeArray(writer, "/X", exprValues, options, AnnDataFieldType.CSR_MATRIX);
 	}
 }

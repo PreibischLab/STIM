@@ -27,22 +27,17 @@ import java.util.concurrent.ExecutionException;
 
 class AnnDataDetails {
 
-    public static <T extends NativeType<T> & RealType<T>, I extends NativeType<I> & IntegerType<I>> RandomAccessibleInterval<T> readArray(N5Reader reader, String path) {
-        try {
-            final AnnDataFieldType type = getFieldType(reader, path);
-            switch (type) {
-                case DENSE_ARRAY:
-                    return N5Utils.open(reader, path);
-                case CSR_MATRIX:
-                    return openSparseArray(reader, path, CsrRandomAccessibleInterval<T,I>::new); // row
-                case CSC_MATRIX:
-                    return openSparseArray(reader, path, CscRandomAccessibleInterval<T,I>::new); // column
-                default:
-                    throw new SpatialDataIOException("Reading data for " + type.toString() + " not supported.");
-            }
-        }
-        catch (IOException e) {
-            throw new SpatialDataIOException("Could not load dataset at '" + path + "'\n", e);
+    public static <T extends NativeType<T> & RealType<T>, I extends NativeType<I> & IntegerType<I>> RandomAccessibleInterval<T> readArray(N5Reader reader, String path) throws IOException {
+        final AnnDataFieldType type = getFieldType(reader, path);
+        switch (type) {
+            case DENSE_ARRAY:
+                return N5Utils.open(reader, path);
+            case CSR_MATRIX:
+                return openSparseArray(reader, path, CsrRandomAccessibleInterval<T,I>::new); // row
+            case CSC_MATRIX:
+                return openSparseArray(reader, path, CscRandomAccessibleInterval<T,I>::new); // column
+            default:
+                throw new SpatialDataIOException("Reading data for " + type.toString() + " not supported.");
         }
     }
 
@@ -65,20 +60,15 @@ class AnnDataDetails {
         return constructor.apply(shape[1], shape[0], sparseData, indices, indptr);
     }
 
-    public static List<String> readStringAnnotation(N5Reader reader, String path) {
-        try {
-            final AnnDataFieldType type = getFieldType(reader, path);
-            switch (type) {
-                case STRING_ARRAY:
-                    return readStringList(reader, path);
-                case CATEGORICAL_ARRAY:
-                    return readCategoricalList(reader, path);
-                default:
-                    throw new SpatialDataIOException("Reading string annotations for " + type + " not supported.");
-            }
-        }
-        catch (IOException e) {
-            throw new SpatialDataIOException("Could not load string dataset at '" + path + "'\n", e);
+    public static List<String> readStringAnnotation(N5Reader reader, String path) throws IOException {
+        final AnnDataFieldType type = getFieldType(reader, path);
+        switch (type) {
+            case STRING_ARRAY:
+                return readStringList(reader, path);
+            case CATEGORICAL_ARRAY:
+                return readCategoricalList(reader, path);
+            default:
+                throw new SpatialDataIOException("Reading string annotations for " + type + " not supported.");
         }
     }
 
@@ -129,7 +119,7 @@ class AnnDataDetails {
             N5Writer writer,
             String path,
             RandomAccessibleInterval<T> data,
-            N5Options options) {
+            N5Options options) throws IOException {
 
         AnnDataFieldType type = AnnDataFieldType.DENSE_ARRAY;
         if (data instanceof CsrRandomAccessibleInterval)
@@ -144,7 +134,7 @@ class AnnDataDetails {
             String path,
             RandomAccessibleInterval<T> data,
             N5Options options,
-            AnnDataFieldType type) {
+            AnnDataFieldType type) throws IOException {
 
         try {
             if (type == AnnDataFieldType.DENSE_ARRAY)
@@ -156,7 +146,7 @@ class AnnDataDetails {
             writer.setAttribute(path, "shape", new long[]{data.dimension(1), data.dimension(0)});
             writeEncoding(writer, path, type);
         }
-        catch (IOException | ExecutionException | InterruptedException e) {
+        catch (ExecutionException | InterruptedException e) {
             throw new SpatialDataIOException("Could not load dataset at '" + path + "'\n", e);
         }
     }

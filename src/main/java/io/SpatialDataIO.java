@@ -92,17 +92,17 @@ public abstract class SpatialDataIO {
 		options1d.exec = exec;
 	}
 
-	protected abstract RandomAccessibleInterval<DoubleType> readLocations();
+	protected abstract RandomAccessibleInterval<DoubleType> readLocations() throws IOException;
 
-	protected abstract RandomAccessibleInterval<DoubleType> readExpressionValues();
+	protected abstract RandomAccessibleInterval<DoubleType> readExpressionValues() throws IOException;
 
-	protected abstract List<String> readBarcodes();
+	protected abstract List<String> readBarcodes() throws IOException;
 
-	protected abstract List<String> readGeneNames();
+	protected abstract List<String> readGeneNames() throws IOException;
 
 	public abstract Boolean containsCellTypes();
 
-	protected abstract <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(AffineSet transform, String name);
+	protected abstract <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(AffineSet transform, String name) throws IOException;
 
 	public void writeData(STDataAssembly data) throws IOException {
 		if (readOnly)
@@ -128,15 +128,15 @@ public abstract class SpatialDataIO {
 
 	protected abstract void writeHeader(N5Writer writer) throws IOException;
 
-	protected abstract void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations);
+	protected abstract void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations) throws IOException;
 
-	protected abstract void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues);
+	protected abstract void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues) throws IOException;
 
 	protected abstract void writeBarcodes(N5Writer writer, List<String> barcodes) throws IOException;
 
 	protected abstract void writeGeneNames(N5Writer writer, List<String> geneNames) throws IOException;
 
-	protected abstract void writeTransformation(N5Writer writer, AffineGet transform, String name);
+	protected abstract void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException;
 
 
 	static class N5Options {
