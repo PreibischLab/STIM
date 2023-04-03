@@ -164,63 +164,46 @@ public class AnnDataIO extends SpatialDataIO {
 		return null;
 	}
 
-	public void writeData(STDataAssembly data) throws IOException {
-		N5Writer writer = getN5asWriter();
-		STData stData = data.data();
-
-		System.out.print( "Saving AnnData '" + path + "' ... " );
-		long time = System.currentTimeMillis();
-
+	@Override
+	protected void writeHeader(N5Writer writer) throws IOException {
 		AnnDataDetails.writeEncoding(writer, "/", AnnDataFieldType.ANNDATA);
-
-		AnnDataDetails.writeArray(writer, "/X", stData.getAllExprValues(), options, AnnDataFieldType.CSR_MATRIX);
-
-		AnnDataDetails.createDataFrame(writer, "/obs", stData.getBarcodes());
-		AnnDataDetails.createDataFrame(writer, "/var", stData.getGeneNames());
-
 		AnnDataDetails.createMapping(writer, "/obsm");
-		AnnDataDetails.writeArray(writer, locationPath, Views.permute(stData.getLocations(), 0, 1), options);
-
 		AnnDataDetails.createMapping(writer, "/uns");
-		writeTransformation(data.transform(), "transform");
-		writeTransformation(data.intensityTransform(), "intensity_transform");
-
-		System.out.println( "took " + ( System.currentTimeMillis() - time ) + " ms." );
 	}
 
-	protected void writeTransformation(AffineGet transform, String name) {
-		N5Writer writer = getN5asWriter();
+	@Override
+	protected void writeTransformation(N5Writer writer, AffineGet transform, String name) {
 		double[] trafoValues = transform.getRowPackedCopy();
 		AnnDataDetails.writeArray(writer, "/uns/" + name, ArrayImgs.doubles(trafoValues, trafoValues.length), options1d);
 	}
 
 	@Override
-	public void writeMetaData(JsonElement metaData) {
+	public void writeMetaData(N5Writer writer, JsonElement metaData) {
 
 	}
 
 	@Override
-	protected void writeBarcodes(List<String> barcodes) {
+	protected void writeBarcodes(N5Writer writer, List<String> barcodes) throws IOException {
+		AnnDataDetails.createDataFrame(writer, "/obs", barcodes);
+	}
+
+	@Override
+	protected void writeGeneNames(N5Writer writer, List<String> geneNames) throws IOException {
+		AnnDataDetails.createDataFrame(writer, "/var", geneNames);
+	}
+
+	@Override
+	protected void writeCellTypes(N5Writer writer, List<String> cellTypes) {
 
 	}
 
 	@Override
-	protected void writeGeneNames(List<String> geneNames) {
-
+	protected void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations) {
+		AnnDataDetails.writeArray(writer, locationPath, Views.permute(locations, 0, 1), options);
 	}
 
 	@Override
-	protected void writeCellTypes(List<String> cellTypes) {
-
-	}
-
-	@Override
-	protected void writeLocations(RandomAccessibleInterval<DoubleType> locations) {
-
-	}
-
-	@Override
-	protected void writeExpressionValues(RandomAccessibleInterval<DoubleType> exprValues) {
-
+	protected void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues) {
+		AnnDataDetails.writeArray(writer, "/X", exprValues, options, AnnDataFieldType.CSR_MATRIX);
 	}
 }

@@ -33,7 +33,7 @@ public class IOTest extends AbstractIOTest {
 			assertThrows(SpatialDataIOException.class, () -> sdio.writeData(null));
 		}
 		catch (Exception e) {
-			fail("Could not write / read file: " + e.getMessage());
+			fail("Could not write / read file: ", e);
 		}
 	}
 
@@ -49,7 +49,7 @@ public class IOTest extends AbstractIOTest {
 			compareSTDataAssemblies(actual, expected);
 		}
 		catch (IOException e) {
-			fail("Could not write / read file: " + e.getMessage());
+			fail("Could not write / read file: ", e);
 		}
 	}
 
@@ -71,15 +71,17 @@ public class IOTest extends AbstractIOTest {
 			compareSTDataAssemblies(actual, expected);
 		}
 		catch (IOException e) {
-			fail("Could not write / read file: " + e.getMessage());
+			fail("Could not write / read file: ", e);
 		}
 	}
 
 	protected static void compareSTDataAssemblies(STDataAssembly actual, STDataAssembly expected) {
 		TestUtils.assertRaiEquals(actual.data().getAllExprValues(), expected.data().getAllExprValues());
 		TestUtils.assertRaiEquals(actual.data().getLocations(), expected.data().getLocations());
+
 		assertLinesMatch(actual.data().getGeneNames(), expected.data().getGeneNames(), "Gene names not equal.");
 		assertLinesMatch(actual.data().getBarcodes(), expected.data().getBarcodes(), "Barcodes not equal.");
+
 		assertArrayEquals(actual.transform().getRowPackedCopy(), expected.transform().getRowPackedCopy(), "2D transforms not equal.");
 		assertArrayEquals(actual.intensityTransform().getRowPackedCopy(), expected.intensityTransform().getRowPackedCopy(), "Intensity transforms not equal.");
 	}

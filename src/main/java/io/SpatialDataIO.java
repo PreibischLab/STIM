@@ -6,12 +6,14 @@ import data.STDataImgLib2;
 import data.STDataStatistics;
 import gui.STDataAssembly;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineSet;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.view.Views;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5Reader;
@@ -51,6 +53,7 @@ public abstract class SpatialDataIO {
 
 	public STDataAssembly readData() throws IOException {
 		long time = System.currentTimeMillis();
+		System.out.print( "Reading spatial data '" + path + "' ... " );
 
 		List<String> geneNames = readGeneNames();
 		List<String> barcodes = readBarcodes();
@@ -81,12 +84,6 @@ public abstract class SpatialDataIO {
 		options1d.blockSize = new int[]{blockSize[0] * blockSize[1]};
 	}
 
-	protected N5Writer getN5asWriter() {
-		if (readOnly)
-			throw new SpatialDataIOException("Trying to write to read-only N5.");
-		return (N5Writer) n5;
-	}
-
 	public void setCompression(Compression compression) {
 		options.compression = compression;
 		options1d.compression = compression;
@@ -113,19 +110,43 @@ public abstract class SpatialDataIO {
 
 	protected abstract <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(AffineSet transform, String name);
 
-	public abstract void writeData(STDataAssembly data) throws IOException;
+	public void writeData(STDataAssembly data) throws IOException {
+		if (readOnly)
+			throw new SpatialDataIOException("Trying to write to read-only N5.");
 
-	protected abstract void writeLocations(RandomAccessibleInterval<DoubleType> locations);
+		N5Writer writer = (N5Writer) n5;
+		STData stData = data.data();
 
-	protected abstract void writeExpressionValues(RandomAccessibleInterval<DoubleType> exprValues);
+		System.out.print( "Saving spatial data '" + path + "' ... " );
+		long time = System.currentTimeMillis();
 
-	public abstract void writeMetaData(JsonElement metaData);
+		writeHeader(writer);
+		writeBarcodes(writer, stData.getBarcodes());
+		writeGeneNames(writer, stData.getGeneNames());
 
-	protected abstract void writeBarcodes(List<String> barcodes);
+		writeExpressionValues(writer, stData.getAllExprValues());
+		writeLocations(writer, stData.getLocations());
+		writeTransformation(writer, data.transform(), "transform");
+		writeTransformation(writer, data.intensityTransform(), "intensity_transform");
 
-	protected abstract void writeGeneNames(List<String> geneNames);
+		System.out.println( "Saving took " + ( System.currentTimeMillis() - time ) + " ms." );
+	}
 
-	protected abstract void writeCellTypes(List<String> cellTypes);
+	protected abstract void writeHeader(N5Writer writer) throws IOException;
+
+	protected abstract void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations);
+
+	protected abstract void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues);
+
+	public abstract void writeMetaData(N5Writer writer, JsonElement metaData);
+
+	protected abstract void writeBarcodes(N5Writer writer, List<String> barcodes) throws IOException;
+
+	protected abstract void writeGeneNames(N5Writer writer, List<String> geneNames) throws IOException;
+
+	protected abstract void writeTransformation(N5Writer writer, AffineGet transform, String name);
+
+	protected abstract void writeCellTypes(N5Writer writer, List<String> cellTypes);
 
 
 	class N5Options {
