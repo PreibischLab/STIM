@@ -1,6 +1,5 @@
 package io;
 
-import com.google.gson.JsonElement;
 import data.STData;
 import data.STDataImgLib2;
 import data.STDataStatistics;
@@ -13,7 +12,6 @@ import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.view.Views;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5Reader;
@@ -98,13 +96,9 @@ public abstract class SpatialDataIO {
 
 	protected abstract RandomAccessibleInterval<DoubleType> readExpressionValues();
 
-	public abstract JsonElement readMetaData();
-
 	protected abstract List<String> readBarcodes();
 
 	protected abstract List<String> readGeneNames();
-
-	protected abstract List<String> readCellTypes();
 
 	public abstract Boolean containsCellTypes();
 
@@ -138,18 +132,14 @@ public abstract class SpatialDataIO {
 
 	protected abstract void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues);
 
-	public abstract void writeMetaData(N5Writer writer, JsonElement metaData);
-
 	protected abstract void writeBarcodes(N5Writer writer, List<String> barcodes) throws IOException;
 
 	protected abstract void writeGeneNames(N5Writer writer, List<String> geneNames) throws IOException;
 
 	protected abstract void writeTransformation(N5Writer writer, AffineGet transform, String name);
 
-	protected abstract void writeCellTypes(N5Writer writer, List<String> cellTypes);
 
-
-	class N5Options {
+	static class N5Options {
 
 		int[] blockSize;
 		Compression compression;

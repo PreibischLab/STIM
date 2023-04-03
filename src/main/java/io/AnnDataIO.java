@@ -10,8 +10,6 @@ import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
-import com.google.gson.JsonElement;
-import data.STData;
 import filter.FilterFactory;
 import gui.STDataExplorer;
 import net.imglib2.Interval;
@@ -145,11 +143,6 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	@Override
-	public JsonElement readMetaData() {
-		return null;
-	}
-
-	@Override
 	protected List<String> readBarcodes() {
 		return AnnDataDetails.readStringAnnotation(n5, "/obs/_index");
 	}
@@ -157,11 +150,6 @@ public class AnnDataIO extends SpatialDataIO {
 	@Override
 	protected List<String> readGeneNames() {
 		return AnnDataDetails.readStringAnnotation(n5, "/var/_index");
-	}
-
-	@Override
-	protected List<String> readCellTypes() {
-		return null;
 	}
 
 	@Override
@@ -178,11 +166,6 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	@Override
-	public void writeMetaData(N5Writer writer, JsonElement metaData) {
-
-	}
-
-	@Override
 	protected void writeBarcodes(N5Writer writer, List<String> barcodes) throws IOException {
 		AnnDataDetails.createDataFrame(writer, "/obs", barcodes);
 	}
@@ -190,11 +173,6 @@ public class AnnDataIO extends SpatialDataIO {
 	@Override
 	protected void writeGeneNames(N5Writer writer, List<String> geneNames) throws IOException {
 		AnnDataDetails.createDataFrame(writer, "/var", geneNames);
-	}
-
-	@Override
-	protected void writeCellTypes(N5Writer writer, List<String> cellTypes) {
-
 	}
 
 	@Override
