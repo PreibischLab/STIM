@@ -12,6 +12,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import net.imglib2.RandomAccess;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineSet;
 import net.imglib2.type.numeric.RealType;
@@ -420,7 +421,9 @@ public class N5IO extends SpatialDataIO {
 
 	@Override
 	protected <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(AffineSet transform, String name) throws IOException {
-
+		final Set<String> attributes = n5.listAttributes("/").keySet();
+		if (attributes.contains(name))
+			transform.set(n5.getAttribute("/", name, double[].class ) );
 	}
 
 	@Override
@@ -453,6 +456,6 @@ public class N5IO extends SpatialDataIO {
 
 	@Override
 	protected void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException {
-
+		writer.setAttribute("/", name, transform.getRowPackedCopy());
 	}
 }
