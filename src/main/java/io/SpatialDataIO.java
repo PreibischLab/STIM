@@ -12,12 +12,14 @@ import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.util.Util;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -53,16 +55,33 @@ public abstract class SpatialDataIO {
 		long time = System.currentTimeMillis();
 		System.out.print( "Reading spatial data '" + path + "' ... " );
 
+		RandomAccessibleInterval<DoubleType> locations = readLocations();
+		RandomAccessibleInterval<DoubleType> exprValues = readExpressionValues();
+
+		long[] locationDims = locations.dimensionsAsLongArray();
+		long[] exprDims = exprValues.dimensionsAsLongArray();
+		long numGenes = exprDims[0];
+		long numLocations = exprDims[1];
+
 		List<String> geneNames = readGeneNames();
 		List<String> barcodes = readBarcodes();
 
-		final HashMap<String, Integer> geneLookup = new HashMap<>();
-		for (int i = 0; i < geneNames.size(); ++i ) {
-			geneLookup.put(geneNames.get(i), i);
+		if (locations.dimension(0) != numLocations)
+			throw new SpatialDataIOException("Inconsistent number of locations in data arrays.");
+
+		if (geneNames == null || geneNames.size() == 0 || geneNames.size() != numGenes)
+			throw new SpatialDataIOException("Missing or wrong number of gene names.");
+
+		if (barcodes == null || barcodes.size() == 0 || barcodes.size() != numLocations) {
+			System.out.println( "Missing or wrong number of barcodes, setting empty Strings instead");
+			barcodes = new ArrayList<>();
+			for (int i = 0; i < numLocations; ++i)
+				barcodes.add("");
 		}
 
-		RandomAccessibleInterval<DoubleType> locations = readLocations();
-		RandomAccessibleInterval<DoubleType> exprValues = readExpressionValues();
+		final HashMap<String, Integer> geneLookup = new HashMap<>();
+		for (int i = 0; i < geneNames.size(); ++i )
+			geneLookup.put(geneNames.get(i), i);
 
 		STData stData = new STDataImgLib2(locations, exprValues, geneNames, barcodes, geneLookup);
 
@@ -71,7 +90,14 @@ public abstract class SpatialDataIO {
 		AffineTransform2D transform = new AffineTransform2D();
 		readAndSetTransformation(transform, "transform");
 
-		System.out.println("Parsing took " + (System.currentTimeMillis() - time) + " ms.");
+		System.out.println("Loading took " + (System.currentTimeMillis() - time) + " ms.");
+		System.out.println("File '" + path +
+				"': dims=" + locationDims[1] +
+				", numLocations=" + numLocations +
+				", numGenes=" + numGenes +
+				", size(locations)=" + Util.printCoordinates(locationDims) +
+				", size(exprValues)=" + Util.printCoordinates(exprDims));
+
 		return new STDataAssembly(stData, new STDataStatistics(stData), transform, intensityTransform);
 	}
 
@@ -92,9 +118,9 @@ public abstract class SpatialDataIO {
 		options1d.exec = exec;
 	}
 
-	protected abstract RandomAccessibleInterval<DoubleType> readLocations() throws IOException;
+	protected abstract RandomAccessibleInterval<DoubleType> readLocations() throws IOException; // size: [numLocations x numDimensions]
 
-	protected abstract RandomAccessibleInterval<DoubleType> readExpressionValues() throws IOException;
+	protected abstract RandomAccessibleInterval<DoubleType> readExpressionValues() throws IOException; // size: [numGenes x numLocations]
 
 	protected abstract List<String> readBarcodes() throws IOException;
 
@@ -106,7 +132,7 @@ public abstract class SpatialDataIO {
 
 	public void writeData(STDataAssembly data) throws IOException {
 		if (readOnly)
-			throw new SpatialDataIOException("Trying to write to read-only N5.");
+			throw new SpatialDataIOException("Trying to write to read-only file.");
 
 		N5Writer writer = (N5Writer) n5;
 		STData stData = data.data();
@@ -114,7 +140,8 @@ public abstract class SpatialDataIO {
 		System.out.print( "Saving spatial data '" + path + "' ... " );
 		long time = System.currentTimeMillis();
 
-		writeHeader(writer);
+		// TODO: read / write metadata (stData.getMetaData())
+		writeHeader(writer, stData);
 		writeBarcodes(writer, stData.getBarcodes());
 		writeGeneNames(writer, stData.getGeneNames());
 
@@ -126,7 +153,7 @@ public abstract class SpatialDataIO {
 		System.out.println( "Saving took " + ( System.currentTimeMillis() - time ) + " ms." );
 	}
 
-	protected abstract void writeHeader(N5Writer writer) throws IOException;
+	protected abstract void writeHeader(N5Writer writer, STData data) throws IOException;
 
 	protected abstract void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations) throws IOException;
 

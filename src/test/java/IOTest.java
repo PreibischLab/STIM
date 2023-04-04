@@ -2,6 +2,7 @@ import data.STData;
 import data.STDataStatistics;
 import gui.STDataAssembly;
 import io.AnnDataIO;
+import io.N5IO;
 import io.SpatialDataIO;
 import io.SpatialDataIOException;
 import net.imglib2.realtransform.AffineTransform;
@@ -43,6 +44,22 @@ public class IOTest extends AbstractIOTest {
 
 		try {
 			SpatialDataIO sdio = new AnnDataIO(getPath(), new N5HDF5Writer(getPath()));
+			sdio.writeData(expected);
+			STDataAssembly actual = sdio.readData();
+
+			compareSTDataAssemblies(actual, expected);
+		}
+		catch (IOException e) {
+			fail("Could not write / read file: ", e);
+		}
+	}
+
+	@Test
+	public void io_with_simple_n5_works_n5() {
+		STDataAssembly expected = new STDataAssembly(TestUtils.createTestDataSet());
+
+		try {
+			SpatialDataIO sdio = new N5IO(getPath(), new N5HDF5Writer(getPath()));
 			sdio.writeData(expected);
 			STDataAssembly actual = sdio.readData();
 

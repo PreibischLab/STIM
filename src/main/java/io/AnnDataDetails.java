@@ -106,10 +106,6 @@ class AnnDataDetails {
         }
     }
 
-    public void createMapping(String path) {
-
-    }
-
     public static void writeEncoding(N5Writer writer, String path, AnnDataFieldType type) throws IOException {
         writer.setAttribute(path, "encoding-type", type.encoding);
         writer.setAttribute(path, "encoding-version", type.version);

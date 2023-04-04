@@ -10,6 +10,7 @@ import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
+import data.STData;
 import filter.FilterFactory;
 import gui.STDataExplorer;
 import net.imglib2.Interval;
@@ -153,7 +154,7 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	@Override
-	protected void writeHeader(N5Writer writer) throws IOException {
+	protected void writeHeader(N5Writer writer, STData data) throws IOException {
 		AnnDataDetails.writeEncoding(writer, "/", AnnDataFieldType.ANNDATA);
 		AnnDataDetails.createMapping(writer, "/obsm");
 		AnnDataDetails.createMapping(writer, "/uns");
