@@ -15,10 +15,14 @@ import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Util;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.GzipCompression;
+import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -164,6 +168,24 @@ public abstract class SpatialDataIO {
 	protected abstract void writeGeneNames(N5Writer writer, List<String> geneNames) throws IOException;
 
 	protected abstract void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException;
+
+	public static SpatialDataIO inferFromName(String path) throws IOException {
+		Path absolutePath = Paths.get(path).toAbsolutePath();
+		String fileName = absolutePath.getFileName().toString();
+		String[] components = fileName.split("\\.");
+		String extension = components[components.length-1];
+
+		switch (extension) {
+			case "h5":
+				return new N5IO(fileName, new N5HDF5Writer(fileName));
+			case "n5":
+				return new N5IO(fileName, new N5FSWriter(fileName));
+			case "h5ad":
+				return new AnnDataIO(fileName, new N5HDF5Writer(fileName));
+			default:
+				throw new SpatialDataIOException("Cannot determine file type for extension " + extension + ".");
+		}
+	}
 
 
 	static class N5Options {

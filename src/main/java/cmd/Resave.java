@@ -15,7 +15,9 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
+import gui.STDataAssembly;
 import io.AnnDataIO;
+import io.SpatialDataGroup;
 import io.SpatialDataIO;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -31,103 +33,89 @@ import io.N5IO;
 import io.TextFileAccess;
 import io.TextFileIO;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
+import org.stringtemplate.v4.ST;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 
 public class Resave implements Callable<Void> {
 
-	@Option(names = {"-o", "--container"}, required = true, description = "N5 output container path to which a new dataset will be added (N5 can exist or new one will be created), e.g. -o /home/ssq.n5 ...")
+	@Option(names = {"-o", "--container"}, required = false, description = "N5 output container path to which a new dataset will be added (N5 can exist or new one will be created), e.g. -o /home/ssq.n5. If left if omitted, the dataset will be stored in the current path.")
 	private String containerPath = null;
 
-	@Option(names = {"-i", "--input"}, required = true, description = "list of csv input files as triple 'locations.csv,reads.csv,n5groupname' or optionally quadruple 'locations.csv,reads.csv,celltypes.csv,n5groupname' with celltype annotations (missing barcodes in celltypes will be excluded from the datasets), e.g. -i '$HOME/Puck_180528_20/BeadLocationsForR.csv,$HOME/Puck_180528_20/MappedDGEForR.csv,Puck_180528_20' -i ...")
-	private List<String> inputPaths = null;
+	@Option(names = {"-i", "--input"}, required = true, description = "list of csv input files as triple 'locations.csv,reads.csv,datasetName' or optionally quadruple 'locations.csv,reads.csv,celltypes.csv,datasetName' with celltype annotations (missing barcodes in celltypes will be excluded from the datasets), e.g. -i '$HOME/Puck_180528_20/BeadLocationsForR.csv,$HOME/Puck_180528_20/MappedDGEForR.csv,Puck_180528_20'")
+	private String inputPaths = null;
+	// TODO: care about celltypes in a general way
 
 	@Option(names = {"-n", "--normalize"}, required = false, description = "log-normalize the input data before saving (default: false)")
 	private boolean normalize = false;
 
 	@Override
 	public Void call() throws Exception {
-
-		final File n5File = new File( containerPath );
-
-		final N5FSWriter n5 = openOrCreate(n5File);
-
-		// TODO: can this guard be triggered at all? (-i is required)
-		if ( inputPaths == null || inputPaths.size() == 0 ) {
+		if (inputPaths == null) {
 			System.out.println("No input paths defined: " + inputPaths + ". Stopping.");
 			return null;
 		}
 
-		List<Boolean> hasCelltypeAnnotations = new ArrayList<>();
+		String[] elements = inputPaths.trim().split( "," );
+		final File outputFile = new File(elements[elements.length-1].trim());
 
-		int length = -1; // with or without celltypes?
-		for ( final String inputPath : inputPaths )
-		{
-			String[] elements = inputPath.trim().split( "," );
-
-			if ( elements.length < 2 || elements.length > 4 ) {
-				System.out.println( "Input path could not parsed, it needs to be of the form: [data.h5ad,name] or [locations.csv,reads.csv,[celltypes.csv,]name]." );
-				return null;
-			}
-
-			final String dataset = elements[elements.length-1];
-			if (n5.exists(n5.groupPath(dataset))) {
-				System.out.println( "dataset " + dataset + " already exists, stopping." );
-				return null;
-			}
-			System.out.println("\nDataset='" + dataset + "'");
-
-			STData data;
-			if (elements.length == 2) { // means: input is an anndata file
-				String path = elements[0].trim();
-				System.out.println( "Locations='" + path + "'");
-				SpatialDataIO stio = new AnnDataIO(path, new N5HDF5Reader(path));
-				data = stio.readData().data();
-				hasCelltypeAnnotations.add(stio.containsCellTypes());
-			}
-			else { // means: input consists of csv files (with optional file for celltypes)
-				final File locationsFile = new File(elements[0].trim());
-				final File readsFile = new File(elements[1].trim());
-				final File celltypeFile = (elements.length == 3) ? null : new File(elements[2].trim());
-
-				System.out.println("Locations='" + locationsFile.getAbsolutePath() + "'");
-				System.out.println("Reads='" + readsFile.getAbsolutePath() + "'");
-
-				BufferedReader locationsIn, readsIn, celltypeIn = null;
-				try {
-					locationsIn = openCsvInput(locationsFile, "locations");
-					readsIn = openCsvInput(readsFile, "reads");
-					if (celltypeFile != null) {
-						System.out.println("Loading file '" + celltypeFile.getAbsolutePath() + "' as label 'celltype'");
-						celltypeIn = openCsvInput(celltypeFile, "cell type");
-					}
-				} catch (IOException e) {
-					System.out.println(e.getMessage());
-					return null;
-				}
-
-				if (celltypeIn == null) {
-					data = TextFileIO.readSlideSeq(locationsIn, readsIn);
-					hasCelltypeAnnotations.add(Boolean.FALSE);
-				} else {
-					data = TextFileIO.readSlideSeq(locationsIn, readsIn, celltypeIn);
-					hasCelltypeAnnotations.add(Boolean.TRUE);
-				}
-			}
-
-			if ( normalize ) {
-				System.out.println( "Normalizing input ... " );
-				data =  new NormalizingSTData( data );
-			}
-
-			N5IO.writeN5( n5, dataset, data );
+		if ( elements.length < 3 || elements.length > 4 ) {
+			System.out.println("Input path could not parsed, it needs to be of the form [locations.csv,reads.csv,[celltypes.csv,]name].");
+			return null;
+		}
+		if (outputFile.exists()) {
+			System.out.println("File " + outputFile.getAbsolutePath() + " already exists, stopping." );
+			return null;
 		}
 
-		Boolean celltypeAnnotationsAreConsistent = hasCelltypeAnnotations.stream().allMatch(hasCelltypeAnnotations.get(0)::equals);
-		if (!celltypeAnnotationsAreConsistent)
-			System.out.println( "WARNING: input path length not consistent. Some datasets with, others without cell type annotations!");
-		System.out.println( "Done." );
+		final File locationsFile = new File(elements[0].trim());
+		final File readsFile = new File(elements[1].trim());
+		final File celltypeFile = (elements.length == 3) ? null : new File(elements[2].trim());
 
+		System.out.println("Locations='" + locationsFile.getAbsolutePath() + "'");
+		System.out.println("Reads='" + readsFile.getAbsolutePath() + "'");
+
+		BufferedReader locationsIn, readsIn, celltypeIn = null;
+		try {
+			locationsIn = openCsvInput(locationsFile, "locations");
+			readsIn = openCsvInput(readsFile, "reads");
+			if (celltypeFile != null) {
+				System.out.println("Loading file '" + celltypeFile.getAbsolutePath() + "' as label 'celltype'");
+				celltypeIn = openCsvInput(celltypeFile, "cell type");
+			}
+		} catch (IOException e) {
+			System.out.println(e.getMessage());
+			return null;
+		}
+
+		STData data;
+		if (celltypeIn == null)
+			data = TextFileIO.readSlideSeq(locationsIn, readsIn);
+		else
+			data = TextFileIO.readSlideSeq(locationsIn, readsIn, celltypeIn);
+
+		if (normalize) {
+			System.out.println("Normalizing input ... ");
+			data =  new NormalizingSTData(data);
+		}
+
+		SpatialDataIO sdio = SpatialDataIO.inferFromName(outputFile.getAbsolutePath());
+		System.out.println("\nSaving in file='" + outputFile.getPath() + "'");
+		sdio.writeData(new STDataAssembly(data));
+
+		if (containerPath != null) {
+			final File n5File = new File(containerPath);
+			SpatialDataGroup container;
+			if (n5File.exists())
+				container = SpatialDataGroup.openExisting(containerPath);
+			else
+				container = SpatialDataGroup.createNew(containerPath);
+
+			System.out.println("\nMoving file to '" + containerPath + "'");
+			container.addExistingDataset(outputFile.getAbsolutePath());
+		}
+
+		System.out.println("Done.");
 		return null;
 	}
 

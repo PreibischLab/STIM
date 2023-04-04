@@ -22,34 +22,32 @@ public class SpatialDataGroup {
 	protected SpatialDataGroup(String path, boolean readOnly) throws IOException {
 		this.rootPath = path;
 		this.readOnly = readOnly;
-		if (readOnly) {
-			this.n5 = new N5FSReader(path);
-			String actualVersion = n5.getAttribute("/", "spatial-data-group", String.class);
-			if (!this.version.equals(actualVersion))
-				throw new SpatialDataIOException("Incompatible spatial data group version: expected " + version + ", got " + actualVersion + ".");
-		}
-		else {
-			this.n5 = new N5FSWriter(path);
-			initializeGroup();
-		}
+
+		this.n5 = readOnly ? new N5FSReader(path) : new N5FSWriter(path);
 	}
 
 	public static SpatialDataGroup openExisting(String path) throws IOException {
 		if (!(new File(path)).exists())
 			throw new SpatialDataIOException("N5 '" + path + "' does not exist.");
-		return new SpatialDataGroup(path, false);
+		SpatialDataGroup group = new SpatialDataGroup(path, false);
+		group.checkVersion();
+		return group;
 	}
 
 	public static SpatialDataGroup openForReading(String path) throws IOException {
 		if (!(new File(path)).exists())
 			throw new SpatialDataIOException("N5 '" + path + "' does not exist.");
-		return new SpatialDataGroup(path, true);
+		SpatialDataGroup group = new SpatialDataGroup(path, true);
+		group.checkVersion();
+		return group;
 	}
 
 	public static SpatialDataGroup createNew(String path) throws IOException {
 		if ((new File(path)).exists())
 			throw new SpatialDataIOException("N5 '" + path + "' already exists.");
-		return new SpatialDataGroup(path, false);
+		SpatialDataGroup group = new SpatialDataGroup(path, false);
+		group.initializeGroup();
+		return group;
 	}
 
 	protected void initializeGroup() throws IOException {
@@ -57,6 +55,12 @@ public class SpatialDataGroup {
 		writer.setAttribute("/", "spatial_data_group", version);
 		writer.createGroup("/matches");
 		updateDatasetMetadata();
+	}
+
+	protected void checkVersion() throws IOException {
+		String actualVersion = n5.getAttribute("/", "spatial-data-group", String.class);
+		if (!this.version.equals(actualVersion))
+			throw new SpatialDataIOException("Incompatible spatial data group version: expected " + version + ", got " + actualVersion + ".");
 	}
 
 	protected void updateDatasetMetadata() throws IOException {
