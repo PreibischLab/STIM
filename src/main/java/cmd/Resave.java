@@ -7,16 +7,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
 import gui.STDataAssembly;
-import io.AnnDataIO;
 import io.SpatialDataGroup;
 import io.SpatialDataIO;
 import org.apache.commons.compress.archivers.ArchiveException;
@@ -32,8 +29,6 @@ import data.STData;
 import io.N5IO;
 import io.TextFileAccess;
 import io.TextFileIO;
-import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
-import org.stringtemplate.v4.ST;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 

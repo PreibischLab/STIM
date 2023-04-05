@@ -10,6 +10,7 @@ import net.imglib2.realtransform.AffineTransform2D;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
+import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Named;
@@ -20,7 +21,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertLinesMatch;
@@ -101,6 +101,7 @@ public class IOTest extends AbstractIOTest {
 		return Arrays.asList(
 				named("AnnData HDF5", (path) -> new AnnDataIO(path, new N5HDF5Writer(path))),
 				named("N5 HDF5", (path) -> new N5IO(path, new N5HDF5Writer(path))),
+				named("N5 Zarr", (path) -> new N5IO(path, new N5ZarrWriter(path))),
 				named("N5 FS", (path) -> new N5IO(path, new N5FSWriter(path)))
 		);
 	}
