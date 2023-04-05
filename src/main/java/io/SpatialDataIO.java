@@ -55,6 +55,10 @@ public abstract class SpatialDataIO {
 				Executors.newFixedThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2)));
 	}
 
+	public String getPath() {
+		return path;
+	}
+
 	public STDataAssembly readData() throws IOException {
 		long time = System.currentTimeMillis();
 		System.out.print( "Reading spatial data '" + path + "' ... " );
