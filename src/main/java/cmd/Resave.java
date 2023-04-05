@@ -14,7 +14,7 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
 import gui.STDataAssembly;
-import io.SpatialDataGroup;
+import io.SpatialDataContainer;
 import io.SpatialDataIO;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -100,11 +100,11 @@ public class Resave implements Callable<Void> {
 
 		if (containerPath != null) {
 			final File n5File = new File(containerPath);
-			SpatialDataGroup container;
+			SpatialDataContainer container;
 			if (n5File.exists())
-				container = SpatialDataGroup.openExisting(containerPath);
+				container = SpatialDataContainer.openExisting(containerPath);
 			else
-				container = SpatialDataGroup.createNew(containerPath);
+				container = SpatialDataContainer.createNew(containerPath);
 
 			System.out.println("\nMoving file to '" + containerPath + "'");
 			container.addExistingDataset(outputFile.getAbsolutePath());

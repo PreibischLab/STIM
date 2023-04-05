@@ -11,46 +11,46 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SpatialDataGroup {
+public class SpatialDataContainer {
 
 	final private String rootPath;
 	final private boolean readOnly;
 	final private N5FSReader n5;
 	private List<String> datasets = new ArrayList<>();
 	final private String version = "0.1.0";
-	final private String versionKey = "spatial_data_group";
+	final private String versionKey = "spatial_data_container";
 	final private String numDatasetsKey = "num_datasets";
 	final private String datasetsKey = "datasets";
 
-	protected SpatialDataGroup(String path, boolean readOnly) throws IOException {
+	protected SpatialDataContainer(String path, boolean readOnly) throws IOException {
 		this.rootPath = path;
 		this.readOnly = readOnly;
 
 		this.n5 = readOnly ? new N5FSReader(path) : new N5FSWriter(path);
 	}
 
-	public static SpatialDataGroup openExisting(String path) throws IOException {
+	public static SpatialDataContainer openExisting(String path) throws IOException {
 		if (!(new File(path)).exists())
 			throw new SpatialDataIOException("N5 '" + path + "' does not exist.");
-		SpatialDataGroup group = new SpatialDataGroup(path, false);
-		group.readFromDisk();
-		return group;
+		SpatialDataContainer container = new SpatialDataContainer(path, false);
+		container.readFromDisk();
+		return container;
 	}
 
-	public static SpatialDataGroup openForReading(String path) throws IOException {
+	public static SpatialDataContainer openForReading(String path) throws IOException {
 		if (!(new File(path)).exists())
 			throw new SpatialDataIOException("N5 '" + path + "' does not exist.");
-		SpatialDataGroup group = new SpatialDataGroup(path, true);
-		group.readFromDisk();
-		return group;
+		SpatialDataContainer container = new SpatialDataContainer(path, true);
+		container.readFromDisk();
+		return container;
 	}
 
-	public static SpatialDataGroup createNew(String path) throws IOException {
+	public static SpatialDataContainer createNew(String path) throws IOException {
 		if ((new File(path)).exists())
 			throw new SpatialDataIOException("N5 '" + path + "' already exists.");
-		SpatialDataGroup group = new SpatialDataGroup(path, false);
-		group.initializeGroup();
-		return group;
+		SpatialDataContainer container = new SpatialDataContainer(path, false);
+		container.initializeGroup();
+		return container;
 	}
 
 	protected void initializeGroup() throws IOException {
@@ -63,7 +63,7 @@ public class SpatialDataGroup {
 	protected void readFromDisk() throws IOException {
 		String actualVersion = n5.getAttribute("/", versionKey, String.class);
 		if (!this.version.equals(actualVersion))
-			throw new SpatialDataIOException("Incompatible spatial data group version: expected " + version + ", got " + actualVersion + ".");
+			throw new SpatialDataIOException("Incompatible spatial data container version: expected " + version + ", got " + actualVersion + ".");
 
 		int numDatasets = n5.getAttribute("/", numDatasetsKey, int.class);
 		datasets = n5.getAttribute("/", datasetsKey, List.class);
@@ -80,7 +80,7 @@ public class SpatialDataGroup {
 		String datasetName = oldPath.getFileName().toString();
 
 		if (readOnly)
-			throw new SpatialDataIOException("Trying to modify a read-only spatial data group.");
+			throw new SpatialDataIOException("Trying to modify a read-only spatial data container.");
 		if (datasets.contains(datasetName))
 			throw new SpatialDataIOException("Dataset '" + datasetName + "' already exists.");
 
@@ -91,7 +91,7 @@ public class SpatialDataGroup {
 
 	public void deleteDataset(String datasetName) throws IOException {
 		if (readOnly)
-			throw new SpatialDataIOException("Trying to modify a read-only spatial data group.");
+			throw new SpatialDataIOException("Trying to modify a read-only spatial data container.");
 		Files.delete(Paths.get(rootPath, datasetName));
 		datasets.remove(datasetName);
 		updateDatasetMetadata();
