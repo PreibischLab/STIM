@@ -21,7 +21,7 @@ public class View implements Callable<Void> {
 	private String containerPath = null;
 
 	@Option(names = {"-d", "--datasets"}, required = false, description = "if --container is given: comma separated list of datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: open all datasets)")
-	private List<String> datasets = null;
+	private String datasets = null;
 
 	@Option(names = {"-c", "--contrast"}, description = "comma separated contrast range for BigDataViewer display, e.g. -c '0,255' (default 0.1,5)" )
 	private String contrastString = null;
@@ -38,9 +38,9 @@ public class View implements Callable<Void> {
 			SpatialDataContainer container = SpatialDataContainer.openExisting(containerPath);
 
 			if (datasets != null) {
-				for (String dataset : datasets) {
+				for (String dataset : datasets.split(",")) {
 					System.out.println("Opening dataset '" + dataset + "' in '" + containerPath + "' ...");
-					dataToVisualize.add(container.openDataset(dataset).readData());
+					dataToVisualize.add(container.openDataset(dataset.trim()).readData());
 				}
 			}
 			else {
