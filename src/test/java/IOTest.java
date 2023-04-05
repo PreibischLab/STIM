@@ -56,7 +56,7 @@ public class IOTest extends AbstractIOTest {
 			sdio.writeData(expected);
 			STDataAssembly actual = sdio.readData();
 
-			compareSTDataAssemblies(actual, expected);
+			TestUtils.compareSTDataAssemblies(actual, expected);
 		}
 		catch (IOException e) {
 			fail("Could not write / read file: ", e);
@@ -79,23 +79,13 @@ public class IOTest extends AbstractIOTest {
 			sdio.writeData(expected);
 			STDataAssembly actual = sdio.readData();
 
-			compareSTDataAssemblies(actual, expected);
+			TestUtils.compareSTDataAssemblies(actual, expected);
 		}
 		catch (IOException e) {
 			fail("Could not write / read file: ", e);
 		}
 	}
 
-	protected static void compareSTDataAssemblies(STDataAssembly actual, STDataAssembly expected) {
-		TestUtils.assertRaiEquals(actual.data().getAllExprValues(), expected.data().getAllExprValues());
-		TestUtils.assertRaiEquals(actual.data().getLocations(), expected.data().getLocations());
-
-		assertLinesMatch(actual.data().getGeneNames(), expected.data().getGeneNames(), "Gene names not equal.");
-		assertLinesMatch(actual.data().getBarcodes(), expected.data().getBarcodes(), "Barcodes not equal.");
-
-		assertArrayEquals(actual.transform().getRowPackedCopy(), expected.transform().getRowPackedCopy(), "2D transforms not equal.");
-		assertArrayEquals(actual.intensityTransform().getRowPackedCopy(), expected.intensityTransform().getRowPackedCopy(), "Intensity transforms not equal.");
-	}
 
 	protected static List<Named<IOProvider>> provideIOObjects() throws IOException {
 		return Arrays.asList(

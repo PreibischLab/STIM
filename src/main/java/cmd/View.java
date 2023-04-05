@@ -6,24 +6,21 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import io.AnnDataIO;
+import io.SpatialDataContainer;
 import io.SpatialDataIO;
-import org.janelia.saalfeldlab.n5.N5FSReader;
 
 import gui.RenderThread;
 import gui.STDataAssembly;
 import gui.STDataExplorer;
-import io.N5IO;
-import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 
 public class View implements Callable<Void> {
 
-	@Option(names = {"-i", "--container"}, required = true, description = "N5 container paths, e.g. -i /home/ssq.n5 ...")
+	@Option(names = {"-i", "--container"}, required = true, description = "input file or N5 container path, e.g. -i /home/ssq.n5.")
 	private String containerPath = null;
 
-	@Option(names = {"-d", "--datasets"}, required = false, description = "comma separated list of datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: open all datasets)")
+	@Option(names = {"-d", "--datasets"}, required = false, description = "if --container is given: comma separated list of datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: open all datasets)")
 	private List<String> datasets = null;
 
 	@Option(names = {"-c", "--contrast"}, description = "comma separated contrast range for BigDataViewer display, e.g. -c '0,255' (default 0.1,5)" )
@@ -31,13 +28,30 @@ public class View implements Callable<Void> {
 
 	@Override
 	public Void call() throws Exception {
-
-		final File n5File = new File( containerPath );
-
-		if ( !n5File.exists() )
-		{
-			System.out.println( "'" + n5File.getAbsolutePath() + "' does not exist. Stopping." );
+		if (!(new File(containerPath)).exists()) {
+			System.out.println("Container / dataset '" + containerPath + "' does not exist. Stopping.");
 			return null;
+		}
+
+		final List<STDataAssembly> dataToVisualize = new ArrayList<>();
+		if (SpatialDataContainer.isCompatibleContainer(containerPath)) {
+			SpatialDataContainer container = SpatialDataContainer.openExisting(containerPath);
+
+			if (datasets != null) {
+				for (String dataset : datasets) {
+					System.out.println("Opening dataset '" + dataset + "' in '" + containerPath + "' ...");
+					dataToVisualize.add(container.openDataset(dataset).readData());
+				}
+			}
+			else {
+				System.out.println("Opening all datasets in '" + containerPath + "' ...");
+				for (SpatialDataIO sdio : container.openAllDatasets())
+					dataToVisualize.add(sdio.readData());
+			}
+		}
+		else {
+			System.out.println("Opening dataset '" + containerPath + "' ...");
+			dataToVisualize.add(SpatialDataIO.inferFromName(containerPath).readData());
 		}
 
 		if ( contrastString != null && contrastString.length() > 0 )
@@ -57,31 +71,11 @@ public class View implements Callable<Void> {
 			}
 		}
 
-		final ArrayList< STDataAssembly > data;
-
-		if (containerPath.endsWith(".h5ad")) {
-			data = new ArrayList<>();
-			SpatialDataIO stio = new AnnDataIO(containerPath, new N5HDF5Reader(containerPath));
-			data.add(stio.readData());
-		}
-		else if ( datasets == null || datasets.size() == 0 )
-		{
-			data = N5IO.openAllDatasets( new File( containerPath ) );
-		}
-		else
-		{
-			data = new ArrayList<>();
-
-			final N5FSReader n5 = N5IO.openN5( new File( containerPath ) );
-			for ( final String dataset : datasets )
-				data.add( N5IO.openDataset( n5, dataset ) );
-		}
-
 		// ignore potentially saved intensity adjustments
-		for ( final STDataAssembly d : data )
+		for ( final STDataAssembly d : dataToVisualize )
 			d.intensityTransform().set( 1.0, 0.0 );
 
-		new STDataExplorer( data );
+		new STDataExplorer( dataToVisualize );
 
 		return null;
 	}

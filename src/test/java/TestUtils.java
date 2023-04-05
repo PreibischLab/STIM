@@ -18,7 +18,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertLinesMatch;
 
 public class TestUtils {
 
@@ -32,6 +34,17 @@ public class TestUtils {
 			for (int j = 0; j < expected.dimension(1); ++j)
 				assertEquals(raExpected.setPositionAndGet(i, j), raActual.setPositionAndGet(i, j),
 						"Rai's differ on entry (" + i + "," + j +")");
+	}
+
+	protected static void compareSTDataAssemblies(STDataAssembly actual, STDataAssembly expected) {
+		TestUtils.assertRaiEquals(actual.data().getAllExprValues(), expected.data().getAllExprValues());
+		TestUtils.assertRaiEquals(actual.data().getLocations(), expected.data().getLocations());
+
+		assertLinesMatch(actual.data().getGeneNames(), expected.data().getGeneNames(), "Gene names not equal.");
+		assertLinesMatch(actual.data().getBarcodes(), expected.data().getBarcodes(), "Barcodes not equal.");
+
+		assertArrayEquals(actual.transform().getRowPackedCopy(), expected.transform().getRowPackedCopy(), "2D transforms not equal.");
+		assertArrayEquals(actual.intensityTransform().getRowPackedCopy(), expected.intensityTransform().getRowPackedCopy(), "Intensity transforms not equal.");
 	}
 
 	public static STData createTestDataSet() {

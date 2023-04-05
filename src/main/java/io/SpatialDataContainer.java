@@ -17,10 +17,10 @@ public class SpatialDataContainer {
 	final private boolean readOnly;
 	final private N5FSReader n5;
 	private List<String> datasets = new ArrayList<>();
-	final private String version = "0.1.0";
-	final private String versionKey = "spatial_data_container";
-	final private String numDatasetsKey = "num_datasets";
-	final private String datasetsKey = "datasets";
+	final private static String version = "0.1.0";
+	final private static String versionKey = "spatial_data_container";
+	final private static String numDatasetsKey = "num_datasets";
+	final private static String datasetsKey = "datasets";
 
 	protected SpatialDataContainer(String path, boolean readOnly) throws IOException {
 		this.rootPath = path;
@@ -49,11 +49,11 @@ public class SpatialDataContainer {
 		if ((new File(path)).exists())
 			throw new SpatialDataIOException("N5 '" + path + "' already exists.");
 		SpatialDataContainer container = new SpatialDataContainer(path, false);
-		container.initializeGroup();
+		container.initializeContainer();
 		return container;
 	}
 
-	protected void initializeGroup() throws IOException {
+	protected void initializeContainer() throws IOException {
 		N5FSWriter writer = (N5FSWriter) n5;
 		writer.setAttribute("/", versionKey, version);
 		writer.createGroup("/matches");
@@ -95,6 +95,29 @@ public class SpatialDataContainer {
 		Files.delete(Paths.get(rootPath, datasetName));
 		datasets.remove(datasetName);
 		updateDatasetMetadata();
+	}
+
+	public SpatialDataIO openDataset(String datasetName) throws IOException {
+		if (!datasets.contains(datasetName))
+			throw new SpatialDataIOException("Container does not contain dataset '" + datasetName + "'.");
+		return SpatialDataIO.inferFromName(Paths.get(rootPath, datasetName).toString());
+	}
+
+	public List<SpatialDataIO> openAllDatasets() throws IOException {
+		List<SpatialDataIO> datasetIOs = new ArrayList<>();
+		for (final String datasetName : datasets)
+			datasetIOs.add(SpatialDataIO.inferFromName(Paths.get(rootPath, datasetName).toString()));
+		return datasetIOs;
+	}
+
+	public static boolean isCompatibleContainer(String path) {
+		try {
+			N5FSReader reader = new N5FSReader(path);
+			String actualVersion = reader.getAttribute("/", versionKey, String.class);
+			return (actualVersion.equals(version));
+		} catch (Exception e) {
+			return false;
+		}
 	}
 
 	public List<String> getDatasets() {
