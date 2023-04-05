@@ -16,8 +16,11 @@ public class SpatialDataGroup {
 	final private String rootPath;
 	final private boolean readOnly;
 	final private N5FSReader n5;
+	private List<String> datasets = new ArrayList<>();
 	final private String version = "0.1.0";
-	final private List<String> datasets = new ArrayList<>();
+	final private String versionKey = "spatial_data_group";
+	final private String numDatasetsKey = "num_datasets";
+	final private String datasetsKey = "datasets";
 
 	protected SpatialDataGroup(String path, boolean readOnly) throws IOException {
 		this.rootPath = path;
@@ -30,7 +33,7 @@ public class SpatialDataGroup {
 		if (!(new File(path)).exists())
 			throw new SpatialDataIOException("N5 '" + path + "' does not exist.");
 		SpatialDataGroup group = new SpatialDataGroup(path, false);
-		group.checkVersion();
+		group.readFromDisk();
 		return group;
 	}
 
@@ -38,7 +41,7 @@ public class SpatialDataGroup {
 		if (!(new File(path)).exists())
 			throw new SpatialDataIOException("N5 '" + path + "' does not exist.");
 		SpatialDataGroup group = new SpatialDataGroup(path, true);
-		group.checkVersion();
+		group.readFromDisk();
 		return group;
 	}
 
@@ -52,21 +55,24 @@ public class SpatialDataGroup {
 
 	protected void initializeGroup() throws IOException {
 		N5FSWriter writer = (N5FSWriter) n5;
-		writer.setAttribute("/", "spatial_data_group", version);
+		writer.setAttribute("/", versionKey, version);
 		writer.createGroup("/matches");
 		updateDatasetMetadata();
 	}
 
-	protected void checkVersion() throws IOException {
-		String actualVersion = n5.getAttribute("/", "spatial-data-group", String.class);
+	protected void readFromDisk() throws IOException {
+		String actualVersion = n5.getAttribute("/", versionKey, String.class);
 		if (!this.version.equals(actualVersion))
 			throw new SpatialDataIOException("Incompatible spatial data group version: expected " + version + ", got " + actualVersion + ".");
+
+		int numDatasets = n5.getAttribute("/", numDatasetsKey, int.class);
+		datasets = n5.getAttribute("/", datasetsKey, List.class);
 	}
 
 	protected void updateDatasetMetadata() throws IOException {
 		N5FSWriter writer = (N5FSWriter) n5;
-		writer.setAttribute("/", "numDatasets", datasets.size());
-		writer.setAttribute("/", "datasets", datasets.toArray());
+		writer.setAttribute("/", numDatasetsKey, datasets.size());
+		writer.setAttribute("/", datasetsKey, datasets.toArray());
 	}
 
 	public void addExistingDataset(String path) throws IOException {

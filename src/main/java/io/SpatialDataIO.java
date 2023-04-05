@@ -180,6 +180,8 @@ public abstract class SpatialDataIO {
 				return new N5IO(fileName, new N5HDF5Writer(fileName));
 			case "n5":
 				return new N5IO(fileName, new N5FSWriter(fileName));
+			case "zarr":
+				return new N5IO(fileName, new N5HDF5Writer(fileName));
 			case "h5ad":
 				return new AnnDataIO(fileName, new N5HDF5Writer(fileName));
 			default:
