@@ -115,7 +115,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 					continue;
 
 				// clear the alignment metadata
-				final String pairwiseMatchName = datasetNames.get( i ) + "-" + datasetNames.get( j );
+				final String pairwiseMatchName = container.constructMatchName(datasetNames.get( i ), datasetNames.get( j ));
 				if (matches.contains(pairwiseMatchName)) {
 					if ( overwrite ) {
 						System.out.println("Overwriting previous results for: " + pairwiseMatchName);

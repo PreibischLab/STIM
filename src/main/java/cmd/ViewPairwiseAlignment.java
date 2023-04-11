@@ -83,7 +83,7 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 			{
 				final String dataset1 = datasetNames.get(i);
 				final String dataset2 = datasetNames.get(j);
-				final String matchName = dataset1 + "-" + dataset2;
+				final String matchName = container.constructMatchName(dataset1, dataset2);
 				if (container.getMatches().contains(matchName))
 				{
 					final STData stData1 = dataToVisualize.get(i);
@@ -110,7 +110,7 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 							stData1, stData2,
 							new AffineTransform2D(),
 							AlignTools.modelToAffineTransform2D( m ).inverse(),
-							smoothnessFactor).setTitle(dataset1 + "-" + dataset2 + "-inliers-" + loadedMatch.getNumInliers());
+							smoothnessFactor).setTitle(matchName + "-inliers-" + loadedMatch.getNumInliers());
 				}
 			}
 		}

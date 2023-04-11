@@ -7,12 +7,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
-import org.janelia.saalfeldlab.n5.DatasetAttributes;
+import gui.STDataAssembly;
+import io.SpatialDataContainer;
 import org.janelia.saalfeldlab.n5.N5FSReader;
-import org.janelia.saalfeldlab.n5.N5FSWriter;
 
 import data.STData;
-import data.STDataStatistics;
 import ij.ImageJ;
 import io.N5IO;
 import io.Path;
@@ -29,79 +28,40 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import util.Threads;
 
+import javax.naming.OperationNotSupportedException;
+
 public class GlobalOptSIFT
 {
-	public static class Matches
-	{
-		List< PointMatch > inliers = new ArrayList<>();
 
-		int numInliers = 0;
-		int numCandidates = 0;
-		String puckAName = "";
-		String puckBName = "";
-
-		HashSet<String> genes = new HashSet<>();
-
-		public double quality()
-		{
-			if ( numCandidates == 0 )
-				return 0;
-			else
-				return ( (double)numInliers / (double)numCandidates ) * Math.sqrt( numInliers );
-		}
+	protected static SiftMatch loadMatch(Object test, final String datasetA, final String datasetB ) {
+		throw new RuntimeException("loadMatch with called with old syntax.");
 	}
+	protected static SiftMatch loadMatch(final SpatialDataContainer container, final String datasetA, final String datasetB ) {
 
-	@SuppressWarnings("unchecked")
-	protected static Matches loadMatches( final N5FSReader n5, final String puckA, final String puckB )
-	{
-		final Matches matches = new Matches();
-
-		final String pairwiseGroupName = n5.groupPath( "/", "matches", puckA + "-" + puckB );
-
-		if ( !n5.exists( pairwiseGroupName ) )
-			return matches;
-
-		try
-		{
-			matches.puckAName = n5.getAttribute( pairwiseGroupName, "stDataAname", String.class );
-			matches.puckBName = n5.getAttribute( pairwiseGroupName, "stDataBname", String.class );
-
-			if (!puckA.equals( matches.puckAName ) )
-				throw new RuntimeException( "mismatch between match folder and metadata: " + puckA + "!=" + matches.puckAName );
-
-			if (!puckB.equals( matches.puckBName ) )
-				throw new RuntimeException( "mismatch between match folder and metadata: " + puckB + "!=" + matches.puckBName );
-
-			matches.numInliers = n5.getAttribute( pairwiseGroupName, "inliers", Integer.class );
-			matches.numCandidates = n5.getAttribute( pairwiseGroupName, "candidates", Integer.class );
-
-			matches.genes = new HashSet<String>( n5.getAttribute( pairwiseGroupName, "genes", List.class ) );
-
-			final DatasetAttributes datasetAttributes = n5.getDatasetAttributes( pairwiseGroupName );
-			matches.inliers = n5.readSerializedBlock( pairwiseGroupName, datasetAttributes, new long[]{0} );
+		SiftMatch match;
+		try {
+			match = container.loadPairwiseMatch(datasetA, datasetB);
 
 			// reset world coordinates
-			for ( final PointMatch pm : matches.inliers )
-			{
-				for ( int d = 0; d < pm.getP1().getL().length; ++d )
-				{
-					pm.getP1().getW()[ d ] = pm.getP1().getL()[ d ];
-					pm.getP2().getW()[ d ] = pm.getP2().getL()[ d ];
+			for (final PointMatch pm : match.getInliers()) {
+				for (int d = 0; d < pm.getP1().getL().length; ++d) {
+					pm.getP1().getW()[d] = pm.getP1().getL()[d];
+					pm.getP2().getW()[d] = pm.getP2().getL()[d];
 				}
 			}
 		}
-		catch (Exception e)
-		{
-			System.out.println( "error reading: " + pairwiseGroupName + " from " + n5.getBasePath() + ": " + e );
+		catch (Exception e) {
+			final String matchName = container.constructMatchName(datasetA, datasetB);
+			System.out.println("error reading: " + matchName + ": " + e);
 			e.printStackTrace();
-			return new Matches();
+			match = new SiftMatch();
 		}
 
-		return matches;
+		return match;
 	}
 
 	public static void globalOpt(
-			final File n5Path,
+			final SpatialDataContainer container,
 			final List<String> datasets,
 			final boolean useQuality,
 			final double lambda,
@@ -121,14 +81,12 @@ public class GlobalOptSIFT
 			final double smoothnessFactor,
 			final String displaygene ) throws IOException
 	{
-		final N5FSReader n5 = N5IO.openN5( n5Path );
+		final ArrayList<STDataAssembly> data = new ArrayList<>();
+		for ( final String name : datasets )
+			data.add(container.openDataset(name).readData());
 
-		final ArrayList< STData > puckData = new ArrayList<>();
-		for ( final String puck : datasets )
-			puckData.add( N5IO.readN5( n5, puck ) );
-
-		final HashMap< STData, Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > > dataToTile = new HashMap<>();
-		final HashMap< Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > >, STData > tileToData = new HashMap<>();
+		final HashMap<STDataAssembly, Tile<InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>>> dataToTile = new HashMap<>();
+		final HashMap<Tile<InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>>, STDataAssembly> tileToData = new HashMap<>();
 		final HashMap< Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > >, Integer > tileToIndex = new HashMap<>();
 
 		// for accessing the quality later
@@ -143,11 +101,11 @@ public class GlobalOptSIFT
 		{
 			for ( int j = i + 1; j < datasets.size(); ++j )
 			{
-				final Matches matches = loadMatches( n5, datasets.get( i ), datasets.get( j ) );//loadMatches( siftMatchesPath, i, j );
+				final SiftMatch match = loadMatch(container, datasets.get(i), datasets.get(j));
 
 				if ( useQuality )
 				{
-					quality[ i ][ j ] = quality[ j ][ i ] = matches.quality();
+					quality[ i ][ j ] = quality[ j ][ i ] = match.quality();
 	
 					maxQuality = Math.max( maxQuality, quality[ i ][ j ] );
 					minQuality = Math.min( minQuality, quality[ i ][ j ] );
@@ -157,14 +115,14 @@ public class GlobalOptSIFT
 					quality[ i ][ j ] = quality[ j ][ i ] = 1.0;
 				}
 
-				final STData stDataA = puckData.get(i);
-				final STData stDataB = puckData.get(j);
+				final STDataAssembly stDataA = data.get(i);
+				final STDataAssembly stDataB = data.get(j);
 
 				final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileA, tileB;
 
 				if ( !dataToTile.containsKey( stDataA ) )
 				{
-					tileA = new Tile<>( new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >( new AffineModel2D(), new RigidModel2D(), lambda1 ) );
+					tileA = new Tile<>( new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), lambda1 ) );
 					dataToTile.put( stDataA, tileA );
 					tileToData.put( tileA, stDataA );
 				}
@@ -175,7 +133,7 @@ public class GlobalOptSIFT
 
 				if ( !dataToTile.containsKey( stDataB ) )
 				{
-					tileB = new Tile<>( new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >( new AffineModel2D(), new RigidModel2D(), lambda1 ) );
+					tileB = new Tile<>( new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), lambda1 ) );
 					dataToTile.put( stDataB, tileB );
 					tileToData.put( tileB, stDataB );
 				}
@@ -187,7 +145,7 @@ public class GlobalOptSIFT
 				tileToIndex.putIfAbsent( tileA, i );
 				tileToIndex.putIfAbsent( tileB, j );
 
-				final List< PointMatch > inliers = matches.inliers;
+				final List< PointMatch > inliers = match.getInliers();
 				if ( inliers.size() > 0 )
 				{
 					System.out.println( "Connecting " + i + " to " + j + " ... "); 
@@ -224,12 +182,12 @@ public class GlobalOptSIFT
 		//System.exit( 0 );
 
 		for ( int i = 0; i < datasets.size(); ++i )
-			System.out.println( puckData.get( i ) + ": " + dataToTile.get( puckData.get( i ) ).getModel() );
+			System.out.println( data.get( i ) + ": " + dataToTile.get( data.get( i ) ).getModel() );
 
 		final TileConfiguration tileConfig = new TileConfiguration();
 
 		tileConfig.addTiles( new HashSet<>( dataToTile.values() ) );
-		tileConfig.fixTile( dataToTile.get( puckData.get( 0 ) ) );
+		tileConfig.fixTile( dataToTile.get( data.get( 0 ) ) );
 
 		final ArrayList< Pair< Tile< ? >, Tile< ? > > > removedInconsistentPairs = new ArrayList<>();
 
@@ -248,26 +206,23 @@ public class GlobalOptSIFT
 		for ( final Pair< Tile< ? >, Tile< ? > > removed : removedInconsistentPairs )
 			System.out.println( "Removed " + tileToIndex.get( removed.getA() ) + " to " + tileToIndex.get( removed.getB() ) + " (" + tileToData.get( removed.getA() ) + " to " + tileToData.get( removed.getB() ) + ")" );
 
-		final List< Pair< STData, AffineTransform2D > > data = new ArrayList<>();
-
-		final N5FSWriter n5Writer = N5IO.openN5write( n5Path );
+		final List< Pair< STData, AffineTransform2D > > dataTrafoPair = new ArrayList<>();
 
 		for ( int i = 0; i < datasets.size(); ++i )
 		{
-			final AffineTransform2D transform = AlignTools.modelToAffineTransform2D( dataToTile.get( puckData.get( i ) ).getModel() );
+			final AffineTransform2D transform = AlignTools.modelToAffineTransform2D( dataToTile.get( data.get( i ) ).getModel() );
 
-			final String groupName = n5.groupPath( datasets.get( i ) );
-			n5Writer.setAttribute( groupName, "model_sift", transform.getRowPackedCopy() );
-			n5Writer.setAttribute( groupName, "transform", transform.getRowPackedCopy() ); // will be overwritten by ICP later
+			container.openDataset(datasets.get(i)).updateTransformation(transform, "model_sift");
+			container.openDataset(datasets.get(i)).updateTransformation(transform, "transform"); // will be overwritten by ICP later
 
-			System.out.println( puckData.get( i ) + ": " + transform );
-			data.add( new ValuePair<>( puckData.get( i ), transform ) );
+			System.out.println( data.get( i ) + ": " + transform );
+			dataTrafoPair.add(new ValuePair<>(data.get(i).data(), transform));
 		}
 
 		if ( !skipDisplayResults )
 		{
 			new ImageJ();
-			AlignTools.visualizeList( data, AlignTools.defaultScale, smoothnessFactor, displaygene, true );
+			AlignTools.visualizeList(dataTrafoPair, AlignTools.defaultScale, smoothnessFactor, displaygene, true);
 		}
 
 		System.out.println( "Avg error: " + tileConfig.getError() );
@@ -279,13 +234,13 @@ public class GlobalOptSIFT
 			//
 			final TileConfiguration tileConfigICP = new TileConfiguration();
 	
-			final HashMap< STData, Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > > dataToTileICP = new HashMap<>();
-			final HashMap< Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > >, STData > tileToDataICP = new HashMap<>();
+			final HashMap<STDataAssembly, Tile<InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>>> dataToTileICP = new HashMap<>();
+			final HashMap<Tile<InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>>, STDataAssembly> tileToDataICP = new HashMap<>();
 	
-			for ( final STData stdata : dataToTile.keySet() )
+			for ( final STDataAssembly stdata : dataToTile.keySet() )
 			{
 				final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tile =
-						new Tile<>( new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >( new AffineModel2D(), new RigidModel2D(), lambda ) );
+						new Tile<>( new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), lambda ) );
 				dataToTileICP.put( stdata, tile );
 				tileToDataICP.put( tile, stdata );
 			}
@@ -294,7 +249,7 @@ public class GlobalOptSIFT
 			{
 				for ( int j = i + 1; j < datasets.size(); ++j )
 				{
-					final Matches matches = loadMatches( n5, datasets.get( i ) , datasets.get( j ) ); //loadMatches( siftMatchesPath, i, j );
+					final SiftMatch matches = loadMatch(container, datasets.get(i) , datasets.get(j));
 	
 					// they were connected and we use the genes that RANSAC filtered
 					if ( matches.genes.size() > 0 )
@@ -325,8 +280,8 @@ public class GlobalOptSIFT
 								System.out.print( gene + "," );
 							System.out.println();
 							
-							final RigidModel2D modelA = dataToTile.get( puckData.get( i ) ).getModel().getB().copy();
-							final RigidModel2D modelB = dataToTile.get( puckData.get( j ) ).getModel().getB().copy();
+							final RigidModel2D modelA = dataToTile.get(data.get(i)).getModel().getB().copy();
+							final RigidModel2D modelB = dataToTile.get(data.get(j)).getModel().getB().copy();
 							final RigidModel2D modelAInv = modelA.createInverse();
 	
 							// modelA is the identity transform after applying its own inverse
@@ -338,20 +293,20 @@ public class GlobalOptSIFT
 							affineB.set( modelB );
 	
 							final InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > interpolated = //modelB;
-									new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>( affineB, modelB, lambda );
+									new InterpolatedAffineModel2D<>( affineB, modelB, lambda );
 
 							final double medianDistance = 
-									Math.max( new STDataStatistics( puckData.get( i ) ).getMedianDistance(), new STDataStatistics( puckData.get( j ) ).getMedianDistance() );
+									Math.max(data.get(i).statistics().getMedianDistance(), data.get(j).statistics().getMedianDistance());
 
 							final double maxDistance = medianDistance * icpErrorFactor;
 
 							final Pair< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >, List< PointMatch > > icpT =
-									ICPAlign.alignICP( puckData.get( i ), puckData.get( j ), matches.genes, interpolated, maxDistance, maxDistance / 2.0, icpIterations );
+									ICPAlign.alignICP(data.get(i).data(), data.get(j).data(), matches.genes, interpolated, maxDistance, maxDistance / 2.0, icpIterations);
 	
 							if ( icpT.getB().size() > 0 )
 							{
-								final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileA = dataToTileICP.get( puckData.get( i ) );
-								final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileB = dataToTileICP.get( puckData.get( j ) );
+								final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileA = dataToTileICP.get(data.get(i));
+								final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileB = dataToTileICP.get(data.get(j));
 	
 								System.out.println( "Connecting " + i + " to " + j + " with " + icpT.getB().size() + " inliers." ); 
 								tileA.connect( tileB, icpT.getB() );
@@ -360,9 +315,9 @@ public class GlobalOptSIFT
 							/*
 							List< Pair< STData, AffineTransform2D > > dataTmp = new ArrayList<>();
 	
-							dataTmp.add( new ValuePair<>( puckData.get( i ), GlobalOpt.modelToAffineTransform2D( modelA ) ) );
-							dataTmp.add( new ValuePair<>( puckData.get( j ), GlobalOpt.modelToAffineTransform2D( modelB ) ) );
-							dataTmp.add( new ValuePair<>( puckData.get( j ), GlobalOpt.modelToAffineTransform2D( icpT.getA() ) ) );
+							dataTmp.add( new ValuePair<>( data.get( i ), GlobalOpt.modelToAffineTransform2D( modelA ) ) );
+							dataTmp.add( new ValuePair<>( data.get( j ), GlobalOpt.modelToAffineTransform2D( modelB ) ) );
+							dataTmp.add( new ValuePair<>( data.get( j ), GlobalOpt.modelToAffineTransform2D( icpT.getA() ) ) );
 							
 							GlobalOpt.visualizeList( dataTmp ).setTitle( i + "-" + j + "_ICP" );
 	
@@ -374,7 +329,7 @@ public class GlobalOptSIFT
 			}
 	
 			tileConfigICP.addTiles( new HashSet<>( dataToTileICP.values() ) );
-			tileConfigICP.fixTile( dataToTileICP.get( puckData.get( 0 ) ) );
+			tileConfigICP.fixTile(dataToTileICP.get(data.get(0)));
 	
 			try
 			{
@@ -403,15 +358,14 @@ public class GlobalOptSIFT
 	
 			for ( int i = 0; i < datasets.size(); ++i )
 			{
-				final AffineTransform2D transform = AlignTools.modelToAffineTransform2D( dataToTileICP.get( puckData.get( i ) ).getModel() );
+				final AffineTransform2D transform = AlignTools.modelToAffineTransform2D(dataToTileICP.get(data.get(i)).getModel());
 	
-				final String groupName = n5.groupPath( datasets.get( i ) );
-				n5Writer.setAttribute( groupName, "model_icp", transform.getRowPackedCopy() );
-				n5Writer.setAttribute( groupName, "transform", transform.getRowPackedCopy() ); // overwritten
+				container.openDataset(datasets.get(i)).updateTransformation(transform, "model_icp");
+				container.openDataset(datasets.get(i)).updateTransformation(transform, "transform");
+
+				System.out.println( data.get( i ) + ": " + transform );
 	
-				System.out.println( puckData.get( i ) + ": " + transform );
-	
-				dataICP.add( new ValuePair<>( puckData.get( i ), transform ) );
+				dataICP.add(new ValuePair<>(data.get(i).data(), transform));
 			}
 
 			if ( !skipDisplayResults )
@@ -447,7 +401,7 @@ public class GlobalOptSIFT
 		final int maxPlateauwidthICP = 500;
 
 		globalOpt(
-				n5Path, pucks,
+				SpatialDataContainer.createNew(n5Path.getAbsolutePath()), pucks,
 				useQuality,
 				lambdaGlobal,
 				maxAllowedError,

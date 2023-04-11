@@ -13,6 +13,14 @@ public class SiftMatch {
 	final protected ArrayList<PointMatch> inliers;
 	final protected Set<String> genes;
 
+	public SiftMatch() {
+		this.stDataAName = null;
+		this.stDataBName = null;
+		this.numCandidates = 0;
+		this.inliers = null;
+		this.genes = null;
+	}
+
 	public SiftMatch(String stDataAName,
 					 String stDataBName,
 					 int numCandidates,
@@ -49,4 +57,12 @@ public class SiftMatch {
 	public Set<String> getGenes() {
 		return genes;
 	}
+
+	public double quality() {
+		if (getNumCandidates() == 0)
+			return 0;
+		else
+			return ((double) getNumInliers() / (double) getNumCandidates()) * Math.sqrt(getNumInliers());
+	}
+
 }

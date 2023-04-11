@@ -166,7 +166,7 @@ public class SpatialDataContainer {
 
 	public void savePairwiseMatch(final SiftMatch results) throws IOException {
 		N5FSWriter writer = (N5FSWriter) n5;
-		final String matchName = results.getStDataAName() + "-" + results.getStDataBName();
+		final String matchName = constructMatchName(results.getStDataAName(), results.getStDataBName());
 		final String pairwiseGroupName = writer.groupPath("/", "matches", matchName);
 
 		if (readOnly)
@@ -199,8 +199,8 @@ public class SpatialDataContainer {
 	}
 
 	public SiftMatch loadPairwiseMatch(final String stDataAName, final String stDataBName) throws IOException, ClassNotFoundException {
-		final String pairwiseGroupName = n5.groupPath("/", "matches", stDataAName + "-" + stDataBName);
-		final String matchName = stDataAName + "-" + stDataBName;
+		final String matchName = constructMatchName(stDataAName, stDataBName);
+		final String pairwiseGroupName = n5.groupPath("/", "matches", matchName);
 
 		if (!matches.contains(matchName))
 			throw new SpatialDataIOException("Match '" + matchName + "' does not exist.");
@@ -217,6 +217,10 @@ public class SpatialDataContainer {
 			throw new SpatialDataIOException("Loaded data for match '" + matchName + "' not consistent.");
 
 		return new SiftMatch(stDataAName, stDataBName, numCandidates, inliers);
+	}
+
+	public String constructMatchName(final String stDataAName, final String stDataBName) {
+		return stDataAName + "-" + stDataBName;
 	}
 
 	private static class TreeDeleter extends SimpleFileVisitor<Path> {

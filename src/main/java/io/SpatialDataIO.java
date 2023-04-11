@@ -173,6 +173,14 @@ public abstract class SpatialDataIO {
 
 	protected abstract void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException;
 
+	public void updateTransformation(AffineGet transform, String name) throws IOException {
+		if (readOnly)
+			throw new SpatialDataIOException("Trying to modify a read-only file.");
+
+		N5Writer writer = (N5Writer) n5;
+		writeTransformation(writer, transform, name);
+	}
+
 	public static SpatialDataIO inferFromName(String path) throws IOException {
 		Path absolutePath = Paths.get(path).toAbsolutePath();
 		String fileName = absolutePath.getFileName().toString();
