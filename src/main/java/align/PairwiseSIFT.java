@@ -36,7 +36,6 @@ import mpicbg.models.Model;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
-import mpicbg.models.RigidModel2D;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.RealFloatConverter;
@@ -202,7 +201,7 @@ public class PairwiseSIFT
 		}
 	}
 
-	public static < M extends Affine2D<M> & Model<M>, N extends Affine2D<N> & Model<N> > SiftResults pairwiseSIFT(
+	public static < M extends Affine2D<M> & Model<M>, N extends Affine2D<N> & Model<N> > PairwiseSiftResults pairwiseSIFT(
 			final STData stDataA,
 			final String stDataAname,
 			final STData stDataB,
@@ -397,7 +396,7 @@ public class PairwiseSIFT
 		}
 
 		System.out.println( "errors: " + minError + "/" + error + "/" + maxError );
-		return new SiftResults(stDataAname, stDataBname, allCandidates, inliers);
+		return new PairwiseSiftResults(stDataAname, stDataBname, allCandidates.size(), inliers);
 	}
 
 	public static void main( String[] args ) throws IOException
@@ -495,20 +494,20 @@ public class PairwiseSIFT
 	}
 
 
-	public static class SiftResults {
+	public static class PairwiseSiftResults {
 		final protected String stDataAName;
 		final protected String stDataBName;
-		final protected List<PointMatch> candidates;
+		final protected int numCandidates;
 		final protected ArrayList<PointMatch> inliers;
 		final protected Set<String> genes;
 
-		public SiftResults(String stDataAName,
-							   String stDataBName,
-							   List<PointMatch> candidates,
-							   ArrayList<PointMatch> inliers) {
+		public PairwiseSiftResults(String stDataAName,
+								   String stDataBName,
+								   int numCandidates,
+								   ArrayList<PointMatch> inliers) {
 			this.stDataAName = stDataAName;
 			this.stDataBName = stDataBName;
-			this.candidates = candidates;
+			this.numCandidates = numCandidates;
 			this.inliers = inliers;
 			this.genes = new HashSet<>();
 			for (final PointMatch match : inliers)
@@ -523,8 +522,8 @@ public class PairwiseSIFT
 			return stDataBName;
 		}
 
-		public List<PointMatch> getCandidates() {
-			return candidates;
+		public int getNumCandidates() {
+			return numCandidates;
 		}
 
 		public ArrayList<PointMatch> getInliers() {

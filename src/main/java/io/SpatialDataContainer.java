@@ -1,5 +1,6 @@
 package io;
 
+import mpicbg.models.PointMatch;
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5FSReader;
@@ -17,7 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import align.PairwiseSIFT.SiftResults;
+import align.PairwiseSIFT.PairwiseSiftResults;
 
 public class SpatialDataContainer {
 
@@ -163,12 +164,18 @@ public class SpatialDataContainer {
 		}
 	}
 
-	public void savePairwiseMatch(SiftResults results) throws IOException {
+	public void savePairwiseMatch(final PairwiseSiftResults results) throws IOException {
 		N5FSWriter writer = (N5FSWriter) n5;
-		final String pairwiseGroupName = writer.groupPath("/", "matches", results.getStDataAName() + "-" + results.getStDataBName());
-		if (writer.exists(pairwiseGroupName)) {
+		final String matchName = results.getStDataAName() + "-" + results.getStDataBName();
+		final String pairwiseGroupName = writer.groupPath("/", "matches", matchName);
+
+		if (readOnly)
+			throw new SpatialDataIOException("Trying to modify a read-only spatial data container.");
+		if (matches.contains(matchName))
+			throw new SpatialDataIOException("Match '" + matchName + "' already exists.");
+		if (writer.exists(pairwiseGroupName))
 			writer.remove(pairwiseGroupName);
-		}
+
 		writer.createDataset(
 				pairwiseGroupName,
 				new long[] {1},
@@ -179,7 +186,7 @@ public class SpatialDataContainer {
 		writer.setAttribute(pairwiseGroupName, "stDataAname", results.getStDataAName());
 		writer.setAttribute(pairwiseGroupName, "stDataBname", results.getStDataBName());
 		writer.setAttribute(pairwiseGroupName, "inliers", results.getInliers().size());
-		writer.setAttribute(pairwiseGroupName, "candidates", results.getCandidates().size());
+		writer.setAttribute(pairwiseGroupName, "candidates", results.getNumCandidates());
 		writer.setAttribute(pairwiseGroupName, "genes", results.getGenes());
 
 		writer.writeSerializedBlock(
@@ -187,6 +194,29 @@ public class SpatialDataContainer {
 				pairwiseGroupName,
 				n5.getDatasetAttributes( pairwiseGroupName ),
 				0);
+
+		matches.add(matchName);
+	}
+
+	public PairwiseSiftResults loadPairwiseMatch(final String stDataAName, final String stDataBName) throws IOException, ClassNotFoundException {
+		final String pairwiseGroupName = n5.groupPath("/", "matches", stDataAName + "-" + stDataBName);
+		final String matchName = stDataAName + "-" + stDataBName;
+
+		if (!matches.contains(matchName))
+			throw new SpatialDataIOException("Match '" + matchName + "' does not exist.");
+
+		final String loadedNameA = n5.getAttribute(pairwiseGroupName, "stDataAname", String.class);
+		final String loadedNameB = n5.getAttribute(pairwiseGroupName, "stDataBname", String.class);
+		final int numCandidates = n5.getAttribute(pairwiseGroupName, "candidates", int.class);
+		final int numInliers = n5.getAttribute(pairwiseGroupName, "inliers", int.class);
+
+		final ArrayList<PointMatch> inliers =
+				n5.readSerializedBlock(pairwiseGroupName, n5.getDatasetAttributes(pairwiseGroupName), new long[]{0L});
+
+		if (!loadedNameA.equals(stDataAName) || !loadedNameB.equals(stDataBName) || numInliers != inliers.size())
+			throw new SpatialDataIOException("Loaded data for match '" + matchName + "' not consistent.");
+
+		return new PairwiseSiftResults(stDataAName, stDataBName, numCandidates, inliers);
 	}
 
 	private static class TreeDeleter extends SimpleFileVisitor<Path> {

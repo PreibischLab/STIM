@@ -16,7 +16,7 @@ import align.AlignTools;
 import align.Pairwise;
 import align.PairwiseSIFT;
 import align.PairwiseSIFT.SIFTParam;
-import align.PairwiseSIFT.SiftResults;
+import align.PairwiseSIFT.PairwiseSiftResults;
 import data.STData;
 import ij.ImageJ;
 import mpicbg.models.RigidModel2D;
@@ -26,10 +26,10 @@ import util.Threads;
 
 public class PairwiseSectionAligner implements Callable<Void> {
 
-	@Option(names = {"-i", "--input"}, required = true, description = "input file or N5 container path, e.g. -i /home/ssq.n5.")
+	@Option(names = {"-i", "--input"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")
 	private String inputPath = null;
 
-	@Option(names = {"-d", "--datasets"}, required = false, description = "if input is a container: comma separated list of datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: open all datasets)")
+	@Option(names = {"-d", "--datasets"}, required = false, description = "comma separated list of datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: open all datasets)")
 	private String datasets = null;
 
 	//@Option(names = {"-l", "--loadGenes"}, required = false, description = "load a plain text file with gene names")
@@ -78,7 +78,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 		if (!(new File(inputPath)).exists()) {
-			System.out.println("Container / dataset '" + inputPath + "' does not exist. Stopping.");
+			System.out.println("Container '" + inputPath + "' does not exist. Stopping.");
 			return null;
 		}
 
@@ -241,7 +241,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 
 				// hard case: -i /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d1 Puck_180602_15 -d2 Puck_180602_16 -n 30
 				// even harder: -i /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d1 Puck_180602_20 -d2 Puck_180602_18 -n 100 --overwrite
-				SiftResults results = PairwiseSIFT.pairwiseSIFT(
+				PairwiseSiftResults results = PairwiseSIFT.pairwiseSIFT(
 						stData1, dataset1, stData2, dataset2,
 						new RigidModel2D(), new RigidModel2D(),
 						new ArrayList<>( genesToTest ),
