@@ -5,14 +5,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
-import org.janelia.saalfeldlab.n5.DatasetAttributes;
-import org.janelia.saalfeldlab.n5.N5FSReader;
+import align.SiftMatch;
+import io.SpatialDataContainer;
 
 import align.AlignTools;
 import data.STData;
 import ij.ImageJ;
-import io.N5IO;
 import mpicbg.models.AffineModel2D;
 import mpicbg.models.InterpolatedAffineModel2D;
 import mpicbg.models.PointMatch;
@@ -23,10 +23,10 @@ import picocli.CommandLine.Option;
 
 public class ViewPairwiseAlignment implements Callable<Void> {
 
-	@Option(names = {"-i", "--input"}, required = true, description = "input N5 container, e.g. -i /home/ssq.n5")
-	private String input = null;
+	@Option(names = {"-i", "--input"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")
+	private String inputPath = null;
 
-	@Option(names = {"-d", "--datasets"}, required = false, description = "comma separated list of one or more datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: all)")
+	@Option(names = {"-d", "--datasets"}, required = false, description = "comma separated list of datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: open all datasets)")
 	private String datasets = null;
 
 	@Option(names = {"-g", "--gene"}, required = true, description = "gene to use for rendering, e.g. -g Calm2")
@@ -43,42 +43,33 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 
 	@Override
 	public Void call() throws Exception {
-
-		final File n5File = new File( input );
-
-		if ( !n5File.exists() )
-		{
-			System.out.println( "N5 '" + n5File.getAbsolutePath() + "'not found. stopping.");
+		if (!(new File(inputPath)).exists()) {
+			System.out.println("Container '" + inputPath + "' does not exist. Stopping.");
 			return null;
 		}
 
-		final N5FSReader n5 = N5IO.openN5( n5File );
-		final List< String > inputDatasets;
-
-		if ( datasets == null || datasets.trim().length() == 0 )
-			inputDatasets = N5IO.listAllDatasets( n5 );
-		else
-			inputDatasets = Arrays.asList( datasets.split( "," ) );
-
-		if ( inputDatasets.size() == 0 )
-		{
-			System.out.println( "no input datasets available. stopping.");
+		if (!SpatialDataContainer.isCompatibleContainer(inputPath)) {
+			System.out.println("Pairwise visualization does not work for single dataset '" + inputPath + "'. Stopping.");
 			return null;
 		}
 
-		final List< STData > stdata = new ArrayList<>();
+		SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath);
 
-		for ( final String dataset : inputDatasets )
-		{
-			if ( !n5.exists( n5.groupPath( dataset ) ) )
-			{
-				System.out.println( "dataset '" + dataset + "' not found. stopping.");
-				return null;
-			}
-			else
-			{
-				stdata.add( N5IO.readN5( n5, dataset ) );
-			}
+		final List<String> datasetNames;
+		if (datasets != null && datasets.trim().length() != 0) {
+			datasetNames = Arrays.stream(datasets.split(","))
+					.map(String::trim)
+					.collect(Collectors.toList());
+		}
+		else {
+			System.out.println("No input datasets specified. Trying to open all datasets in '" + inputPath + "' ...");
+			datasetNames = container.getDatasets();
+		}
+
+		final List<STData> dataToVisualize = new ArrayList<>();
+		for (final String dataset : datasetNames) {
+			System.out.println("Opening dataset '" + dataset + "' in '" + inputPath + "' ...");
+			dataToVisualize.add(container.openDataset(dataset).readData().data());
 		}
 
 		if ( gene != null && gene.length() > 0 )
@@ -86,27 +77,25 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 
 		new ImageJ();
 
-		for ( int i = 0; i < stdata.size() - 1; ++i )
+		for (int i = 0; i < dataToVisualize.size() - 1; ++i)
 		{
-			for ( int j = i + 1; j < stdata.size(); ++j )
+			for (int j = i + 1; j < dataToVisualize.size(); ++j)
 			{
-				// test if matches exist
-				final String pairwiseGroupName = n5.groupPath( "matches", inputDatasets.get( i ) + "-" + inputDatasets.get( j ) );
-				if ( new File( n5File, pairwiseGroupName ).exists() )// n5.exists( pairwiseGroupName ) )
+				final String dataset1 = datasetNames.get(i);
+				final String dataset2 = datasetNames.get(j);
+				final String matchName = container.constructMatchName(dataset1, dataset2);
+				if (container.getMatches().contains(matchName))
 				{
-					final STData stData1 = stdata.get( i );
-					final STData stData2 = stdata.get( j );
-					final String dataset1 = inputDatasets.get( i );
-					final String dataset2 = inputDatasets.get( j );
+					final STData stData1 = dataToVisualize.get(i);
+					final STData stData2 = dataToVisualize.get(j);
 
 					final InterpolatedAffineModel2D< AffineModel2D, RigidModel2D > m =
-							new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>( new AffineModel2D(), new RigidModel2D(), model );
+							new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), model );
 
-					final DatasetAttributes datasetAttributes = n5.getDatasetAttributes( pairwiseGroupName );
-					final ArrayList< PointMatch > inliers = n5.readSerializedBlock( pairwiseGroupName, datasetAttributes, new long[]{0} );
+					SiftMatch loadedMatch = container.loadPairwiseMatch(dataset1, dataset2);
 
 					// reset world coordinates
-					for ( final PointMatch pm : inliers )
+					for (final PointMatch pm : loadedMatch.getInliers())
 					{
 						for ( int d = 0; d < pm.getP1().getL().length; ++d )
 						{
@@ -115,13 +104,13 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 						}
 					}
 
-					m.fit( inliers );
+					m.fit(loadedMatch.getInliers());
 
 					AlignTools.visualizePair(
 							stData1, stData2,
 							new AffineTransform2D(),
 							AlignTools.modelToAffineTransform2D( m ).inverse(),
-							smoothnessFactor ).setTitle( dataset1 + "-" + dataset2 + "-inliers-" + inliers.size() );
+							smoothnessFactor).setTitle(matchName + "-inliers-" + loadedMatch.getNumInliers());
 				}
 			}
 		}

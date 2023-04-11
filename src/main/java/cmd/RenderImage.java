@@ -2,12 +2,12 @@ package cmd;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
-import org.janelia.saalfeldlab.n5.N5FSReader;
+import io.SpatialDataContainer;
+import io.SpatialDataIO;
 
 import data.STData;
 import data.STDataStatistics;
@@ -23,7 +23,6 @@ import ij.ImageJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import imglib2.ImgLib2Util;
-import io.N5IO;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RandomAccessibleInterval;
@@ -45,8 +44,8 @@ import render.Render;
 
 public class RenderImage implements Callable<Void> {
 
-	@Option(names = {"-i", "--input"}, required = true, description = "input N5 container, e.g. -i /home/ssq.n5")
-	private String input = null;
+	@Option(names = {"-i", "--container"}, required = true, description = "input file or N5 container path, e.g. -i /home/ssq.n5.")
+	private String inputPath = null;
 
 	@Option(names = {"-g", "--genes"}, required = true, description = "comma separated list of one or more genes, e.g. -g 'Calm2,Hpca,Ptgds'")
 	private String genes = null;
@@ -54,7 +53,7 @@ public class RenderImage implements Callable<Void> {
 	@Option(names = {"-o", "--output"}, required = false, description = "output folder for saving rendered images as TIFF, e.g. -o /home/export (default: display with ImageJ)")
 	private String output = null;
 
-	@Option(names = {"-d", "--datasets"}, required = false, description = "comma separated list of one or more datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: all)")
+	@Option(names = {"-d", "--datasets"}, required = false, description = "if --container is given: comma separated list of datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: open all datasets)")
 	private String datasets = null;
 
 	@Option(names = {"-s", "--scale"}, required = false, description = "scaling of the image, e.g. -s 0.5 (default: 0.05)")
@@ -77,72 +76,69 @@ public class RenderImage implements Callable<Void> {
 
 	@Override
 	public Void call() throws Exception {
-
-		final N5FSReader n5 = N5IO.openN5( new File( input ) );
-
-		final List< Pair< STData, AffineTransform2D > > data = new ArrayList<>();
-
-		List< String > inputDatasets, geneList;
-
-		if ( datasets == null || datasets.length() == 0 )
-			inputDatasets = Arrays.asList( n5.list( "/" ) );
-		else
-			inputDatasets = Arrays.asList( datasets.split( "," ) );
-
-		if ( inputDatasets.size() == 0 )
-		{
-			System.out.println( "no input datasets available. stopping.");
+		if (!(new File(inputPath)).exists()) {
+			System.out.println("Container / dataset '" + inputPath + "' does not exist. Stopping.");
 			return null;
 		}
 
-		if ( genes == null || genes.length() == 0 )
-			geneList = Arrays.asList( n5.list( "/" ) );
-		else
-			geneList = Arrays.asList( genes.split( "," ) );
+		final List<SpatialDataIO> iodata = new ArrayList<>();
+		if (SpatialDataContainer.isCompatibleContainer(inputPath)) {
+			SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath);
 
-		if ( geneList.size() == 0 )
-		{
-			System.out.println( "no genes available. stopping.");
-			return null;
+			if (datasets != null && datasets.length() != 0) {
+				for (String dataset : datasets.split(",")) {
+					System.out.println("Opening dataset '" + dataset + "' in '" + inputPath + "' ...");
+					iodata.add(container.openDataset(dataset.trim()));
+				}
+			}
+			else {
+				System.out.println("Opening all datasets in '" + inputPath + "' ...");
+				iodata.addAll(container.openAllDatasets());
+			}
+		}
+		else {
+			System.out.println("Opening dataset '" + inputPath + "' ...");
+			iodata.add(SpatialDataIO.inferFromName(inputPath));
 		}
 
-		for ( final String dataset : inputDatasets )
-		{
-			final STDataAssembly stAssembly =
-					N5IO.openDataset(n5, dataset);
+		if (genes == null || genes.length() == 0) {
+			System.out.println("No genes available. stopping.");
+			return null;
+		}
+		String[] geneList = genes.split(",");
 
-			if ( stAssembly != null )
-			{
-				System.out.println( "Assigning transform to " + dataset );
+		final List<Pair<STData, AffineTransform2D>> dataToVisualize = new ArrayList<>();
+		for (final SpatialDataIO sdio : iodata) {
+			final STDataAssembly stAssembly = sdio.readData();
 
-				data.add( new ValuePair<STData, AffineTransform2D>(
-						stAssembly.data(),
-						ignoreTransforms ? new AffineTransform2D() : stAssembly.transform() ) );
-
-				System.out.println( stAssembly.transform() );
+			if (stAssembly != null) {
+				System.out.println("Assigning transform to " + sdio.getPath());
+				AffineTransform2D transform = ignoreTransforms ? new AffineTransform2D() : stAssembly.transform();
+				dataToVisualize.add(new ValuePair<>(stAssembly.data(), transform));
+				System.out.println(transform);
 			}
 		}
 
-		if ( data.size() == 0 )
+		if ( dataToVisualize.size() == 0 )
 		{
 			System.out.println( "No datasets that contain sequencing data. stopping." );
 			return null;
 		}
 
 		final DoubleType outofbounds = new DoubleType( 0 );
-		final List< FilterFactory< DoubleType, DoubleType > > filterFactorys = new ArrayList<>();
+		final List<FilterFactory<DoubleType, DoubleType>> filterFactories = new ArrayList<>();
 
 		if ( singleSpotFilter )
 		{
-			STDataStatistics stats = new STDataStatistics( data.get( 0 ).getA() );
+			STDataStatistics stats = new STDataStatistics( dataToVisualize.get( 0 ).getA() );
 			System.out.println( "Using single-spot filtering, radius="  + (stats.getMedianDistance() * 1.5) );
-			filterFactorys.add( new SingleSpotRemovingFilterFactory<>( outofbounds,stats.getMedianDistance() * 1.5 ) );
+			filterFactories.add( new SingleSpotRemovingFilterFactory<>( outofbounds,stats.getMedianDistance() * 1.5 ) );
 		}
 
 		if ( median != null && median > 0.0 )
 		{
 			System.out.println( "Using median filtering, radius=" + median );
-			filterFactorys.add( new MedianFilterFactory<>( outofbounds, median ) );
+			filterFactories.add( new MedianFilterFactory<>( outofbounds, median ) );
 		}
 
 		if ( output == null )
@@ -155,8 +151,8 @@ public class RenderImage implements Callable<Void> {
 		{
 			System.out.println( "Rendering gene " + gene );
 
-			//ImagePlus imp = AlignTools.visualizeList( data, scale, gene, true );// filterFactorys );
-			ImagePlus imp = visualizeList( data, scale, gene, smoothnessFactor, border, filterFactorys );
+			//ImagePlus imp = AlignTools.visualizeList( dataToVisualize, scale, gene, true );// filterFactories );
+			ImagePlus imp = visualizeList( dataToVisualize, scale, gene, smoothnessFactor, border, filterFactories );
 			imp.setTitle( gene );
 
 			if ( output == null )

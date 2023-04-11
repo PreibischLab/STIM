@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -20,7 +19,6 @@ import java.util.concurrent.Future;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 
-import align.GlobalOptSIFT.Matches;
 import data.STData;
 import data.STDataStatistics;
 import filter.Filters;
@@ -69,9 +67,9 @@ public class IntensityAdjustment
 			for ( int j = i + 1; j < pucks.size(); ++j )
 			{
 				// load the matches
-				final Matches siftmatches = GlobalOptSIFT.loadMatches( n5, pucks.get( i ), pucks.get( j ) );
+				final SiftMatch siftmatches = GlobalOptSIFT.loadMatch( n5, pucks.get( i ), pucks.get( j ) );
 
-				if ( siftmatches.numInliers == 0 )
+				if ( siftmatches.getNumInliers() == 0 )
 					continue;
 
 				// use all genes that were used for alignment
@@ -114,9 +112,9 @@ public class IntensityAdjustment
 				final int j0 = j;
 
 				// load the matches
-				final Matches siftmatches = GlobalOptSIFT.loadMatches( n5, pucks.get( i ), pucks.get( j ) );
+				final SiftMatch siftmatches = GlobalOptSIFT.loadMatch( n5, pucks.get( i ), pucks.get( j ) );
 
-				if ( siftmatches.numInliers == 0 )
+				if ( siftmatches.getNumInliers() == 0 )
 					continue;
 
 				final List< Callable< ArrayList< PointMatch > > > tasks = new ArrayList<>();

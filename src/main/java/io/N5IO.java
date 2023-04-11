@@ -12,61 +12,40 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import net.imglib2.RandomAccess;
+import net.imglib2.realtransform.AffineGet;
+import net.imglib2.realtransform.AffineSet;
+import net.imglib2.type.numeric.RealType;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
+import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 
-import bdv.util.BdvFunctions;
-import bdv.util.BdvOptions;
 import data.STData;
 import data.STDataN5;
 import data.STDataStatistics;
-import data.STDataUtils;
-import filter.GaussianFilterFactory;
-import filter.GaussianFilterFactory.WeightType;
 import gui.STDataAssembly;
-import net.imglib2.IterableRealInterval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Util;
-import render.Render;
 
-public class N5IO
-{
+public class N5IO extends SpatialDataIO {
+
 	public static Compression defaultCompression = new GzipCompression( 3 );
 	public static int[] defaultBlockSize = new int[] { 512, 512 };
 	public static int defaultBlockLength = 1024;
 
-	public static void main( String[] args ) throws IOException, InterruptedException, ExecutionException
-	{
-		STData stdata = STDataUtils.createTestDataSet();
+	protected static String exprValuesGroup = "/expressionValues";
+	protected static String locationsGroup = "/locations";
 
-		final File n5path = new File( Path.getPath() + "patterns_examples_2d/small.n5" );
-		System.out.println( "n5-path: " + n5path.getAbsolutePath() );
-
-		// write N5
-		writeN5( createN5( n5path ), "data", stdata );
-
-		// load N5
-		stdata = readN5( n5path, "data" );
-
-		// display
-		final IterableRealInterval< DoubleType > data = stdata.getExprData( "Pcp4" );
-
-		final STDataStatistics stStats = new STDataStatistics( stdata );
-
-		final double displayRadius = stStats.getMedianDistance() / 2.0;
-		double gaussRenderSigma = stStats.getMedianDistance() / 4; 
-		double gaussRenderRadius = displayRadius;
-		final DoubleType outofbounds = new DoubleType( 0 );
-
-		BdvFunctions.show( Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, WeightType.NONE ) ), stdata.getRenderInterval(), "Pcp4_gauss1", BdvOptions.options().is2D() ).setDisplayRange( 0, 4 );
+	public N5IO(String path, N5Reader reader) {
+		super(path, reader);
 	}
 
 	public static STDataAssembly openDataset( final File n5Path, final String dataset ) throws IOException
@@ -402,5 +381,81 @@ public class N5IO
 			data.add( readN5( n5, dataset ) );
 
 		return data;
+	}
+
+	@Override
+	protected void writeHeader(N5Writer writer, STData data) throws IOException {
+		writer.createGroup(locationsGroup);
+		writer.createGroup(exprValuesGroup);
+		writer.setAttribute("/", "dim", data.numDimensions());
+		writer.setAttribute("/", "numLocations", data.numLocations());
+		writer.setAttribute("/", "numGenes", data.numGenes());
+	}
+
+	@Override
+	protected RandomAccessibleInterval<DoubleType> readLocations() throws IOException {
+		return N5Utils.open(n5, locationsGroup);
+	}
+
+	@Override
+	protected RandomAccessibleInterval<DoubleType> readExpressionValues() throws IOException {
+		return N5Utils.open(n5, exprValuesGroup);
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	protected List<String> readBarcodes() throws IOException {
+		return n5.getAttribute("/", "barcodeList", List.class);
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	protected List<String> readGeneNames() throws IOException {
+		return n5.getAttribute("/", "geneList", List.class);
+	}
+
+	@Override
+	public Boolean containsCellTypes() {
+		return null;
+	}
+
+	@Override
+	protected <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(AffineSet transform, String name) throws IOException {
+		final Set<String> attributes = n5.listAttributes("/").keySet();
+		if (attributes.contains(name))
+			transform.set(n5.getAttribute("/", name, double[].class ) );
+	}
+
+	@Override
+	protected void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations) throws IOException {
+		try {
+			N5Utils.save(locations, writer, locationsGroup, new int[]{options1d.blockSize[0], (int) locations.dimension(1)}, options.compression, options.exec);
+		} catch (InterruptedException | ExecutionException e) {
+			throw new SpatialDataIOException("Could not write locations.", e);
+		}
+	}
+
+	@Override
+	protected void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues) throws IOException {
+		try {
+			N5Utils.save(exprValues, writer, exprValuesGroup, options.blockSize, options.compression, options.exec);
+		} catch (InterruptedException | ExecutionException e) {
+			throw new SpatialDataIOException("Could not write expression values.", e);
+		}
+	}
+
+	@Override
+	protected void writeBarcodes(N5Writer writer, List<String> barcodes) throws IOException {
+		writer.setAttribute("/", "barcodeList", barcodes);
+	}
+
+	@Override
+	protected void writeGeneNames(N5Writer writer, List<String> geneNames) throws IOException {
+		writer.setAttribute("/", "geneList", geneNames);
+	}
+
+	@Override
+	protected void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException {
+		writer.setAttribute("/", name, transform.getRowPackedCopy());
 	}
 }

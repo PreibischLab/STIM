@@ -170,6 +170,11 @@
 			<artifactId>n5-hdf5</artifactId>
 			<version>1.4.2</version>
 		</dependency>
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-zarr</artifactId>
+			<version>0.0.8</version>
+		</dependency>
 
 		<!-- JUnit framework -->
 		<dependency>

@@ -1,19 +1,18 @@
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import anndata.AbstractCompressedStorageRai;
+import anndata.CompressedStorageRai;
 import anndata.CscRandomAccessibleInterval;
 import anndata.CsrRandomAccessibleInterval;
 import net.imglib2.RandomAccess;
 import net.imglib2.img.Img;
-import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
-import net.imglib2.type.Type;
+import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.type.numeric.integer.LongType;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.view.Views;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Named;
@@ -24,6 +23,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Named.named;
 
 
@@ -47,53 +47,43 @@ public class SparseImageTest {
 
 	@ParameterizedTest
 	@MethodSource("setupSparseImages")
-	public void sparse_has_correct_number_of_nonzeros(AbstractCompressedStorageRai<DoubleType, LongType> sparse) {
-		int count = 0;
-		RandomAccess<DoubleType> ra = sparse.randomAccess();
-		for (int i = 0; i <= sparse.max(0); ++i)
-			for (int j = 0; j <= sparse.max(1); ++j)
-				if (ra.setPositionAndGet(i, j).getRealDouble() != 0.0)
-					++count;
+	public void sparse_has_correct_number_of_nonzeros(CompressedStorageRai<DoubleType, LongType> sparse) {
+		assertEquals(5, CompressedStorageRai.getNumberOfNonzeros(sparse));
+	}
 
-		assertEquals(5, count);
+	@ParameterizedTest
+	@MethodSource("setupSparseImages")
+	public void conversion_to_sparse_is_correct(CompressedStorageRai<DoubleType, LongType> sparse) {
+		CompressedStorageRai<DoubleType, LongType> newCsr = CompressedStorageRai.convertToSparse(sparse, 0);
+		assertTrue(newCsr instanceof CsrRandomAccessibleInterval);
+		TestUtils.assertRaiEquals(sparse, newCsr);
+		CompressedStorageRai<DoubleType, LongType> newCsc = CompressedStorageRai.convertToSparse(sparse, 1);
+		assertTrue(newCsc instanceof CscRandomAccessibleInterval);
+		TestUtils.assertRaiEquals(sparse, newCsc);
 	}
 
 	@Test
 	public void CSC_is_CSR_transposed() {
 		CsrRandomAccessibleInterval<DoubleType, LongType> csr = setupCsr();
-		RandomAccess<DoubleType> raR = csr.randomAccess();
-		RandomAccess<DoubleType> raC = setupCsc().randomAccess();
-		for (int i = 0; i <= csr.max(0); ++i)
-			for (int j = 0; j <= csr.max(1); ++j)
-				assertEquals(raR.setPositionAndGet(i, j), raC.setPositionAndGet(j, i));
+		CscRandomAccessibleInterval<DoubleType, LongType> csc = setupCsc();
+		TestUtils.assertRaiEquals(csr, Views.permute(csc, 0, 1));
 	}
 
-	public CsrRandomAccessibleInterval<DoubleType, LongType> setupCsr() {
+	protected CsrRandomAccessibleInterval<DoubleType, LongType> setupCsr() {
 		return (CsrRandomAccessibleInterval<DoubleType, LongType>) setupSparseImages().get(0).getPayload();
 	}
 
-	public CscRandomAccessibleInterval<DoubleType, LongType> setupCsc() {
+	protected CscRandomAccessibleInterval<DoubleType, LongType> setupCsc() {
 		return (CscRandomAccessibleInterval<DoubleType, LongType>) setupSparseImages().get(1).getPayload();
 	}
 
-	public static List<Named<AbstractCompressedStorageRai<DoubleType, LongType>>> setupSparseImages() {
-		Img<DoubleType> data = create1DImgFromList(new ArrayImgFactory<>(new DoubleType()),
-				Stream.of(1.0, 1.0, 1.0, 1.0, 1.0).map(DoubleType::new).collect(Collectors.toList()));
-		Img<LongType> indices = create1DImgFromList(new ArrayImgFactory<>(new LongType()),
-				Stream.of(2, 5, 0, 6, 9).map(LongType::new).collect(Collectors.toList()));
-		Img<LongType> indptr = create1DImgFromList(new ArrayImgFactory<>(new LongType()),
-				Stream.of(0, 1, 2, 3, 3, 3, 3, 3, 3, 5).map(LongType::new).collect(Collectors.toList()));
+	protected static List<Named<CompressedStorageRai<DoubleType, LongType>>> setupSparseImages() {
+		Img<DoubleType> data = ArrayImgs.doubles(new double[]{1.0, 1.0, 1.0, 1.0, 1.0}, 5);
+		Img<LongType> indices = ArrayImgs.longs(new long[]{2L, 5L, 0L, 6L, 9L}, 5);
+		Img<LongType> indptr = ArrayImgs.longs(new long[]{0L, 1L, 2L, 3L, 3L, 3L, 3L, 3L, 3L, 5L}, 10);
 
 		return Arrays.asList(
 				named("CSR", new CsrRandomAccessibleInterval<>(10, 9, data, indices, indptr)),
 				named("CSC", new CscRandomAccessibleInterval<>(9, 10, data, indices, indptr)));
-	}
-
-	protected static  <T extends Type<T>> Img<T> create1DImgFromList(ImgFactory<T> imgFactory, List<T> values) {
-		final Img<T> img = imgFactory.create(values.size());
-		final Iterator<T> valueIterator = values.iterator();
-		for (final T pixel : img)
-			pixel.set(valueIterator.next());
-		return img;
 	}
 }
