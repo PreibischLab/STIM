@@ -20,7 +20,7 @@ public class View implements Callable<Void> {
 	@Option(names = {"-i", "--container"}, required = true, description = "input file or N5 container path, e.g. -i /home/ssq.n5.")
 	private String inputPath = null;
 
-	@Option(names = {"-d", "--datasets"}, required = false, description = "if --container is given: comma separated list of datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: open all datasets)")
+	@Option(names = {"-d", "--datasets"}, required = false, description = "if input is a container: comma separated list of datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: open all datasets)")
 	private String datasets = null;
 
 	@Option(names = {"-c", "--contrast"}, description = "comma separated contrast range for BigDataViewer display, e.g. -c '0,255' (default 0.1,5)" )
@@ -37,7 +37,7 @@ public class View implements Callable<Void> {
 		if (SpatialDataContainer.isCompatibleContainer(inputPath)) {
 			SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath);
 
-			if (datasets != null && datasets.length() != 0) {
+			if (datasets != null && datasets.trim().length() != 0) {
 				for (String dataset : datasets.split(",")) {
 					System.out.println("Opening dataset '" + dataset + "' in '" + inputPath + "' ...");
 					dataToVisualize.add(container.openDataset(dataset.trim()).readData());

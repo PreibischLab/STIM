@@ -6,14 +6,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.janelia.saalfeldlab.n5.DataType;
-import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.joml.Math;
@@ -203,14 +202,13 @@ public class PairwiseSIFT
 		}
 	}
 
-	public static < M extends Affine2D<M> & Model<M>, N extends Affine2D<N> & Model<N> > void pairwiseSIFT(
+	public static < M extends Affine2D<M> & Model<M>, N extends Affine2D<N> & Model<N> > SiftResults pairwiseSIFT(
 			final STData stDataA,
 			final String stDataAname,
 			final STData stDataB,
 			final String stDataBname,
 			final M modelPairwise,
 			final N modelGlobal,
-			final File n5File,
 			final List< String > genesToTest,
 			final SIFTParam p,
 			final double scale,
@@ -218,9 +216,8 @@ public class PairwiseSIFT
 			final double maxEpsilon,
 			final int minNumInliers,
 			final int minNumInliersPerGene,
-			final boolean saveResult,
 			final boolean visualizeResult,
-			final int numThreads ) throws IOException
+			final int numThreads )
 	{
 		final AffineTransform2D tS = new AffineTransform2D();
 		tS.scale( scale );
@@ -368,36 +365,6 @@ public class PairwiseSIFT
 		// the model that maps J to I
 		System.out.println( stDataAname + "\t" + stDataBname + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + AlignTools.modelToAffineTransform2D( modelGlobal ).inverse() );
 
-		if ( saveResult && inliers.size() >= minNumInliers )
-		{
-			final HashSet< String > genes = new HashSet<>();
-			for ( final PointMatch pm : inliers )
-				genes.add( ((PointST)pm.getP1()).getGene() );
-
-			final N5FSWriter n5 = N5IO.openN5write( n5File );
-			final String pairwiseGroupName = n5.groupPath( "/", "matches", stDataAname + "-" + stDataBname );
-			if (n5.exists(pairwiseGroupName))
-				n5.remove( pairwiseGroupName );
-			n5.createDataset(
-					pairwiseGroupName,
-					new long[] {1},
-					new int[] {1},
-					DataType.OBJECT,
-					new GzipCompression());
-	
-			n5.setAttribute( pairwiseGroupName, "stDataAname", stDataAname );
-			n5.setAttribute( pairwiseGroupName, "stDataBname", stDataBname );
-			n5.setAttribute( pairwiseGroupName, "inliers", inliers.size() );
-			n5.setAttribute( pairwiseGroupName, "candidates", allCandidates.size() );
-			n5.setAttribute( pairwiseGroupName, "genes", genes );
-	
-			n5.writeSerializedBlock(
-					inliers,
-					pairwiseGroupName,
-					n5.getDatasetAttributes( pairwiseGroupName ),
-					0);
-		}
-
 		if ( visualizeResult && inliers.size() >= minNumInliers )
 		{
 			ImagePlus rendered = AlignTools.visualizePair(
@@ -430,6 +397,7 @@ public class PairwiseSIFT
 		}
 
 		System.out.println( "errors: " + minError + "/" + error + "/" + maxError );
+		return new SiftResults(stDataAname, stDataBname, allCandidates, inliers);
 	}
 
 	public static void main( String[] args ) throws IOException
@@ -519,10 +487,52 @@ public class PairwiseSIFT
 				// check out ROD!
 				*/
 
-				pairwiseSIFT(stDataA, puckA, stDataB, puckB, new RigidModel2D(), new RigidModel2D(), n5File, genesToTest, p, scale, smoothnessFactor, maxEpsilon,
-						minNumInliers, minNumInliersPerGene, saveResult, visualizeResult, numThreads);
+//				pairwiseSIFT(stDataA, puckA, stDataB, puckB, new RigidModel2D(), new RigidModel2D(), n5File, genesToTest, p, scale, smoothnessFactor, maxEpsilon,
+//						minNumInliers, minNumInliersPerGene, saveResult, visualizeResult, numThreads);
 			}
 		}
 		System.out.println("done.");
+	}
+
+
+	public static class SiftResults {
+		final protected String stDataAName;
+		final protected String stDataBName;
+		final protected List<PointMatch> candidates;
+		final protected ArrayList<PointMatch> inliers;
+		final protected Set<String> genes;
+
+		public SiftResults(String stDataAName,
+							   String stDataBName,
+							   List<PointMatch> candidates,
+							   ArrayList<PointMatch> inliers) {
+			this.stDataAName = stDataAName;
+			this.stDataBName = stDataBName;
+			this.candidates = candidates;
+			this.inliers = inliers;
+			this.genes = new HashSet<>();
+			for (final PointMatch match : inliers)
+				genes.add(((PointST)match.getP1()).getGene());
+		}
+
+		public String getStDataAName() {
+			return stDataAName;
+		}
+
+		public String getStDataBName() {
+			return stDataBName;
+		}
+
+		public List<PointMatch> getCandidates() {
+			return candidates;
+		}
+
+		public ArrayList<PointMatch> getInliers() {
+			return inliers;
+		}
+
+		public Set<String> getGenes() {
+			return genes;
+		}
 	}
 }
