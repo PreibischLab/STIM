@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import align.PairwiseSIFT.PairwiseSiftResults;
+import align.SiftMatch;
 
 public class SpatialDataContainer {
 
@@ -164,7 +164,7 @@ public class SpatialDataContainer {
 		}
 	}
 
-	public void savePairwiseMatch(final PairwiseSiftResults results) throws IOException {
+	public void savePairwiseMatch(final SiftMatch results) throws IOException {
 		N5FSWriter writer = (N5FSWriter) n5;
 		final String matchName = results.getStDataAName() + "-" + results.getStDataBName();
 		final String pairwiseGroupName = writer.groupPath("/", "matches", matchName);
@@ -185,7 +185,7 @@ public class SpatialDataContainer {
 
 		writer.setAttribute(pairwiseGroupName, "stDataAname", results.getStDataAName());
 		writer.setAttribute(pairwiseGroupName, "stDataBname", results.getStDataBName());
-		writer.setAttribute(pairwiseGroupName, "inliers", results.getInliers().size());
+		writer.setAttribute(pairwiseGroupName, "inliers", results.getNumInliers());
 		writer.setAttribute(pairwiseGroupName, "candidates", results.getNumCandidates());
 		writer.setAttribute(pairwiseGroupName, "genes", results.getGenes());
 
@@ -198,7 +198,7 @@ public class SpatialDataContainer {
 		matches.add(matchName);
 	}
 
-	public PairwiseSiftResults loadPairwiseMatch(final String stDataAName, final String stDataBName) throws IOException, ClassNotFoundException {
+	public SiftMatch loadPairwiseMatch(final String stDataAName, final String stDataBName) throws IOException, ClassNotFoundException {
 		final String pairwiseGroupName = n5.groupPath("/", "matches", stDataAName + "-" + stDataBName);
 		final String matchName = stDataAName + "-" + stDataBName;
 
@@ -216,7 +216,7 @@ public class SpatialDataContainer {
 		if (!loadedNameA.equals(stDataAName) || !loadedNameB.equals(stDataBName) || numInliers != inliers.size())
 			throw new SpatialDataIOException("Loaded data for match '" + matchName + "' not consistent.");
 
-		return new PairwiseSiftResults(stDataAName, stDataBName, numCandidates, inliers);
+		return new SiftMatch(stDataAName, stDataBName, numCandidates, inliers);
 	}
 
 	private static class TreeDeleter extends SimpleFileVisitor<Path> {

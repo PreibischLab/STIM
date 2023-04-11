@@ -16,7 +16,7 @@ import align.AlignTools;
 import align.Pairwise;
 import align.PairwiseSIFT;
 import align.PairwiseSIFT.SIFTParam;
-import align.PairwiseSIFT.PairwiseSiftResults;
+import align.SiftMatch;
 import data.STData;
 import ij.ImageJ;
 import mpicbg.models.RigidModel2D;
@@ -29,7 +29,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 	@Option(names = {"-i", "--input"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")
 	private String inputPath = null;
 
-	@Option(names = {"-d", "--datasets"}, required = false, description = "comma separated list of datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: open all datasets)")
+	@Option(names = {"-d", "--datasets"}, required = false, description = "ordered, comma separated list of one or more datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: all, in order as saved in N5 metadata)")
 	private String datasets = null;
 
 	//@Option(names = {"-l", "--loadGenes"}, required = false, description = "load a plain text file with gene names")
@@ -97,7 +97,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 		}
 		else {
 			// TODO: should this really continue? the order of the datasets matters, but getDatasets() returns random order
-			System.out.println("No input datasets specified. Trying to opening all datasets in '" + inputPath + "' ...");
+			System.out.println("No input datasets specified. Trying to open all datasets in '" + inputPath + "' ...");
 			datasetNames = container.getDatasets();
 		}
 
@@ -241,7 +241,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 
 				// hard case: -i /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d1 Puck_180602_15 -d2 Puck_180602_16 -n 30
 				// even harder: -i /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d1 Puck_180602_20 -d2 Puck_180602_18 -n 100 --overwrite
-				PairwiseSiftResults results = PairwiseSIFT.pairwiseSIFT(
+				SiftMatch match = PairwiseSIFT.pairwiseSIFT(
 						stData1, dataset1, stData2, dataset2,
 						new RigidModel2D(), new RigidModel2D(),
 						new ArrayList<>( genesToTest ),
@@ -249,8 +249,8 @@ public class PairwiseSectionAligner implements Callable<Void> {
 						minNumInliers, minNumInliersGene,
 						visualizeResult, Threads.numThreads() );
 
-				if (saveResult && results.getInliers().size() >= minNumInliers) {
-					container.savePairwiseMatch(results);
+				if (saveResult && match.getNumInliers() >= minNumInliers) {
+					container.savePairwiseMatch(match);
 				}
 
 

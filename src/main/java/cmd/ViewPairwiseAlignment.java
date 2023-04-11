@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
-import align.PairwiseSIFT.PairwiseSiftResults;
+import align.SiftMatch;
 import io.SpatialDataContainer;
 
 import align.AlignTools;
@@ -49,7 +49,7 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 		}
 
 		if (!SpatialDataContainer.isCompatibleContainer(inputPath)) {
-			System.out.println("Pairwise alignment does not work for single dataset '" + inputPath + "'. Stopping.");
+			System.out.println("Pairwise visualization does not work for single dataset '" + inputPath + "'. Stopping.");
 			return null;
 		}
 
@@ -62,7 +62,7 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 					.collect(Collectors.toList());
 		}
 		else {
-			System.out.println("No input datasets specified. Trying to opening all datasets in '" + inputPath + "' ...");
+			System.out.println("No input datasets specified. Trying to open all datasets in '" + inputPath + "' ...");
 			datasetNames = container.getDatasets();
 		}
 
@@ -92,10 +92,10 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 					final InterpolatedAffineModel2D< AffineModel2D, RigidModel2D > m =
 							new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), model );
 
-					PairwiseSiftResults loadedResults = container.loadPairwiseMatch(dataset1, dataset2);
+					SiftMatch loadedMatch = container.loadPairwiseMatch(dataset1, dataset2);
 
 					// reset world coordinates
-					for (final PointMatch pm : loadedResults.getInliers())
+					for (final PointMatch pm : loadedMatch.getInliers())
 					{
 						for ( int d = 0; d < pm.getP1().getL().length; ++d )
 						{
@@ -104,13 +104,13 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 						}
 					}
 
-					m.fit(loadedResults.getInliers());
+					m.fit(loadedMatch.getInliers());
 
 					AlignTools.visualizePair(
 							stData1, stData2,
 							new AffineTransform2D(),
 							AlignTools.modelToAffineTransform2D( m ).inverse(),
-							smoothnessFactor ).setTitle( dataset1 + "-" + dataset2 + "-inliers-" + loadedResults.getInliers().size() );
+							smoothnessFactor).setTitle(dataset1 + "-" + dataset2 + "-inliers-" + loadedMatch.getNumInliers());
 				}
 			}
 		}

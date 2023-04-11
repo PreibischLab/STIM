@@ -4,9 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -201,7 +199,7 @@ public class PairwiseSIFT
 		}
 	}
 
-	public static < M extends Affine2D<M> & Model<M>, N extends Affine2D<N> & Model<N> > PairwiseSiftResults pairwiseSIFT(
+	public static <M extends Affine2D<M> & Model<M>, N extends Affine2D<N> & Model<N>> SiftMatch pairwiseSIFT(
 			final STData stDataA,
 			final String stDataAname,
 			final STData stDataB,
@@ -396,7 +394,7 @@ public class PairwiseSIFT
 		}
 
 		System.out.println( "errors: " + minError + "/" + error + "/" + maxError );
-		return new PairwiseSiftResults(stDataAname, stDataBname, allCandidates.size(), inliers);
+		return new SiftMatch(stDataAname, stDataBname, allCandidates.size(), inliers);
 	}
 
 	public static void main( String[] args ) throws IOException
@@ -494,44 +492,4 @@ public class PairwiseSIFT
 	}
 
 
-	public static class PairwiseSiftResults {
-		final protected String stDataAName;
-		final protected String stDataBName;
-		final protected int numCandidates;
-		final protected ArrayList<PointMatch> inliers;
-		final protected Set<String> genes;
-
-		public PairwiseSiftResults(String stDataAName,
-								   String stDataBName,
-								   int numCandidates,
-								   ArrayList<PointMatch> inliers) {
-			this.stDataAName = stDataAName;
-			this.stDataBName = stDataBName;
-			this.numCandidates = numCandidates;
-			this.inliers = inliers;
-			this.genes = new HashSet<>();
-			for (final PointMatch match : inliers)
-				genes.add(((PointST)match.getP1()).getGene());
-		}
-
-		public String getStDataAName() {
-			return stDataAName;
-		}
-
-		public String getStDataBName() {
-			return stDataBName;
-		}
-
-		public int getNumCandidates() {
-			return numCandidates;
-		}
-
-		public ArrayList<PointMatch> getInliers() {
-			return inliers;
-		}
-
-		public Set<String> getGenes() {
-			return genes;
-		}
-	}
 }
