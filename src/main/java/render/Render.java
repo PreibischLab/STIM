@@ -30,6 +30,7 @@ import net.imglib2.neighborsearch.KNearestNeighborSearchOnKDTree;
 import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform2D;
+import net.imglib2.type.Type;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.RealType;
@@ -242,7 +243,7 @@ public class Render
 				new NearestNeighborSearchInterpolatorFactory< T >() );
 	}
 
-	public static < S, T > RealRandomAccessible< T > render( final IterableRealInterval< S > data, final RadiusSearchFilterFactory< S, T > filterFactory )
+	public static < S extends Type<S>, T > RealRandomAccessible< T > render( final IterableRealInterval< S > data, final RadiusSearchFilterFactory< S, T > filterFactory )
 	{
 		return Views.interpolate(
 				new FilteringRadiusSearchOnKDTree< S, T >( // data source (F)
@@ -292,7 +293,7 @@ public class Render
 		return new ARGBType( ARGBType.rgba(c.getRed(), c.getGreen(), c.getBlue(), c.getAlpha()));
 	}
 
-	protected static <T> KDTree<T> createParallelizableKDTreeFrom(IterableRealInterval<T> data) {
+	protected static <T extends Type<T>> KDTree<T> createParallelizableKDTreeFrom(IterableRealInterval<T> data) {
 		final List<RealCursor<T>> positions = new ArrayList<>();
 		final List<T> values = new ArrayList<>();
 
@@ -300,7 +301,7 @@ public class Render
 		while (cursor.hasNext()) {
 			cursor.next();
 			positions.add(cursor.copyCursor());
-			values.add(cursor.get());
+			values.add(cursor.get().copy());
 		}
 
 		return new KDTree<T>(values, positions);
