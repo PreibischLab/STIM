@@ -7,7 +7,12 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
@@ -37,9 +42,11 @@ public class Resave implements Callable<Void> {
 	@Option(names = {"-o", "--container"}, required = false, description = "N5 output container path to which a new dataset will be added (N5 can exist or new one will be created), e.g. -o /home/ssq.n5. If left if omitted, the dataset will be stored in the current path.")
 	private String containerPath = null;
 
-	@Option(names = {"-i", "--input"}, required = true, description = "list of csv input files as triple 'locations.csv,reads.csv,datasetName' or optionally quadruple 'locations.csv,reads.csv,celltypes.csv,datasetName' with celltype annotations (missing barcodes in celltypes will be excluded from the datasets), e.g. -i '$HOME/Puck_180528_20/BeadLocationsForR.csv,$HOME/Puck_180528_20/MappedDGEForR.csv,Puck_180528_20'")
+	@Option(names = {"-i", "--input"}, required = true, description = "list of csv input files as triple 'locations.csv,reads.csv,datasetName' or optionally quadruple 'locations.csv,reads.csv,celltypes.csv,datasetName' with celltype annotations , e.g. -i '$HOME/Puck_180528_20/BeadLocationsForR.csv,$HOME/Puck_180528_20/MappedDGEForR.csv,Puck_180528_20'")
 	private String inputPaths = null;
-	// TODO: care about celltypes in a general way
+
+	@Option(names = {"-a", "--annotation"}, required = false, description = "location of csv file that contains annotations of locations, e.g., cell types (missing barcodes in annotations will be excluded from the datasets)")
+	private List<String> annotations = new ArrayList<>();
 
 	@Option(names = {"-n", "--normalize"}, required = false, description = "log-normalize the input data before saving (default: false)")
 	private boolean normalize = false;
@@ -54,8 +61,8 @@ public class Resave implements Callable<Void> {
 		String[] elements = inputPaths.trim().split( "," );
 		final File outputFile = new File(elements[elements.length-1].trim());
 
-		if ( elements.length < 3 || elements.length > 4 ) {
-			System.out.println("Input path could not parsed, it needs to be of the form [locations.csv,reads.csv,[celltypes.csv,]name].");
+		if (elements.length != 3) {
+			System.out.println("Input path could not parsed, it needs to be of the form [locations.csv,reads.csv,name].");
 			return null;
 		}
 		if (outputFile.exists()) {
@@ -65,18 +72,20 @@ public class Resave implements Callable<Void> {
 
 		final File locationsFile = new File(elements[0].trim());
 		final File readsFile = new File(elements[1].trim());
-		final File celltypeFile = (elements.length == 3) ? null : new File(elements[2].trim());
 
 		System.out.println("Locations='" + locationsFile.getAbsolutePath() + "'");
 		System.out.println("Reads='" + readsFile.getAbsolutePath() + "'");
 
-		BufferedReader locationsIn, readsIn, celltypeIn = null;
+		BufferedReader locationsIn, readsIn = null;
+		Map<String, BufferedReader> annotationsInMap = new HashMap<>();
 		try {
 			locationsIn = openCsvInput(locationsFile, "locations");
 			readsIn = openCsvInput(readsFile, "reads");
-			if (celltypeFile != null) {
-				System.out.println("Loading file '" + celltypeFile.getAbsolutePath() + "' as label 'celltype'");
-				celltypeIn = openCsvInput(celltypeFile, "cell type");
+			for (String annotationPath : annotations) {
+				final File annotationFile = new File(annotationPath.trim());
+				final String annotationLabel = Paths.get(annotationFile.getAbsolutePath()).getFileName().toString().split("\\.")[0];
+				System.out.println("Loading annotation file '" + annotationPath + "' as label '" + annotationLabel + "'.");
+				annotationsInMap.put(annotationLabel, openCsvInput(annotationFile, annotationLabel));
 			}
 		} catch (IOException e) {
 			System.out.println(e.getMessage());
@@ -84,10 +93,10 @@ public class Resave implements Callable<Void> {
 		}
 
 		STData data;
-		if (celltypeIn == null)
+		if (annotations.isEmpty())
 			data = TextFileIO.readSlideSeq(locationsIn, readsIn);
 		else
-			data = TextFileIO.readSlideSeq(locationsIn, readsIn, celltypeIn);
+			data = TextFileIO.readSlideSeq(locationsIn, readsIn, annotationsInMap);
 
 		if (normalize) {
 			System.out.println("Normalizing input ... ");
