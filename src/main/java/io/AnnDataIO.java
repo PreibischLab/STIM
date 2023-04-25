@@ -46,6 +46,7 @@ import static io.AnnDataDetails.AnnDataFieldType;
 public class AnnDataIO extends SpatialDataIO {
 
 	protected static String locationPath = "/obsm/locations";
+	protected static String annotationPath = "/obs";
 
 	public AnnDataIO(String path, N5Reader reader) {
 		super(path, reader);

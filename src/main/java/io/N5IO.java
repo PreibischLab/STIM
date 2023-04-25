@@ -12,7 +12,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import net.imglib2.RandomAccess;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineSet;
 import net.imglib2.type.numeric.RealType;
@@ -43,6 +42,7 @@ public class N5IO extends SpatialDataIO {
 
 	protected static String exprValuesGroup = "/expressionValues";
 	protected static String locationsGroup = "/locations";
+	protected static String annotationsGroup = "/annotations";
 
 	public N5IO(String path, N5Reader reader) {
 		super(path, reader);
@@ -385,8 +385,9 @@ public class N5IO extends SpatialDataIO {
 
 	@Override
 	protected void writeHeader(N5Writer writer, STData data) throws IOException {
-		writer.createGroup(locationsGroup);
 		writer.createGroup(exprValuesGroup);
+		writer.createGroup(locationsGroup);
+		writer.createGroup(annotationsGroup);
 		writer.setAttribute("/", "dim", data.numDimensions());
 		writer.setAttribute("/", "numLocations", data.numLocations());
 		writer.setAttribute("/", "numGenes", data.numGenes());
