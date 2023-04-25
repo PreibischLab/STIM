@@ -96,6 +96,19 @@ echo -n $(cat cp.txt) >> st-normalize
 echo ' \' >> st-normalize
 echo '  cmd.Normalize "$@"' >> st-normalize
 
+echo "Installing 'st-add-metadata' command into" $INSTALL_DIR
+
+echo '#!/bin/bash' > st-add-metadata
+echo '' >> st-add-metadata
+echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> st-add-metadata
+echo 'java \' >> st-add-metadata
+echo "  -Xmx${MEM}g \\" >> st-add-metadata
+echo '  -XX:+UseConcMarkSweepGC \' >> st-add-metadata
+echo -n '  -cp $JAR:' >> st-add-metadata
+echo -n $(cat cp.txt) >> st-add-metadata
+echo ' \' >> st-add-metadata
+echo '  cmd.AddMetaData "$@"' >> st-add-metadata
+
 echo "Installing 'st-align-pairs' command into" $INSTALL_DIR
 
 echo '#!/bin/bash' > st-align-pairs
@@ -141,6 +154,7 @@ chmod a+x st-bdv-view
 chmod a+x st-render
 chmod a+x st-resave
 chmod a+x st-normalize
+chmod a+x st-add-metadata
 chmod a+x st-align-pairs
 chmod a+x st-align-pairs-view
 chmod a+x st-align-global
@@ -155,6 +169,7 @@ else
     mv st-render $INSTALL_DIR/
     mv st-resave $INSTALL_DIR/
     mv st-normalize $INSTALL_DIR/
+    mv st-add-metadata $INSTALL_DIR/
     mv st-align-pairs $INSTALL_DIR/
     mv st-align-pairs-view $INSTALL_DIR/
     mv st-align-global $INSTALL_DIR/

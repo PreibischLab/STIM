@@ -27,6 +27,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -126,9 +127,35 @@ public abstract class SpatialDataIO {
 		options1d.compression = compression;
 	}
 
-	public void setExecutorService(ExecutorService exec) {
-		options.exec = exec;
-		options1d.exec = exec;
+	public boolean ensureRunningExecutorService() {
+		return ensureRunningExecutorService(Executors.newFixedThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2)));
+	}
+
+	/**
+	 * Ensure a running ExecutorService instance.
+	 * @param exec ExecutorService to use if one is not already running
+	 * @return true if ExecutorService was previously running, false otherwise
+	 */
+	public boolean ensureRunningExecutorService(ExecutorService exec) {
+		final boolean previouslyRunning = (options.exec != null && !options.exec.isShutdown());
+		if (!previouslyRunning) {
+			options.exec = exec;
+			options1d.exec = exec;
+		}
+		return previouslyRunning;
+	}
+
+	/**
+	 * Shutdown ExecutorService instance.
+	 * @return true if ExecutorService was previously running, false otherwise
+	 */
+	public boolean shutdownExecutorService() {
+		final boolean previouslyRunning = (options.exec != null && !options.exec.isShutdown());
+		if (previouslyRunning)
+			options.exec.shutdown();
+		options.exec = null;
+		options1d.exec = null;
+		return previouslyRunning;
 	}
 
 	protected abstract RandomAccessibleInterval<DoubleType> readLocations() throws IOException; // size: [numLocations x numDimensions]
@@ -154,7 +181,7 @@ public abstract class SpatialDataIO {
 
 		System.out.print( "Saving spatial data '" + path + "' ... " );
 		long time = System.currentTimeMillis();
-		setExecutorService(Executors.newFixedThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2)));
+		final boolean previouslyRunning = ensureRunningExecutorService();
 
 		writeHeader(writer, stData);
 		writeBarcodes(writer, stData.getBarcodes());
@@ -165,12 +192,30 @@ public abstract class SpatialDataIO {
 		writeTransformation(writer, data.transform(), "transform");
 		writeTransformation(writer, data.intensityTransform(), "intensity_transform");
 
-		for (Entry<String, RandomAccessibleInterval<? extends NativeType<?>>> entry : data.data().getMetaData().entrySet())
-			writeMetaData(writer, entry.getKey(),  entry.getValue());
+		updateStoredMetadata(data.data().getMetaData());
 
-		options.exec.shutdown();
-		setExecutorService(null);
+		if (!previouslyRunning)
+			shutdownExecutorService();
 		System.out.println( "Saving took " + ( System.currentTimeMillis() - time ) + " ms." );
+	}
+
+	public void updateStoredMetadata(Map<String, RandomAccessibleInterval<? extends NativeType<?>>> metadata) throws IOException {
+		if (readOnly)
+			throw new SpatialDataIOException("Trying to write to read-only file.");
+
+		N5Writer writer = (N5Writer) n5;
+		List<String> existingMetadata = detectMetaData();
+
+		final boolean previouslyRunning = ensureRunningExecutorService();
+		for (Entry<String, RandomAccessibleInterval<? extends NativeType<?>>> newEntry : metadata.entrySet()) {
+			if (existingMetadata.contains(newEntry.getKey()))
+				System.out.println("Existing metadata '" + newEntry.getKey() + "' was not updated.");
+			else
+				writeMetaData(writer, newEntry.getKey(),  newEntry.getValue());
+		}
+
+		if (!previouslyRunning)
+			shutdownExecutorService();
 	}
 
 	protected abstract void writeHeader(N5Writer writer, STData data) throws IOException;
@@ -192,10 +237,10 @@ public abstract class SpatialDataIO {
 			throw new SpatialDataIOException("Trying to modify a read-only file.");
 
 		N5Writer writer = (N5Writer) n5;
-		setExecutorService(Executors.newFixedThreadPool(1));
+		final boolean previouslyRunning = ensureRunningExecutorService(Executors.newFixedThreadPool(1));
 		writeTransformation(writer, transform, name);
-		options.exec.shutdown();
-		setExecutorService(null);
+		if (!previouslyRunning)
+			shutdownExecutorService();
 	}
 
 	public static SpatialDataIO inferFromName(String path) throws IOException {

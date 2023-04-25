@@ -2,16 +2,16 @@ package cmd;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
+import gui.STDataAssembly;
+import io.SpatialDataIO;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
-import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 
-import data.STDataN5;
 import io.N5IO;
 import io.TextFileAccess;
 import io.TextFileIO;
@@ -23,61 +23,58 @@ import picocli.CommandLine.Option;
 
 public class AddMetaData implements Callable<Void> {
 
-	@Option(names = {"-i", "--input"}, required = true, description = "input N5 container, e.g. -i /home/ssq.n5")
-	private String input = null;
+	@Option(names = {"-i", "--input"}, required = true, description = "input dataset, e.g. -i /home/ssq.n5")
+	private String inputPath = null;
 
-	@Option(names = {"-d", "--datasets"}, required = true, description = "comma separated list of one or more datasets, e.g. -d 'Puck_180528_20,Puck_180528_22'")
-	private String datasets = null;
-
-	@Option(names = {"-m", "--metadata"}, required = true, description = "comma separated list of one or more metadata info, e.g. -m '/home/celltypes_180528_20.csv,/home/celltypes_180528_22.csv'")
+	@Option(names = {"-m", "--metadata"}, required = true, description = "comma separated list of one or more metadata info, e.g. -m '/home/celltypes_180528_20.csv,/home/clustering_180528_22.csv'")
 	private String metadata = null;
 
-	@Option(names = {"-l", "--label"}, required = true, description = "label for metadata, e.g. -l celltypes")
-	private String label = null;
+	@Option(names = {"-l", "--label"}, required = false, description = "comma separated list of one or more labels for metadata, e.g. -l celltypes,clustering; default: filenames of metadata files")
+	private String labels = null;
 
 	@Override
-	public Void call() throws Exception
-	{
-		final File n5Path = new File( input );
-		final N5FSWriter n5 = N5IO.openN5write( n5Path );
-
-		final List< String > inputDatasets = Arrays.asList( datasets.split( "," ) );
-
-		if ( inputDatasets.size() == 0 )
-		{
-			System.out.println( "no input datasets specified. stopping.");
+	public Void call() throws Exception {
+		if (inputPath == null) {
+			System.out.println("No input path defined: " + inputPath + ". Stopping.");
 			return null;
 		}
 
-		final List< String > metadataList = Arrays.asList( metadata.split( "," ) );
+		final File n5Path = new File(inputPath);
+		final N5FSWriter n5 = N5IO.openN5write( n5Path );
 
-		if ( metadataList.size() == 0 )
-		{
+		final List<String> metadataList = Arrays.stream(metadata.split(",")).map(String::trim).collect(Collectors.toList());
+		final List<String> labelList;
+		if (labels == null) {
+			System.out.println("No labels given; using filenames as labels.");
+			labelList = metadataList.stream()
+					.map(s -> Paths.get(new File(s).getAbsolutePath()).getFileName().toString().split("\\.")[0])
+					.collect(Collectors.toList());
+		}
+		else
+			labelList = Arrays.stream(labels.split(",")).map(String::trim).collect(Collectors.toList());
+
+		if (metadataList.size() == 0) {
 			System.out.println( "no metadata files specified. stopping.");
 			return null;
 		}
 
-		if ( metadataList.size() != inputDatasets.size() )
-		{
-			System.out.println( "number of datasets (" + inputDatasets.size() + ") does not match number of metadata files (" + metadataList.size() + "). stopping.");
+		if (metadataList.size() != labelList.size()) {
+			System.out.println("number of metadata files (" + metadataList.size() + ") does not match number of labels (" + labelList.size() + "). stopping.");
 			return null;
 		}
 
-		System.out.println( "adding metadata for " + inputDatasets.size() + " datasets: " );
-		for ( int i = 0; i < inputDatasets.size(); ++i )
-			System.out.println( "  " + inputDatasets.get( i ) + " <<< " + metadataList.get( i ) );
+		System.out.println("adding metadata to " + inputPath);
+		final SpatialDataIO sdio = SpatialDataIO.inferFromName(inputPath);
+		final STDataAssembly stData = sdio.readData();
 
-		for ( int i = 0; i < inputDatasets.size(); ++i )
-		{
-			final String datasetName = inputDatasets.get( i );
+		for (int i = 0; i < metadataList.size(); ++i) {
 
-			System.out.println( "\n>>>Processing " + datasetName );
+			final String metadataName = metadataList.get(i);
+			final String label = labelList.get(i);
+			System.out.println("\n>>> Processing " + metadataName);
 
-			final STDataN5 data = N5IO.readN5( n5, datasetName );
-
-			final File in = new File( metadataList.get( i ) );
+			final File in = new File(metadataName);
 			final BufferedReader readsIn;
-
 			if ( !in.exists() ||
 					in.getAbsolutePath().toLowerCase().endsWith( ".zip" ) ||
 					in.getAbsolutePath().toLowerCase().endsWith( ".gz" ) ||
@@ -86,41 +83,28 @@ public class AddMetaData implements Callable<Void> {
 			else
 				readsIn = TextFileAccess.openFileRead( in );
 
-			if ( readsIn == null )
-			{
+			if (readsIn == null) {
 				System.out.println( "Could not open file '" + in.getAbsolutePath() + "'. Stopping." );
 				return null;
 			}
-			else
-			{
-				System.out.println( "Loading file '" + in.getAbsolutePath() + "' as label '" + label + "'" );
+			else {
+				System.out.println("Loading file '" + in.getAbsolutePath() + "' as label '" + label + "'" );
 			}
 
 			final int[] ids;
-
-			if ( data.getBarcodes().get( 0 ).equals( "" ) )
-				ids = TextFileIO.readMetaData( readsIn, (int)data.numLocations() ); // no barcodes available
+			final boolean barcodesUnavailable = stData.data().getBarcodes().get(0).equals("");
+			if (barcodesUnavailable)
+				ids = TextFileIO.readMetaData(readsIn, (int) stData.data().numLocations());
 			else
-				ids = TextFileIO.readMetaData( readsIn, data.getBarcodes() );
+				ids = TextFileIO.readMetaData(readsIn, stData.data().getBarcodes());
 
 			readsIn.close();
 
-			final Img<IntType> img = ArrayImgs.ints( ids, (int)data.numLocations() );
-
-			data.getMetaData().put( label, img );
-
-			// write the attribute for all existing metadata objects
-			n5.setAttribute(
-					n5.groupPath( datasetName ),
-					"metadataList",
-					data.getMetaData().keySet() );
-
-			final ExecutorService exec = Executors.newFixedThreadPool( Math.max( 1, Runtime.getRuntime().availableProcessors() / 2 ) );
-			final String metaLocation = n5.groupPath( datasetName, "meta-" + label );
-			N5Utils.save( img, n5, metaLocation, new int[]{ N5IO.defaultBlockLength, 1 }, N5IO.defaultCompression, exec );
-			exec.shutdown();
+			final Img<IntType> img = ArrayImgs.ints(ids, (int) stData.data().numLocations());
+			stData.data().getMetaData().put(label, img);
 		}
 
+		sdio.updateStoredMetadata(stData.data().getMetaData());
 		System.out.println( "Done." );
 
 		return null;
