@@ -19,6 +19,7 @@ import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
+import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -48,11 +49,11 @@ public abstract class SpatialDataIO {
 		options = new N5Options(
 				new int[]{512, 512},
 				new GzipCompression(3),
-				Executors.newFixedThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2)));
+				null);
 		options1d = new N5Options(
 				new int[]{512*512},
 				new GzipCompression(3),
-				Executors.newFixedThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2)));
+				null);
 	}
 
 	public String getPath() {
@@ -134,8 +135,6 @@ public abstract class SpatialDataIO {
 
 	protected abstract List<String> readGeneNames() throws IOException;
 
-	public abstract Boolean containsCellTypes();
-
 	protected abstract <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(AffineSet transform, String name) throws IOException;
 
 	public void writeData(STDataAssembly data) throws IOException {
@@ -147,6 +146,7 @@ public abstract class SpatialDataIO {
 
 		System.out.print( "Saving spatial data '" + path + "' ... " );
 		long time = System.currentTimeMillis();
+		setExecutorService(Executors.newFixedThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2)));
 
 		// TODO: read / write metadata (stData.getMetaData())
 		writeHeader(writer, stData);
@@ -158,6 +158,8 @@ public abstract class SpatialDataIO {
 		writeTransformation(writer, data.transform(), "transform");
 		writeTransformation(writer, data.intensityTransform(), "intensity_transform");
 
+		options.exec.shutdown();
+		setExecutorService(null);
 		System.out.println( "Saving took " + ( System.currentTimeMillis() - time ) + " ms." );
 	}
 
@@ -178,7 +180,10 @@ public abstract class SpatialDataIO {
 			throw new SpatialDataIOException("Trying to modify a read-only file.");
 
 		N5Writer writer = (N5Writer) n5;
+		setExecutorService(Executors.newFixedThreadPool(1));
 		writeTransformation(writer, transform, name);
+		options.exec.shutdown();
+		setExecutorService(null);
 	}
 
 	public static SpatialDataIO inferFromName(String path) throws IOException {
@@ -193,7 +198,7 @@ public abstract class SpatialDataIO {
 			case "n5":
 				return new N5IO(fileName, new N5FSWriter(path));
 			case "zarr":
-				return new N5IO(fileName, new N5HDF5Writer(path));
+				return new N5IO(fileName, new N5ZarrWriter(path));
 			case "h5ad":
 				return new AnnDataIO(fileName, new N5HDF5Writer(path));
 			default:

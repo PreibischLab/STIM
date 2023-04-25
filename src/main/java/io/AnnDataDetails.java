@@ -37,7 +37,7 @@ class AnnDataDetails {
             case CSC_MATRIX:
                 return openSparseArray(reader, path, CscRandomAccessibleInterval<T,I>::new); // column
             default:
-                throw new SpatialDataIOException("Reading data for " + type.toString() + " not supported.");
+                throw new SpatialDataIOException("Reading data for " + type + " not supported.");
         }
     }
 

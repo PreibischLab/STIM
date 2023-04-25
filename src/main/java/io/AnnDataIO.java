@@ -26,7 +26,6 @@ import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 
 import gui.STDataAssembly;
 import net.imglib2.converter.Converters;
-import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.basictypeaccess.array.IntArray;
@@ -86,16 +85,7 @@ public class AnnDataIO extends SpatialDataIO {
 	public STDataAssembly readData() throws IOException {
 		if (!AnnDataDetails.isValidAnnData(n5))
 			throw new IOException(path + " is not a valid AnnData file.");
-
-		STDataAssembly stDataAssembly = super.readData();
-
-		if (containsCellTypes()) {
-			Img<IntType> celltypeIds = getCelltypeIds(n5);
-			stDataAssembly.data().getMetaData().put("celltype", celltypeIds);
-			System.out.println("Loading '" + "/obs/cell_type" + "' as label 'celltype'.");
-		}
-
-		return stDataAssembly;
+		return super.readData();
 	}
 
 	@Override
@@ -110,26 +100,6 @@ public class AnnDataIO extends SpatialDataIO {
 	protected RandomAccessibleInterval<DoubleType> readExpressionValues() throws IOException {
 		RandomAccessibleInterval<? extends RealType<?>> expressionVals = (RandomAccessibleInterval<? extends RealType<?>>) AnnDataDetails.readArray(n5, "/X");
 		return Converters.convert(expressionVals, (i, o) -> o.set(i.getRealDouble()), new DoubleType());
-	}
-
-	@Override
-	public Boolean containsCellTypes() {
-		return n5.exists("/obs/cell_type");
-	}
-
-	public static ArrayImg<IntType, IntArray> getCelltypeIds(final N5Reader reader) throws IOException {
-		final List<String> cellTypes = AnnDataDetails.readStringAnnotation(reader, "/obs/cell_type");
-		final HashMap<String, Integer> typeToIdMap = new HashMap<>();
-		final int[] celltypeIds = new int[cellTypes.size()];
-
-		// for categorical arrays, this is redundant -> use codes directly?
-		for (int k = 0; k < cellTypes.size(); ++k) {
-			final String type = cellTypes.get(k);
-			Integer id = typeToIdMap.computeIfAbsent(type, k1 -> typeToIdMap.size() + 1);
-			celltypeIds[k] = id;
-		}
-
-		return ArrayImgs.ints(celltypeIds, celltypeIds.length);
 	}
 
 	protected <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(AffineSet transform, String name) throws IOException {

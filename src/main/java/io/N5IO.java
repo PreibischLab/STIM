@@ -415,11 +415,6 @@ public class N5IO extends SpatialDataIO {
 	}
 
 	@Override
-	public Boolean containsCellTypes() {
-		return null;
-	}
-
-	@Override
 	protected <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(AffineSet transform, String name) throws IOException {
 		final Set<String> attributes = n5.listAttributes("/").keySet();
 		if (attributes.contains(name))
