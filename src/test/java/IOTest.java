@@ -5,8 +5,11 @@ import io.AnnDataIO;
 import io.N5IO;
 import io.SpatialDataIO;
 import io.SpatialDataIOException;
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
+import net.imglib2.type.numeric.integer.IntType;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
@@ -86,6 +89,29 @@ public class IOTest extends AbstractIOTest {
 		}
 	}
 
+	@ParameterizedTest
+	@MethodSource("provideIOObjects")
+	public void io_conserves_metadata_order(IOProvider ioProvider) {
+		STDataAssembly expected = new STDataAssembly(TestUtils.createTestDataSet());
+		long n = expected.data().numLocations();
+		List<String> labels = Arrays.asList("annotation_1", "celltypes_2", "annotation_3");
+		for (String label : labels)
+			expected.data().getMetaData().put(label, ArrayImgs.ints(new int[(int) n], n));
+
+		try {
+			SpatialDataIO sdio = ioProvider.apply(getPath());
+			sdio.writeData(expected);
+			STDataAssembly actual = sdio.readData();
+
+			for (String label : labels)
+				TestUtils.assertRaiEquals(
+						(RandomAccessibleInterval<IntType>) expected.data().getMetaData().get(label),
+						(RandomAccessibleInterval<IntType>) actual.data().getMetaData().get(label));
+		}
+		catch (IOException e) {
+			fail("Could not write / read file: ", e);
+		}
+	}
 
 	protected static List<Named<IOProvider>> provideIOObjects() throws IOException {
 		return Arrays.asList(
