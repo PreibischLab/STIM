@@ -3,6 +3,7 @@ package io;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,7 @@ import java.util.concurrent.Executors;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineSet;
 import net.imglib2.type.numeric.RealType;
+import net.imglib2.type.numeric.integer.IntType;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5FSReader;
@@ -40,8 +42,8 @@ public class N5IO extends SpatialDataIO {
 	public static int[] defaultBlockSize = new int[] { 512, 512 };
 	public static int defaultBlockLength = 1024;
 
-	protected static String exprValuesGroup = "/expressionValues";
-	protected static String locationsGroup = "/locations";
+	protected static String exprValuesPath = "/expressionValues";
+	protected static String locationsPath = "/locations";
 	protected static String annotationsGroup = "/annotations";
 
 	public N5IO(String path, N5Reader reader) {
@@ -385,8 +387,8 @@ public class N5IO extends SpatialDataIO {
 
 	@Override
 	protected void writeHeader(N5Writer writer, STData data) throws IOException {
-		writer.createGroup(exprValuesGroup);
-		writer.createGroup(locationsGroup);
+		writer.createGroup(locationsPath);
+		writer.createGroup(exprValuesPath);
 		writer.createGroup(annotationsGroup);
 		writer.setAttribute("/", "dim", data.numDimensions());
 		writer.setAttribute("/", "numLocations", data.numLocations());
@@ -395,12 +397,12 @@ public class N5IO extends SpatialDataIO {
 
 	@Override
 	protected RandomAccessibleInterval<DoubleType> readLocations() throws IOException {
-		return N5Utils.open(n5, locationsGroup);
+		return N5Utils.open(n5, locationsPath);
 	}
 
 	@Override
 	protected RandomAccessibleInterval<DoubleType> readExpressionValues() throws IOException {
-		return N5Utils.open(n5, exprValuesGroup);
+		return N5Utils.open(n5, exprValuesPath);
 	}
 
 	@Override
@@ -423,9 +425,20 @@ public class N5IO extends SpatialDataIO {
 	}
 
 	@Override
+	protected List<String> detectMetaData() throws IOException {
+		return Arrays.asList(n5.list(annotationsGroup));
+	}
+
+	@Override
+	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(String label) throws IOException {
+		return N5Utils.open(n5, n5.groupPath(annotationsGroup, label));
+	}
+
+	@Override
 	protected void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations) throws IOException {
 		try {
-			N5Utils.save(locations, writer, locationsGroup, new int[]{options1d.blockSize[0], (int) locations.dimension(1)}, options.compression, options.exec);
+			int[] blockSize = new int[]{options1d.blockSize[0], (int) locations.dimension(1)};
+			N5Utils.save(locations, writer, locationsPath, blockSize, options.compression, options.exec);
 		} catch (InterruptedException | ExecutionException e) {
 			throw new SpatialDataIOException("Could not write locations.", e);
 		}
@@ -434,7 +447,7 @@ public class N5IO extends SpatialDataIO {
 	@Override
 	protected void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues) throws IOException {
 		try {
-			N5Utils.save(exprValues, writer, exprValuesGroup, options.blockSize, options.compression, options.exec);
+			N5Utils.save(exprValues, writer, exprValuesPath, options.blockSize, options.compression, options.exec);
 		} catch (InterruptedException | ExecutionException e) {
 			throw new SpatialDataIOException("Could not write expression values.", e);
 		}
@@ -453,5 +466,17 @@ public class N5IO extends SpatialDataIO {
 	@Override
 	protected void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException {
 		writer.setAttribute("/", name, transform.getRowPackedCopy());
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	protected void writeMetaData(N5Writer writer, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
+		String datasetName = writer.groupPath(annotationsGroup, label);
+		writer.createGroup(datasetName);
+		try {
+			N5Utils.save((RandomAccessibleInterval<IntType>) data, writer, datasetName, options1d.blockSize, options.compression, options.exec);
+		} catch (InterruptedException | ExecutionException e) {
+			throw new SpatialDataIOException("Could not write expression values.", e);
+		}
 	}
 }

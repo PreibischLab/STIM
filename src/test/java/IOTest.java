@@ -5,11 +5,9 @@ import io.AnnDataIO;
 import io.N5IO;
 import io.SpatialDataIO;
 import io.SpatialDataIOException;
-import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
-import net.imglib2.type.numeric.integer.IntType;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
@@ -25,8 +23,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertLinesMatch;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Named.named;
@@ -103,10 +99,7 @@ public class IOTest extends AbstractIOTest {
 			sdio.writeData(expected);
 			STDataAssembly actual = sdio.readData();
 
-			for (String label : labels)
-				TestUtils.assertRaiEquals(
-						(RandomAccessibleInterval<IntType>) expected.data().getMetaData().get(label),
-						(RandomAccessibleInterval<IntType>) actual.data().getMetaData().get(label));
+			TestUtils.compareSTDataAssemblies(actual, expected);
 		}
 		catch (IOException e) {
 			fail("Could not write / read file: ", e);

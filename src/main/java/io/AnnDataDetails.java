@@ -20,6 +20,7 @@ import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import io.SpatialDataIO.N5Options;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -80,6 +81,22 @@ class AnnDataDetails {
     protected static String[] readPrimitiveStringArray(N5HDF5Reader reader, String path) {
         final IHDF5Reader hdf5Reader = HDF5Factory.openForReading(reader.getFilename());
         return hdf5Reader.readStringArray(path);
+    }
+
+    public static <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readFromDataFrame(N5Reader reader, String dataFrame, String label) throws IOException {
+        List<String> existingData = getExistingDataFrameDatasets(reader, dataFrame);
+        if (!existingData.contains(label))
+            throw new SpatialDataIOException("Dataframe '" + dataFrame + "' does not contain '" + label + "'.");
+
+        return N5Utils.open(reader, dataFrame + "/" + label);
+    }
+
+    public static List<String> getExistingDataFrameDatasets(N5Reader reader, String dataFrame) throws IOException {
+        String[] rawArray = reader.getAttribute(dataFrame, "column-order", String[].class);
+        if (rawArray == null || rawArray.length == 0)
+            return new ArrayList<>();
+        else
+            return new ArrayList<>(Arrays.asList(rawArray));
     }
 
     protected static List<String> readCategoricalList(N5Reader reader, String path) throws IOException {
@@ -184,6 +201,26 @@ class AnnDataDetails {
 
         writePrimitiveStringArray((N5HDF5Writer) writer, path + "/_index", index.toArray(new String[0]));
         writeEncoding(writer, path + "/_index", AnnDataFieldType.STRING_ARRAY);
+    }
+
+    public static <T extends NativeType<T> & RealType<T>> void addToDataFrame(
+            N5Writer writer,
+            String dataFrame,
+            String label,
+            RandomAccessibleInterval<T> data,
+            N5Options options) throws IOException {
+
+        List<String> existingData = getExistingDataFrameDatasets(writer, dataFrame);
+        if (existingData.contains(label))
+            throw new SpatialDataIOException("Dataframe '" + dataFrame + "' already contains '" + label + "'.");
+
+        try {
+            N5Utils.save(data, writer, dataFrame + "/" + label, options.blockSize, options.compression, options.exec);
+            existingData.add(label);
+            writer.setAttribute(dataFrame, "column-order", existingData.toArray());
+        } catch (InterruptedException | ExecutionException e) {
+            throw new SpatialDataIOException("Could not write dataset '" + dataFrame + "/" + label + "'.");
+        }
     }
 
     protected static void writePrimitiveStringArray(N5HDF5Writer writer, String path, String[] array) {

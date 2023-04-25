@@ -1,30 +1,48 @@
 import data.STData;
-import data.STDataStatistics;
 import data.STDataText;
 import gui.STDataAssembly;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.img.Img;
-import net.imglib2.img.ImgFactory;
-import net.imglib2.img.array.ArrayImgs;
-import net.imglib2.realtransform.AffineTransform;
-import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.Type;
+import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertLinesMatch;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestUtils {
 
 	public static <T extends Type<T>> void assertRaiEquals(RandomAccessibleInterval<T> expected, RandomAccessibleInterval<T> actual) {
+		assertEquals(expected.numDimensions(), actual.numDimensions());
+		switch (expected.numDimensions()) {
+			case 1:
+				assertRaiEquals1d(expected, actual);
+				break;
+			case 2:
+				assertRaiEquals2d(expected, actual);
+				break;
+			default:
+				fail("Comparison of RAIs of dimension " + expected.numDimensions() + " not supported.");
+		}
+	}
+
+	protected static <T extends Type<T>> void assertRaiEquals1d(RandomAccessibleInterval<T> expected, RandomAccessibleInterval<T> actual) {
+		assertEquals(expected.dimension(0), actual.dimension(0), "Number of entries does not coincide.");
+
+		RandomAccess<T> raExpected = expected.randomAccess();
+		RandomAccess<T> raActual = actual.randomAccess();
+		for (int i = 0; i < expected.dimension(0); ++i)
+			assertEquals(raExpected.setPositionAndGet(i), raActual.setPositionAndGet(i), "Rai's differ on entry (" + i +")");
+	}
+
+	protected static <T extends Type<T>> void assertRaiEquals2d(RandomAccessibleInterval<T> expected, RandomAccessibleInterval<T> actual) {
 		assertEquals(expected.dimension(0), actual.dimension(0), "Number of columns does not coincide.");
 		assertEquals(expected.dimension(1), actual.dimension(1), "Number of rows does not coincide.");
 
@@ -33,7 +51,7 @@ public class TestUtils {
 		for (int i = 0; i < expected.dimension(0); ++i)
 			for (int j = 0; j < expected.dimension(1); ++j)
 				assertEquals(raExpected.setPositionAndGet(i, j), raActual.setPositionAndGet(i, j),
-						"Rai's differ on entry (" + i + "," + j +")");
+							 "Rai's differ on entry (" + i + "," + j +")");
 	}
 
 	protected static void compareSTDataAssemblies(STDataAssembly actual, STDataAssembly expected) {
@@ -45,6 +63,14 @@ public class TestUtils {
 
 		assertArrayEquals(actual.transform().getRowPackedCopy(), expected.transform().getRowPackedCopy(), "2D transforms not equal.");
 		assertArrayEquals(actual.intensityTransform().getRowPackedCopy(), expected.intensityTransform().getRowPackedCopy(), "Intensity transforms not equal.");
+
+		assertTrue(expected.data().getMetaData().keySet().containsAll(actual.data().getMetaData().keySet()), "Expected meta data correct");
+		assertTrue(actual.data().getMetaData().keySet().containsAll(expected.data().getMetaData().keySet()), "Actual meta data correct");
+
+		for (String label : expected.data().getMetaData().keySet())
+			TestUtils.assertRaiEquals(
+					(RandomAccessibleInterval<IntType>) expected.data().getMetaData().get(label),
+					(RandomAccessibleInterval<IntType>) actual.data().getMetaData().get(label));
 	}
 
 	public static STData createTestDataSet() {

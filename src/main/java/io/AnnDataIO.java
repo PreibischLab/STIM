@@ -3,7 +3,6 @@ package io;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 
 import bdv.util.BdvFunctions;
@@ -26,9 +25,7 @@ import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 
 import gui.STDataAssembly;
 import net.imglib2.converter.Converters;
-import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.array.ArrayImgs;
-import net.imglib2.img.basictypeaccess.array.IntArray;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.real.DoubleType;
@@ -115,6 +112,15 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	@Override
+	protected List<String> detectMetaData() throws IOException {
+		return AnnDataDetails.getExistingDataFrameDatasets(n5, annotationPath);
+	}
+
+	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(String label) throws IOException {
+		return AnnDataDetails.readFromDataFrame(n5, annotationPath, label);
+	}
+
+	@Override
 	protected List<String> readBarcodes() throws IOException {
 		return AnnDataDetails.readStringAnnotation(n5, "/obs/_index");
 	}
@@ -135,6 +141,12 @@ public class AnnDataIO extends SpatialDataIO {
 	protected void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException {
 		double[] trafoValues = transform.getRowPackedCopy();
 		AnnDataDetails.writeArray(writer, "/uns/" + name, ArrayImgs.doubles(trafoValues, trafoValues.length), options1d);
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	protected void writeMetaData(N5Writer writer, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
+		AnnDataDetails.addToDataFrame(writer, annotationPath, label, (RandomAccessibleInterval<IntType>) data, options1d);
 	}
 
 	@Override

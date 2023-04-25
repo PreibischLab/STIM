@@ -27,6 +27,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -99,6 +100,9 @@ public abstract class SpatialDataIO {
 		AffineTransform2D transform = new AffineTransform2D();
 		readAndSetTransformation(transform, "transform");
 
+		for (final String annotationLabel : detectMetaData())
+			stData.getMetaData().put(annotationLabel, readMetaData(annotationLabel));
+
 		System.out.println("Loading took " + (System.currentTimeMillis() - time) + " ms.");
 		System.out.println("File '" + path +
 				"': dims=" + locationDims[1] +
@@ -137,6 +141,10 @@ public abstract class SpatialDataIO {
 
 	protected abstract <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(AffineSet transform, String name) throws IOException;
 
+	protected abstract List<String> detectMetaData() throws IOException;
+
+	protected abstract <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(String label) throws IOException;
+
 	public void writeData(STDataAssembly data) throws IOException {
 		if (readOnly)
 			throw new SpatialDataIOException("Trying to write to read-only file.");
@@ -148,7 +156,6 @@ public abstract class SpatialDataIO {
 		long time = System.currentTimeMillis();
 		setExecutorService(Executors.newFixedThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2)));
 
-		// TODO: read / write metadata (stData.getMetaData())
 		writeHeader(writer, stData);
 		writeBarcodes(writer, stData.getBarcodes());
 		writeGeneNames(writer, stData.getGeneNames());
@@ -157,6 +164,9 @@ public abstract class SpatialDataIO {
 		writeLocations(writer, stData.getLocations());
 		writeTransformation(writer, data.transform(), "transform");
 		writeTransformation(writer, data.intensityTransform(), "intensity_transform");
+
+		for (Entry<String, RandomAccessibleInterval<? extends NativeType<?>>> entry : data.data().getMetaData().entrySet())
+			writeMetaData(writer, entry.getKey(),  entry.getValue());
 
 		options.exec.shutdown();
 		setExecutorService(null);
@@ -174,6 +184,8 @@ public abstract class SpatialDataIO {
 	protected abstract void writeGeneNames(N5Writer writer, List<String> geneNames) throws IOException;
 
 	protected abstract void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException;
+
+	protected abstract void writeMetaData(N5Writer writer, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException;
 
 	public void updateTransformation(AffineGet transform, String name) throws IOException {
 		if (readOnly)
