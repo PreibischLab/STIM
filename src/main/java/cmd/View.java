@@ -17,7 +17,7 @@ import picocli.CommandLine.Option;
 
 public class View implements Callable<Void> {
 
-	@Option(names = {"-i", "--container"}, required = true, description = "input file or N5 container path, e.g. -i /home/ssq.n5.")
+	@Option(names = {"-i", "--input"}, required = true, description = "input file or N5 container path, e.g. -i /home/ssq.n5.")
 	private String inputPath = null;
 
 	@Option(names = {"-d", "--datasets"}, required = false, description = "if input is a container: comma separated list of datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: open all datasets)")
