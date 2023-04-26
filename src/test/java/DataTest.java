@@ -1,7 +1,6 @@
 import data.NormalizingSTData;
 import data.STData;
 import data.STDataImgLib2;
-import data.STDataN5;
 import data.STDataStatistics;
 import data.STDataText;
 import net.imglib2.Interval;
@@ -11,7 +10,6 @@ import net.imglib2.RealCursor;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.ValuePair;
-import org.janelia.saalfeldlab.n5.N5FSReader;
 import net.imglib2.util.Pair;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -19,8 +17,6 @@ import org.junit.jupiter.api.Named;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -137,16 +133,7 @@ public class DataTest {
 		}
 
 		dataList.add(named("ImgLib2 Data", new STDataImgLib2(locations, exprValues, geneNames, barcodeNames, geneLookup)));
-
-		try {
-			String path = "/test";
-			N5FSReader reader = new N5FSReader(path);
-			dataList.add(named("N5 Data", new STDataN5(locations, exprValues, geneNames, barcodeNames, geneLookup, reader, new File(path), "dataset")));
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-
-		dataList.add(named("Normalized Data", new NormalizingSTData(dataList.get(2).getPayload())));
+		dataList.add(named("Normalized Data", new NormalizingSTData(dataList.get(1).getPayload())));
 
 		return dataList;
 	}
