@@ -1,6 +1,5 @@
 package examples;
 
-import java.io.File;
 import java.io.IOException;
 
 import bvv.util.Bvv;
@@ -9,16 +8,12 @@ import bvv.util.BvvSource;
 import data.STData;
 import data.STDataStatistics;
 import imglib2.DoubleUnsignedShortConverter;
-import imglib2.ImgLib2Util;
-import io.N5IO;
-import io.TextFileIO;
+import io.SpatialDataContainer;
 import io.Path;
 import net.imglib2.IterableRealInterval;
-import net.imglib2.RealPointSampleList;
 import net.imglib2.converter.Converters;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
-import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
 import render.Render;
@@ -33,7 +28,7 @@ public class VolumetricRendering
 
 		long time = System.currentTimeMillis();
 
-		final STData stdata = N5IO.readN5( new File( path + "examples.n5" ), "fly3d" );
+		final STData stdata = SpatialDataContainer.openForReading(path + "examples.n5").openDataset("fly3d").readData().data();
 
 		System.out.println( System.currentTimeMillis() - time + " ms." );
 

@@ -1,10 +1,10 @@
 package examples;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
@@ -16,8 +16,8 @@ import gui.STDataAssembly;
 import gui.celltype.CellTypeExplorer;
 import imglib2.StackedIterableRealInterval;
 import imglib2.TransformedIterableRealInterval;
-import io.N5IO;
 import io.Path;
+import io.SpatialDataContainer;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
@@ -120,8 +120,11 @@ public class VisualizeMetadata
 
 	public static void main( String[] args ) throws IOException
 	{
-		final ArrayList< STDataAssembly > puckData =
-				N5IO.openAllDatasets( new File( Path.getPath() + "slide-seq-test.n5" ) );
+		final List<STDataAssembly> puckData =
+				SpatialDataContainer.openExisting(Path.getPath() + "slide-seq-test.n5").openAllDatasets().stream()
+								.map(sdio ->
+									 {try {return sdio.readData();} catch (IOException e) {throw new RuntimeException(e);}
+								}).collect(Collectors.toList());
 
 		visualize2d(
 				puckData.get( 12 ).data(),

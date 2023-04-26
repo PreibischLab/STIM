@@ -1,16 +1,17 @@
 package examples;
 
 import java.awt.event.ActionEvent;
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 import javax.swing.ActionMap;
 import javax.swing.InputMap;
 
+import io.SpatialDataContainer;
 import org.scijava.ui.behaviour.KeyStrokeAdder;
 import org.scijava.ui.behaviour.io.InputTriggerConfig;
 import org.scijava.ui.behaviour.io.InputTriggerDescription;
@@ -24,7 +25,6 @@ import bdv.viewer.DisplayMode;
 import data.STData;
 import data.STDataUtils;
 import filter.FilterFactory;
-import filter.Filters;
 import filter.GaussianFilterFactory;
 import filter.SingleSpotRemovingFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
@@ -32,10 +32,8 @@ import filter.MedianFilterFactory;
 import gui.STDataAssembly;
 import ij.ImageJ;
 import ij.ImagePlus;
-import ij.io.FileSaver;
 import imglib2.StackedIterableRealInterval;
 import imglib2.TransformedIterableRealInterval;
-import io.N5IO;
 import io.Path;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
@@ -43,20 +41,14 @@ import net.imglib2.IterableRealInterval;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
-import net.imglib2.converter.Converters;
 import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineGet;
-import net.imglib2.realtransform.AffineRandomAccessible;
-import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
-import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.realtransform.RealViews;
 import net.imglib2.realtransform.Scale3D;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
-import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import render.Render;
@@ -311,7 +303,7 @@ public class VisualizeStack
 		bdvSource.getBdvHandle().getKeybindings().addInputMap("persistence", ksInputMap);
 	}
 
-	public static ImagePlus visualizeIJ( final ArrayList< STDataAssembly > puckData, final boolean useTransform, final boolean useIntensityTransform )
+	public static ImagePlus visualizeIJ(final List<STDataAssembly> puckData, final boolean useTransform, final boolean useIntensityTransform)
 	{
 		final List< STData > data = new ArrayList<>();
 		final List< AffineTransform2D > transforms = new ArrayList<>();
@@ -331,8 +323,11 @@ public class VisualizeStack
 
 	public static void main( String[] args ) throws IOException
 	{
-		final ArrayList< STDataAssembly > puckData =
-				N5IO.openAllDatasets( new File( Path.getPath() + "slide-seq-test.n5" ) );
+		final List<STDataAssembly> puckData =
+				SpatialDataContainer.openForReading(Path.getPath() + "slide-seq-test.n5").openAllDatasets().stream()
+						.map(sdio ->
+							 {try {return sdio.readData();} catch (IOException e) {throw new RuntimeException(e);}})
+						.collect(Collectors.toList());
 
 		for ( final STDataAssembly p : puckData )
 		{

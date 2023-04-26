@@ -1,6 +1,5 @@
 package examples;
 
-import java.io.File;
 import java.io.IOException;
 
 import bdv.util.BdvFunctions;
@@ -9,18 +8,14 @@ import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
 import data.STData;
 import data.STDataStatistics;
-import filter.Filters;
 import filter.GaussianFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
-import filter.MedianFilterFactory;
-import filter.realrandomaccess.MedianRealRandomAccessible;
-import io.N5IO;
 import io.Path;
+import io.SpatialDataContainer;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.type.numeric.real.DoubleType;
 import render.Render;
-import transform.TransformIntensities;
 
 public class TestDisplayModes
 {
@@ -30,7 +25,7 @@ public class TestDisplayModes
 
 		long time = System.currentTimeMillis();
 
-		final STData stdata = N5IO.readN5( new File( path + "slide-seq-test.n5" ), "Puck_180531_19" );
+		final STData stdata = SpatialDataContainer.openForReading(path + "slide-seq-test.n5").openDataset("Puck_180531_19").readData().data();
 
 		System.out.println( System.currentTimeMillis() - time + " ms." );
 

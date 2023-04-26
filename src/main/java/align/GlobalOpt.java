@@ -9,13 +9,14 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import org.janelia.saalfeldlab.n5.N5FSReader;
+import gui.STDataAssembly;
+import io.SpatialDataContainer;
 
 import data.STData;
 import data.STDataUtils;
 import ij.ImageJ;
-import io.N5IO;
 import io.Path;
 import io.TextFileAccess;
 import mpicbg.models.ErrorStatistic;
@@ -301,12 +302,12 @@ public class GlobalOpt
 
 		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
 
-		final N5FSReader n5 = N5IO.openN5( new File( path + "slide-seq-normalized-gzip3.n5" ) );
-		final List< String > pucks = N5IO.listAllDatasets( n5 );
+		final SpatialDataContainer container = SpatialDataContainer.openForReading(path + "slide-seq-normalized-gzip3.n5");
+		final List<String> pucks = container.getDatasets();
 
-		final ArrayList< STData > puckData = new ArrayList<>();
-		for ( final String puck : pucks )
-			puckData.add( N5IO.readN5( n5, puck ) );
+		final List<STDataAssembly> puckData = container.openAllDatasets().stream()
+				.map(sdio -> {try {return sdio.readData();} catch (IOException e) {throw new RuntimeException(e);}
+				}).collect(Collectors.toList());
 
 		for ( final Alignment align : alignments )
 			if ( align.i < pucks.size() && align.j < pucks.size() )
@@ -334,7 +335,7 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 		final List< Pair< STData, AffineTransform2D > > initialdata = new ArrayList<>();
 
 		for ( int i = 0; i < puckData.size(); ++i )
-			initialdata.add( new ValuePair<>(puckData.get( i ), new AffineTransform2D()) );
+			initialdata.add(new ValuePair<>(puckData.get(i).data(), new AffineTransform2D()));
 
 //		initialdata.add( new ValuePair<>( puckData.get( debugA ), new AffineTransform2D() ) );
 //		for ( debugB = debugA + 1; debugB < 11; ++debugB )
@@ -344,7 +345,7 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 		//visualizePair( puckData.get( debugA ), puckData.get( debugB ), new AffineTransform2D(), Alignment.getAlignment( alignments, debugA, debugB ).t );
 		SimpleMultiThreading.threadHaltUnClean();
 
-		final Interval interval = STDataUtils.getCommonInterval( puckData );
+		final Interval interval = STDataUtils.getCommonInterval(puckData.stream().map(STDataAssembly::data).collect(Collectors.toList()));
 
 		final HashMap< STData, Tile< RigidModel2D > > dataToTile = new HashMap<>();
 		final HashMap< Tile< RigidModel2D >, STData > tileToData = new HashMap<>();
@@ -366,15 +367,15 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 
 				//quality[ i ][ j ] = quality[ j ][ i ] = align.quality;
 				
-				quality[ i ][ j ] = quality[ j ][ i ] = 1.0 / centerOfMassDistance( puckData.get( i ), puckData.get( j ), new AffineTransform2D(), Alignment.getAlignment( alignments, i, j ).t );
+				quality[i][j] = quality[j][i] = 1.0 / centerOfMassDistance(puckData.get(i).data(), puckData.get(j).data(), new AffineTransform2D(), Alignment.getAlignment(alignments, i, j).t);
 
 				maxQuality = Math.max( maxQuality, quality[ i ][ j ] );
 				minQuality = Math.min( minQuality, quality[ i ][ j ] );
 
 				System.out.println( "Connecting " + i + "-" + j );
 
-				final STData stDataA = puckData.get(i);
-				final STData stDataB = puckData.get(j);
+				final STData stDataA = puckData.get(i).data();
+				final STData stDataB = puckData.get(j).data();
 
 				final Tile< RigidModel2D > tileA, tileB;
 
@@ -501,7 +502,7 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 			final AffineTransform2D t = new AffineTransform2D();
 			t.set( array[ 0 ], array[ 2 ], array[ 4 ], array[ 1 ], array[ 3 ], array[ 5 ] );
 			*/
-			data.add( new ValuePair<>( puckData.get( i ), AlignTools.modelToAffineTransform2D( model ) ) );
+			data.add(new ValuePair<>(puckData.get(i).data(), AlignTools.modelToAffineTransform2D(model)));
 		}
 
 		AlignTools.visualizeList( data );

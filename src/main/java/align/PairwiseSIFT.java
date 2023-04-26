@@ -1,6 +1,5 @@
 package align;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -10,9 +9,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
-import org.janelia.saalfeldlab.n5.N5FSReader;
-import org.janelia.saalfeldlab.n5.N5FSWriter;
+import gui.STDataAssembly;
+import io.SpatialDataContainer;
 import org.joml.Math;
 
 import data.STData;
@@ -22,7 +22,6 @@ import ij.ImageJ;
 import ij.ImagePlus;
 import ij.process.ImageProcessor;
 import imglib2.ImgLib2Util;
-import io.N5IO;
 import io.Path;
 import mpicbg.ij.FeatureTransform;
 import mpicbg.ij.SIFT;
@@ -422,20 +421,17 @@ public class PairwiseSIFT
 		//final String[] pucks = new String[] { "Puck_180531_23", "Puck_180531_22" };
 		//final String[] pucks = new String[] { "Puck_180602_18", "Puck_180531_18" }; // 1-8
 
-		final File n5File = new File( path + "slide-seq-normalized.n5" );
-		final N5FSReader n5 = N5IO.openN5( n5File );
-		final List< String > pucks = N5IO.listAllDatasets( n5 );
+		SpatialDataContainer container = SpatialDataContainer.openExisting(path + "slide-seq-normalized.n5");
 
-		final ArrayList< STData > puckData = new ArrayList<>();
-		for ( final String puck : pucks )
-			puckData.add( N5IO.readN5( n5, puck ) );
+		List<String> pucks = container.getDatasets();
+		final List<STDataAssembly> puckData = container.openAllDatasets().stream().
+				map(sdio -> {
+					try {return sdio.readData();} catch (IOException e) {throw new RuntimeException(e);}
+				}).collect(Collectors.toList());
 
 		// clear the alignment metadata
-		final String matchesGroupName = n5.groupPath( "/", "matches" );
-		final N5FSWriter n5Writer = N5IO.openN5write( n5File );
-		if (n5.exists(matchesGroupName))
-			n5Writer.remove( matchesGroupName );
-		n5Writer.createGroup( matchesGroupName );
+		for (String match : container.getMatches())
+			container.deleteMatch(match);
 
 		// visualize using the global transform
 		final double scale = 0.1;
@@ -462,8 +458,8 @@ public class PairwiseSIFT
 				//final int ki = i;
 				//final int kj = j;
 
-				final STData stDataA = puckData.get(i);
-				final STData stDataB = puckData.get(j);
+				final STData stDataA = puckData.get(i).data();
+				final STData stDataB = puckData.get(j).data();
 
 				final String puckA = pucks.get( i );
 				final String puckB = pucks.get( j );

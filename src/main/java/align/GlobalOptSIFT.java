@@ -9,11 +9,9 @@ import java.util.List;
 
 import gui.STDataAssembly;
 import io.SpatialDataContainer;
-import org.janelia.saalfeldlab.n5.N5FSReader;
 
 import data.STData;
 import ij.ImageJ;
-import io.N5IO;
 import io.Path;
 import mpicbg.models.AffineModel2D;
 import mpicbg.models.ErrorStatistic;
@@ -32,10 +30,6 @@ import javax.naming.OperationNotSupportedException;
 
 public class GlobalOptSIFT
 {
-
-	protected static SiftMatch loadMatch(Object test, final String datasetA, final String datasetB ) {
-		throw new RuntimeException("loadMatch with called with old syntax.");
-	}
 	protected static SiftMatch loadMatch(final SpatialDataContainer container, final String datasetA, final String datasetB ) {
 
 		SiftMatch match;
@@ -381,9 +375,8 @@ public class GlobalOptSIFT
 
 		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
 
-		final File n5Path = new File( path + "slide-seq-normalized.n5" );
-		final N5FSReader n5 = N5IO.openN5( n5Path );
-		final List< String > pucks = N5IO.listAllDatasets( n5 );
+		final SpatialDataContainer container = SpatialDataContainer.openExisting(path + "slide-seq-normalized.n5");
+		final List<String> pucks = container.getDatasets();
 
 		final boolean useQuality = true;
 		final double lambdaGlobal = 0.1; // rigid only
@@ -401,7 +394,8 @@ public class GlobalOptSIFT
 		final int maxPlateauwidthICP = 500;
 
 		globalOpt(
-				SpatialDataContainer.createNew(n5Path.getAbsolutePath()), pucks,
+				container,
+				pucks,
 				useQuality,
 				lambdaGlobal,
 				maxAllowedError,
