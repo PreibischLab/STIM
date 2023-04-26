@@ -10,9 +10,7 @@ import java.util.stream.Collectors;
 
 import gui.STDataAssembly;
 import io.SpatialDataIO;
-import org.janelia.saalfeldlab.n5.N5FSWriter;
 
-import io.N5IO;
 import io.TextFileAccess;
 import io.TextFileIO;
 import net.imglib2.img.Img;
@@ -38,9 +36,6 @@ public class AddMetaData implements Callable<Void> {
 			System.out.println("No input path defined: " + inputPath + ". Stopping.");
 			return null;
 		}
-
-		final File n5Path = new File(inputPath);
-		final N5FSWriter n5 = N5IO.openN5write( n5Path );
 
 		final List<String> metadataList = Arrays.stream(metadata.split(",")).map(String::trim).collect(Collectors.toList());
 		final List<String> labelList;

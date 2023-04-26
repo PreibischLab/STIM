@@ -1,21 +1,12 @@
 package cmd;
 
-import java.io.File;
-import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
 
-import data.STData;
 import gui.STDataAssembly;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
-import org.janelia.saalfeldlab.n5.N5FSReader;
-import org.janelia.saalfeldlab.n5.N5FSWriter;
 
 import data.NormalizingSTData;
-import data.STDataN5;
-import io.N5IO;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 

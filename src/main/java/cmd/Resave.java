@@ -27,11 +27,9 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.CompressorInputStream;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
-import org.janelia.saalfeldlab.n5.N5FSWriter;
 
 import data.NormalizingSTData;
 import data.STData;
-import io.N5IO;
 import io.TextFileAccess;
 import io.TextFileIO;
 import picocli.CommandLine;
@@ -139,17 +137,6 @@ public class Resave implements Callable<Void> {
 		}
 
 		return reader;
-	}
-
-	private static N5FSWriter openOrCreate(File n5File) throws IOException {
-		if (n5File.exists()) {
-			System.out.println( "N5 path '" + n5File.getAbsolutePath() + "' exists, opening N5 container..." );
-			return N5IO.openN5write(n5File);
-		}
-		else {
-			System.out.println( "N5 path '" + n5File.getAbsolutePath() + "' does not exist, creating new N5 container..." );
-			return N5IO.createN5(n5File);
-		}
 	}
 
 	public static BufferedReader openCompressedFile( final File file ) throws IOException, ArchiveException
