@@ -1,6 +1,10 @@
 package cmd;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 import gui.STDataAssembly;
 import io.SpatialDataContainer;
@@ -15,54 +19,67 @@ public class Normalize implements Callable<Void> {
 		@Option(names = {"-c", "--container"}, required = false, description = "N5 container; if given, all datasets are taken from and added to that container")
 		private String containerPath = null;
 
-		@Option(names = {"-o", "--output"}, required = false, description = "output dataset (default: same as input)")
+		@Option(names = {"-o", "--output"}, required = false, description = "comma separated list of output datasets (default: same as input)")
 		private String output = null;
 
-		@Option(names = {"-i", "--input"}, required = true, description = "input dataset, e.g. -i /home/ssq.n5")
+		@Option(names = {"-i", "--input"}, required = true, description = "comma separated list of input datasets, e.g. -i /home/ssq.n5")
 		private String input = null;
 
 		@Override
 		public Void call() throws Exception {
-			if (input == null || input.trim().isEmpty()) {
+			List<String> inputDatasets = (input == null) ? new ArrayList<>() :
+					Arrays.stream(input.split(",")).map(String::trim).collect(Collectors.toList());
+			if (inputDatasets.isEmpty()) {
 				System.out.println("No input paths defined: " + input + ". Stopping.");
 				return null;
 			}
 
-			final boolean outputNameMissing = (output == null || output.trim().isEmpty());
-			if (outputNameMissing) {
-				int indexOfLastDot = input.lastIndexOf(".");
-				if (indexOfLastDot == -1 || indexOfLastDot == 0)
-					output = input + "-normed";
-				else
-					output = input.substring(0, indexOfLastDot) + "-normed" + input.substring(indexOfLastDot);
-			}
-
-			SpatialDataContainer container = null;
-			SpatialDataIO sdin = null;
-			final boolean isStandaloneDataset = (containerPath == null || containerPath.trim().isEmpty());
-			if (isStandaloneDataset) {
-				sdin = SpatialDataIO.inferFromName(input);
+			final boolean outputNamesMissing = (output == null || output.trim().isEmpty());
+			List<String> outputDatasets = new ArrayList<>();
+			if (outputNamesMissing) {
+				for (final String dataset : inputDatasets) {
+					int indexOfLastDot = dataset.lastIndexOf(".");
+					if (indexOfLastDot == -1 || indexOfLastDot == 0)
+						outputDatasets.add(dataset + "-normed");
+					else
+						outputDatasets.add(dataset.substring(0, indexOfLastDot) + "-normed" + dataset.substring(indexOfLastDot));
+				}
 			}
 			else {
-				container = SpatialDataContainer.openExisting(containerPath);
-				sdin = container.openDataset(input);
+				outputDatasets = Arrays.stream(output.split(",")).map(String::trim).collect(Collectors.toList());
 			}
 
-			STDataAssembly stData = sdin.readData();
-			if (stData == null) {
-				System.out.println("Could not load dataset '" + input + "'. Stopping.");
+			if (outputDatasets.size() != inputDatasets.size()) {
+				System.out.println("Size of input datasets " + inputDatasets + " not equal to size of output datasets " + outputDatasets + ". Stopping.");
 				return null;
 			}
 
-			STDataAssembly normalizedData = new STDataAssembly(new NormalizingSTData(stData.data()),
-															   stData.statistics(),
-															   stData.transform(),
-															   stData.intensityTransform());
+			final boolean isStandaloneDataset = (containerPath == null || containerPath.trim().isEmpty());
+			SpatialDataContainer container = isStandaloneDataset ? null : SpatialDataContainer.openExisting(containerPath);
+			SpatialDataIO sdin = null;
 
-			SpatialDataIO sdout = SpatialDataIO.inferFromName(output);
-			sdout.writeData(normalizedData);
-			if (!isStandaloneDataset)
-				container.addExistingDataset(sdout.getPath());
+			for (int i = 0; i < inputDatasets.size(); i++) {
+				final String inputPath = inputDatasets.get(i);
+				final String outputPath = outputDatasets.get(i);
+
+				sdin = isStandaloneDataset ? SpatialDataIO.inferFromName(inputPath) : container.openDataset(inputPath);
+				STDataAssembly stData = sdin.readData();
+
+				if (stData == null) {
+					System.out.println("Could not load dataset '" + inputPath + "'. Stopping.");
+					return null;
+				}
+
+				STDataAssembly normalizedData = new STDataAssembly(new NormalizingSTData(stData.data()),
+																   stData.statistics(),
+																   stData.transform(),
+																   stData.intensityTransform());
+
+				SpatialDataIO sdout = SpatialDataIO.inferFromName(outputPath);
+				sdout.writeData(normalizedData);
+				if (!isStandaloneDataset)
+					container.addExistingDataset(sdout.getPath());
+			}
 
 			System.out.println("Done.");
 

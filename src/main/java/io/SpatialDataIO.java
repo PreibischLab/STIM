@@ -258,6 +258,10 @@ public abstract class SpatialDataIO {
 				return new N5IO(fileName, new N5ZarrWriter(path));
 			case "h5ad":
 				return new AnnDataIO(fileName, new N5HDF5Writer(path));
+			case "n5ad":
+				return new AnnDataIO(fileName, new N5FSWriter(path));
+			case "zarrad":
+				return new AnnDataIO(fileName, new N5ZarrWriter(path));
 			default:
 				throw new SpatialDataIOException("Cannot determine file type for extension " + extension + ".");
 		}

@@ -44,7 +44,7 @@ import render.Render;
 
 public class RenderImage implements Callable<Void> {
 
-	@Option(names = {"-i", "--container"}, required = true, description = "input file or N5 container path, e.g. -i /home/ssq.n5.")
+	@Option(names = {"-i", "--input"}, required = true, description = "input file or N5 container path, e.g. -i /home/ssq.n5.")
 	private String inputPath = null;
 
 	@Option(names = {"-g", "--genes"}, required = true, description = "comma separated list of one or more genes, e.g. -g 'Calm2,Hpca,Ptgds'")

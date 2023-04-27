@@ -109,6 +109,9 @@ public class IOTest extends AbstractIOTest {
 	protected static List<Named<IOProvider>> provideIOObjects() throws IOException {
 		return Arrays.asList(
 				named("AnnData HDF5", (path) -> new AnnDataIO(path, new N5HDF5Writer(path))),
+				// TODO: make these work!
+//				named("AnnData Zarr", (path) -> new AnnDataIO(path, new N5ZarrWriter(path))),
+//				named("AnnData N5", (path) -> new AnnDataIO(path, new N5FSWriter(path))),
 				named("N5 HDF5", (path) -> new N5IO(path, new N5HDF5Writer(path))),
 				named("N5 Zarr", (path) -> new N5IO(path, new N5ZarrWriter(path))),
 				named("N5 FS", (path) -> new N5IO(path, new N5FSWriter(path)))
