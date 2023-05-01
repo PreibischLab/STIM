@@ -85,7 +85,7 @@ public class SpatialDataContainerTest extends AbstractIOTest {
 		final String datasetPath = "data";
 		final String datasetName = "tmp.h5ad";
 		String fullPath = Paths.get(datasetPath, datasetName).toString();
-		SpatialDataIO sdio = new AnnDataIO(fullPath, new N5HDF5Writer(fullPath));
+		SpatialDataIO sdio = new AnnDataIO(new N5HDF5Writer(fullPath));
 		container.addExistingDataset(fullPath);
 
 		assertThrows(SpatialDataIOException.class, () -> container.addExistingDataset(fullPath));

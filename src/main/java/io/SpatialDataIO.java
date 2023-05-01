@@ -34,17 +34,15 @@ import java.util.concurrent.Executors;
 
 public abstract class SpatialDataIO {
 
-	protected final String path;
 	protected final N5Reader n5;
-	protected boolean readOnly = true;
+	protected boolean readOnly;
 	protected N5Options options;
 	protected N5Options options1d;
 
-	public SpatialDataIO(String path, N5Reader reader) {
-		if (path == null)
-			throw new SpatialDataIOException("No path to N5 given.");
+	public SpatialDataIO(N5Reader reader) {
+		if (reader == null)
+			throw new IllegalArgumentException("No N5 reader / writer given.");
 
-		this.path = path;
 		this.n5 = reader;
 		readOnly = !(reader instanceof N5Writer);
 
@@ -58,13 +56,9 @@ public abstract class SpatialDataIO {
 				null);
 	}
 
-	public String getPath() {
-		return path;
-	}
-
 	public STDataAssembly readData() throws IOException {
 		long time = System.currentTimeMillis();
-		System.out.print( "Reading spatial data '" + path + "' ... " );
+		System.out.print( "Reading spatial data ... " );
 
 		RandomAccessibleInterval<DoubleType> locations = readLocations();
 		RandomAccessibleInterval<DoubleType> exprValues = readExpressionValues();
@@ -105,8 +99,8 @@ public abstract class SpatialDataIO {
 			stData.getMetaData().put(annotationLabel, readMetaData(annotationLabel));
 
 		System.out.println("Loading took " + (System.currentTimeMillis() - time) + " ms.");
-		System.out.println("File '" + path +
-				"': dims=" + locationDims[1] +
+		System.out.println("Metadata:" +
+				" dims=" + locationDims[1] +
 				", numLocations=" + numLocations +
 				", numGenes=" + numGenes +
 				", size(locations)=" + Util.printCoordinates(locationDims) +
@@ -179,7 +173,7 @@ public abstract class SpatialDataIO {
 		N5Writer writer = (N5Writer) n5;
 		STData stData = data.data();
 
-		System.out.print( "Saving spatial data '" + path + "' ... " );
+		System.out.print( "Saving spatial data ... " );
 		long time = System.currentTimeMillis();
 		final boolean previouslyRunning = ensureRunningExecutorService();
 
@@ -251,17 +245,17 @@ public abstract class SpatialDataIO {
 
 		switch (extension) {
 			case "h5":
-				return new N5IO(fileName, new N5HDF5Writer(path));
+				return new N5IO(new N5HDF5Writer(path));
 			case "n5":
-				return new N5IO(fileName, new N5FSWriter(path));
+				return new N5IO(new N5FSWriter(path));
 			case "zarr":
-				return new N5IO(fileName, new N5ZarrWriter(path));
+				return new N5IO(new N5ZarrWriter(path));
 			case "h5ad":
-				return new AnnDataIO(fileName, new N5HDF5Writer(path));
+				return new AnnDataIO(new N5HDF5Writer(path));
 			case "n5ad":
-				return new AnnDataIO(fileName, new N5FSWriter(path));
+				return new AnnDataIO(new N5FSWriter(path));
 			case "zarrad":
-				return new AnnDataIO(fileName, new N5ZarrWriter(path));
+				return new AnnDataIO(new N5ZarrWriter(path));
 			default:
 				throw new SpatialDataIOException("Cannot determine file type for extension " + extension + ".");
 		}

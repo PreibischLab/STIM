@@ -45,8 +45,8 @@ public class AnnDataIO extends SpatialDataIO {
 	protected static String locationPath = "/obsm/locations";
 	protected static String annotationPath = "/obs";
 
-	public AnnDataIO(String path, N5Reader reader) {
-		super(path, reader);
+	public AnnDataIO(N5Reader reader) {
+		super(reader);
 
 		if (!(n5 instanceof N5HDF5Reader))
 			throw new IllegalArgumentException("IO for AnnData currently only supports hdf5.");
@@ -56,7 +56,7 @@ public class AnnDataIO extends SpatialDataIO {
 	{
 		final String path = System.getProperty("user.dir") + "/data/human-lymph-node.h5ad";
 
-		SpatialDataIO stio = new AnnDataIO(path, new N5HDF5Reader(path));
+		SpatialDataIO stio = new AnnDataIO(new N5HDF5Reader(path));
 		STDataAssembly data = stio.readData();
 		String gene = "IGKC";
 
@@ -82,7 +82,7 @@ public class AnnDataIO extends SpatialDataIO {
 	@Override
 	public STDataAssembly readData() throws IOException {
 		if (!AnnDataDetails.isValidAnnData(n5))
-			throw new IOException(path + " is not a valid AnnData file.");
+			throw new IOException("Given file is not a valid AnnData file.");
 		return super.readData();
 	}
 

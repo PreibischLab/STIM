@@ -31,8 +31,8 @@ public class N5IO extends SpatialDataIO {
 	protected static String locationsPath = "/locations";
 	protected static String annotationsGroup = "/annotations";
 
-	public N5IO(String path, N5Reader reader) {
-		super(path, reader);
+	public N5IO(N5Reader reader) {
+		super(reader);
 	}
 
 

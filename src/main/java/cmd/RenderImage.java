@@ -2,7 +2,10 @@ package cmd;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
@@ -81,24 +84,26 @@ public class RenderImage implements Callable<Void> {
 			return null;
 		}
 
-		final List<SpatialDataIO> iodata = new ArrayList<>();
+		final Map<String, SpatialDataIO> iodata = new HashMap<>();
 		if (SpatialDataContainer.isCompatibleContainer(inputPath)) {
 			SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath);
 
-			if (datasets != null && datasets.length() != 0) {
-				for (String dataset : datasets.split(",")) {
-					System.out.println("Opening dataset '" + dataset + "' in '" + inputPath + "' ...");
-					iodata.add(container.openDataset(dataset.trim()));
-				}
-			}
+			final List<String> datasetNames;
+			if (datasets != null && datasets.length() != 0)
+				datasetNames = Arrays.asList(datasets.split(","));
 			else {
-				System.out.println("Opening all datasets in '" + inputPath + "' ...");
-				iodata.addAll(container.openAllDatasets());
+				System.out.println("Opening all datasets in '" + inputPath + "':");
+				datasetNames = container.getDatasets();
+			}
+
+			for (String dataset : datasetNames) {
+				System.out.println("Opening dataset '" + dataset + "' in '" + inputPath + "' ...");
+				iodata.put(dataset.trim(), container.openDataset(dataset.trim()));
 			}
 		}
 		else {
 			System.out.println("Opening dataset '" + inputPath + "' ...");
-			iodata.add(SpatialDataIO.inferFromName(inputPath));
+			iodata.put(inputPath, SpatialDataIO.inferFromName(inputPath));
 		}
 
 		if (genes == null || genes.length() == 0) {
@@ -108,11 +113,11 @@ public class RenderImage implements Callable<Void> {
 		String[] geneList = genes.split(",");
 
 		final List<Pair<STData, AffineTransform2D>> dataToVisualize = new ArrayList<>();
-		for (final SpatialDataIO sdio : iodata) {
-			final STDataAssembly stAssembly = sdio.readData();
+		for (final Map.Entry<String, SpatialDataIO> entry : iodata.entrySet()) {
+			final STDataAssembly stAssembly = entry.getValue().readData();
 
 			if (stAssembly != null) {
-				System.out.println("Assigning transform to " + sdio.getPath());
+				System.out.println("Assigning transform to " + entry.getKey());
 				AffineTransform2D transform = ignoreTransforms ? new AffineTransform2D() : stAssembly.transform();
 				dataToVisualize.add(new ValuePair<>(stAssembly.data(), transform));
 				System.out.println(transform);

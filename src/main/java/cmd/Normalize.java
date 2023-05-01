@@ -78,7 +78,7 @@ public class Normalize implements Callable<Void> {
 				SpatialDataIO sdout = SpatialDataIO.inferFromName(outputPath);
 				sdout.writeData(normalizedData);
 				if (!isStandaloneDataset)
-					container.addExistingDataset(sdout.getPath());
+					container.addExistingDataset(outputPath);
 			}
 
 			System.out.println("Done.");
