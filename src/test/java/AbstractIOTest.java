@@ -1,4 +1,5 @@
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,18 +12,24 @@ import java.nio.file.attribute.BasicFileAttributes;
 
 public abstract class AbstractIOTest {
 
-	@AfterEach
-	public void cleanUp() throws IOException {
-		File file = new File(getPath());
-		if (file.exists()) {
-			if (file.isFile())
-				file.delete();
-			else
-				Files.walkFileTree(Paths.get(file.getAbsolutePath()), new TreeDeleter());
-		}
+	private Path testDirectoryPath = null;
+
+	@BeforeEach
+	public void setUpTmpDirectory() throws IOException {
+		Path currentDirectory = Paths.get("").toAbsolutePath();
+		testDirectoryPath = Files.createTempDirectory(currentDirectory, "tempTestDir");
 	}
 
-	protected abstract String getPath();
+	@AfterEach
+	public void deleteTmpDirectory() throws IOException {
+		File dir = new File(testDirectoryPath.toString());
+		if (dir.exists())
+			Files.walkFileTree(testDirectoryPath, new TreeDeleter());
+	}
+
+	protected String getPlaygroundPath(String filePath) {
+		return testDirectoryPath.resolve(filePath).toString();
+	}
 
 
 	private static class TreeDeleter extends SimpleFileVisitor<Path> {

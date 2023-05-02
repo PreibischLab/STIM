@@ -35,44 +35,57 @@ import java.util.function.Supplier;
 
 public abstract class SpatialDataIO {
 
-	protected final Supplier<? extends N5Reader> n5supplier;
-	protected final Supplier<N5Writer> n5wsupplier;
-	//protected boolean readOnly;
+	protected final Supplier<? extends N5Reader> readerSupplier;
+	protected final Supplier<N5Writer> writerSupplier;
+	protected boolean readOnly;
 	protected N5Options options;
 	protected N5Options options1d;
 
-	public SpatialDataIO(final Supplier<? extends N5Reader> reader, final Supplier<N5Writer> writer) {
-		if (reader == null)
-			throw new IllegalArgumentException("No N5 reader / writer given.");
+	public SpatialDataIO(final Supplier<N5Writer> writerSupplier) {
+		this(writerSupplier, writerSupplier);
+	}
 
-		this.n5supplier = reader;
-		this.n5wsupplier = writer; // can be null
-		//readOnly = N5Writer.class.isInstance( reader ); //!(reader instanceof N5Writer);
+	public SpatialDataIO(final Supplier<N5Writer> writerSupplier, final int blockSize1D, final int[] blockSize, final Compression compression) {
+		this(writerSupplier, writerSupplier, blockSize1D, blockSize, compression);
+	}
 
-		options = new N5Options(
-				new int[]{512, 512},
-				new GzipCompression(3),
-				null);
-		options1d = new N5Options(
-				new int[]{512*512},
-				new GzipCompression(3),
-				null);
+	public SpatialDataIO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier) {
+		this(readerSupplier, writerSupplier, 512*512, new int[]{512, 512}, new GzipCompression(3));
+	}
+
+	public SpatialDataIO(
+			final Supplier<? extends N5Reader> readerSupplier,
+			final Supplier<N5Writer> writerSupplier,
+			final int blockSize1D,
+			final int[] blockSize,
+			final Compression compression) {
+
+		if (readerSupplier == null)
+			throw new IllegalArgumentException("No N5 reader supplier given.");
+
+		this.readerSupplier = readerSupplier;
+		this.writerSupplier = writerSupplier;
+		readOnly = (writerSupplier == null);
+
+		options = new N5Options(blockSize, compression, null);
+		options1d = new N5Options(new int[]{blockSize1D}, compression, null);
 	}
 
 	public STDataAssembly readData() throws IOException {
 		long time = System.currentTimeMillis();
 		System.out.print( "Reading spatial data ... " );
 
-		RandomAccessibleInterval<DoubleType> locations = readLocations();
-		RandomAccessibleInterval<DoubleType> exprValues = readExpressionValues();
+		N5Reader reader = readerSupplier.get();
+		RandomAccessibleInterval<DoubleType> locations = readLocations(reader);
+		RandomAccessibleInterval<DoubleType> exprValues = readExpressionValues(reader);
 
 		long[] locationDims = locations.dimensionsAsLongArray();
 		long[] exprDims = exprValues.dimensionsAsLongArray();
 		long numGenes = exprDims[0];
 		long numLocations = exprDims[1];
 
-		List<String> geneNames = readGeneNames();
-		List<String> barcodes = readBarcodes();
+		List<String> geneNames = readGeneNames(reader);
+		List<String> barcodes = readBarcodes(reader);
 
 		if (locations.dimension(0) != numLocations)
 			throw new SpatialDataIOException("Inconsistent number of locations in data arrays.");
@@ -94,12 +107,12 @@ public abstract class SpatialDataIO {
 		STData stData = new STDataImgLib2(locations, exprValues, geneNames, barcodes, geneLookup);
 
 		AffineTransform intensityTransform = new AffineTransform(1);
-		readAndSetTransformation(intensityTransform, "intensity_transform");
+		readAndSetTransformation(reader, intensityTransform, "intensity_transform");
 		AffineTransform2D transform = new AffineTransform2D();
-		readAndSetTransformation(transform, "transform");
+		readAndSetTransformation(reader, transform, "transform");
 
-		for (final String annotationLabel : detectMetaData())
-			stData.getMetaData().put(annotationLabel, readMetaData(annotationLabel));
+		for (final String annotationLabel : detectMetaData(reader))
+			stData.getMetaData().put(annotationLabel, readMetaData(reader, annotationLabel));
 
 		System.out.println("Loading took " + (System.currentTimeMillis() - time) + " ms.");
 		System.out.println("Metadata:" +
@@ -110,18 +123,6 @@ public abstract class SpatialDataIO {
 				", size(exprValues)=" + Util.printCoordinates(exprDims));
 
 		return new STDataAssembly(stData, new STDataStatistics(stData), transform, intensityTransform);
-	}
-
-	public void setBlockSize(int... blockSize) {
-		if (blockSize.length != 2)
-			throw new IllegalArgumentException("Block size must be two dimensional.");
-		options.blockSize = blockSize;
-		options1d.blockSize = new int[]{blockSize[0] * blockSize[1]};
-	}
-
-	public void setCompression(Compression compression) {
-		options.compression = compression;
-		options1d.compression = compression;
 	}
 
 	public boolean ensureRunningExecutorService() {
@@ -155,26 +156,25 @@ public abstract class SpatialDataIO {
 		return previouslyRunning;
 	}
 
-	protected abstract RandomAccessibleInterval<DoubleType> readLocations() throws IOException; // size: [numLocations x numDimensions]
+	protected abstract RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader) throws IOException; // size: [numLocations x numDimensions]
 
-	protected abstract RandomAccessibleInterval<DoubleType> readExpressionValues() throws IOException; // size: [numGenes x numLocations]
+	protected abstract RandomAccessibleInterval<DoubleType> readExpressionValues(N5Reader reader) throws IOException; // size: [numGenes x numLocations]
 
-	protected abstract List<String> readBarcodes() throws IOException;
+	protected abstract List<String> readBarcodes(N5Reader reader) throws IOException;
 
-	protected abstract List<String> readGeneNames() throws IOException;
+	protected abstract List<String> readGeneNames(N5Reader reader) throws IOException;
 
-	protected abstract <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(AffineSet transform, String name) throws IOException;
+	protected abstract <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(N5Reader reader, AffineSet transform, String name) throws IOException;
 
-	protected abstract List<String> detectMetaData() throws IOException;
+	protected abstract List<String> detectMetaData(N5Reader reader) throws IOException;
 
-	protected abstract <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(String label) throws IOException;
+	protected abstract <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(N5Reader reader, String label) throws IOException;
 
 	public void writeData(STDataAssembly data) throws IOException {
-		//if (readOnly)
-		if (n5w == null)
+		if (readOnly)
 			throw new SpatialDataIOException("Trying to write to read-only file.");
 
-		N5Writer writer = (N5Writer) n5;
+		N5Writer writer = writerSupplier.get();
 		STData stData = data.data();
 
 		System.out.print( "Saving spatial data ... " );
@@ -198,12 +198,11 @@ public abstract class SpatialDataIO {
 	}
 
 	public void updateStoredMetadata(Map<String, RandomAccessibleInterval<? extends NativeType<?>>> metadata) throws IOException {
-		//if (readOnly)
-		if (n5w == null)
+		if (readOnly)
 			throw new SpatialDataIOException("Trying to write to read-only file.");
 
-		N5Writer writer = (N5Writer) n5;
-		List<String> existingMetadata = detectMetaData();
+		N5Writer writer = writerSupplier.get();
+		List<String> existingMetadata = detectMetaData(writer);
 
 		final boolean previouslyRunning = ensureRunningExecutorService();
 		for (Entry<String, RandomAccessibleInterval<? extends NativeType<?>>> newEntry : metadata.entrySet()) {
@@ -232,11 +231,10 @@ public abstract class SpatialDataIO {
 	protected abstract void writeMetaData(N5Writer writer, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException;
 
 	public void updateTransformation(AffineGet transform, String name) throws IOException {
-		//if (readOnly)
-		if (n5w == null)
+		if (readOnly)
 			throw new SpatialDataIOException("Trying to modify a read-only file.");
 
-		N5Writer writer = (N5Writer) n5;
+		N5Writer writer = writerSupplier.get();
 		final boolean previouslyRunning = ensureRunningExecutorService(Executors.newFixedThreadPool(1));
 		writeTransformation(writer, transform, name);
 		if (!previouslyRunning)
@@ -249,24 +247,34 @@ public abstract class SpatialDataIO {
 		String[] components = fileName.split("\\.");
 		String extension = components[components.length-1];
 
-		switch (extension) {
-			case "h5":
-				return new N5IO(new N5HDF5Writer(path));
-			case "n5":
-				return new N5IO(new N5FSWriter(path));
-			case "zarr":
-				return new N5IO(new N5ZarrWriter(path));
-			case "h5ad":
-				return new AnnDataIO(new N5HDF5Writer(path));
-			case "n5ad":
-				return new AnnDataIO(new N5FSWriter(path));
-			case "zarrad":
-				return new AnnDataIO(new N5ZarrWriter(path));
-			default:
-				throw new SpatialDataIOException("Cannot determine file type for extension " + extension + ".");
+		Supplier<N5Writer> backendSupplier;
+		if (extension.startsWith("h5")) {
+			backendSupplier = () -> {
+				try {return new N5HDF5Writer(path);}
+				catch (IOException e) {throw new SpatialDataIOException("Cannot open '" + path + "'.", e);}
+			};
 		}
-	}
+		else if (extension.startsWith("n5")) {
+			backendSupplier = () -> {
+				try {return new N5FSWriter(path);}
+				catch (IOException e) {throw new SpatialDataIOException("Cannot open '" + path + "'.", e);}
+			};
+		}
+		else if (extension.startsWith("zarr")) {
+			backendSupplier = () -> {
+				try {return new N5ZarrWriter(path);}
+				catch (IOException e) {throw new SpatialDataIOException("Cannot open '" + path + "'.", e);}
+			};
+		}
+		else {
+			throw new SpatialDataIOException("Cannot find N5 backend for extension'" + extension + "'.");
+		}
 
+		if (extension.endsWith("ad"))
+			return new AnnDataIO(backendSupplier);
+		else
+			return new N5IO(backendSupplier);
+	}
 
 	static class N5Options {
 

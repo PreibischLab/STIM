@@ -32,16 +32,26 @@ public class N5IO extends SpatialDataIO {
 	protected static String locationsPath = "/locations";
 	protected static String annotationsGroup = "/annotations";
 
-	public N5IO(final Supplier<N5Writer> writer)
-	{
-		this(writer, writer);
+	public N5IO(final Supplier<N5Writer> writer) {
+		super(writer);
 	}
 
-	public N5IO(final Supplier<? extends N5Reader> reader, final Supplier<N5Writer> writer)
-	{
-		super(reader, writer);
+	public N5IO(final Supplier<N5Writer> writerSupplier, final int blockSize1D, final int[] blockSize, final Compression compression) {
+		super(writerSupplier, writerSupplier, blockSize1D, blockSize, compression);
 	}
 
+	public N5IO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier) {
+		super(readerSupplier, writerSupplier);
+	}
+
+	public N5IO(
+			final Supplier<? extends N5Reader> readerSupplier,
+			final Supplier<N5Writer> writerSupplier,
+			final int blockSize1D,
+			final int[] blockSize,
+			final Compression compression) {
+		super(readerSupplier, writerSupplier, blockSize1D, blockSize, compression);
+	}
 
 	@Override
 	protected void writeHeader(N5Writer writer, STData data) throws IOException {
@@ -54,42 +64,42 @@ public class N5IO extends SpatialDataIO {
 	}
 
 	@Override
-	protected RandomAccessibleInterval<DoubleType> readLocations() throws IOException {
-		return N5Utils.open(n5, locationsPath);
+	protected RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader) throws IOException {
+		return N5Utils.open(reader, locationsPath);
 	}
 
 	@Override
-	protected RandomAccessibleInterval<DoubleType> readExpressionValues() throws IOException {
-		return N5Utils.open(n5, exprValuesPath);
-	}
-
-	@Override
-	@SuppressWarnings("unchecked")
-	protected List<String> readBarcodes() throws IOException {
-		return n5.getAttribute("/", "barcodeList", List.class);
+	protected RandomAccessibleInterval<DoubleType> readExpressionValues(N5Reader reader) throws IOException {
+		return N5Utils.open(reader, exprValuesPath);
 	}
 
 	@Override
 	@SuppressWarnings("unchecked")
-	protected List<String> readGeneNames() throws IOException {
-		return n5.getAttribute("/", "geneList", List.class);
+	protected List<String> readBarcodes(N5Reader reader) throws IOException {
+		return reader.getAttribute("/", "barcodeList", List.class);
 	}
 
 	@Override
-	protected <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(AffineSet transform, String name) throws IOException {
-		final Set<String> attributes = n5.listAttributes("/").keySet();
+	@SuppressWarnings("unchecked")
+	protected List<String> readGeneNames(N5Reader reader) throws IOException {
+		return reader.getAttribute("/", "geneList", List.class);
+	}
+
+	@Override
+	protected <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(N5Reader reader, AffineSet transform, String name) throws IOException {
+		final Set<String> attributes = reader.listAttributes("/").keySet();
 		if (attributes.contains(name))
-			transform.set(n5.getAttribute("/", name, double[].class ) );
+			transform.set(reader.getAttribute("/", name, double[].class ) );
 	}
 
 	@Override
-	protected List<String> detectMetaData() throws IOException {
-		return Arrays.asList(n5.list(annotationsGroup));
+	protected List<String> detectMetaData(N5Reader reader) throws IOException {
+		return Arrays.asList(reader.list(annotationsGroup));
 	}
 
 	@Override
-	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(String label) throws IOException {
-		return N5Utils.open(n5, n5.groupPath(annotationsGroup, label));
+	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(N5Reader reader, String label) throws IOException {
+		return N5Utils.open(reader, reader.groupPath(annotationsGroup, label));
 	}
 
 	@Override

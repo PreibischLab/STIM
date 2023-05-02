@@ -1,5 +1,4 @@
 import gui.STDataAssembly;
-import io.AnnDataIO;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
 import io.SpatialDataIOException;
@@ -20,19 +19,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public class SpatialDataContainerTest extends AbstractIOTest {
 
-	protected String getPath() {
-		return "data/test-container.n5";
-	}
-
 	@Test
 	public void new_empty_container_is_empty() throws IOException {
-		SpatialDataContainer container = SpatialDataContainer.createNew(getPath());
-		assertTrue((new File(getPath())).exists(), "File '" + getPath() + "' does not exist.");
-		assertTrue(SpatialDataContainer.isCompatibleContainer(getPath()), "File '" + getPath() + "' is not a compatible container.");
+		final String path = getPlaygroundPath("container.n5");
+		SpatialDataContainer container = SpatialDataContainer.createNew(path);
+		assertTrue((new File(path)).exists(), "File '" + path + "' does not exist.");
+		assertTrue(SpatialDataContainer.isCompatibleContainer(path), "File '" + path + "' is not a compatible container.");
 
 		List<String> datasets = container.getDatasets();
 		assertTrue(datasets.isEmpty(), "Dataset is not empty.");
@@ -40,14 +37,15 @@ public class SpatialDataContainerTest extends AbstractIOTest {
 
 	@Test
 	public void adding_and_deleting_dataset_works() throws IOException {
-		SpatialDataContainer container = SpatialDataContainer.createNew(getPath());
+		final String path = getPlaygroundPath("container.n5");
+		SpatialDataContainer container = SpatialDataContainer.createNew(path);
 		final String datasetName = "tmp.h5ad";
 
-		String fullPath = Paths.get("data", datasetName).toString();
+		String fullPath = getPlaygroundPath(datasetName);
 		createAndWriteData(fullPath);
 		container.addExistingDataset(fullPath);
 
-		File datasetFile = new File(Paths.get(getPath(), datasetName).toString());
+		File datasetFile = new File(Paths.get(path, datasetName).toString());
 		assertTrue(container.getDatasets().contains(datasetName));
 		assertTrue(datasetFile.exists());
 
@@ -58,12 +56,12 @@ public class SpatialDataContainerTest extends AbstractIOTest {
 
 	@Test
 	public void opening_datasets_works() throws IOException {
-		SpatialDataContainer container = SpatialDataContainer.createNew(getPath());
+		SpatialDataContainer container = SpatialDataContainer.createNew(getPlaygroundPath("container.n5"));
 
 		final List<String> datasetNames = Arrays.asList("tmp1.h5ad", "tmp2.zarr");
 		final List<STDataAssembly> expectedData = new ArrayList<>();
 		for (String dataset : datasetNames) {
-			String fullPath = Paths.get("data", dataset).toString();
+			String fullPath = getPlaygroundPath(dataset);
 			expectedData.add(createAndWriteData(fullPath));
 			container.addExistingDataset(fullPath);
 		}
@@ -80,22 +78,25 @@ public class SpatialDataContainerTest extends AbstractIOTest {
 
 	@Test
 	public void adding_existing_dataset_fails() throws IOException {
-		SpatialDataContainer container = SpatialDataContainer.createNew(getPath());
+		SpatialDataContainer container = SpatialDataContainer.createNew(getPlaygroundPath("container.n5"));
 
-		final String datasetPath = "data";
-		final String datasetName = "tmp.h5ad";
-		String fullPath = Paths.get(datasetPath, datasetName).toString();
-		SpatialDataIO sdio = new AnnDataIO(new N5HDF5Writer(fullPath));
-		container.addExistingDataset(fullPath);
+		String datasetName = "tmp.h5ad";
+		String fullPath = getPlaygroundPath(datasetName);
 
-		assertThrows(SpatialDataIOException.class, () -> container.addExistingDataset(fullPath));
+		try (N5HDF5Writer writer = new N5HDF5Writer(fullPath)) {
+			container.addExistingDataset(fullPath);
+			assertThrows(SpatialDataIOException.class, () -> container.addExistingDataset(fullPath));
 
-		container.deleteDataset(datasetName);
-		(new File(fullPath)).delete();
+			container.deleteDataset(datasetName);
+			(new File(fullPath)).delete();
+		}
+		catch (Exception e) {
+			fail("Could not write / read file: ", e);
+		}
 	}
 
 	protected STDataAssembly createAndWriteData(String path) throws IOException {
-		SpatialDataIO sdio = SpatialDataIO.inferFromName(path);
+		SpatialDataIO sdio = SpatialDataIO.inferFromName(getPlaygroundPath(path));
 		STDataAssembly data = new STDataAssembly(TestUtils.createTestDataSet());
 		sdio.writeData(data);
 		return data;

@@ -20,6 +20,7 @@ import net.imglib2.RealRandomAccessible;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineSet;
 import net.imglib2.type.NativeType;
+import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
@@ -46,21 +47,29 @@ public class AnnDataIO extends SpatialDataIO {
 	protected static String locationPath = "/obsm/locations";
 	protected static String annotationPath = "/obs";
 
-	public static Supplier<N5Writer> createSupplier( final String path )
-	{
-		return null;
+	public AnnDataIO(final Supplier<N5Writer> writer) {
+		super(writer);
 	}
 
-	public AnnDataIO(final Supplier<N5Writer> writer)
-	{
-		this( writer, writer );
+	public AnnDataIO(final Supplier<N5Writer> writerSupplier, final int blockSize1D, final int[] blockSize, final Compression compression) {
+		super(writerSupplier, writerSupplier, blockSize1D, blockSize, compression);
 	}
 
-	public AnnDataIO(final Supplier<? extends N5Reader> reader, final Supplier<N5Writer> writer)
-	{
-		super(reader,writer);
+	public AnnDataIO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier) {
+		super(readerSupplier, writerSupplier);
+	}
 
-		if (!(n5 instanceof N5HDF5Reader))
+	public AnnDataIO(
+			final Supplier<? extends N5Reader> readerSupplier,
+			final Supplier<N5Writer> writerSupplier,
+			final int blockSize1D,
+			final int[] blockSize,
+			final Compression compression) {
+
+		super(readerSupplier, writerSupplier, blockSize1D, blockSize, compression);
+
+		// TODO: remove this check once the issue is fixed
+		if (!N5HDF5Reader.class.isInstance(readerSupplier.get()))
 			throw new IllegalArgumentException("IO for AnnData currently only supports hdf5.");
 	}
 
@@ -68,7 +77,7 @@ public class AnnDataIO extends SpatialDataIO {
 	{
 		final String path = System.getProperty("user.dir") + "/data/human-lymph-node.h5ad";
 
-		SpatialDataIO stio = new AnnDataIO(() -> new N5HDF5Reader(path), null);
+		SpatialDataIO stio = SpatialDataIO.inferFromName(path);
 		STDataAssembly data = stio.readData();
 		String gene = "IGKC";
 
@@ -93,27 +102,28 @@ public class AnnDataIO extends SpatialDataIO {
 
 	@Override
 	public STDataAssembly readData() throws IOException {
-		if (!AnnDataDetails.isValidAnnData(n5))
+		N5Reader reader = readerSupplier.get();
+		if (!AnnDataDetails.isValidAnnData(reader))
 			throw new IOException("Given file is not a valid AnnData file.");
 		return super.readData();
 	}
 
 	@Override
-	protected RandomAccessibleInterval<DoubleType> readLocations() throws IOException {
+	protected RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader) throws IOException {
 		// transpose locations, since AnnData stores them as columns
 		RandomAccessibleInterval<? extends RealType<?>> locations = Views.permute(
-				(RandomAccessibleInterval<? extends RealType<?>>) AnnDataDetails.readArray(n5, locationPath), 0, 1);
+				(RandomAccessibleInterval<? extends RealType<?>>) AnnDataDetails.readArray(reader, locationPath), 0, 1);
 		return Converters.convert(locations, (i, o) -> o.set(i.getRealDouble()), new DoubleType());
 	}
 
 	@Override
-	protected RandomAccessibleInterval<DoubleType> readExpressionValues() throws IOException {
-		RandomAccessibleInterval<? extends RealType<?>> expressionVals = (RandomAccessibleInterval<? extends RealType<?>>) AnnDataDetails.readArray(n5, "/X");
+	protected RandomAccessibleInterval<DoubleType> readExpressionValues(N5Reader reader) throws IOException {
+		RandomAccessibleInterval<? extends RealType<?>> expressionVals = (RandomAccessibleInterval<? extends RealType<?>>) AnnDataDetails.readArray(reader, "/X");
 		return Converters.convert(expressionVals, (i, o) -> o.set(i.getRealDouble()), new DoubleType());
 	}
 
-	protected <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(AffineSet transform, String name) throws IOException {
-		RandomAccessibleInterval<T> trafoValues = AnnDataDetails.readArray(n5, "/uns/" + name);
+	protected <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(N5Reader reader, AffineSet transform, String name) throws IOException {
+		RandomAccessibleInterval<T> trafoValues = AnnDataDetails.readArray(reader, "/uns/" + name);
 		RandomAccess<T> ra = trafoValues.randomAccess();
 		int n = (int) trafoValues.dimension(0);
 		double[] convertedValues = new double[n];
@@ -124,22 +134,22 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	@Override
-	protected List<String> detectMetaData() throws IOException {
-		return AnnDataDetails.getExistingDataFrameDatasets(n5, annotationPath);
+	protected List<String> detectMetaData(N5Reader reader) throws IOException {
+		return AnnDataDetails.getExistingDataFrameDatasets(reader, annotationPath);
 	}
 
-	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(String label) throws IOException {
-		return AnnDataDetails.readFromDataFrame(n5, annotationPath, label);
-	}
-
-	@Override
-	protected List<String> readBarcodes() throws IOException {
-		return AnnDataDetails.readStringAnnotation(n5, "/obs/_index");
+	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(N5Reader reader, String label) throws IOException {
+		return AnnDataDetails.readFromDataFrame(reader, annotationPath, label);
 	}
 
 	@Override
-	protected List<String> readGeneNames() throws IOException {
-		return AnnDataDetails.readStringAnnotation(n5, "/var/_index");
+	protected List<String> readBarcodes(N5Reader reader) throws IOException {
+		return AnnDataDetails.readStringAnnotation(reader, "/obs/_index");
+	}
+
+	@Override
+	protected List<String> readGeneNames(N5Reader reader) throws IOException {
+		return AnnDataDetails.readStringAnnotation(reader, "/var/_index");
 	}
 
 	@Override
