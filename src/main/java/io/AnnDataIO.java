@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 
 import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
@@ -45,8 +46,19 @@ public class AnnDataIO extends SpatialDataIO {
 	protected static String locationPath = "/obsm/locations";
 	protected static String annotationPath = "/obs";
 
-	public AnnDataIO(N5Reader reader) {
-		super(reader);
+	public static Supplier<N5Writer> createSupplier( final String path )
+	{
+		return null;
+	}
+
+	public AnnDataIO(final Supplier<N5Writer> writer)
+	{
+		this( writer, writer );
+	}
+
+	public AnnDataIO(final Supplier<? extends N5Reader> reader, final Supplier<N5Writer> writer)
+	{
+		super(reader,writer);
 
 		if (!(n5 instanceof N5HDF5Reader))
 			throw new IllegalArgumentException("IO for AnnData currently only supports hdf5.");
@@ -56,7 +68,7 @@ public class AnnDataIO extends SpatialDataIO {
 	{
 		final String path = System.getProperty("user.dir") + "/data/human-lymph-node.h5ad";
 
-		SpatialDataIO stio = new AnnDataIO(new N5HDF5Reader(path));
+		SpatialDataIO stio = new AnnDataIO(() -> new N5HDF5Reader(path), null);
 		STDataAssembly data = stio.readData();
 		String gene = "IGKC";
 

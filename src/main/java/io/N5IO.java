@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Supplier;
 
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineSet;
@@ -31,8 +32,14 @@ public class N5IO extends SpatialDataIO {
 	protected static String locationsPath = "/locations";
 	protected static String annotationsGroup = "/annotations";
 
-	public N5IO(N5Reader reader) {
-		super(reader);
+	public N5IO(final Supplier<N5Writer> writer)
+	{
+		this(writer, writer);
+	}
+
+	public N5IO(final Supplier<? extends N5Reader> reader, final Supplier<N5Writer> writer)
+	{
+		super(reader, writer);
 	}
 
 

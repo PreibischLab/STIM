@@ -31,20 +31,23 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Supplier;
 
 public abstract class SpatialDataIO {
 
-	protected final N5Reader n5;
-	protected boolean readOnly;
+	protected final Supplier<? extends N5Reader> n5supplier;
+	protected final Supplier<N5Writer> n5wsupplier;
+	//protected boolean readOnly;
 	protected N5Options options;
 	protected N5Options options1d;
 
-	public SpatialDataIO(N5Reader reader) {
+	public SpatialDataIO(final Supplier<? extends N5Reader> reader, final Supplier<N5Writer> writer) {
 		if (reader == null)
 			throw new IllegalArgumentException("No N5 reader / writer given.");
 
-		this.n5 = reader;
-		readOnly = !(reader instanceof N5Writer);
+		this.n5supplier = reader;
+		this.n5wsupplier = writer; // can be null
+		//readOnly = N5Writer.class.isInstance( reader ); //!(reader instanceof N5Writer);
 
 		options = new N5Options(
 				new int[]{512, 512},
@@ -167,7 +170,8 @@ public abstract class SpatialDataIO {
 	protected abstract <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(String label) throws IOException;
 
 	public void writeData(STDataAssembly data) throws IOException {
-		if (readOnly)
+		//if (readOnly)
+		if (n5w == null)
 			throw new SpatialDataIOException("Trying to write to read-only file.");
 
 		N5Writer writer = (N5Writer) n5;
@@ -194,7 +198,8 @@ public abstract class SpatialDataIO {
 	}
 
 	public void updateStoredMetadata(Map<String, RandomAccessibleInterval<? extends NativeType<?>>> metadata) throws IOException {
-		if (readOnly)
+		//if (readOnly)
+		if (n5w == null)
 			throw new SpatialDataIOException("Trying to write to read-only file.");
 
 		N5Writer writer = (N5Writer) n5;
@@ -227,7 +232,8 @@ public abstract class SpatialDataIO {
 	protected abstract void writeMetaData(N5Writer writer, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException;
 
 	public void updateTransformation(AffineGet transform, String name) throws IOException {
-		if (readOnly)
+		//if (readOnly)
+		if (n5w == null)
 			throw new SpatialDataIOException("Trying to modify a read-only file.");
 
 		N5Writer writer = (N5Writer) n5;
