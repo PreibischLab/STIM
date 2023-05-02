@@ -3,7 +3,6 @@ import data.STDataStatistics;
 import gui.STDataAssembly;
 import io.AnnDataIO;
 import io.SpatialDataIO;
-import io.SpatialDataIOException;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
@@ -30,7 +29,7 @@ public class IOTest extends AbstractIOTest {
 	public void readonly_file_cannot_be_written() {
 		try (N5HDF5Writer writer = new N5HDF5Writer(getPlaygroundPath("data.h5ad"))) {
 			SpatialDataIO sdio = new AnnDataIO(() -> writer, null);
-			assertThrows(SpatialDataIOException.class, () -> sdio.writeData(null));
+			assertThrows(IllegalStateException.class, () -> sdio.writeData(null));
 		}
 		catch (Exception e) {
 			fail("Could not write / read file: ", e);

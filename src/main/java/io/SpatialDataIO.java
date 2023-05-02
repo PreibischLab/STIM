@@ -88,10 +88,10 @@ public abstract class SpatialDataIO {
 		List<String> barcodes = readBarcodes(reader);
 
 		if (locations.dimension(0) != numLocations)
-			throw new SpatialDataIOException("Inconsistent number of locations in data arrays.");
+			throw new SpatialDataException("Inconsistent number of locations in data arrays.");
 
 		if (geneNames == null || geneNames.size() == 0 || geneNames.size() != numGenes)
-			throw new SpatialDataIOException("Missing or wrong number of gene names.");
+			throw new SpatialDataException("Missing or wrong number of gene names.");
 
 		if (barcodes == null || barcodes.size() == 0 || barcodes.size() != numLocations) {
 			System.out.println( "Missing or wrong number of barcodes, setting empty Strings instead");
@@ -172,7 +172,7 @@ public abstract class SpatialDataIO {
 
 	public void writeData(STDataAssembly data) throws IOException {
 		if (readOnly)
-			throw new SpatialDataIOException("Trying to write to read-only file.");
+			throw new IllegalStateException("Trying to write to read-only file.");
 
 		N5Writer writer = writerSupplier.get();
 		STData stData = data.data();
@@ -199,7 +199,7 @@ public abstract class SpatialDataIO {
 
 	public void updateStoredMetadata(Map<String, RandomAccessibleInterval<? extends NativeType<?>>> metadata) throws IOException {
 		if (readOnly)
-			throw new SpatialDataIOException("Trying to write to read-only file.");
+			throw new IllegalStateException("Trying to write to read-only file.");
 
 		N5Writer writer = writerSupplier.get();
 		List<String> existingMetadata = detectMetaData(writer);
@@ -232,7 +232,7 @@ public abstract class SpatialDataIO {
 
 	public void updateTransformation(AffineGet transform, String name) throws IOException {
 		if (readOnly)
-			throw new SpatialDataIOException("Trying to modify a read-only file.");
+			throw new IllegalStateException("Trying to modify a read-only file.");
 
 		N5Writer writer = writerSupplier.get();
 		final boolean previouslyRunning = ensureRunningExecutorService(Executors.newFixedThreadPool(1));
@@ -251,23 +251,23 @@ public abstract class SpatialDataIO {
 		if (extension.startsWith("h5")) {
 			backendSupplier = () -> {
 				try {return new N5HDF5Writer(path);}
-				catch (IOException e) {throw new SpatialDataIOException("Cannot open '" + path + "'.", e);}
+				catch (IOException e) {throw new SpatialDataException("Supplier cannot open '" + path + "'.", e);}
 			};
 		}
 		else if (extension.startsWith("n5")) {
 			backendSupplier = () -> {
 				try {return new N5FSWriter(path);}
-				catch (IOException e) {throw new SpatialDataIOException("Cannot open '" + path + "'.", e);}
+				catch (IOException e) {throw new SpatialDataException("Supplier cannot open '" + path + "'.", e);}
 			};
 		}
 		else if (extension.startsWith("zarr")) {
 			backendSupplier = () -> {
 				try {return new N5ZarrWriter(path);}
-				catch (IOException e) {throw new SpatialDataIOException("Cannot open '" + path + "'.", e);}
+				catch (IOException e) {throw new SpatialDataException("Supplier cannot open '" + path + "'.", e);}
 			};
 		}
 		else {
-			throw new SpatialDataIOException("Cannot find N5 backend for extension'" + extension + "'.");
+			throw new UnsupportedOperationException("Cannot find N5 backend for extension'" + extension + "'.");
 		}
 
 		if (extension.endsWith("ad"))

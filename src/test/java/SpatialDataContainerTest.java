@@ -1,7 +1,7 @@
 import gui.STDataAssembly;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
-import io.SpatialDataIOException;
+import io.SpatialDataException;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -85,7 +85,7 @@ public class SpatialDataContainerTest extends AbstractIOTest {
 
 		try (N5HDF5Writer writer = new N5HDF5Writer(fullPath)) {
 			container.addExistingDataset(fullPath);
-			assertThrows(SpatialDataIOException.class, () -> container.addExistingDataset(fullPath));
+			assertThrows(SpatialDataException.class, () -> container.addExistingDataset(fullPath));
 
 			container.deleteDataset(datasetName);
 			(new File(fullPath)).delete();

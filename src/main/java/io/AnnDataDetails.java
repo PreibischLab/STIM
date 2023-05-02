@@ -38,7 +38,7 @@ class AnnDataDetails {
             case CSC_MATRIX:
                 return openSparseArray(reader, path, CscRandomAccessibleInterval<T,I>::new); // column
             default:
-                throw new SpatialDataIOException("Reading data for " + type + " not supported.");
+                throw new UnsupportedOperationException("Reading data for " + type + " not supported.");
         }
     }
 
@@ -69,7 +69,7 @@ class AnnDataDetails {
             case CATEGORICAL_ARRAY:
                 return readCategoricalList(reader, path);
             default:
-                throw new SpatialDataIOException("Reading string annotations for " + type + " not supported.");
+                throw new UnsupportedOperationException("Reading string annotations for " + type + " not supported.");
         }
     }
 
@@ -86,7 +86,7 @@ class AnnDataDetails {
     public static <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readFromDataFrame(N5Reader reader, String dataFrame, String label) throws IOException {
         List<String> existingData = getExistingDataFrameDatasets(reader, dataFrame);
         if (!existingData.contains(label))
-            throw new SpatialDataIOException("Dataframe '" + dataFrame + "' does not contain '" + label + "'.");
+            throw new IOException("Dataframe '" + dataFrame + "' does not contain '" + label + "'.");
 
         return N5Utils.open(reader, dataFrame + "/" + label);
     }
@@ -155,12 +155,12 @@ class AnnDataDetails {
             else if (type == AnnDataFieldType.CSR_MATRIX || type == AnnDataFieldType.CSC_MATRIX)
                 writeSparseArray(writer, path, data, options, type);
             else
-                throw new SpatialDataIOException("Writing array data for " + type.toString() + " not supported.");
+                throw new UnsupportedOperationException("Writing array data for " + type.toString() + " not supported.");
             writer.setAttribute(path, "shape", new long[]{data.dimension(1), data.dimension(0)});
             writeEncoding(writer, path, type);
         }
         catch (ExecutionException | InterruptedException e) {
-            throw new SpatialDataIOException("Could not load dataset at '" + path + "'\n", e);
+            throw new IOException("Could not load dataset at '" + path + "'.", e);
         }
     }
 
@@ -212,14 +212,14 @@ class AnnDataDetails {
 
         List<String> existingData = getExistingDataFrameDatasets(writer, dataFrame);
         if (existingData.contains(label))
-            throw new SpatialDataIOException("Dataframe '" + dataFrame + "' already contains '" + label + "'.");
+            throw new IOException("Dataframe '" + dataFrame + "' already contains '" + label + "'.");
 
         try {
             N5Utils.save(data, writer, dataFrame + "/" + label, options.blockSize, options.compression, options.exec);
             existingData.add(label);
             writer.setAttribute(dataFrame, "column-order", existingData.toArray());
         } catch (InterruptedException | ExecutionException e) {
-            throw new SpatialDataIOException("Could not write dataset '" + dataFrame + "/" + label + "'.");
+            throw new IOException("Could not write dataset '" + dataFrame + "/" + label + "'.", e);
         }
     }
 

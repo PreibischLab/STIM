@@ -108,7 +108,7 @@ public class N5IO extends SpatialDataIO {
 			int[] blockSize = new int[]{options1d.blockSize[0], (int) locations.dimension(1)};
 			N5Utils.save(locations, writer, locationsPath, blockSize, options.compression, options.exec);
 		} catch (InterruptedException | ExecutionException e) {
-			throw new SpatialDataIOException("Could not write locations.", e);
+			throw new IOException("Could not write locations.", e);
 		}
 	}
 
@@ -117,7 +117,7 @@ public class N5IO extends SpatialDataIO {
 		try {
 			N5Utils.save(exprValues, writer, exprValuesPath, options.blockSize, options.compression, options.exec);
 		} catch (InterruptedException | ExecutionException e) {
-			throw new SpatialDataIOException("Could not write expression values.", e);
+			throw new IOException("Could not write expression values.", e);
 		}
 	}
 
@@ -144,7 +144,7 @@ public class N5IO extends SpatialDataIO {
 		try {
 			N5Utils.save((RandomAccessibleInterval<IntType>) data, writer, datasetName, options1d.blockSize, options.compression, options.exec);
 		} catch (InterruptedException | ExecutionException e) {
-			throw new SpatialDataIOException("Could not write expression values.", e);
+			throw new IOException("Could not write expression values.", e);
 		}
 	}
 }

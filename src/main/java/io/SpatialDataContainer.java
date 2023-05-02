@@ -41,7 +41,7 @@ public class SpatialDataContainer {
 
 	public static SpatialDataContainer openExisting(String path) throws IOException {
 		if (!(new File(path)).exists())
-			throw new SpatialDataIOException("N5 '" + path + "' does not exist.");
+			throw new IOException("N5 '" + path + "' does not exist.");
 		SpatialDataContainer container = new SpatialDataContainer(path, false);
 		container.readFromDisk();
 		return container;
@@ -49,7 +49,7 @@ public class SpatialDataContainer {
 
 	public static SpatialDataContainer openForReading(String path) throws IOException {
 		if (!(new File(path)).exists())
-			throw new SpatialDataIOException("N5 '" + path + "' does not exist.");
+			throw new IOException("N5 '" + path + "' does not exist.");
 		SpatialDataContainer container = new SpatialDataContainer(path, true);
 		container.readFromDisk();
 		return container;
@@ -57,7 +57,7 @@ public class SpatialDataContainer {
 
 	public static SpatialDataContainer createNew(String path) throws IOException {
 		if ((new File(path)).exists())
-			throw new SpatialDataIOException("N5 '" + path + "' already exists.");
+			throw new IOException("N5 '" + path + "' already exists.");
 		SpatialDataContainer container = new SpatialDataContainer(path, false);
 		container.initializeContainer();
 		return container;
@@ -73,12 +73,12 @@ public class SpatialDataContainer {
 	protected void readFromDisk() throws IOException {
 		String actualVersion = n5.getAttribute("/", versionKey, String.class);
 		if (!version.equals(actualVersion))
-			throw new SpatialDataIOException("Incompatible spatial data container version: expected " + version + ", got " + actualVersion + ".");
+			throw new SpatialDataException("Incompatible spatial data container version: expected " + version + ", got " + actualVersion + ".");
 
 		int numDatasets = n5.getAttribute("/", numDatasetsKey, int.class);
 		datasets = n5.getAttribute("/", datasetsKey, List.class);
 		if (numDatasets != datasets.size())
-			throw new SpatialDataIOException("Incompatible number of datasets: expected " + numDatasets + ", found " + datasets.size() + ".");
+			throw new SpatialDataException("Incompatible number of datasets: expected " + numDatasets + ", found " + datasets.size() + ".");
 
 		matches = Arrays.asList(n5.list(n5.groupPath("matches")));
 	}
@@ -94,9 +94,9 @@ public class SpatialDataContainer {
 		String datasetName = oldPath.getFileName().toString();
 
 		if (readOnly)
-			throw new SpatialDataIOException("Trying to modify a read-only spatial data container.");
+			throw new IllegalStateException("Trying to modify a read-only spatial data container.");
 		if (datasets.contains(datasetName))
-			throw new SpatialDataIOException("Dataset '" + datasetName + "' already exists.");
+			throw new SpatialDataException("Dataset '" + datasetName + "' already exists.");
 
 		Files.move(oldPath, Paths.get(rootPath, datasetName));
 		datasets.add(datasetName);
@@ -105,7 +105,7 @@ public class SpatialDataContainer {
 
 	public void deleteDataset(String datasetName) throws IOException {
 		if (readOnly)
-			throw new SpatialDataIOException("Trying to modify a read-only spatial data container.");
+			throw new IllegalStateException("Trying to modify a read-only spatial data container.");
 		if (datasets.remove(datasetName)) {
 			deleteFileOrDirectory(Paths.get(rootPath, datasetName));
 			updateDatasetMetadata();
@@ -114,7 +114,7 @@ public class SpatialDataContainer {
 
 	public SpatialDataIO openDataset(String datasetName) throws IOException {
 		if (!datasets.contains(datasetName))
-			throw new SpatialDataIOException("Container does not contain dataset '" + datasetName + "'.");
+			throw new SpatialDataException("Container does not contain dataset '" + datasetName + "'.");
 		return SpatialDataIO.inferFromName(Paths.get(rootPath, datasetName).toString());
 	}
 
@@ -149,7 +149,7 @@ public class SpatialDataContainer {
 
 	public void deleteMatch(String matchName) throws IOException {
 		if (readOnly)
-			throw new SpatialDataIOException("Trying to modify a read-only spatial data container.");
+			throw new IllegalStateException("Trying to modify a read-only spatial data container.");
 		if (matches.remove(matchName))
 			deleteFileOrDirectory(Paths.get(rootPath, "matches", matchName));
 	}
@@ -170,9 +170,9 @@ public class SpatialDataContainer {
 		final String pairwiseGroupName = writer.groupPath("/", "matches", matchName);
 
 		if (readOnly)
-			throw new SpatialDataIOException("Trying to modify a read-only spatial data container.");
+			throw new IllegalStateException("Trying to modify a read-only spatial data container.");
 		if (matches.contains(matchName))
-			throw new SpatialDataIOException("Match '" + matchName + "' already exists.");
+			throw new SpatialDataException("Match '" + matchName + "' already exists.");
 		if (writer.exists(pairwiseGroupName))
 			writer.remove(pairwiseGroupName);
 
@@ -203,7 +203,7 @@ public class SpatialDataContainer {
 		final String pairwiseGroupName = n5.groupPath("/", "matches", matchName);
 
 		if (!matches.contains(matchName))
-			throw new SpatialDataIOException("Match '" + matchName + "' does not exist.");
+			throw new SpatialDataException("Match '" + matchName + "' does not exist.");
 
 		final String loadedNameA = n5.getAttribute(pairwiseGroupName, "stDataAname", String.class);
 		final String loadedNameB = n5.getAttribute(pairwiseGroupName, "stDataBname", String.class);
@@ -214,7 +214,7 @@ public class SpatialDataContainer {
 				n5.readSerializedBlock(pairwiseGroupName, n5.getDatasetAttributes(pairwiseGroupName), new long[]{0L});
 
 		if (!loadedNameA.equals(stDataAName) || !loadedNameB.equals(stDataBName) || numInliers != inliers.size())
-			throw new SpatialDataIOException("Loaded data for match '" + matchName + "' not consistent.");
+			throw new SpatialDataException("Loaded data for match '" + matchName + "' not consistent.");
 
 		return new SiftMatch(stDataAName, stDataBName, numCandidates, inliers);
 	}
