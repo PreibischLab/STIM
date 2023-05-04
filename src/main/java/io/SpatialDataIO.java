@@ -45,6 +45,8 @@ public abstract class SpatialDataIO {
 		this(writerSupplier, writerSupplier);
 	}
 
+	// TODO: blockSizeVector, blockSizeMatrix?
+	// TODO: should be smaller for HDF5?
 	public SpatialDataIO(final Supplier<N5Writer> writerSupplier, final int blockSize1D, final int[] blockSize, final Compression compression) {
 		this(writerSupplier, writerSupplier, blockSize1D, blockSize, compression);
 	}
