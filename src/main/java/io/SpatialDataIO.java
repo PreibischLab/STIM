@@ -130,6 +130,7 @@ public abstract class SpatialDataIO {
 	}
 
 	// TODO: ExecutorService handling seems unneccesarily complex?
+	// TODO: it should be possible to provide an ExecutorService
 	public boolean ensureRunningExecutorService() {
 		return ensureRunningExecutorService(Executors.newFixedThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2)));
 	}
@@ -241,8 +242,10 @@ public abstract class SpatialDataIO {
 			throw new IllegalStateException("Trying to modify a read-only file.");
 
 		N5Writer writer = writerSupplier.get();
+		// TODO: why?
 		final boolean previouslyRunning = ensureRunningExecutorService(Executors.newFixedThreadPool(1));
 		writeTransformation(writer, transform, name);
+		// TODO: why?
 		if (!previouslyRunning)
 			shutdownExecutorService();
 	}
