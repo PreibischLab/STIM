@@ -35,34 +35,52 @@ import java.util.function.Supplier;
 
 public abstract class SpatialDataIO {
 
+	// TODO: maybe?
+	public static class InternalMethods
+	{
+		final SpatialDataIO data;
+		public InternalMethods( final SpatialDataIO data )
+		{
+			this.data = data;
+		}
+
+		public RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader) throws IOException // size: [numLocations x numDimensions]
+		{
+			return data.readLocations( reader );
+		}
+	}
+
+	public InternalMethods internalMethods() { return new InternalMethods( this ); }
+
 	protected final Supplier<? extends N5Reader> readerSupplier;
 	protected final Supplier<N5Writer> writerSupplier;
 	protected boolean readOnly;
 	protected N5Options options;
 	protected N5Options options1d;
 
-	public SpatialDataIO(final Supplier<N5Writer> writerSupplier) {
+	// TODO: always provide an ExecutorService
+	public SpatialDataIO(final Supplier<N5Writer> writerSupplier, final ExecutorService service ) {
 		this(writerSupplier, writerSupplier);
 	}
 
 	// TODO: blockSizeVector, blockSizeMatrix?
 	// TODO: should be smaller for HDF5?
-	public SpatialDataIO(final Supplier<N5Writer> writerSupplier, final int blockSize1D, final int[] blockSize, final Compression compression) {
+	public SpatialDataIO(final Supplier<N5Writer> writerSupplier, final int blockSize1D, final int[] blockSize, final Compression compression, final ExecutorService service) {
 		this(writerSupplier, writerSupplier, blockSize1D, blockSize, compression);
 	}
+	// TODO: one constructor without writer supplier? (and remove the convenice constructor above)
 
-	public SpatialDataIO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier) {
+	public SpatialDataIO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier, final ExecutorService service, final ExecutorService service) {
 		this(readerSupplier, writerSupplier, 512*512, new int[]{512, 512}, new GzipCompression(3));
 	}
-
-	// TODO: one constructor without writer supplier?
 
 	public SpatialDataIO(
 			final Supplier<? extends N5Reader> readerSupplier,
 			final Supplier<N5Writer> writerSupplier,
 			final int blockSize1D,
 			final int[] blockSize,
-			final Compression compression) {
+			final Compression compression,
+			final ExecutorService service) {
 
 		if (readerSupplier == null)
 			throw new IllegalArgumentException("No N5 reader supplier given.");
@@ -289,7 +307,7 @@ public abstract class SpatialDataIO {
 
 		int[] blockSize;
 		Compression compression;
-		ExecutorService exec;
+		ExecutorService exec; // TODO: remove here, or just use the single one provided
 
 		public N5Options(int[] blockSize, Compression compression, ExecutorService exec) {
 			this.blockSize = blockSize;
