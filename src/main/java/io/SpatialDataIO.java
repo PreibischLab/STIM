@@ -55,6 +55,8 @@ public abstract class SpatialDataIO {
 		this(readerSupplier, writerSupplier, 512*512, new int[]{512, 512}, new GzipCompression(3));
 	}
 
+	// TODO: one constructor without writer supplier?
+
 	public SpatialDataIO(
 			final Supplier<? extends N5Reader> readerSupplier,
 			final Supplier<N5Writer> writerSupplier,
@@ -127,6 +129,7 @@ public abstract class SpatialDataIO {
 		return new STDataAssembly(stData, new STDataStatistics(stData), transform, intensityTransform);
 	}
 
+	// TODO: ExecutorService handling seems unneccesarily complex?
 	public boolean ensureRunningExecutorService() {
 		return ensureRunningExecutorService(Executors.newFixedThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2)));
 	}
@@ -158,6 +161,7 @@ public abstract class SpatialDataIO {
 		return previouslyRunning;
 	}
 
+	// TODO: why protected?
 	protected abstract RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader) throws IOException; // size: [numLocations x numDimensions]
 
 	protected abstract RandomAccessibleInterval<DoubleType> readExpressionValues(N5Reader reader) throws IOException; // size: [numGenes x numLocations]
