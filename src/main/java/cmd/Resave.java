@@ -14,6 +14,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
@@ -101,7 +103,8 @@ public class Resave implements Callable<Void> {
 			data =  new NormalizingSTData(data);
 		}
 
-		SpatialDataIO sdio = SpatialDataIO.inferFromName(outputFile.getAbsolutePath());
+		final ExecutorService service = Executors.newFixedThreadPool(8);
+		SpatialDataIO sdio = SpatialDataIO.inferFromName(outputFile.getAbsolutePath(), service);
 		System.out.println("\nSaving in file='" + outputFile.getPath() + "'");
 		sdio.writeData(new STDataAssembly(data));
 
@@ -109,15 +112,16 @@ public class Resave implements Callable<Void> {
 			final File n5File = new File(containerPath);
 			SpatialDataContainer container;
 			if (n5File.exists())
-				container = SpatialDataContainer.openExisting(containerPath);
+				container = SpatialDataContainer.openExisting(containerPath, service);
 			else
-				container = SpatialDataContainer.createNew(containerPath);
+				container = SpatialDataContainer.createNew(containerPath, service);
 
 			System.out.println("\nMoving file to '" + containerPath + "'");
 			container.addExistingDataset(outputFile.getAbsolutePath());
 		}
 
 		System.out.println("Done.");
+		service.shutdown();
 		return null;
 	}
 

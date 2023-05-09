@@ -1,12 +1,16 @@
 package examples;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import bvv.util.Bvv;
 import bvv.util.BvvFunctions;
 import bvv.util.BvvSource;
 import data.STData;
 import data.STDataStatistics;
+import gui.STDataAssembly;
 import imglib2.DoubleUnsignedShortConverter;
 import io.SpatialDataContainer;
 import io.Path;
@@ -28,7 +32,8 @@ public class VolumetricRendering
 
 		long time = System.currentTimeMillis();
 
-		final STData stdata = SpatialDataContainer.openForReading(path + "examples.n5").openDataset("fly3d").readData().data();
+		final ExecutorService service = Executors.newFixedThreadPool(8);
+		final STData stdata = SpatialDataContainer.openForReading(path + "examples.n5", service).openDataset("fly3d").readData().data();
 
 		System.out.println( System.currentTimeMillis() - time + " ms." );
 
@@ -78,6 +83,7 @@ public class VolumetricRendering
 		// gauss smooth
 		gaussRenderSigma = displayRadius / 2;
 		gaussRenderRadius = displayRadius * 2;
+		service.shutdown();
 
 		//new ImageJ();
 		//ImageJFunctions.show( Views.interval( Views.raster( Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, false ) ) ), stdata.renderInterval ) );

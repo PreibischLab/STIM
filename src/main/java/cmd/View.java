@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
@@ -33,9 +35,10 @@ public class View implements Callable<Void> {
 			return null;
 		}
 
+		final ExecutorService service = Executors.newFixedThreadPool(8);
 		final List<STDataAssembly> dataToVisualize = new ArrayList<>();
 		if (SpatialDataContainer.isCompatibleContainer(inputPath)) {
-			SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath);
+			SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath, service);
 
 			if (datasets != null && datasets.trim().length() != 0) {
 				for (String dataset : datasets.split(",")) {
@@ -51,7 +54,7 @@ public class View implements Callable<Void> {
 		}
 		else {
 			System.out.println("Opening dataset '" + inputPath + "' ...");
-			dataToVisualize.add(SpatialDataIO.inferFromName(inputPath).readData());
+			dataToVisualize.add(SpatialDataIO.inferFromName(inputPath, service).readData());
 		}
 
 		if ( contrastString != null && contrastString.length() > 0 )
@@ -77,6 +80,7 @@ public class View implements Callable<Void> {
 
 		new STDataExplorer( dataToVisualize );
 
+		service.shutdown();
 		return null;
 	}
 

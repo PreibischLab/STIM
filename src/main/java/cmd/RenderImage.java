@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import io.SpatialDataContainer;
@@ -84,9 +86,10 @@ public class RenderImage implements Callable<Void> {
 			return null;
 		}
 
+		final ExecutorService service = Executors.newFixedThreadPool(8);
 		final Map<String, SpatialDataIO> iodata = new HashMap<>();
 		if (SpatialDataContainer.isCompatibleContainer(inputPath)) {
-			SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath);
+			SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath, service);
 
 			final List<String> datasetNames;
 			if (datasets != null && datasets.length() != 0)
@@ -103,7 +106,7 @@ public class RenderImage implements Callable<Void> {
 		}
 		else {
 			System.out.println("Opening dataset '" + inputPath + "' ...");
-			iodata.put(inputPath, SpatialDataIO.inferFromName(inputPath));
+			iodata.put(inputPath, SpatialDataIO.inferFromName(inputPath, service));
 		}
 
 		if (genes == null || genes.length() == 0) {
@@ -173,6 +176,7 @@ public class RenderImage implements Callable<Void> {
 			}
 		}
 
+		service.shutdown();
 		return null;
 	}
 

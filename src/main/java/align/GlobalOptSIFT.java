@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import gui.STDataAssembly;
 import io.SpatialDataContainer;
@@ -375,7 +377,8 @@ public class GlobalOptSIFT
 
 		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
 
-		final SpatialDataContainer container = SpatialDataContainer.openExisting(path + "slide-seq-normalized.n5");
+		final ExecutorService service = Executors.newFixedThreadPool(8);
+		final SpatialDataContainer container = SpatialDataContainer.openExisting(path + "slide-seq-normalized.n5", service);
 		final List<String> pucks = container.getDatasets();
 
 		final boolean useQuality = true;
@@ -413,5 +416,6 @@ public class GlobalOptSIFT
 				false,
 				AlignTools.defaultSmoothnessFactor,
 				AlignTools.defaultGene );
+		service.shutdown();
 	}
 }

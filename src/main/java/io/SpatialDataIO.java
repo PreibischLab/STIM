@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
 public abstract class SpatialDataIO {
@@ -58,27 +57,20 @@ public abstract class SpatialDataIO {
 	protected N5Options options;
 	protected N5Options options1d;
 
-	// TODO: always provide an ExecutorService
-	public SpatialDataIO(final Supplier<N5Writer> writerSupplier, final ExecutorService service ) {
-		this(writerSupplier, writerSupplier);
+	public SpatialDataIO(final Supplier<N5Writer> writerSupplier, final ExecutorService service) {
+		this(writerSupplier, writerSupplier, service);
 	}
 
-	// TODO: blockSizeVector, blockSizeMatrix?
 	// TODO: should be smaller for HDF5?
-	public SpatialDataIO(final Supplier<N5Writer> writerSupplier, final int blockSize1D, final int[] blockSize, final Compression compression, final ExecutorService service) {
-		this(writerSupplier, writerSupplier, blockSize1D, blockSize, compression);
-	}
-	// TODO: one constructor without writer supplier? (and remove the convenice constructor above)
-
-	public SpatialDataIO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier, final ExecutorService service, final ExecutorService service) {
-		this(readerSupplier, writerSupplier, 512*512, new int[]{512, 512}, new GzipCompression(3));
+	public SpatialDataIO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier, final ExecutorService service) {
+		this(readerSupplier, writerSupplier, 512*512, new int[]{512, 512}, new GzipCompression(3), service);
 	}
 
 	public SpatialDataIO(
 			final Supplier<? extends N5Reader> readerSupplier,
 			final Supplier<N5Writer> writerSupplier,
-			final int blockSize1D,
-			final int[] blockSize,
+			final int vectorBlockSize,
+			final int[] matrixBlockSize,
 			final Compression compression,
 			final ExecutorService service) {
 
@@ -89,8 +81,8 @@ public abstract class SpatialDataIO {
 		this.writerSupplier = writerSupplier;
 		readOnly = (writerSupplier == null);
 
-		options = new N5Options(blockSize, compression, null);
-		options1d = new N5Options(new int[]{blockSize1D}, compression, null);
+		options = new N5Options(matrixBlockSize, compression, service);
+		options1d = new N5Options(new int[]{vectorBlockSize}, compression, service);
 	}
 
 	public STDataAssembly readData() throws IOException {
@@ -147,39 +139,6 @@ public abstract class SpatialDataIO {
 		return new STDataAssembly(stData, new STDataStatistics(stData), transform, intensityTransform);
 	}
 
-	// TODO: ExecutorService handling seems unneccesarily complex?
-	// TODO: it should be possible to provide an ExecutorService
-	public boolean ensureRunningExecutorService() {
-		return ensureRunningExecutorService(Executors.newFixedThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2)));
-	}
-
-	/**
-	 * Ensure a running ExecutorService instance.
-	 * @param exec ExecutorService to use if one is not already running
-	 * @return true if ExecutorService was previously running, false otherwise
-	 */
-	public boolean ensureRunningExecutorService(ExecutorService exec) {
-		final boolean previouslyRunning = (options.exec != null && !options.exec.isShutdown());
-		if (!previouslyRunning) {
-			options.exec = exec;
-			options1d.exec = exec;
-		}
-		return previouslyRunning;
-	}
-
-	/**
-	 * Shutdown ExecutorService instance.
-	 * @return true if ExecutorService was previously running, false otherwise
-	 */
-	public boolean shutdownExecutorService() {
-		final boolean previouslyRunning = (options.exec != null && !options.exec.isShutdown());
-		if (previouslyRunning)
-			options.exec.shutdown();
-		options.exec = null;
-		options1d.exec = null;
-		return previouslyRunning;
-	}
-
 	// TODO: why protected?
 	protected abstract RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader) throws IOException; // size: [numLocations x numDimensions]
 
@@ -204,7 +163,6 @@ public abstract class SpatialDataIO {
 
 		System.out.print( "Saving spatial data ... " );
 		long time = System.currentTimeMillis();
-		final boolean previouslyRunning = ensureRunningExecutorService();
 
 		writeHeader(writer, stData);
 		writeBarcodes(writer, stData.getBarcodes());
@@ -217,8 +175,6 @@ public abstract class SpatialDataIO {
 
 		updateStoredMetadata(data.data().getMetaData());
 
-		if (!previouslyRunning)
-			shutdownExecutorService();
 		System.out.println( "Saving took " + ( System.currentTimeMillis() - time ) + " ms." );
 	}
 
@@ -229,16 +185,12 @@ public abstract class SpatialDataIO {
 		N5Writer writer = writerSupplier.get();
 		List<String> existingMetadata = detectMetaData(writer);
 
-		final boolean previouslyRunning = ensureRunningExecutorService();
 		for (Entry<String, RandomAccessibleInterval<? extends NativeType<?>>> newEntry : metadata.entrySet()) {
 			if (existingMetadata.contains(newEntry.getKey()))
 				System.out.println("Existing metadata '" + newEntry.getKey() + "' was not updated.");
 			else
 				writeMetaData(writer, newEntry.getKey(),  newEntry.getValue());
 		}
-
-		if (!previouslyRunning)
-			shutdownExecutorService();
 	}
 
 	protected abstract void writeHeader(N5Writer writer, STData data) throws IOException;
@@ -260,15 +212,10 @@ public abstract class SpatialDataIO {
 			throw new IllegalStateException("Trying to modify a read-only file.");
 
 		N5Writer writer = writerSupplier.get();
-		// TODO: why?
-		final boolean previouslyRunning = ensureRunningExecutorService(Executors.newFixedThreadPool(1));
 		writeTransformation(writer, transform, name);
-		// TODO: why?
-		if (!previouslyRunning)
-			shutdownExecutorService();
 	}
 
-	public static SpatialDataIO inferFromName(String path) throws IOException {
+	public static SpatialDataIO inferFromName(final String path, final ExecutorService service) throws IOException {
 		Path absolutePath = Paths.get(path).toAbsolutePath();
 		String fileName = absolutePath.getFileName().toString();
 		String[] components = fileName.split("\\.");
@@ -298,16 +245,16 @@ public abstract class SpatialDataIO {
 		}
 
 		if (extension.endsWith("ad"))
-			return new AnnDataIO(backendSupplier);
+			return new AnnDataIO(backendSupplier, service);
 		else
-			return new N5IO(backendSupplier);
+			return new N5IO(backendSupplier, service);
 	}
 
 	static class N5Options {
 
 		int[] blockSize;
 		Compression compression;
-		ExecutorService exec; // TODO: remove here, or just use the single one provided
+		ExecutorService exec;
 
 		public N5Options(int[] blockSize, Compression compression, ExecutorService exec) {
 			this.blockSize = blockSize;

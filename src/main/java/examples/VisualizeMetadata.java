@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import bdv.util.BdvFunctions;
@@ -120,8 +122,9 @@ public class VisualizeMetadata
 
 	public static void main( String[] args ) throws IOException
 	{
+		final ExecutorService service = Executors.newFixedThreadPool(8);
 		final List<STDataAssembly> puckData =
-				SpatialDataContainer.openExisting(Path.getPath() + "slide-seq-test.n5").openAllDatasets().stream()
+				SpatialDataContainer.openExisting(Path.getPath() + "slide-seq-test.n5", service).openAllDatasets().stream()
 								.map(sdio ->
 									 {try {return sdio.readData();} catch (IOException e) {throw new RuntimeException(e);}
 								}).collect(Collectors.toList());
@@ -131,5 +134,6 @@ public class VisualizeMetadata
 				"celltype",
 				puckData.get( 12 ).statistics().getMedianDistance() / 1.5,
 				puckData.get( 12 ).transform() );
+		service.shutdown();
 	}
 }

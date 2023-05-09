@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -421,7 +422,8 @@ public class PairwiseSIFT
 		//final String[] pucks = new String[] { "Puck_180531_23", "Puck_180531_22" };
 		//final String[] pucks = new String[] { "Puck_180602_18", "Puck_180531_18" }; // 1-8
 
-		SpatialDataContainer container = SpatialDataContainer.openExisting(path + "slide-seq-normalized.n5");
+		final ExecutorService service = Executors.newFixedThreadPool(8);
+		SpatialDataContainer container = SpatialDataContainer.openExisting(path + "slide-seq-normalized.n5", service);
 
 		List<String> pucks = container.getDatasets();
 		final List<STDataAssembly> puckData = container.openAllDatasets().stream().
@@ -485,6 +487,7 @@ public class PairwiseSIFT
 			}
 		}
 		System.out.println("done.");
+		service.shutdown();
 	}
 
 

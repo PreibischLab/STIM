@@ -1,6 +1,8 @@
 package examples;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
@@ -25,7 +27,8 @@ public class TestDisplayModes
 
 		long time = System.currentTimeMillis();
 
-		final STData stdata = SpatialDataContainer.openForReading(path + "slide-seq-test.n5").openDataset("Puck_180531_19").readData().data();
+		final ExecutorService service = Executors.newFixedThreadPool(8);
+		final STData stdata = SpatialDataContainer.openForReading(path + "slide-seq-test.n5", service).openDataset("Puck_180531_19").readData().data();
 
 		System.out.println( System.currentTimeMillis() - time + " ms." );
 
@@ -76,6 +79,7 @@ public class TestDisplayModes
 		bdv.setDisplayRange(0, 10);
 
 		bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
+		service.shutdown();
 
 		/*
 		final IterableRealInterval< DoubleType > medianFiltered = Filters.filter( data, new MedianFilterFactory<>( outofbounds, medianRadius ) );//outofbounds, medianRadius );

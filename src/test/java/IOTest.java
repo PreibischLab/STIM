@@ -17,6 +17,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -28,7 +30,7 @@ public class IOTest extends AbstractIOTest {
 	@Test
 	public void readonly_file_cannot_be_written() {
 		try (N5HDF5Writer writer = new N5HDF5Writer(getPlaygroundPath("data.h5ad"))) {
-			SpatialDataIO sdio = new AnnDataIO(() -> writer, null);
+			SpatialDataIO sdio = new AnnDataIO(() -> writer, null, executorService);
 			assertThrows(IllegalStateException.class, () -> sdio.writeData(null));
 		}
 		catch (Exception e) {
@@ -42,7 +44,7 @@ public class IOTest extends AbstractIOTest {
 		STDataAssembly expected = new STDataAssembly(TestUtils.createTestDataSet());
 
 		try {
-			SpatialDataIO sdio = SpatialDataIO.inferFromName(getPlaygroundPath(path));
+			SpatialDataIO sdio = SpatialDataIO.inferFromName(getPlaygroundPath(path), executorService);
 			sdio.writeData(expected);
 			STDataAssembly actual = sdio.readData();
 
@@ -65,7 +67,7 @@ public class IOTest extends AbstractIOTest {
 		STDataAssembly expected = new STDataAssembly(data, stats, transform, intensityTransform);
 
 		try {
-			SpatialDataIO sdio = SpatialDataIO.inferFromName(getPlaygroundPath(path));
+			SpatialDataIO sdio = SpatialDataIO.inferFromName(getPlaygroundPath(path), executorService);
 			sdio.writeData(expected);
 			STDataAssembly actual = sdio.readData();
 
@@ -86,7 +88,7 @@ public class IOTest extends AbstractIOTest {
 			expected.data().getMetaData().put(label, ArrayImgs.ints(new int[(int) n], n));
 
 		try {
-			SpatialDataIO sdio = SpatialDataIO.inferFromName(getPlaygroundPath(path));
+			SpatialDataIO sdio = SpatialDataIO.inferFromName(getPlaygroundPath(path), executorService);
 			sdio.writeData(expected);
 			STDataAssembly actual = sdio.readData();
 

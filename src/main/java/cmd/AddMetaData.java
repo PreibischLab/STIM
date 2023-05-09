@@ -6,6 +6,8 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import gui.STDataAssembly;
@@ -59,7 +61,8 @@ public class AddMetaData implements Callable<Void> {
 		}
 
 		System.out.println("adding metadata to " + inputPath);
-		final SpatialDataIO sdio = SpatialDataIO.inferFromName(inputPath);
+		final ExecutorService service = Executors.newFixedThreadPool(8);
+		final SpatialDataIO sdio = SpatialDataIO.inferFromName(inputPath, service);
 		final STDataAssembly stData = sdio.readData();
 
 		for (int i = 0; i < metadataList.size(); ++i) {
@@ -102,6 +105,7 @@ public class AddMetaData implements Callable<Void> {
 		sdio.updateStoredMetadata(stData.data().getMetaData());
 		System.out.println( "Done." );
 
+		service.shutdown();
 		return null;
 	}
 

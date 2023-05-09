@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -520,7 +521,8 @@ public class Pairwise
 		//final String[] pucks = new String[] { "Puck_180531_18", "Puck_180531_17" };
 		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18" };
 
-		final SpatialDataContainer container = SpatialDataContainer.openExisting(path + "slide-seq-normalized-gzip3.n5");
+		final ExecutorService service = Executors.newFixedThreadPool(8);
+		final SpatialDataContainer container = SpatialDataContainer.openExisting(path + "slide-seq-normalized-gzip3.n5", service);
 		final List<String> pucks = container.getDatasets();
 
 		final List<STDataAssembly> puckData = container.openAllDatasets().stream()
@@ -592,5 +594,6 @@ public class Pairwise
 				ImageJFunctions.show( AlignTools.display( stDataB, new STDataStatistics( stDataB ), "Calm1", finalInterval, tB_ICP, null, AlignTools.defaultSmoothnessFactor ) ).setTitle( "Calm1-ICP" );
 			}
 		}
+		service.shutdown();
 	}
 }

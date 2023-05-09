@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
 import bdv.util.BdvFunctions;
@@ -47,26 +49,24 @@ public class AnnDataIO extends SpatialDataIO {
 	protected static String locationPath = "/obsm/locations";
 	protected static String annotationPath = "/obs";
 
-	public AnnDataIO(final Supplier<N5Writer> writer) {
-		super(writer);
+
+	public AnnDataIO(final Supplier<N5Writer> writerSupplier, final ExecutorService service) {
+		super(writerSupplier, service);
 	}
 
-	public AnnDataIO(final Supplier<N5Writer> writerSupplier, final int blockSize1D, final int[] blockSize, final Compression compression) {
-		super(writerSupplier, writerSupplier, blockSize1D, blockSize, compression);
-	}
-
-	public AnnDataIO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier) {
-		super(readerSupplier, writerSupplier);
+	public AnnDataIO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier, final ExecutorService service) {
+		super(readerSupplier, writerSupplier, service);
 	}
 
 	public AnnDataIO(
 			final Supplier<? extends N5Reader> readerSupplier,
 			final Supplier<N5Writer> writerSupplier,
-			final int blockSize1D,
-			final int[] blockSize,
-			final Compression compression) {
+			final int vectorBlockSize,
+			final int[] matrixBlockSize,
+			final Compression compression,
+			final ExecutorService service) {
 
-		super(readerSupplier, writerSupplier, blockSize1D, blockSize, compression);
+		super(readerSupplier, writerSupplier, vectorBlockSize, matrixBlockSize, compression, service);
 
 		// TODO: remove this check once the issue is fixed
 		if (!N5HDF5Reader.class.isInstance(readerSupplier.get()))
@@ -77,7 +77,8 @@ public class AnnDataIO extends SpatialDataIO {
 	{
 		final String path = System.getProperty("user.dir") + "/data/human-lymph-node.h5ad";
 
-		SpatialDataIO stio = SpatialDataIO.inferFromName(path);
+		ExecutorService service = Executors.newFixedThreadPool(8);
+		SpatialDataIO stio = SpatialDataIO.inferFromName(path, service);
 		STDataAssembly data = stio.readData();
 		String gene = "IGKC";
 

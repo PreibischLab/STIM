@@ -27,7 +27,7 @@ public class SpatialDataContainerTest extends AbstractIOTest {
 	@Test
 	public void new_empty_container_is_empty() throws IOException {
 		final String path = getPlaygroundPath("container.n5");
-		SpatialDataContainer container = SpatialDataContainer.createNew(path);
+		SpatialDataContainer container = SpatialDataContainer.createNew(path, executorService);
 		assertTrue((new File(path)).exists(), "File '" + path + "' does not exist.");
 		assertTrue(SpatialDataContainer.isCompatibleContainer(path), "File '" + path + "' is not a compatible container.");
 
@@ -38,7 +38,7 @@ public class SpatialDataContainerTest extends AbstractIOTest {
 	@Test
 	public void adding_and_deleting_dataset_works() throws IOException {
 		final String path = getPlaygroundPath("container.n5");
-		SpatialDataContainer container = SpatialDataContainer.createNew(path);
+		SpatialDataContainer container = SpatialDataContainer.createNew(path, executorService);
 		final String datasetName = "tmp.h5ad";
 
 		String fullPath = getPlaygroundPath(datasetName);
@@ -56,7 +56,7 @@ public class SpatialDataContainerTest extends AbstractIOTest {
 
 	@Test
 	public void opening_datasets_works() throws IOException {
-		SpatialDataContainer container = SpatialDataContainer.createNew(getPlaygroundPath("container.n5"));
+		SpatialDataContainer container = SpatialDataContainer.createNew(getPlaygroundPath("container.n5"), executorService);
 
 		final List<String> datasetNames = Arrays.asList("tmp1.h5ad", "tmp2.zarr");
 		final List<STDataAssembly> expectedData = new ArrayList<>();
@@ -78,7 +78,7 @@ public class SpatialDataContainerTest extends AbstractIOTest {
 
 	@Test
 	public void adding_existing_dataset_fails() throws IOException {
-		SpatialDataContainer container = SpatialDataContainer.createNew(getPlaygroundPath("container.n5"));
+		SpatialDataContainer container = SpatialDataContainer.createNew(getPlaygroundPath("container.n5"), executorService);
 
 		String datasetName = "tmp.h5ad";
 		String fullPath = getPlaygroundPath(datasetName);
@@ -96,7 +96,7 @@ public class SpatialDataContainerTest extends AbstractIOTest {
 	}
 
 	protected STDataAssembly createAndWriteData(String path) throws IOException {
-		SpatialDataIO sdio = SpatialDataIO.inferFromName(getPlaygroundPath(path));
+		SpatialDataIO sdio = SpatialDataIO.inferFromName(getPlaygroundPath(path), executorService);
 		STDataAssembly data = new STDataAssembly(TestUtils.createTestDataSet());
 		sdio.writeData(data);
 		return data;

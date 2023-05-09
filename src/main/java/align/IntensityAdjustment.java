@@ -13,6 +13,7 @@ import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import gui.STDataAssembly;
@@ -440,7 +441,8 @@ public class IntensityAdjustment
 	public static void main( String[] args ) throws IOException
 	{
 		final String path = Path.getPath();
-		final SpatialDataContainer container = SpatialDataContainer.openExisting(path + "slide-seq-test.n5");
+		final ExecutorService service = Executors.newFixedThreadPool(8);
+		final SpatialDataContainer container = SpatialDataContainer.openExisting(path + "slide-seq-test.n5", service);
 		final List<String> pucks = container.getDatasets();
 
 		final ArrayList< STData > puckData = new ArrayList<>();
@@ -484,5 +486,6 @@ public class IntensityAdjustment
 		}
 
 		System.out.println( "done." );
+		service.shutdown();
 	}
 }

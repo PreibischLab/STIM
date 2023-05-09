@@ -9,6 +9,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import gui.STDataAssembly;
@@ -302,7 +304,8 @@ public class GlobalOpt
 
 		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
 
-		final SpatialDataContainer container = SpatialDataContainer.openForReading(path + "slide-seq-normalized-gzip3.n5");
+		final ExecutorService service = Executors.newFixedThreadPool(8);
+		final SpatialDataContainer container = SpatialDataContainer.openForReading(path + "slide-seq-normalized-gzip3.n5", service);
 		final List<String> pucks = container.getDatasets();
 
 		final List<STDataAssembly> puckData = container.openAllDatasets().stream()
@@ -506,6 +509,7 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 		}
 
 		AlignTools.visualizeList( data );
+		service.shutdown();
 		/*
 		final RigidModel2D modelA = dataToTile.get( puckData.get( debugA ) ).getModel();
 		final RigidModel2D modelB = dataToTile.get( puckData.get( debugB ) ).getModel();

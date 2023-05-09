@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import gui.STDataAssembly;
@@ -55,14 +57,15 @@ public class Normalize implements Callable<Void> {
 			}
 
 			final boolean isStandaloneDataset = (containerPath == null || containerPath.trim().isEmpty());
-			SpatialDataContainer container = isStandaloneDataset ? null : SpatialDataContainer.openExisting(containerPath);
+			final ExecutorService service = Executors.newFixedThreadPool(8);
+			SpatialDataContainer container = isStandaloneDataset ? null : SpatialDataContainer.openExisting(containerPath, service);
 			SpatialDataIO sdin = null;
 
 			for (int i = 0; i < inputDatasets.size(); i++) {
 				final String inputPath = inputDatasets.get(i);
 				final String outputPath = outputDatasets.get(i);
 
-				sdin = isStandaloneDataset ? SpatialDataIO.inferFromName(inputPath) : container.openDataset(inputPath);
+				sdin = isStandaloneDataset ? SpatialDataIO.inferFromName(inputPath, service) : container.openDataset(inputPath);
 				STDataAssembly stData = sdin.readData();
 
 				if (stData == null) {
@@ -75,13 +78,14 @@ public class Normalize implements Callable<Void> {
 																   stData.transform(),
 																   stData.intensityTransform());
 
-				SpatialDataIO sdout = SpatialDataIO.inferFromName(outputPath);
+				SpatialDataIO sdout = SpatialDataIO.inferFromName(outputPath, service);
 				sdout.writeData(normalizedData);
 				if (!isStandaloneDataset)
 					container.addExistingDataset(outputPath);
 			}
 
 			System.out.println("Done.");
+			service.shutdown();
 
 			return null;
 		}

@@ -17,6 +17,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 import align.SiftMatch;
 
@@ -24,6 +25,7 @@ public class SpatialDataContainer {
 
 	final private String rootPath;
 	final private boolean readOnly;
+	final private ExecutorService service;
 	final private N5FSReader n5;
 	private List<String> datasets = new ArrayList<>();
 	private List<String> matches = new ArrayList<>();
@@ -32,33 +34,34 @@ public class SpatialDataContainer {
 	final private static String numDatasetsKey = "num_datasets";
 	final private static String datasetsKey = "datasets";
 
-	protected SpatialDataContainer(String path, boolean readOnly) throws IOException {
+	protected SpatialDataContainer(final String path, final ExecutorService service, final boolean readOnly) throws IOException {
 		this.rootPath = path;
 		this.readOnly = readOnly;
+		this.service = service;
 
 		this.n5 = readOnly ? new N5FSReader(path) : new N5FSWriter(path);
 	}
 
-	public static SpatialDataContainer openExisting(String path) throws IOException {
+	public static SpatialDataContainer openExisting(final String path, final ExecutorService service) throws IOException {
 		if (!(new File(path)).exists())
 			throw new IOException("N5 '" + path + "' does not exist.");
-		SpatialDataContainer container = new SpatialDataContainer(path, false);
+		SpatialDataContainer container = new SpatialDataContainer(path, service, false);
 		container.readFromDisk();
 		return container;
 	}
 
-	public static SpatialDataContainer openForReading(String path) throws IOException {
+	public static SpatialDataContainer openForReading(final String path, final ExecutorService service) throws IOException {
 		if (!(new File(path)).exists())
 			throw new IOException("N5 '" + path + "' does not exist.");
-		SpatialDataContainer container = new SpatialDataContainer(path, true);
+		SpatialDataContainer container = new SpatialDataContainer(path, service, true);
 		container.readFromDisk();
 		return container;
 	}
 
-	public static SpatialDataContainer createNew(String path) throws IOException {
+	public static SpatialDataContainer createNew(final String path, final ExecutorService service) throws IOException {
 		if ((new File(path)).exists())
 			throw new IOException("N5 '" + path + "' already exists.");
-		SpatialDataContainer container = new SpatialDataContainer(path, false);
+		SpatialDataContainer container = new SpatialDataContainer(path, service, false);
 		container.initializeContainer();
 		return container;
 	}
@@ -115,13 +118,13 @@ public class SpatialDataContainer {
 	public SpatialDataIO openDataset(String datasetName) throws IOException {
 		if (!datasets.contains(datasetName))
 			throw new SpatialDataException("Container does not contain dataset '" + datasetName + "'.");
-		return SpatialDataIO.inferFromName(Paths.get(rootPath, datasetName).toString());
+		return SpatialDataIO.inferFromName(Paths.get(rootPath, datasetName).toString(), service);
 	}
 
 	public List<SpatialDataIO> openAllDatasets() throws IOException {
 		List<SpatialDataIO> datasetIOs = new ArrayList<>();
 		for (final String datasetName : datasets)
-			datasetIOs.add(SpatialDataIO.inferFromName(Paths.get(rootPath, datasetName).toString()));
+			datasetIOs.add(SpatialDataIO.inferFromName(Paths.get(rootPath, datasetName).toString(), service));
 		return datasetIOs;
 	}
 

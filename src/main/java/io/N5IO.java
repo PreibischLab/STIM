@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
 import net.imglib2.realtransform.AffineGet;
@@ -32,25 +33,24 @@ public class N5IO extends SpatialDataIO {
 	protected static String locationsPath = "/locations";
 	protected static String annotationsGroup = "/annotations";
 
-	public N5IO(final Supplier<N5Writer> writer) {
-		super(writer);
+
+	public N5IO(final Supplier<N5Writer> writerSupplier, final ExecutorService service) {
+		super(writerSupplier, service);
 	}
 
-	public N5IO(final Supplier<N5Writer> writerSupplier, final int blockSize1D, final int[] blockSize, final Compression compression) {
-		super(writerSupplier, writerSupplier, blockSize1D, blockSize, compression);
-	}
-
-	public N5IO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier) {
-		super(readerSupplier, writerSupplier);
+	public N5IO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier, final ExecutorService service) {
+		super(readerSupplier, writerSupplier, service);
 	}
 
 	public N5IO(
 			final Supplier<? extends N5Reader> readerSupplier,
 			final Supplier<N5Writer> writerSupplier,
-			final int blockSize1D,
-			final int[] blockSize,
-			final Compression compression) {
-		super(readerSupplier, writerSupplier, blockSize1D, blockSize, compression);
+			final int vectorBlockSize,
+			final int[] matrixBlockSize,
+			final Compression compression,
+			final ExecutorService service) {
+
+		super(readerSupplier, writerSupplier, vectorBlockSize, matrixBlockSize, compression, service);
 	}
 
 	@Override

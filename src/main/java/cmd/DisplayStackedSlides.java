@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import io.SpatialDataContainer;
@@ -80,9 +82,10 @@ public class DisplayStackedSlides implements Callable<Void> {
 			return null;
 		}
 
+		final ExecutorService service = Executors.newFixedThreadPool(8);
 		final List<SpatialDataIO> iodata = new ArrayList<>();
 		if (SpatialDataContainer.isCompatibleContainer(inputPath)) {
-			SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath);
+			SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath, service);
 
 			if (datasets != null && datasets.length() != 0) {
 				for (String dataset : datasets.split(",")) {
@@ -97,7 +100,7 @@ public class DisplayStackedSlides implements Callable<Void> {
 		}
 		else {
 			System.out.println("Opening dataset '" + inputPath + "' ...");
-			iodata.add(SpatialDataIO.inferFromName(inputPath));
+			iodata.add(SpatialDataIO.inferFromName(inputPath, service));
 		}
 
 		if (genes == null || genes.length() == 0) {
@@ -277,6 +280,7 @@ public class DisplayStackedSlides implements Callable<Void> {
 				source.setColor( Render.randomColor( rnd ) );
 		}
 
+		service.shutdown();
 		return null;
 	}
 

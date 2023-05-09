@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
@@ -323,8 +324,9 @@ public class VisualizeStack
 
 	public static void main( String[] args ) throws IOException
 	{
+		final ExecutorService service = Executors.newFixedThreadPool(8);
 		final List<STDataAssembly> puckData =
-				SpatialDataContainer.openForReading(Path.getPath() + "slide-seq-test.n5").openAllDatasets().stream()
+				SpatialDataContainer.openForReading(Path.getPath() + "slide-seq-test.n5", service).openAllDatasets().stream()
 						.map(sdio ->
 							 {try {return sdio.readData();} catch (IOException e) {throw new RuntimeException(e);}})
 						.collect(Collectors.toList());
@@ -353,5 +355,6 @@ public class VisualizeStack
 
 		// Display 3D interactively with BDV
 		BdvStackSource< ? > bdv = render3d( puckData );
+		service.shutdown();
 	}
 }

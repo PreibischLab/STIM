@@ -4,6 +4,8 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import io.SpatialDataContainer;
@@ -85,7 +87,8 @@ public class GlobalOpt implements Callable<Void> {
 			return null;
 		}
 
-		SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath);
+		final ExecutorService service = Executors.newFixedThreadPool(8);
+		SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath, service);
 
 		final List<String> datasetNames;
 		if (datasets != null && datasets.trim().length() != 0) {
@@ -144,6 +147,7 @@ public class GlobalOpt implements Callable<Void> {
 				smoothnessFactor,
 				gene );
 
+		service.shutdown();
 		return null;
 	}
 
