@@ -189,7 +189,7 @@ public abstract class SpatialDataIO {
 
 	protected abstract List<String> readGeneNames(N5Reader reader) throws IOException;
 
-	protected abstract void readAndSetTransformation(N5Reader reader, AffineSet transform, String name) throws IOException;
+	protected abstract <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(N5Reader reader, AffineSet transform, String name) throws IOException;
 
 	protected abstract List<String> detectMetaData(N5Reader reader) throws IOException;
 

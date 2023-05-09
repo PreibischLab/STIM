@@ -86,7 +86,7 @@ public class N5IO extends SpatialDataIO {
 	}
 
 	@Override
-	protected void readAndSetTransformation(N5Reader reader, AffineSet transform, String name) throws IOException {
+	protected <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(N5Reader reader, AffineSet transform, String name) throws IOException {
 		final Set<String> attributes = reader.listAttributes("/").keySet();
 		if (attributes.contains(name))
 			transform.set(reader.getAttribute("/", name, double[].class ) );

@@ -122,9 +122,9 @@ public class AnnDataIO extends SpatialDataIO {
 		return Converters.convert(expressionVals, (i, o) -> o.set(i.getRealDouble()), new DoubleType());
 	}
 
-	protected void readAndSetTransformation(N5Reader reader, AffineSet transform, String name) throws IOException {
-		RandomAccessibleInterval<? extends RealType<?>> trafoValues = AnnDataDetails.readArray(reader, "/uns/" + name);
-		RandomAccess<? extends RealType<?>> ra = trafoValues.randomAccess();
+	protected <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(N5Reader reader, AffineSet transform, String name) throws IOException {
+		RandomAccessibleInterval<T> trafoValues = AnnDataDetails.readArray(reader, "/uns/" + name);
+		RandomAccess<T> ra = trafoValues.randomAccess();
 		int n = (int) trafoValues.dimension(0);
 		double[] convertedValues = new double[n];
 
