@@ -34,18 +34,69 @@ import java.util.function.Supplier;
 
 public abstract class SpatialDataIO {
 
-	// TODO: maybe?
+	// expose internal methods
 	public static class InternalMethods
 	{
-		final SpatialDataIO data;
-		public InternalMethods( final SpatialDataIO data )
-		{
-			this.data = data;
+		private final SpatialDataIO instance;
+
+		public InternalMethods(final SpatialDataIO data) {
+			this.instance = data;
 		}
 
-		public RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader) throws IOException // size: [numLocations x numDimensions]
-		{
-			return data.readLocations( reader );
+		public RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader) throws IOException {
+			return instance.readLocations(reader);
+		}
+
+		public RandomAccessibleInterval<DoubleType> readExpressionValues(N5Reader reader) throws IOException {
+			return instance.readExpressionValues(reader);
+		}
+
+		public List<String> readBarcodes(N5Reader reader) throws IOException {
+			return instance.readBarcodes(reader);
+		}
+
+		public List<String> readGeneNames(N5Reader reader) throws IOException {
+			return instance.readGeneNames(reader);
+		}
+
+		public <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(N5Reader reader, AffineSet transform, String name) throws IOException {
+			instance.readAndSetTransformation(reader, transform, name);
+		}
+
+		public List<String> detectMetaData(N5Reader reader) throws IOException {
+			return instance.detectMetaData(reader);
+		}
+
+		public <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(N5Reader reader, String label) throws IOException {
+			return instance.readMetaData(reader, label);
+		}
+
+		public void writeHeader(N5Writer writer, STData data) throws IOException {
+			instance.writeHeader(writer, data);
+		}
+
+		public void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations) throws IOException {
+			instance.writeLocations(writer, locations);
+		}
+
+		public void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues) throws IOException {
+			instance.writeExpressionValues(writer, exprValues);
+		}
+
+		public void writeBarcodes(N5Writer writer, List<String> barcodes) throws IOException {
+			instance.writeBarcodes(writer, barcodes);
+		}
+
+		public void writeGeneNames(N5Writer writer, List<String> geneNames) throws IOException {
+			instance.writeGeneNames(writer, geneNames);
+		}
+
+		public void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException {
+			instance.writeTransformation(writer, transform, name);
+		}
+
+		public void writeMetaData(N5Writer writer, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
+			instance.writeMetaData(writer, label, data);
 		}
 	}
 
@@ -139,7 +190,6 @@ public abstract class SpatialDataIO {
 		return new STDataAssembly(stData, new STDataStatistics(stData), transform, intensityTransform);
 	}
 
-	// TODO: why protected?
 	protected abstract RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader) throws IOException; // size: [numLocations x numDimensions]
 
 	protected abstract RandomAccessibleInterval<DoubleType> readExpressionValues(N5Reader reader) throws IOException; // size: [numGenes x numLocations]
