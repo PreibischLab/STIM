@@ -13,7 +13,6 @@ import net.imglib2.realtransform.AffineSet;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.IntType;
 import org.janelia.saalfeldlab.n5.Compression;
-import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
@@ -24,11 +23,6 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.real.DoubleType;
 
 public class N5IO extends SpatialDataIO {
-
-	protected static final String _exprValuesPath = "/expressionValues";
-	protected static final String _locationsPath = "/locations";
-	protected static final String _annotationsGroup = "/annotations";
-
 
 	public N5IO(final Supplier<N5Writer> writerSupplier, final ExecutorService service) {
 		super(writerSupplier, service);
@@ -44,31 +38,27 @@ public class N5IO extends SpatialDataIO {
 			final int vectorBlockSize,
 			final int[] matrixBlockSize,
 			final Compression compression,
-			final ExecutorService service) {
+			final ExecutorService service,
+			final String locationPath,
+			final String exprValuePath,
+			final String annotationPath) {
 
-		super(readerSupplier, writerSupplier, vectorBlockSize, matrixBlockSize, compression, service);
+		super(readerSupplier, writerSupplier, vectorBlockSize, matrixBlockSize, compression, service, locationPath, exprValuePath, annotationPath);
 	}
 
 	@Override
-	protected String defaultLocationsPath() {
-		return _locationsPath;
-	}
-
-	@Override
-	protected String defaultExprValuesPath() {
-		return _exprValuesPath;
-	}
-
-	@Override
-	protected String defaultAnnotationsPath() {
-		return _annotationsGroup;
+	protected StorageSpec createStorageSpecOrDefault(String locationPath, String exprValuePath, String annotationPath) {
+		String arg1 = (locationPath == null) ? "/locations" : locationPath;
+		String arg2 = (exprValuePath == null) ? "/expressionValues" : exprValuePath;
+		String arg3 = (annotationPath == null) ? "/annotations" : annotationPath;
+		return new StorageSpec(arg1, arg2, arg3);
 	}
 
 	@Override
 	protected void writeHeader(N5Writer writer, STData data) throws IOException {
-		writer.createGroup(defaultLocationsPath());
-		writer.createGroup(defaultExprValuesPath());
-		writer.createGroup(defaultAnnotationsPath());
+		writer.createGroup(storageSpec.locationPath);
+		writer.createGroup(storageSpec.exprValuePath);
+		writer.createGroup(storageSpec.annoationPath);
 		writer.setAttribute("/", "dim", data.numDimensions());
 		writer.setAttribute("/", "numLocations", data.numLocations());
 		writer.setAttribute("/", "numGenes", data.numGenes());

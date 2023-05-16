@@ -65,9 +65,12 @@ public class AnnDataIO extends SpatialDataIO {
 			final int vectorBlockSize,
 			final int[] matrixBlockSize,
 			final Compression compression,
-			final ExecutorService service) {
+			final ExecutorService service,
+			final String locationPath,
+			final String exprValuePath,
+			final String annotationPath) {
 
-		super(readerSupplier, writerSupplier, vectorBlockSize, matrixBlockSize, compression, service);
+		super(readerSupplier, writerSupplier, vectorBlockSize, matrixBlockSize, compression, service, locationPath, exprValuePath, annotationPath);
 
 		// TODO: remove this check once the issue is fixed
 		if (!N5HDF5Reader.class.isInstance(readerSupplier.get()))
@@ -75,18 +78,11 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	@Override
-	protected String defaultLocationsPath() {
-		return _locationPath;
-	}
-
-	@Override
-	protected String defaultExprValuesPath() {
-		return _exprValuePath;
-	}
-
-	@Override
-	protected String defaultAnnotationsPath() {
-		return _annotationPath;
+	protected StorageSpec createStorageSpecOrDefault(String locationPath, String exprValuePath, String annotationPath) {
+		String arg1 = (locationPath == null) ? "/obsm/locations" : locationPath;
+		String arg2 = (exprValuePath == null) ? "/X" : exprValuePath;
+		String arg3 = (annotationPath == null) ? "/obs" : annotationPath;
+		return new StorageSpec(arg1, arg2, arg3);
 	}
 
 	public static void main( String[] args ) throws IOException

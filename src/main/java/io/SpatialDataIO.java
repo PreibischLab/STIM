@@ -32,6 +32,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
+
 public abstract class SpatialDataIO {
 
 	// expose internal methods
@@ -107,6 +108,7 @@ public abstract class SpatialDataIO {
 	protected boolean readOnly;
 	protected N5Options options;
 	protected N5Options options1d;
+	protected StorageSpec storageSpec;
 
 	public SpatialDataIO(final Supplier<N5Writer> writerSupplier, final ExecutorService service) {
 		this(writerSupplier, writerSupplier, service);
@@ -114,16 +116,20 @@ public abstract class SpatialDataIO {
 
 	// TODO: should be smaller for HDF5?
 	public SpatialDataIO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier, final ExecutorService service) {
-		this(readerSupplier, writerSupplier, 1024, new int[]{512, 512}, new GzipCompression(3), service);
+		this(readerSupplier, writerSupplier, 1024, new int[]{512, 512}, new GzipCompression(3), service, null, null, null);
 	}
 
+	// TODO: this has a lot of parameters -> encapsulate subsets, or use builder?
 	public SpatialDataIO(
 			final Supplier<? extends N5Reader> readerSupplier,
 			final Supplier<N5Writer> writerSupplier,
 			final int vectorBlockSize,
 			final int[] matrixBlockSize,
 			final Compression compression,
-			final ExecutorService service) {
+			final ExecutorService service,
+			final String locationPath,
+			final String exprValuePath,
+			final String annotationPath) {
 
 		if (readerSupplier == null)
 			throw new IllegalArgumentException("No N5 reader supplier given.");
@@ -134,13 +140,11 @@ public abstract class SpatialDataIO {
 
 		options = new N5Options(matrixBlockSize, compression, service);
 		options1d = new N5Options(new int[]{vectorBlockSize}, compression, service);
+		storageSpec = createStorageSpecOrDefault(locationPath, exprValuePath, annotationPath);
 	}
 
-	protected abstract String defaultLocationsPath();
-
-	protected abstract String defaultExprValuesPath();
-
-	protected abstract String defaultAnnotationsPath();
+	// implementing classes should replace null arguments by default values
+	protected abstract StorageSpec createStorageSpecOrDefault(String locationPath, String exprValuePath, String annotation);
 
 	public STDataAssembly readData() throws IOException {
 		long time = System.currentTimeMillis();
@@ -197,13 +201,13 @@ public abstract class SpatialDataIO {
 	}
 
 	protected RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader) throws IOException {
-		return readLocations(reader, defaultLocationsPath());
+		return readLocations(reader, storageSpec.locationPath);
 	}
 
 	protected abstract RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader, String locationPath) throws IOException; // size: [numLocations x numDimensions]
 
 	protected RandomAccessibleInterval<DoubleType> readExpressionValues(N5Reader reader) throws IOException {
-		return readExpressionValues(reader, defaultExprValuesPath());
+		return readExpressionValues(reader, storageSpec.exprValuePath);
 	}
 
 	protected abstract RandomAccessibleInterval<DoubleType> readExpressionValues(N5Reader reader, String exprValuesPath) throws IOException; // size: [numGenes x numLocations]
@@ -215,13 +219,13 @@ public abstract class SpatialDataIO {
 	protected abstract <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(N5Reader reader, AffineSet transform, String name) throws IOException;
 
 	protected List<String> detectMetaData(N5Reader reader) throws IOException {
-		return detectMetaData(reader, defaultAnnotationsPath());
+		return detectMetaData(reader, storageSpec.annoationPath);
 	}
 
 	protected abstract List<String> detectMetaData(N5Reader reader, String annotationsPath) throws IOException;
 
 	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(N5Reader reader, String label) throws IOException {
-		return readMetaData(reader, defaultAnnotationsPath(), label);
+		return readMetaData(reader, storageSpec.annoationPath, label);
 	}
 
 	protected abstract <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(N5Reader reader, String annotationsPath, String label) throws IOException;
@@ -268,13 +272,13 @@ public abstract class SpatialDataIO {
 	protected abstract void writeHeader(N5Writer writer, STData data) throws IOException;
 
 	protected void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations) throws IOException {
-		writeLocations(writer, locations, defaultLocationsPath());
+		writeLocations(writer, locations, storageSpec.locationPath);
 	}
 
 	protected abstract void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations, String locationsPath) throws IOException;
 
 	protected void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues) throws IOException {
-		writeExpressionValues(writer, exprValues, defaultExprValuesPath());
+		writeExpressionValues(writer, exprValues, storageSpec.exprValuePath);
 	}
 
 	protected abstract void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues, String exprValuesPath) throws IOException;
@@ -286,7 +290,7 @@ public abstract class SpatialDataIO {
 	protected abstract void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException;
 
 	protected void writeMetaData(N5Writer writer, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
-		writeMetaData(writer, defaultAnnotationsPath(), label, data);
+		writeMetaData(writer, storageSpec.annoationPath, label, data);
 	}
 
 	protected abstract void writeMetaData(N5Writer writer, String annotationsPath, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException;
@@ -332,6 +336,18 @@ public abstract class SpatialDataIO {
 			return new AnnDataIO(backendSupplier, service);
 		else
 			return new N5IO(backendSupplier, service);
+	}
+
+	static class StorageSpec {
+		public final String locationPath;
+		public final String exprValuePath;
+		public final String annoationPath;
+
+		StorageSpec(final String locationPath, final String exprValuePath, final String annoationPath) {
+			this.locationPath = locationPath;
+			this.exprValuePath = exprValuePath;
+			this.annoationPath = annoationPath;
+		}
 	}
 
 	// TODO: refactor when pulling out AnnData stuff
