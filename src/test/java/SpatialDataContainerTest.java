@@ -55,6 +55,31 @@ public class SpatialDataContainerTest extends AbstractIOTest {
 	}
 
 	@Test
+	public void linking_does_not_move_dataset() throws IOException {
+		final String path = getPlaygroundPath("container.n5");
+		SpatialDataContainer container = SpatialDataContainer.createNew(path, executorService);
+		final String datasetName = "tmp.h5ad";
+
+		String fullPath = getPlaygroundPath(datasetName);
+		createAndWriteData(fullPath);
+		container.linkExistingDataset(fullPath);
+
+		File symbolicLink = new File(Paths.get(path, datasetName).toString());
+		File physicalFile = new File(fullPath);
+		assertTrue(container.getDatasets().contains(datasetName));
+		assertTrue(symbolicLink.exists());
+		assertTrue(physicalFile.exists());
+
+		container.deleteDataset(datasetName);
+		assertFalse(container.getDatasets().contains(datasetName));
+		assertFalse(symbolicLink.exists());
+		assertTrue(physicalFile.exists());
+
+		physicalFile.delete();
+		assertFalse(physicalFile.exists());
+	}
+
+	@Test
 	public void opening_datasets_works() throws IOException {
 		SpatialDataContainer container = SpatialDataContainer.createNew(getPlaygroundPath("container.n5"), executorService);
 

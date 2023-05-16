@@ -18,6 +18,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.function.BinaryOperator;
+
 
 import align.SiftMatch;
 
@@ -93,15 +95,29 @@ public class SpatialDataContainer {
 	}
 
 	public void addExistingDataset(String path) throws IOException {
+		associateDataset(path, (src, dest) -> {
+			try {return Files.move(src, dest);}
+			catch (IOException e) {throw new SpatialDataException("Could not move dataset to container.", e);}
+		});
+	}
+
+	public void linkExistingDataset(String path) throws IOException {
+		associateDataset(path, (target, link) -> {
+			try {return Files.createSymbolicLink(link, target);}
+			catch (IOException e) {throw new SpatialDataException("Could not link dataset to container.", e);}
+		});
+	}
+
+	protected void associateDataset(String path, BinaryOperator<Path> associationOperation) throws IOException {
 		Path oldPath = Paths.get(path);
 		String datasetName = oldPath.getFileName().toString();
 
 		if (readOnly)
 			throw new IllegalStateException("Trying to modify a read-only spatial data container.");
 		if (datasets.contains(datasetName))
-			throw new SpatialDataException("Dataset '" + datasetName + "' already exists.");
+			throw new SpatialDataException("Dataset '" + datasetName + "' already exists within the container.");
 
-		Files.move(oldPath, Paths.get(rootPath, datasetName));
+		associationOperation.apply(oldPath, Paths.get(rootPath, datasetName));
 		datasets.add(datasetName);
 		updateDatasetMetadata();
 	}
