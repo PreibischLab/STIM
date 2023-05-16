@@ -114,7 +114,7 @@ public abstract class SpatialDataIO {
 
 	// TODO: should be smaller for HDF5?
 	public SpatialDataIO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier, final ExecutorService service) {
-		this(readerSupplier, writerSupplier, 512*512, new int[]{512, 512}, new GzipCompression(3), service);
+		this(readerSupplier, writerSupplier, 1024, new int[]{512, 512}, new GzipCompression(3), service);
 	}
 
 	public SpatialDataIO(
@@ -135,6 +135,12 @@ public abstract class SpatialDataIO {
 		options = new N5Options(matrixBlockSize, compression, service);
 		options1d = new N5Options(new int[]{vectorBlockSize}, compression, service);
 	}
+
+	protected abstract String defaultLocationsPath();
+
+	protected abstract String defaultExprValuesPath();
+
+	protected abstract String defaultAnnotationsPath();
 
 	public STDataAssembly readData() throws IOException {
 		long time = System.currentTimeMillis();
@@ -190,9 +196,17 @@ public abstract class SpatialDataIO {
 		return new STDataAssembly(stData, new STDataStatistics(stData), transform, intensityTransform);
 	}
 
-	protected abstract RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader) throws IOException; // size: [numLocations x numDimensions]
+	protected RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader) throws IOException {
+		return readLocations(reader, defaultLocationsPath());
+	}
 
-	protected abstract RandomAccessibleInterval<DoubleType> readExpressionValues(N5Reader reader) throws IOException; // size: [numGenes x numLocations]
+	protected abstract RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader, String locationPath) throws IOException; // size: [numLocations x numDimensions]
+
+	protected RandomAccessibleInterval<DoubleType> readExpressionValues(N5Reader reader) throws IOException {
+		return readExpressionValues(reader, defaultExprValuesPath());
+	}
+
+	protected abstract RandomAccessibleInterval<DoubleType> readExpressionValues(N5Reader reader, String exprValuesPath) throws IOException; // size: [numGenes x numLocations]
 
 	protected abstract List<String> readBarcodes(N5Reader reader) throws IOException;
 
@@ -200,9 +214,17 @@ public abstract class SpatialDataIO {
 
 	protected abstract <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(N5Reader reader, AffineSet transform, String name) throws IOException;
 
-	protected abstract List<String> detectMetaData(N5Reader reader) throws IOException;
+	protected List<String> detectMetaData(N5Reader reader) throws IOException {
+		return detectMetaData(reader, defaultAnnotationsPath());
+	}
 
-	protected abstract <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(N5Reader reader, String label) throws IOException;
+	protected abstract List<String> detectMetaData(N5Reader reader, String annotationsPath) throws IOException;
+
+	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(N5Reader reader, String label) throws IOException {
+		return readMetaData(reader, defaultAnnotationsPath(), label);
+	}
+
+	protected abstract <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(N5Reader reader, String annotationsPath, String label) throws IOException;
 
 	public void writeData(STDataAssembly data) throws IOException {
 		if (readOnly)
@@ -245,9 +267,17 @@ public abstract class SpatialDataIO {
 
 	protected abstract void writeHeader(N5Writer writer, STData data) throws IOException;
 
-	protected abstract void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations) throws IOException;
+	protected void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations) throws IOException {
+		writeLocations(writer, locations, defaultLocationsPath());
+	}
 
-	protected abstract void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues) throws IOException;
+	protected abstract void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations, String locationsPath) throws IOException;
+
+	protected void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues) throws IOException {
+		writeExpressionValues(writer, exprValues, defaultExprValuesPath());
+	}
+
+	protected abstract void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues, String exprValuesPath) throws IOException;
 
 	protected abstract void writeBarcodes(N5Writer writer, List<String> barcodes) throws IOException;
 
@@ -255,7 +285,11 @@ public abstract class SpatialDataIO {
 
 	protected abstract void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException;
 
-	protected abstract void writeMetaData(N5Writer writer, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException;
+	protected void writeMetaData(N5Writer writer, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
+		writeMetaData(writer, defaultAnnotationsPath(), label, data);
+	}
+
+	protected abstract void writeMetaData(N5Writer writer, String annotationsPath, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException;
 
 	public void updateTransformation(AffineGet transform, String name) throws IOException {
 		if (readOnly)
@@ -300,6 +334,7 @@ public abstract class SpatialDataIO {
 			return new N5IO(backendSupplier, service);
 	}
 
+	// TODO: refactor when pulling out AnnData stuff
 	static class N5Options {
 
 		int[] blockSize;

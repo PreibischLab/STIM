@@ -46,8 +46,9 @@ import static io.AnnDataDetails.AnnDataFieldType;
 
 public class AnnDataIO extends SpatialDataIO {
 
-	protected static String locationPath = "/obsm/locations";
-	protected static String annotationPath = "/obs";
+	protected static final String _locationPath = "/obsm/locations";
+	protected static final String _exprValuePath = "/X";
+	protected static final String _annotationPath = "/obs";
 
 
 	public AnnDataIO(final Supplier<N5Writer> writerSupplier, final ExecutorService service) {
@@ -71,6 +72,21 @@ public class AnnDataIO extends SpatialDataIO {
 		// TODO: remove this check once the issue is fixed
 		if (!N5HDF5Reader.class.isInstance(readerSupplier.get()))
 			throw new IllegalArgumentException("IO for AnnData currently only supports hdf5.");
+	}
+
+	@Override
+	protected String defaultLocationsPath() {
+		return _locationPath;
+	}
+
+	@Override
+	protected String defaultExprValuesPath() {
+		return _exprValuePath;
+	}
+
+	@Override
+	protected String defaultAnnotationsPath() {
+		return _annotationPath;
 	}
 
 	public static void main( String[] args ) throws IOException
@@ -110,7 +126,7 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	@Override
-	protected RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader) throws IOException {
+	protected RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader, String locationPath) throws IOException {
 		// transpose locations, since AnnData stores them as columns
 		RandomAccessibleInterval<? extends RealType<?>> locations = Views.permute(
 				(RandomAccessibleInterval<? extends RealType<?>>) AnnDataDetails.readArray(reader, locationPath), 0, 1);
@@ -118,8 +134,8 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	@Override
-	protected RandomAccessibleInterval<DoubleType> readExpressionValues(N5Reader reader) throws IOException {
-		RandomAccessibleInterval<? extends RealType<?>> expressionVals = (RandomAccessibleInterval<? extends RealType<?>>) AnnDataDetails.readArray(reader, "/X");
+	protected RandomAccessibleInterval<DoubleType> readExpressionValues(N5Reader reader, String exprValuePath) throws IOException {
+		RandomAccessibleInterval<? extends RealType<?>> expressionVals = (RandomAccessibleInterval<? extends RealType<?>>) AnnDataDetails.readArray(reader, exprValuePath);
 		return Converters.convert(expressionVals, (i, o) -> o.set(i.getRealDouble()), new DoubleType());
 	}
 
@@ -135,11 +151,11 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	@Override
-	protected List<String> detectMetaData(N5Reader reader) throws IOException {
+	protected List<String> detectMetaData(N5Reader reader, String annotationPath) throws IOException {
 		return AnnDataDetails.getExistingDataFrameDatasets(reader, annotationPath);
 	}
 
-	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(N5Reader reader, String label) throws IOException {
+	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(N5Reader reader, String annotationPath, String label) throws IOException {
 		return AnnDataDetails.readFromDataFrame(reader, annotationPath, label);
 	}
 
@@ -168,7 +184,7 @@ public class AnnDataIO extends SpatialDataIO {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	protected void writeMetaData(N5Writer writer, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
+	protected void writeMetaData(N5Writer writer, String annotationPath, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
 		AnnDataDetails.addToDataFrame(writer, annotationPath, label, (RandomAccessibleInterval<IntType>) data, options1d);
 	}
 
@@ -183,12 +199,12 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	@Override
-	protected void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations) throws IOException {
+	protected void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations, String locationPath) throws IOException {
 		AnnDataDetails.writeArray(writer, locationPath, Views.permute(locations, 0, 1), options);
 	}
 
 	@Override
-	protected void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues) throws IOException {
-		AnnDataDetails.writeArray(writer, "/X", exprValues, options, AnnDataFieldType.CSR_MATRIX);
+	protected void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues, String exprValuePath) throws IOException {
+		AnnDataDetails.writeArray(writer, exprValuePath, exprValues, options, AnnDataFieldType.CSR_MATRIX);
 	}
 }
