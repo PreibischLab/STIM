@@ -1,6 +1,7 @@
 package cmd;
 
 import io.SpatialDataContainer;
+import io.StorageSpec;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 
@@ -47,10 +48,12 @@ public class AddDataset implements Callable<Void> {
 				? SpatialDataContainer.openExisting(containerPath, service)
 				: SpatialDataContainer.createNew(containerPath, service);
 
+		StorageSpec storageSpec = new StorageSpec(locationPath, exprValPath, annotationPath);
+
 		if (shouldBeMoved)
-			container.addExistingDataset(inputDatasetPath);
+			container.addExistingDataset(inputDatasetPath, storageSpec);
 		else
-			container.linkExistingDataset(inputDatasetPath);
+			container.linkExistingDataset(inputDatasetPath, storageSpec);
 
 		return null;
 	}
