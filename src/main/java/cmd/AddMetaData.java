@@ -35,7 +35,7 @@ public class AddMetaData implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 		if (inputPath == null) {
-			System.out.println("No input path defined: " + inputPath + ". Stopping.");
+			System.out.println("No input path defined. Stopping.");
 			return null;
 		}
 

@@ -83,6 +83,19 @@ echo -n $(cat cp.txt) >> st-resave
 echo ' \' >> st-resave
 echo '  cmd.Resave "$@"' >> st-resave
 
+echo "Installing 'st-add-dataset' command into" $INSTALL_DIR
+
+echo '#!/bin/bash' > st-add-dataset
+echo '' >> st-add-dataset
+echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> st-add-dataset
+echo 'java \' >> st-add-dataset
+echo "  -Xmx${MEM}g \\" >> st-add-dataset
+echo '  -XX:+UseConcMarkSweepGC \' >> st-add-dataset
+echo -n '  -cp $JAR:' >> st-add-dataset
+echo -n $(cat cp.txt) >> st-add-dataset
+echo ' \' >> st-add-dataset
+echo '  cmd.AddDataset "$@"' >> st-add-dataset
+
 echo "Installing 'st-normalize' command into" $INSTALL_DIR
 
 echo '#!/bin/bash' > st-normalize
@@ -153,6 +166,7 @@ chmod a+x st-explorer
 chmod a+x st-bdv-view
 chmod a+x st-render
 chmod a+x st-resave
+chmod a+x st-add-dataset
 chmod a+x st-normalize
 chmod a+x st-add-metadata
 chmod a+x st-align-pairs
@@ -168,6 +182,7 @@ else
     mv st-bdv-view $INSTALL_DIR/
     mv st-render $INSTALL_DIR/
     mv st-resave $INSTALL_DIR/
+    mv st-add-dataset $INSTALL_DIR/
     mv st-normalize $INSTALL_DIR/
     mv st-add-metadata $INSTALL_DIR/
     mv st-align-pairs $INSTALL_DIR/
