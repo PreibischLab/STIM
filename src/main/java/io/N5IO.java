@@ -32,6 +32,10 @@ public class N5IO extends SpatialDataIO {
 		super(readerSupplier, writerSupplier, service);
 	}
 
+	public N5IO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier, final ExecutorService service, StorageSpec storageSpec) {
+		super(readerSupplier, writerSupplier, service, storageSpec);
+	}
+
 	public N5IO(
 			final Supplier<? extends N5Reader> readerSupplier,
 			final Supplier<N5Writer> writerSupplier,
@@ -39,11 +43,9 @@ public class N5IO extends SpatialDataIO {
 			final int[] matrixBlockSize,
 			final Compression compression,
 			final ExecutorService service,
-			final String locationPath,
-			final String exprValuePath,
-			final String annotationPath) {
+			final StorageSpec storageSpec) {
 
-		super(readerSupplier, writerSupplier, vectorBlockSize, matrixBlockSize, compression, service, locationPath, exprValuePath, annotationPath);
+		super(readerSupplier, writerSupplier, vectorBlockSize, matrixBlockSize, compression, service, storageSpec);
 	}
 
 	@Override
@@ -58,7 +60,7 @@ public class N5IO extends SpatialDataIO {
 	protected void writeHeader(N5Writer writer, STData data) throws IOException {
 		writer.createGroup(storageSpec.locationPath);
 		writer.createGroup(storageSpec.exprValuePath);
-		writer.createGroup(storageSpec.annoationPath);
+		writer.createGroup(storageSpec.annotationPath);
 		writer.setAttribute("/", "dim", data.numDimensions());
 		writer.setAttribute("/", "numLocations", data.numLocations());
 		writer.setAttribute("/", "numGenes", data.numGenes());

@@ -59,6 +59,10 @@ public class AnnDataIO extends SpatialDataIO {
 		super(readerSupplier, writerSupplier, service);
 	}
 
+	public AnnDataIO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier, final ExecutorService service, StorageSpec storageSpec) {
+		super(readerSupplier, writerSupplier, service, storageSpec);
+	}
+
 	public AnnDataIO(
 			final Supplier<? extends N5Reader> readerSupplier,
 			final Supplier<N5Writer> writerSupplier,
@@ -66,11 +70,9 @@ public class AnnDataIO extends SpatialDataIO {
 			final int[] matrixBlockSize,
 			final Compression compression,
 			final ExecutorService service,
-			final String locationPath,
-			final String exprValuePath,
-			final String annotationPath) {
+			final StorageSpec storageSpec) {
 
-		super(readerSupplier, writerSupplier, vectorBlockSize, matrixBlockSize, compression, service, locationPath, exprValuePath, annotationPath);
+		super(readerSupplier, writerSupplier, vectorBlockSize, matrixBlockSize, compression, service, storageSpec);
 
 		// TODO: remove this check once the issue is fixed
 		if (!N5HDF5Reader.class.isInstance(readerSupplier.get()))

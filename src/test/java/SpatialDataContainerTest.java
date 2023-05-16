@@ -2,6 +2,7 @@ import gui.STDataAssembly;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
 import io.SpatialDataException;
+import io.StorageSpec;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -77,6 +78,24 @@ public class SpatialDataContainerTest extends AbstractIOTest {
 
 		physicalFile.delete();
 		assertFalse(physicalFile.exists());
+	}
+
+	@Test
+	public void datasets_can_have_custom_storage_locations() throws IOException {
+		final String path = getPlaygroundPath("container.n5");
+		SpatialDataContainer container = SpatialDataContainer.createNew(path, executorService);
+		final String datasetName = "tmp.h5ad";
+
+		StorageSpec spec = new StorageSpec("/test", null, "/anotherTest");
+		SpatialDataIO sdio = SpatialDataIO.inferFromName(getPlaygroundPath(datasetName), executorService, spec);
+		STDataAssembly expected = new STDataAssembly(TestUtils.createTestDataSet());
+		sdio.writeData(expected);
+
+		String fullPath = getPlaygroundPath(datasetName);
+		container.addExistingDataset(fullPath, spec);
+
+		STDataAssembly actual = container.openDataset(datasetName).readData();
+		TestUtils.compareSTDataAssemblies(actual, expected);
 	}
 
 	@Test

@@ -22,6 +22,7 @@ import java.util.function.BinaryOperator;
 
 
 import align.SiftMatch;
+import org.janelia.saalfeldlab.n5.N5Writer;
 
 public class SpatialDataContainer {
 
@@ -35,6 +36,10 @@ public class SpatialDataContainer {
 	final private static String versionKey = "spatial_data_container";
 	final private static String numDatasetsKey = "num_datasets";
 	final private static String datasetsKey = "datasets";
+	final private static String locationPathKey = "-locations";
+	final private static String exprValuePathKey = "-exprValues";
+	final private static String annotationPathKey = "-annotations";
+
 
 	protected SpatialDataContainer(final String path, final ExecutorService service, final boolean readOnly) throws IOException {
 		this.rootPath = path;
@@ -95,20 +100,27 @@ public class SpatialDataContainer {
 	}
 
 	public void addExistingDataset(String path) throws IOException {
+		addExistingDataset(path, new StorageSpec(null, null, null));
+	}
+	public void addExistingDataset(String path, StorageSpec storageSpec) throws IOException {
 		associateDataset(path, (src, dest) -> {
 			try {return Files.move(src, dest);}
 			catch (IOException e) {throw new SpatialDataException("Could not move dataset to container.", e);}
-		});
+		}, storageSpec);
 	}
 
 	public void linkExistingDataset(String path) throws IOException {
+		linkExistingDataset(path, new StorageSpec(null, null, null));
+	}
+
+	public void linkExistingDataset(String path, StorageSpec storageSpec) throws IOException {
 		associateDataset(path, (target, link) -> {
 			try {return Files.createSymbolicLink(link, target);}
 			catch (IOException e) {throw new SpatialDataException("Could not link dataset to container.", e);}
-		});
+		}, storageSpec);
 	}
 
-	protected void associateDataset(String path, BinaryOperator<Path> associationOperation) throws IOException {
+	protected void associateDataset(String path, BinaryOperator<Path> associationOperation, StorageSpec storageSpec) throws IOException {
 		Path oldPath = Paths.get(path);
 		String datasetName = oldPath.getFileName().toString();
 
@@ -120,6 +132,14 @@ public class SpatialDataContainer {
 		associationOperation.apply(oldPath, Paths.get(rootPath, datasetName));
 		datasets.add(datasetName);
 		updateDatasetMetadata();
+
+		N5Writer writer = (N5Writer) n5;
+		if (storageSpec.locationPath != null)
+			writer.setAttribute("/", datasetName + locationPathKey, storageSpec.locationPath);
+		if (storageSpec.exprValuePath != null)
+			writer.setAttribute("/", datasetName + exprValuePathKey, storageSpec.exprValuePath);
+		if (storageSpec.annotationPath != null)
+			writer.setAttribute("/", datasetName + annotationPathKey, storageSpec.annotationPath);
 	}
 
 	public void deleteDataset(String datasetName) throws IOException {
@@ -134,13 +154,17 @@ public class SpatialDataContainer {
 	public SpatialDataIO openDataset(String datasetName) throws IOException {
 		if (!datasets.contains(datasetName))
 			throw new SpatialDataException("Container does not contain dataset '" + datasetName + "'.");
-		return SpatialDataIO.inferFromName(Paths.get(rootPath, datasetName).toString(), service);
+		String arg1 = n5.getAttribute("/", datasetName + locationPathKey, String.class);
+		String arg2 = n5.getAttribute("/", datasetName + exprValuePathKey, String.class);
+		String arg3 = n5.getAttribute("/", datasetName + annotationPathKey, String.class);
+		StorageSpec storageSpec = new StorageSpec(arg1, arg2, arg3);
+		return SpatialDataIO.inferFromName(Paths.get(rootPath, datasetName).toString(), service, storageSpec);
 	}
 
 	public List<SpatialDataIO> openAllDatasets() throws IOException {
 		List<SpatialDataIO> datasetIOs = new ArrayList<>();
 		for (final String datasetName : datasets)
-			datasetIOs.add(SpatialDataIO.inferFromName(Paths.get(rootPath, datasetName).toString(), service));
+			datasetIOs.add(openDataset(datasetName));
 		return datasetIOs;
 	}
 

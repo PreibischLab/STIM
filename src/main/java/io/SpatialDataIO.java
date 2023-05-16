@@ -116,7 +116,11 @@ public abstract class SpatialDataIO {
 
 	// TODO: should be smaller for HDF5?
 	public SpatialDataIO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier, final ExecutorService service) {
-		this(readerSupplier, writerSupplier, 1024, new int[]{512, 512}, new GzipCompression(3), service, null, null, null);
+		this(readerSupplier, writerSupplier,  service, new StorageSpec(null, null, null));
+	}
+
+	public SpatialDataIO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier, final ExecutorService service, StorageSpec storageSpec) {
+		this(readerSupplier, writerSupplier, 1024, new int[]{512, 512}, new GzipCompression(3), service, storageSpec);
 	}
 
 	// TODO: this has a lot of parameters -> encapsulate subsets, or use builder?
@@ -127,20 +131,18 @@ public abstract class SpatialDataIO {
 			final int[] matrixBlockSize,
 			final Compression compression,
 			final ExecutorService service,
-			final String locationPath,
-			final String exprValuePath,
-			final String annotationPath) {
+			final StorageSpec storageSpec) {
 
 		if (readerSupplier == null)
 			throw new IllegalArgumentException("No N5 reader supplier given.");
 
 		this.readerSupplier = readerSupplier;
 		this.writerSupplier = writerSupplier;
-		readOnly = (writerSupplier == null);
+		this.readOnly = (writerSupplier == null);
 
-		options = new N5Options(matrixBlockSize, compression, service);
-		options1d = new N5Options(new int[]{vectorBlockSize}, compression, service);
-		storageSpec = createStorageSpecOrDefault(locationPath, exprValuePath, annotationPath);
+		this.options = new N5Options(matrixBlockSize, compression, service);
+		this.options1d = new N5Options(new int[]{vectorBlockSize}, compression, service);
+		this.storageSpec = createStorageSpecOrDefault(storageSpec.locationPath, storageSpec.exprValuePath, storageSpec.annotationPath);
 	}
 
 	// implementing classes should replace null arguments by default values
@@ -219,13 +221,13 @@ public abstract class SpatialDataIO {
 	protected abstract <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(N5Reader reader, AffineSet transform, String name) throws IOException;
 
 	protected List<String> detectMetaData(N5Reader reader) throws IOException {
-		return detectMetaData(reader, storageSpec.annoationPath);
+		return detectMetaData(reader, storageSpec.annotationPath);
 	}
 
 	protected abstract List<String> detectMetaData(N5Reader reader, String annotationsPath) throws IOException;
 
 	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(N5Reader reader, String label) throws IOException {
-		return readMetaData(reader, storageSpec.annoationPath, label);
+		return readMetaData(reader, storageSpec.annotationPath, label);
 	}
 
 	protected abstract <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(N5Reader reader, String annotationsPath, String label) throws IOException;
@@ -290,7 +292,7 @@ public abstract class SpatialDataIO {
 	protected abstract void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException;
 
 	protected void writeMetaData(N5Writer writer, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
-		writeMetaData(writer, storageSpec.annoationPath, label, data);
+		writeMetaData(writer, storageSpec.annotationPath, label, data);
 	}
 
 	protected abstract void writeMetaData(N5Writer writer, String annotationsPath, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException;
@@ -304,6 +306,10 @@ public abstract class SpatialDataIO {
 	}
 
 	public static SpatialDataIO inferFromName(final String path, final ExecutorService service) throws IOException {
+		return inferFromName(path, service, new StorageSpec(null, null, null));
+	}
+
+	public static SpatialDataIO inferFromName(final String path, final ExecutorService service, StorageSpec storageSpec) throws IOException {
 		Path absolutePath = Paths.get(path).toAbsolutePath();
 		String fileName = absolutePath.getFileName().toString();
 		String[] components = fileName.split("\\.");
@@ -333,21 +339,9 @@ public abstract class SpatialDataIO {
 		}
 
 		if (extension.endsWith("ad"))
-			return new AnnDataIO(backendSupplier, service);
+			return new AnnDataIO(backendSupplier, backendSupplier, service, storageSpec);
 		else
-			return new N5IO(backendSupplier, service);
-	}
-
-	static class StorageSpec {
-		public final String locationPath;
-		public final String exprValuePath;
-		public final String annoationPath;
-
-		StorageSpec(final String locationPath, final String exprValuePath, final String annoationPath) {
-			this.locationPath = locationPath;
-			this.exprValuePath = exprValuePath;
-			this.annoationPath = annoationPath;
-		}
+			return new N5IO(backendSupplier, backendSupplier, service, storageSpec);
 	}
 
 	// TODO: refactor when pulling out AnnData stuff
