@@ -46,11 +46,6 @@ import static io.AnnDataDetails.AnnDataFieldType;
 
 public class AnnDataIO extends SpatialDataIO {
 
-	protected static final String _locationPath = "/obsm/locations";
-	protected static final String _exprValuePath = "/X";
-	protected static final String _annotationPath = "/obs";
-
-
 	public AnnDataIO(final Supplier<N5Writer> writerSupplier, final ExecutorService service) {
 		super(writerSupplier, service);
 	}
@@ -81,7 +76,7 @@ public class AnnDataIO extends SpatialDataIO {
 
 	@Override
 	protected StorageSpec createStorageSpecOrDefault(String locationPath, String exprValuePath, String annotationPath) {
-		String arg1 = (locationPath == null) ? "/obsm/locations" : locationPath;
+		String arg1 = (locationPath == null) ? "/obsm/spatial" : locationPath;
 		String arg2 = (exprValuePath == null) ? "/X" : exprValuePath;
 		String arg3 = (annotationPath == null) ? "/obs" : annotationPath;
 		return new StorageSpec(arg1, arg2, arg3);
