@@ -118,7 +118,7 @@ class AnnDataDetails {
         try {
             return getFieldType(n5, "/").toString().equals(AnnDataFieldType.ANNDATA.toString());
         }
-        catch (IOException e) {
+        catch (Exception e) {
             return false;
         }
     }
@@ -246,7 +246,8 @@ class AnnDataDetails {
         CATEGORICAL_ARRAY("categorical", "0.2.0"),
         STRING_ARRAY("string-array", "0.2.0"),
         NULLABLE_INTEGER("nullable-integer", "0.1.0"),
-        NULLABLE_BOOL("nullable-bool", "0.1.0");
+        NULLABLE_BOOL("nullable-bool", "0.1.0"),
+        MISSING("missing", "missing");
 
         private final String encoding;
         private final String version;
@@ -261,9 +262,13 @@ class AnnDataDetails {
         }
 
         public static AnnDataFieldType fromString(String encoding, String version) {
+            if (encoding == null || version == null)
+                return MISSING;
+
             for (AnnDataFieldType type : values())
                 if (type.encoding.equals(encoding) && type.version.equals(version))
                     return type;
+
             throw new IllegalArgumentException("No known anndata field with encoding \"" + encoding + "\" and version \"" + version + "\"");
         }
     }

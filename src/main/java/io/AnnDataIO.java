@@ -114,7 +114,7 @@ public class AnnDataIO extends SpatialDataIO {
 	public STDataAssembly readData() throws IOException {
 		N5Reader reader = readerSupplier.get();
 		if (!AnnDataDetails.isValidAnnData(reader))
-			throw new IOException("Given file is not a valid AnnData file.");
+			System.out.println("Anndata file seems to be missing some metadata. Trying to read it anyways...");
 		return super.readData();
 	}
 
