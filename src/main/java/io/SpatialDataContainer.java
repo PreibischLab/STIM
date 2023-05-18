@@ -90,7 +90,7 @@ public class SpatialDataContainer {
 		if (numDatasets != datasets.size())
 			throw new SpatialDataException("Incompatible number of datasets: expected " + numDatasets + ", found " + datasets.size() + ".");
 
-		matches = Arrays.asList(n5.list(n5.groupPath("matches")));
+		matches = new ArrayList<>(Arrays.asList(n5.list(n5.groupPath("matches"))));
 	}
 
 	protected void updateDatasetMetadata() throws IOException {
