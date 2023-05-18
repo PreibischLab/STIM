@@ -28,8 +28,8 @@ import util.Threads;
 
 public class PairwiseSectionAligner implements Callable<Void> {
 
-	@Option(names = {"-i", "--input"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")
-	private String inputPath = null;
+	@Option(names = {"-c", "--container"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")
+	private String containerPath = null;
 
 	@Option(names = {"-d", "--datasets"}, required = false, description = "ordered, comma separated list of one or more datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: all, in order as saved in N5 metadata)")
 	private String datasets = null;
@@ -79,34 +79,39 @@ public class PairwiseSectionAligner implements Callable<Void> {
 
 	@Override
 	public Void call() throws Exception {
-		if (!(new File(inputPath)).exists()) {
-			System.out.println("Container '" + inputPath + "' does not exist. Stopping.");
+		if (!(new File(containerPath)).exists()) {
+			System.out.println("Container '" + containerPath + "' does not exist. Stopping.");
 			return null;
 		}
 
-		if (!SpatialDataContainer.isCompatibleContainer(inputPath)) {
-			System.out.println("Pairwise alignment does not work for single dataset '" + inputPath + "'. Stopping.");
+		if (!SpatialDataContainer.isCompatibleContainer(containerPath)) {
+			System.out.println("Pairwise alignment does not work for single dataset '" + containerPath + "'. Stopping.");
 			return null;
 		}
 
 		final ExecutorService service = Executors.newFixedThreadPool(8);
-		SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath, service);
+		SpatialDataContainer container = SpatialDataContainer.openExisting(containerPath, service);
 
 		final List<String> datasetNames;
 		if (datasets != null && datasets.trim().length() != 0) {
 			datasetNames = Arrays.stream(datasets.split(","))
 					.map(String::trim)
 					.collect(Collectors.toList());
+
+			if (datasetNames.size() == 1) {
+				System.out.println("Only one single dataset found (" + datasetNames.get(0) + "). Stopping.");
+				return null;
+			}
 		}
 		else {
 			// TODO: should this really continue? the order of the datasets matters, but getDatasets() returns random order
-			System.out.println("No input datasets specified. Trying to open all datasets in '" + inputPath + "' ...");
+			System.out.println("No input datasets specified. Trying to open all datasets in '" + containerPath + "' ...");
 			datasetNames = container.getDatasets();
 		}
 
 		final List<STDataAssembly> dataToAlign = new ArrayList<>();
 		for (final String dataset : datasetNames) {
-			System.out.println("Opening dataset '" + dataset + "' in '" + inputPath + "' ...");
+			System.out.println("Opening dataset '" + dataset + "' in '" + containerPath + "' ...");
 			dataToAlign.add(container.openDataset(dataset).readData());
 		}
 

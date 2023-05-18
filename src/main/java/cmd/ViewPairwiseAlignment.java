@@ -25,8 +25,8 @@ import picocli.CommandLine.Option;
 
 public class ViewPairwiseAlignment implements Callable<Void> {
 
-	@Option(names = {"-i", "--input"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")
-	private String inputPath = null;
+	@Option(names = {"-c", "--container"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")
+	private String containerPath = null;
 
 	@Option(names = {"-d", "--datasets"}, required = false, description = "comma separated list of datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: open all datasets)")
 	private String datasets = null;
@@ -45,18 +45,18 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 
 	@Override
 	public Void call() throws Exception {
-		if (!(new File(inputPath)).exists()) {
-			System.out.println("Container '" + inputPath + "' does not exist. Stopping.");
+		if (!(new File(containerPath)).exists()) {
+			System.out.println("Container '" + containerPath + "' does not exist. Stopping.");
 			return null;
 		}
 
-		if (!SpatialDataContainer.isCompatibleContainer(inputPath)) {
-			System.out.println("Pairwise visualization does not work for single dataset '" + inputPath + "'. Stopping.");
+		if (!SpatialDataContainer.isCompatibleContainer(containerPath)) {
+			System.out.println("Pairwise visualization does not work for single dataset '" + containerPath + "'. Stopping.");
 			return null;
 		}
 
 		final ExecutorService service = Executors.newFixedThreadPool(8);
-		SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath, service);
+		SpatialDataContainer container = SpatialDataContainer.openExisting(containerPath, service);
 
 		final List<String> datasetNames;
 		if (datasets != null && datasets.trim().length() != 0) {
@@ -65,13 +65,13 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 					.collect(Collectors.toList());
 		}
 		else {
-			System.out.println("No input datasets specified. Trying to open all datasets in '" + inputPath + "' ...");
+			System.out.println("No input datasets specified. Trying to open all datasets in '" + containerPath + "' ...");
 			datasetNames = container.getDatasets();
 		}
 
 		final List<STData> dataToVisualize = new ArrayList<>();
 		for (final String dataset : datasetNames) {
-			System.out.println("Opening dataset '" + dataset + "' in '" + inputPath + "' ...");
+			System.out.println("Opening dataset '" + dataset + "' in '" + containerPath + "' ...");
 			dataToVisualize.add(container.openDataset(dataset).readData().data());
 		}
 

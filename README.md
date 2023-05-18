@@ -101,19 +101,19 @@ Selecting genes and adjusting visualization options work exactly as in the first
 
 4. To remedy this, we will perform alignment of the two slices. We will use 15 automatically selected genes `-n` (the more the better, but it is also slower), a maximum error of 100 `--maxEpsilon` and require at least 30 inliers per gene `--minNumInliersGene` (this dataset is more robust than the SlideSeq one). **The alignment process takes around 1-2 minutes on a modern notebook.** *Note: at this point no transformations are stored within the N5-container, but only the list of corresponding points.*
 ```bash
-./st-align-pairs -i visium.n5 -n 15 -sf 0.5 --maxEpsilon 100 --minNumInliersGene 30
+./st-align-pairs -c visium.n5 -n 15 -sf 0.5 --maxEpsilon 100 --minNumInliersGene 30
 ```
 
 5. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/align_mt-Nd4-1.gif" alt="Example alignment" width="480"> Now we will visualize before/after alignment of this pair of slices. To achieve this, we create two independent images, one using `st-render` (see above) and one using `st-align-pairs-view` on the automatically selected gene **mt-Nd4**. `st-render` will display the sections unaligned, while `st-align-pairs-view` will show them aligned. 
 ```bash
 ./st-render -i visium.n5 -sf 0.5 -g mt-Nd4
-./st-align-pairs-view -i visium.n5 -sf 0.5 -g mt-Nd4
+./st-align-pairs-view -c visium.n5 -sf 0.5 -g mt-Nd4
 ```
 *Note: to create the GIF shown I saved both images independently, opened them in Fiji, cropped them, combined them, converted them to 8-bit color, set framerate to 1 fps, and saved it as one GIF.* 
 
 6. Finally, we perform the global alignment. In this particular case, it is identical to the pairwise alignment process as we only have two sections. However, we still need to do it so the **final transformations for the sections are stored in the datasets.** After that, `st-explorer`, `st-bdv-view` and `st-render` will take these transformations into account when displaying the data. This final processing step usually only takes a few seconds.
 ```bash
-./st-align-global -i visium.n5 --absoluteThreshold 100 -sf 0.5 --lambda 0.0 --skipICP
+./st-align-global -c visium.n5 --absoluteThreshold 100 -sf 0.5 --lambda 0.0 --skipICP
 ```
 
 7. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/bdv-calm2-mbp-mtnd4.png" alt="Example alignment" width="240">The final dataset can for example be visualized and interactively explored using BigDataViewer. Therefore, we specify three genes `-g Calm2,Mbp,mt-Nd4`, a crisper rendering `-sf 0.6`, and a relative z-spacing between the two planes that shows them close to each other `-z 3`. Of course, the same data can be visualized using `st-explorer` and `st-render`.
@@ -169,13 +169,13 @@ The installation should take around 1 minute.
 Resave (compressed) textfiles to one of the layouts described above (and optionally `--normalize`) using
 ```bash
 ./st-resave \
-     -i '/Puck_180528_20.tar/BeadLocationsForR.csv,/Puck_180528_20.tar/MappedDGEForR.csv,Puck_180528_20' \
+     -i '/Puck_180528_20.tar/BeadLocationsForR.csv,/Puck_180528_20.tar/MappedDGEForR.csv,Puck_180528_20.n5' \
      -a '/path/celltypes.csv' \
      -a ...
      [-c '/path/directory.n5'] \
      [--normalize]
 ```
-If the N5-container exists, new datasets will be added (example above:`Puck_180528_20`), otherwise a new N5 will be created. Each input consists of a `locations.csv` file, a `reads.csv` file, and a user-defined `dataset name`. The csv files can optionally be inside (zip/tar/tar.gz) files. It is tested on the slide-seq data linked above, which can be used as a blueprint for how to save one's own data for import.
+If the N5-container exists, new datasets will be added (example above:`Puck_180528_20.n5`), otherwise a new N5-container will be created. Each input consists of a `locations.csv` file, a `reads.csv` file, and a user-defined `dataset name`. The csv files can optionally be inside (zip/tar/tar.gz) files. It is tested on the slide-seq data linked above, which can be used as a blueprint for how to save one's own data for import.
 
 _Optionally_, one or more annotations (e.g., cell types) can be imported as part of the resaving step (e.g. from `celltypes.csv`) with the `-a` flag.
 Please note that missing barcodes in `celltypes.csv` will be excluded from the dataset. This way you can filter locations with bad expression values.
@@ -232,7 +232,7 @@ Run the interactive viewer as follows
 ```bash
 ./st-explorer \
      -i '/path/directory.n5' \
-     [-d 'Puck_180528_20,Puck_180528_22'] \
+     [-d 'Puck_180528_20.h5ad,Puck_180528_22.h5ad'] \
      [-c '0,255']
 ```
 It allows you to browse the data in realtime for all genes and datasets.
@@ -252,11 +252,9 @@ In order to render images of spatial sequencing datasets (can be saved as TIFF o
      [-m 20] \
      [-sf 2.0] \
      [-b 50]
+     [--ignoreTransforms]
 ```
-If you only define the input path `-i` and one or more genes `-g`, the rendered image will be displayed as an ImageJ image.
-If the input is an N5-container, all datasets will be rendered as 3D image.
-When defining an output directory `-o` images will not be displayed, but saved as TIFF (stacks) into the directory with filenames corresponding to the gene name.
-The optional switch `-d` allows you to select a subset of datasets if `-i` is an N5-container (default: all datasets), `-s` scales the rendering (default: 0.05), `-f` enables a single-spot filter (default: off), `-m` applies median filtering in locations space (not on top of the rendered image) with a certain radius (default: off), `-sf` sets the smoothness factor for rendering of the sparse dataset, and `-b` sets the size of an extra black border around the location coordinates (default: 20).
+If you only define the input path `-i` and one or more genes `-g`, the rendered image will be displayed as an ImageJ image. If the input is an N5-container, all datasets will be rendered as 3D image. When defining an output directory `-o` images will not be displayed, but saved as TIFF (stacks) into the directory with filenames corresponding to the gene name. The optional switch `-d` allows you to select a subset of datasets if `-i` is an N5-container (default: all datasets), `-s` scales the rendering (default: 0.05), `-f` enables a single-spot filter (default: off), `-m` applies median filtering in locations space (not on top of the rendered image) with a certain radius (default: off), `-sf` sets the smoothness factor for rendering of the sparse dataset, and `-b` sets the size of an extra black border around the location coordinates (default: 20). Finally, `--ignoreTransforms` lets you ignore all transforms associated with the datasets (e.g., alignment) when rendering.
 
 ### View selected genes for an entire container as 2D or 3D using BigDataViewer
 In order to interactively browse the 2D/3D space of one or more datasets with BigDataViewer you can
@@ -265,7 +263,7 @@ In order to interactively browse the 2D/3D space of one or more datasets with Bi
      -i '/path/directory.n5' \
      -g Calm2,Hpca \
      [-md 'celltype']
-     [-d 'Puck_180528_20,Puck_180528_22'] \
+     [-d 'Puck_180528_20.n5,Puck_180528_22.n5'] \
      [-z 5.0] \
      [-c '0,255'] \
      [-f] \
@@ -293,8 +291,8 @@ If not specified, they are used in the order as stored in the JSON file inside t
 The 2d alignment can be called as follows, the resulting transformations and corresponding points are automatically stored in the N5:
 ```bash
 ./st-align-pairs \
-     -i '/path/directory.n5' \
-     [-d 'Puck_180528_20,Puck_180528_22'] \
+     -c '/path/directory.n5' \
+     [-d 'Puck_180528_20.n5,Puck_180528_22.n5'] \
      [-r 2] \
      [-g 'Calm2,Hpca'] \
      [-n 100] \
@@ -308,7 +306,7 @@ The 2d alignment can be called as follows, the resulting transformations and cor
      [--hidePairwiseRendering] \
 
 ```
-Datasets from the selected N5 `-i` will be aligned in pairs.
+Datasets from the selected N5-container `-c` will be aligned in pairs.
 Datasets and their ordering can be optionally defined using `-d`, otherwise all datasets will be used in the order as defined in the N5-container.
 The comparison range (±slices to be aligned) can be defined using `-r`, by default it is set to 2.
 Genes to be used can be specified manually using `-g`, or a specified number of genes `-n` with the highest standard deviation in the expression signal will be used.
@@ -325,22 +323,22 @@ The results of the alignment will be shown by default using a gene (selected aut
 This command allows to manually inspect pairwise alignments between slices and to test out the effect of different transformation models (from fully rigid to fully affine). It uses all identified corresponding points to compute the respective transformation that minimizes the distance between all points.
 ```bash
 ./st-align-pairs-view \
-     -i '/path/directory.n5' \
+     -c '/path/directory.n5' \
      -g Calm2 \
-     [-d 'Puck_180528_20,Puck_180528_22'] \
+     [-d 'Puck_180528_20.n5,Puck_180528_22.n5'] \
      [-s 0.05] \
      [-sf 4.0] \
      [-l 1.0] \
 ```
-Pairs of datasets `-d` from the selected N5 `-i` will be visualized for a gene of choice defined by `-g`. If `-d` is omitted, all pairs will be displayed. The images are rendered as explained above. The scaling of the images can be changed using `-s` (default: 0.05 or 5%), and the smoothness factor can be changed using `-sf` (default: 4.0). Importantly, `-l` allows to set the lambda of the 2D interpolated transformation model(s) (affine/rigid). Specifically, lambda defines the degree of rigidity, fully affine is 0.0, fully rigid is 1.0 (default: 1.0 - rigid). A sensible choice might be 0.1.
+Pairs of datasets `-d` from the selected N5-container `-c` will be visualized for a gene of choice defined by `-g`. If `-d` is omitted, all pairs will be displayed. The images are rendered as explained above. The scaling of the images can be changed using `-s` (default: 0.05 or 5%), and the smoothness factor can be changed using `-sf` (default: 4.0). Importantly, `-l` allows to set the lambda of the 2D interpolated transformation model(s) (affine/rigid). Specifically, lambda defines the degree of rigidity, fully affine is 0.0, fully rigid is 1.0 (default: 1.0 - rigid). A sensible choice might be 0.1.
 
 #### Global optimization and ICP refinement
 
 The global optimization step minimizes the distance between all corresponding points across all pairs of slices (at least two) and includes an optional refinement step using the iterative closest point (ICP) algorithm.
 ```bash
 ./st-align-global \
-     -i '/path/directory.n5' \
-     [-d 'Puck_180528_20,Puck_180528_22'] \
+     -c '/path/directory.n5' \
+     [-d 'Puck_180528_20.n5,Puck_180528_22.n5'] \
      [-l 0.1] \
      [--maxAllowedError] \
      [--maxIterations] \
@@ -357,9 +355,7 @@ The global optimization step minimizes the distance between all corresponding po
      [-sf 4.0] \
      [-g Calm2] \
 ```
-By default, all datasets of the specified N5-container `-i` will be optimized, a subset of datasets can be selected using `-d`.
-`-l` allows to set the lambda of the 2D interpolated transformation model(s) that will be used for each slice.
-Lambda defines the degree of rigidity, fully affine is 0.0, fully rigid is 1.0 (default: 0.1 - 10% rigid, 90% affine). 
+By default, all datasets of the specified N5-container `-c` will be optimized, a subset of datasets can be selected using `-d`. `-l` allows to set the lambda of the 2D interpolated transformation model(s) that will be used for each slice. Lambda defines the degree of rigidity, fully affine is 0.0, fully rigid is 1.0 (default: 0.1 - 10% rigid, 90% affine). 
 
 Prior to computing the final optimum, we try to identify if there are pairs of slices that contain wrong correspondences. To do this, we test for global consistency of the alignment and potentially remove pairs that differ significantly from the consensus of all the other pairs. There are a few parameters to adjust this process. `--ignoreQuality` ignores the amount of RANSAC inlier ratio as a way to measure their quality, otherwise it is used determine which pairwise connections to remove during global optimization (default: false). `--relativeThreshold` sets the relative threshold for dropping pairwise connections, i.e. if the pairwise error is n-times higher than the average error (default: 3.0). `--absoluteThreshold` defines the absolute error threshold for dropping pairwise connections. The errors of the pairwise matching process provide a reasonable number, the global error shouldn't be much higher than the pairwise errors, althought it is expected to be higher since it is a more constraint problem (default: 160.0 for slideseq).
 
