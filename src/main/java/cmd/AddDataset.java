@@ -55,6 +55,9 @@ public class AddDataset implements Callable<Void> {
 		else
 			container.linkExistingDataset(inputDatasetPath, storageSpec);
 
+		final String operation = shouldBeMoved ? "Moved" : "Linked";
+		System.out.println(operation + " dataset '" + inputDatasetPath + "' to container '" + containerPath + "'.");
+
 		return null;
 	}
 

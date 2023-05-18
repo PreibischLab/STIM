@@ -129,7 +129,7 @@ public class SpatialDataContainer {
 		if (datasets.contains(datasetName))
 			throw new SpatialDataException("Dataset '" + datasetName + "' already exists within the container.");
 
-		associationOperation.apply(oldPath, Paths.get(rootPath, datasetName));
+		associationOperation.apply(oldPath.toAbsolutePath(), Paths.get(rootPath, datasetName).toAbsolutePath());
 		datasets.add(datasetName);
 		updateDatasetMetadata();
 
@@ -158,7 +158,7 @@ public class SpatialDataContainer {
 		String arg2 = n5.getAttribute("/", datasetName + exprValuePathKey, String.class);
 		String arg3 = n5.getAttribute("/", datasetName + annotationPathKey, String.class);
 		StorageSpec storageSpec = new StorageSpec(arg1, arg2, arg3);
-		return SpatialDataIO.inferFromName(Paths.get(rootPath, datasetName).toString(), service, storageSpec);
+		return SpatialDataIO.inferFromName(Paths.get(rootPath, datasetName).toRealPath().toString(), service, storageSpec);
 	}
 
 	public List<SpatialDataIO> openAllDatasets() throws IOException {
