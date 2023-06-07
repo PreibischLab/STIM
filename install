@@ -31,147 +31,38 @@ mvn clean install
 mvn -Dmdep.outputFile=cp.txt -Dmdep.includeScope=runtime dependency:build-classpath
 
 echo ""
-echo "Installing 'st-explorer' command into" $INSTALL_DIR
 
-echo '#!/bin/bash' > st-explorer
-echo '' >> st-explorer
-echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> st-explorer
-echo 'java \' >> st-explorer
-echo "  -Xmx${MEM}g \\" >> st-explorer
-echo '  -XX:+UseConcMarkSweepGC \' >> st-explorer
-echo -n '  -cp $JAR:' >> st-explorer
-echo -n $(cat cp.txt) >> st-explorer
-echo ' \' >> st-explorer
-echo '  cmd.View "$@"' >> st-explorer
+# function that installs one command
+# $1 - command name
+# $2 - java class containing the functionality
+install_command () {
+	echo "Installing '$1' command into" $INSTALL_DIR
 
-echo "Installing 'st-render' command into" $INSTALL_DIR
+	echo '#!/bin/bash' > $1
+	echo '' >> $1
+	echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> $1
+	echo 'java \' >> $1
+	echo "  -Xmx${MEM}g \\" >> $1
+	echo '  -XX:+UseConcMarkSweepGC \' >> $1
+	echo -n '  -cp $JAR:' >> $1
+	echo -n $(cat cp.txt) >> $1
+	echo ' \' >> $1
+	echo '  '$2' "$@"' >> $1
 
-echo '#!/bin/bash' > st-render
-echo '' >> st-render
-echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> st-render
-echo 'java \' >> st-render
-echo "  -Xmx${MEM}g \\" >> st-render
-echo '  -XX:+UseConcMarkSweepGC \' >> st-render
-echo -n '  -cp $JAR:' >> st-render
-echo -n $(cat cp.txt) >> st-render
-echo ' \' >> st-render
-echo '  cmd.RenderImage "$@"' >> st-render
-
-echo "Installing 'st-bdv-view' command into" $INSTALL_DIR
-
-echo '#!/bin/bash' > st-bdv-view
-echo '' >> st-bdv-view
-echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> st-bdv-view
-echo 'java \' >> st-bdv-view
-echo "  -Xmx${MEM}g \\" >> st-bdv-view
-echo '  -XX:+UseConcMarkSweepGC \' >> st-bdv-view
-echo -n '  -cp $JAR:' >> st-bdv-view
-echo -n $(cat cp.txt) >> st-bdv-view
-echo ' \' >> st-bdv-view
-echo '  cmd.DisplayStackedSlides "$@"' >> st-bdv-view
-
-echo "Installing 'st-resave' command into" $INSTALL_DIR
-
-echo '#!/bin/bash' > st-resave
-echo '' >> st-resave
-echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> st-resave
-echo 'java \' >> st-resave
-echo "  -Xmx${MEM}g \\" >> st-resave
-echo '  -XX:+UseConcMarkSweepGC \' >> st-resave
-echo -n '  -cp $JAR:' >> st-resave
-echo -n $(cat cp.txt) >> st-resave
-echo ' \' >> st-resave
-echo '  cmd.Resave "$@"' >> st-resave
-
-echo "Installing 'st-add-dataset' command into" $INSTALL_DIR
-
-echo '#!/bin/bash' > st-add-dataset
-echo '' >> st-add-dataset
-echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> st-add-dataset
-echo 'java \' >> st-add-dataset
-echo "  -Xmx${MEM}g \\" >> st-add-dataset
-echo '  -XX:+UseConcMarkSweepGC \' >> st-add-dataset
-echo -n '  -cp $JAR:' >> st-add-dataset
-echo -n $(cat cp.txt) >> st-add-dataset
-echo ' \' >> st-add-dataset
-echo '  cmd.AddDataset "$@"' >> st-add-dataset
-
-echo "Installing 'st-normalize' command into" $INSTALL_DIR
-
-echo '#!/bin/bash' > st-normalize
-echo '' >> st-normalize
-echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> st-normalize
-echo 'java \' >> st-normalize
-echo "  -Xmx${MEM}g \\" >> st-normalize
-echo '  -XX:+UseConcMarkSweepGC \' >> st-normalize
-echo -n '  -cp $JAR:' >> st-normalize
-echo -n $(cat cp.txt) >> st-normalize
-echo ' \' >> st-normalize
-echo '  cmd.Normalize "$@"' >> st-normalize
-
-echo "Installing 'st-add-metadata' command into" $INSTALL_DIR
-
-echo '#!/bin/bash' > st-add-metadata
-echo '' >> st-add-metadata
-echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> st-add-metadata
-echo 'java \' >> st-add-metadata
-echo "  -Xmx${MEM}g \\" >> st-add-metadata
-echo '  -XX:+UseConcMarkSweepGC \' >> st-add-metadata
-echo -n '  -cp $JAR:' >> st-add-metadata
-echo -n $(cat cp.txt) >> st-add-metadata
-echo ' \' >> st-add-metadata
-echo '  cmd.AddMetaData "$@"' >> st-add-metadata
-
-echo "Installing 'st-align-pairs' command into" $INSTALL_DIR
-
-echo '#!/bin/bash' > st-align-pairs
-echo '' >> st-align-pairs
-echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> st-align-pairs
-echo 'java \' >> st-align-pairs
-echo "  -Xmx${MEM}g \\" >> st-align-pairs
-echo '  -XX:+UseConcMarkSweepGC \' >> st-align-pairs
-echo -n '  -cp $JAR:' >> st-align-pairs
-echo -n $(cat cp.txt) >> st-align-pairs
-echo ' \' >> st-align-pairs
-echo '  cmd.PairwiseSectionAligner "$@"' >> st-align-pairs
-
-echo "Installing 'st-align-pairs-view' command into" $INSTALL_DIR
-
-echo '#!/bin/bash' > st-align-pairs-view
-echo '' >> st-align-pairs-view
-echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> st-align-pairs-view
-echo 'java \' >> st-align-pairs-view
-echo "  -Xmx${MEM}g \\" >> st-align-pairs-view
-echo '  -XX:+UseConcMarkSweepGC \' >> st-align-pairs-view
-echo -n '  -cp $JAR:' >> st-align-pairs-view
-echo -n $(cat cp.txt) >> st-align-pairs-view
-echo ' \' >> st-align-pairs-view
-echo '  cmd.ViewPairwiseAlignment "$@"' >> st-align-pairs-view
-
-echo "Installing 'st-align-global' command into" $INSTALL_DIR
-
-echo '#!/bin/bash' > st-align-global
-echo '' >> st-align-global
-echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> st-align-global
-echo 'java \' >> st-align-global
-echo "  -Xmx${MEM}g \\" >> st-align-global
-echo '  -XX:+UseConcMarkSweepGC \' >> st-align-global
-echo -n '  -cp $JAR:' >> st-align-global
-echo -n $(cat cp.txt) >> st-align-global
-echo ' \' >> st-align-global
-echo '  cmd.GlobalOpt "$@"' >> st-align-global
+	chmod a+x $1
+}
 
 
-chmod a+x st-explorer
-chmod a+x st-bdv-view
-chmod a+x st-render
-chmod a+x st-resave
-chmod a+x st-add-dataset
-chmod a+x st-normalize
-chmod a+x st-add-metadata
-chmod a+x st-align-pairs
-chmod a+x st-align-pairs-view
-chmod a+x st-align-global
+install_command st-explorer "cmd.View"
+install_command st-render "cmd.RenderImage"
+install_command st-bdv-view "cmd.DisplayStackedSlides"
+install_command st-resave "cmd.Resave"
+install_command st-add-dataset "cmd.AddDataset"
+install_command st-normalize "cmd.Normalize"
+install_command st-add-metadata "cmd.AddMetaData"
+install_command st-align-pairs "cmd.PairwiseSectionAligner"
+install_command st-align-pairs-view "cmd.ViewPairwiseAlignment"
+install_command st-align-global "cmd.GlobalOpt"
 
 if [ $(pwd) == "$INSTALL_DIR" ]; then
     echo "Installation directory equals current directory, we are done."
