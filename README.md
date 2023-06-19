@@ -63,23 +63,27 @@ For alignment of several slices, slices have to be grouped into an N5-container 
 
 ### Tutorial: interactively exploring a single dataset
 
-1. First, we need to convert the data we are interested in into one of the supported formats for efficent storage and access to the dataset. We want the first section of the data to be saved in anndata file called `section1.h5ad`. Assuming the data are in the downloaded `visium.zip` file in the same directory as the executables, execute the following:
+1. First, we need to convert the data we just downloaded as CSV into one of the supported formats for efficent storage and access to the dataset. We want the first slice of the data to be saved in an anndata file called `section1.h5ad` (TODO: change filenames to slice). Assuming the data are in the downloaded `visium.zip` file in the same directory as the executables, execute the following:
 ```bash
 ./st-resave -i visium.zip/section1_locations.csv,visium.zip/section1_reads.csv,section1.h5ad
 ```
-This will automatically load the `*.csv` files from within the zipped file and create a `section1.h5ad` file in the current directory. It will automatically load the `*.csv` files from within the zipped file and create a `visium.n5` folder containing the re-saved dataset. The entire resaving process should take about 10 seconds on a modern notebook with an SSD. **Note: if your browser automatically unzipped the data, just change `visium.zip` to the respective folder name, most likely `visium`.***
+(TODO: n5 container here?)
+This will automatically load the `*.csv` files from within the zipped file and create a `section1.h5ad` file in the current directory *(alternatively, you could extract the `*.csv` as well and link them)*. It will automatically load the `*.csv` files from within the zipped file and create a `visium.n5` folder containing the re-saved dataset. The entire resaving process should take about 10 seconds on a modern notebook with an SSD. **Note: if your browser automatically unzipped the data, just change `visium.zip` to the respective folder name, most likely `visium`.***
 
-2. Next, we will simply take a look at the data:
+2. Next, we will simply take a look at the slice-dataset directly:
 ```bash
 ./st-explorer -i section1.h5ad -c '0,110'
 ```
-First, type `calm2` into the 'search gene' box. Using `-c '0,110'` we already set the display range to more or less match this dataset. You can manually change it by clicking in the BigDataViewer window and press `s` to bring up the brightness dialog. As you switch between **sec1** and **sec2** you'll see that they are not aligned. Feel free to play with the **Visualization Options** in the explorer, e.g. move **Gauss Rendering** to 0.5 to get a sharper image and then play with the **Median Filter** radius to filter the data.
+First, type `calm2` into the 'search gene' box. Using `-c '0,110'` we already set the display range to more or less match this dataset. You can manually change it by clicking in the BigDataViewer window and press `s` to bring up the brightness dialog. As you switch between **sec1** and **sec2** (TODO: second slice missing here)
+
+3. add new slice
+you'll see that they are not aligned. Feel free to play with the **Visualization Options** in the explorer, e.g. move **Gauss Rendering** to 0.5 to get a sharper image and then play with the **Median Filter** radius to filter the data.
 
 3. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/overlay calm2-mbp.png" alt="Example overlay of calm-2, mbp" width="280">Now, we will create a TIFF image for gene Calm2 and Mbp:
 ```bash
 ./st-render -i section1.h5ad -g 'Calm2,Mbp' -sf 0.5
 ```
-You can now for example overlay both images into a two-channel image using `Image > Color > Merge Channels` and select **Calm2** as magenta and **Mbp** as green. By flipping through the slices (sec1 and sec2) you will again realize that they are not aligned. You could for example convert this image to RGB `Image > Type > RGB Color` and then save it as TIFF, JPEG or AVI (e.g JPEG compression). **These can be added to your presentation or paper for example, check out my beautiful AVI** [here](https://github.com/PreibischLab/STIM/blob/master/src/main/resources/calm2-mbp.avi) (you need to click download on the right top). You could render a bigger image setting `-s 0.1`. ***Note: Please check the documentation of [ImageJ](https://imagej.net) and [Fiji](http://fiji.sc) for further help with how to further process images.***
+You can now for example overlay both images into a two-channel image using `Image > Color > Merge Channels` and select **Calm2** as magenta and **Mbp** as green. By flipping through the slices (sec1 and sec2) you will again realize that they are not aligned. You could for example convert this image to RGB `Image > Type > RGB Color` and then save it as TIFF, JPEG or AVI (e.g JPEG compression). **These can be added to your presentation or paper for example, check out our beautiful AVI** [here](https://github.com/PreibischLab/STIM/blob/master/src/main/resources/calm2-mbp.avi) (you need to click download on the right top). You could render a bigger image setting `-s 0.1`. ***Note: Please check the documentation of [ImageJ](https://imagej.net) and [Fiji](http://fiji.sc) for  help how to further process images.***
 
 
 ### Tutorial: aligning a multi-slice dataset
