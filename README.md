@@ -1,4 +1,4 @@
-# STIM - the Spatial Transcriptomics ImgLib2/Imaging Project
+# STIM - the Spatial Transcriptomics Imaging Project
 
 <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/Projection low-res-rgb.gif" alt="Example rendering of calm-2, ptgds, mbp" width="280">
 
