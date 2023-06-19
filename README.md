@@ -76,19 +76,19 @@ This will automatically load the `*.csv` files from within the zipped file and c
 ```
 First, type `calm2` into the 'search gene' box. Using `-c '0,110'` we already set the display range to more or less match this dataset. You can manually change it by clicking in the BigDataViewer window and press `s` to bring up the brightness dialog. As you switch between **sec1** and **sec2** (TODO: second slice missing here)
 
-3. add new slice
+3. add new slice?? (No, later, rihgt?)
 you'll see that they are not aligned. Feel free to play with the **Visualization Options** in the explorer, e.g. move **Gauss Rendering** to 0.5 to get a sharper image and then play with the **Median Filter** radius to filter the data.
 
 3. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/overlay calm2-mbp.png" alt="Example overlay of calm-2, mbp" width="280">Now, we will create a TIFF image for gene Calm2 and Mbp:
 ```bash
 ./st-render -i section1.h5ad -g 'Calm2,Mbp' -sf 0.5
 ```
-You can now for example overlay both images into a two-channel image using `Image > Color > Merge Channels` and select **Calm2** as magenta and **Mbp** as green. By flipping through the slices (sec1 and sec2) you will again realize that they are not aligned. You could for example convert this image to RGB `Image > Type > RGB Color` and then save it as TIFF, JPEG or AVI (e.g JPEG compression). **These can be added to your presentation or paper for example, check out our beautiful AVI** [here](https://github.com/PreibischLab/STIM/blob/master/src/main/resources/calm2-mbp.avi) (you need to click download on the right top). You could render a bigger image setting `-s 0.1`. ***Note: Please check the documentation of [ImageJ](https://imagej.net) and [Fiji](http://fiji.sc) for  help how to further process images.***
+You can now for example overlay both images into a two-channel image using `Image > Color > Merge Channels` and select **Calm2** as magenta and **Mbp** as green. You could for example convert this image to RGB `Image > Type > RGB Color` and then save it as TIFF, JPEG or AVI (e.g JPEG compression). **These can be added to your presentation or paper for example, check out our beautiful AVI** [here](https://github.com/PreibischLab/STIM/blob/master/src/main/resources/calm2-mbp.avi) (you need to click download on the right top). You could render a bigger image setting `-s 0.1`. ***Note: Please check the documentation of [ImageJ](https://imagej.net) and [Fiji](http://fiji.sc) for  help how to further process images.***
 
 
 ### Tutorial: aligning a multi-slice dataset
 
-0. If you followed the previous tutorial, you've already resaved the first section of the visium dataset as anndata file. In order to do alignment of the whole dataset, we need to combine all datasets into an N5-container:
+0. If (TODO: no if's here, gets too complicated) you followed the previous tutorial, you've already resaved the first (TODO: will we already have two slices here?) section of the visium dataset as anndata file. In order to perform the alignment of the whole dataset (would work identically for more than two slices), we need to combine all datasets into an N5-container:
 ```bash
 ./st-add-dataset -c visium.n5 -i section1.h5ad
 ```
@@ -100,17 +100,22 @@ This will create an N5-container `visium.n5` and link the first section to it. I
    -i visium.zip/section2_locations.csv,visium.zip/section2_reads.csv,section2.n5 \
    -c visium.n5
 ```
-It will automatically load the `*.csv` files from within the zipped file and create a `visium.n5` folder containing the re-saved dataset. The entire resaving process should take about 10 seconds on a modern notebook with an SSD. **Note**: if your browser automatically unzipped the data, just change `visium.zip` to the respective folder name, most likely `visium`. **Note**: if you didn't follow the first tutorial, please also resave the first section in the container using the above command again with "section2" replaced by "section1".
+It will automatically load the `*.csv` files from within the zipped file and add it to the `visium.n5` folder containing the re-saved dataset as well as the first slice. The entire resaving process should take about 10 seconds on a modern notebook with an SSD. **Note**: if your browser automatically unzipped the data, just change `visium.zip` to the respective folder name, most likely `visium`.
 
-3. Next, we can again take a look at the data, which now includes both sections. We can do this interactively or by rendering: 
+3. Next, we can again take a look at the data, which now includes both slice-datasets. We can do this interactively or by rendering: 
 ```bash
 ./st-explorer -i visium.n5 -c '0,110'
+./st-bdv-view ... TODO - but i thinkt it would render as 3d, so not here yet
 ./st-render -i visium.n5 -g 'Calm2,Mbp' -sf 0.5
 ```
 Selecting genes and adjusting visualization options work exactly as in the first tutorial.
 <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/overlay calm2-mbp.png" alt="Example overlay of calm-2, mbp" width="280">We can now overlay both images into a two-channel image again using `Image > Color > Merge Channels` and select **Calm2** as magenta and **Mbp** as green. By flipping through the slices (sec1 and sec2) you will realize that they are not aligned.
 
-4. To remedy this, we will perform alignment of the two slices. We will use 15 automatically selected genes `-n` (the more the better, but it is also slower), a maximum error of 100 `--maxEpsilon` and require at least 30 inliers per gene `--minNumInliersGene` (this dataset is more robust than the SlideSeq one). **The alignment process takes around 1-2 minutes on a modern notebook.** *Note: at this point no transformations are stored within the N5-container, but only the list of corresponding points.*
+4. To remedy this, we will perform alignment of the two slices. We will use 15 automatically selected genes `-n` (the more the better, but it is also slower), a maximum error of 100 `--maxEpsilon` (in units of the sequenced locations) and require at least 30 inliers per gene `--minNumInliersGene` (this dataset is more robust than the SlideSeq one). **The alignment process takes around 1-2 minutes on a modern notebook.** *Note: at this point no transformations are stored within the N5-container, but only the list of corresponding points between all pairs of slices.*
+
+TODO: how do I choose maxEpsilon??? maybe use as baseline the avg distance between sequenced points * 10?
+TODO: how to choose N and inliers? or what do i do if it doesn't work on my data?
+
 ```bash
 ./st-align-pairs -c visium.n5 -n 15 -sf 0.5 --maxEpsilon 100 --minNumInliersGene 30
 ```
@@ -133,7 +138,7 @@ Selecting genes and adjusting visualization options work exactly as in the first
 ```
 We encourage you to use this small dataset as a starting point for playing with and extending **STIM**. If you have any questions, feature requests or concerns please open an issue here on GitHub. Thanks so much!
 
-## Installation instructions
+## Installation instructions (TODO: conda)
 
 Installation requires maven and OpenJDK8 (or newer) on Ubuntu:
 ```bash
