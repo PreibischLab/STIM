@@ -3,9 +3,9 @@
 <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/Projection low-res-rgb.gif" alt="Example rendering of calm-2, ptgds, mbp" width="280">
 
 The **S**patial **T**ranscriptomics as **Im**ages Project (STIM) is a framework for storing, (interactively) viewing, aligning, and processing spatial transcriptomics data, which builds on the powerful libraries [Imglib2](https://github.com/imglib/imglib2), [N5](https://github.com/saalfeldlab/n5), [BigDataViewer](https://github.com/bigdataviewer) and [Fiji](https://fiji.sc). **It can be installed through [Conda](https://conda-forge.org) and uses [AnnData](https://anndata.readthedocs.io/en/latest/) and/or [N5](https://github.com/saalfeldlab/n5) as a storage backend thus allowing easy interaction with existing tools for spatial transcriptomics.** It provides efficient access to spatial transcriptomics data "classically" as values, or can render them as images at arbitrary resolution. These image representations allow to apply computer vision techniques to spatially resolved sequencing datasets. STIM highlights are: 
- * efficient interactive rendering (using ImageJ/Fiji & BigDataViewer)
+ * efficient interactive rendering (using [BigDataViewer](https://github.com/bigdataviewer))
+ * rendering high-quality still images (using [ImageJ](https://imagej.nih.gov/ij/)/[Fiji](https://fiji.sc))
  * alignment of spatial dataset slides using SIFT, ICP and RANSAC combined with global optimization
- * rendering high-quality still images
  * efficient and fast storage using [AnnData](https://anndata.readthedocs.io/en/latest/) and [N5](https://github.com/saalfeldlab/n5) for multi-slice datasets
  * [Conda](https://conda-forge.org) installable, straight-forward interoperability with other packages
  * image filtering framework for irregularly-spaced datasets
