@@ -35,23 +35,25 @@ A **minimal example** of a two-slice Visium dataset is available [here](https://
 
 ## Tutorials on small examples
 
-To get started please follow the [Installation instructions](#Installation-instructions) to clone and build **STIM**. **![#f03c15](https://placehold.co/15x15/f03c15/f03c15.png) TODO CONDA** It might be easiest to **not** install into `$HOME/bin` but rather just call `./install` during the installation process. There are two different examples based on the storage layout, a single slice one and one with multiple slices. Therefore, we first explain the basics of our storage layout.
+To get started please follow the [Installation instructions](#Installation-instructions) to clone and build **STIM**. **![#f03c15](https://placehold.co/15x15/f03c15/f03c15.png) TODO CONDA or INSTALL** It might be easiest to **not** install into `$HOME/bin` but rather just call `./install` during the installation process. There are two different examples based on the storage layout, a single slice one and one with multiple slices. Therefore, we first explain the basics of our storage layout.
 
 For the tutorials, please download the example Visium data by clicking [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view?usp=sharing) and store the zip file in the same directory that contains the executables (assuming you just did `./install`).
 ***Note: your browser might automatically unzip the data, we cover both cases during the resaving step in the tutorials below.***
 
-### Data layout
+### Data layout (TODO: use slice-dataset and container-dataset that contains multiple slices)
 
-Datasets can either be saved in a generic hierarchical layout, or an [anndata](https://anndata.readthedocs.io/en/latest/)-conforming layout, where the expression values, locations and annotations are stored in `/expressionValues`, `/locations` and `/annotations`, and `/X`, `/obsm/spatial` and `/obs`, respectively. The [N5 API](https://github.com/saalfeldlab/n5) is used to read and write these layouts using the N5, Zarr, or HDF5 backend. If your dataset is stored in `.csv` files, you can use the `st-resave` command (see below) to resave your data into one of the supported formats by specifying the extension of the output as `.h5` (generic HDF5), `.n5` (generic N5), or `.zarr` (generic Zarr); an additional suffix `ad` is used to indicate the AnnData-conforming layout (e.g. `h5ad` for HDF5-backed AnnData).
+A spatial transcriptomics dataset can consist of a single 2-dimensional (2d) slice, or a container that contains several 2d slices and thereby forms a 3d volume. Note that for any 3d volume (container-dataset), each 2d slice can also be addressed as an individual dataset (slice-dataset). Most commands support both types of datasets, while some require a container (e.g. alignment).
 
-For a single dataset, you can:
-* interactively view the dataset using `st-explorer`;
+Slice-datasets can either be saved in an [anndata](https://anndata.readthedocs.io/en/latest/)-conforming layout, where the expression values, locations and annotations are stored in `/expressionValues`, `/locations` and `/annotations`, and `/X`, `/obsm/spatial` and `/obs`, respectively; or in a [generic hierarchical layout](). The [N5 API](https://github.com/saalfeldlab/n5) is used to read and write these layouts using the N5, Zarr, or HDF5 backend. If your slice(s) are stored in `.csv` files, you can use the `st-resave` command (see below) to resave your data into one of the supported formats by specifying the extension of the output as `.h5` (generic HDF5), `.n5` (generic N5), or `.zarr` (generic Zarr); an additional suffix `ad` is used to indicate the AnnData-conforming layout (e.g. `h5ad` for HDF5-backed AnnData).
+
+For a single slice, you can:
+* interactively view it using `st-explorer`;
 * render the dataset in ImageJ and save the rendering, e.g., as TIFF, using `st-render`;
 * normalize the dataset using `st-normalize`;
 * add metadata such as, e.g., celltype annotations, using `st-add-metadata`;
-* add the dataset to a (pre-existing or new) container using `st-add-dataset`; see below.
+* add the slice to a (pre-existing or new) container using `st-add-dataset` (TODO st-add-slice rename); see below.
 
-For (pairwise) alignment, datasets have to be grouped into an N5-container to allow additional metadata to be stored. In addition to all the commands listed above for single datasets, the subsequent commands can be used for datasets within an N5-container:
+For (pairwise) alignment of many slices, (anndata) slices have to be grouped into an N5-container to allow additional metadata to be stored. In addition to all the commands listed above for single datasets, the subsequent commands can be used for datasets within an N5-container:
 * perform pairwise alignment of slices using `st-align-pairs`;
 * visualize aligned pairs of slices using `st-align-pairs-view`;
 * perform global alignment of all slices using `st-align-global`;
