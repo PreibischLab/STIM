@@ -21,7 +21,7 @@ A **minimal example** of a two-slice Visium dataset is available [here](https://
    3. [Tutorial: aligning a multi-slice dataset](#tutorial-aligning-a-multi-slice-dataset)
 2. [Installation instructions](#installation-instructions)
    1. [Resaving](#Resaving)
-   2. [Adding metadata](#adding-metadata)
+   2. [Adding metadata](#adding-metadata) (TODO: rename to annotations)
    3. [Normalization](#normalization)
    4. [Iteractive viewing application](#iteractive-viewing-application)
    5. [Render images and view or save as TIFF](#render-images-and-view-or-save-as-tiff)
