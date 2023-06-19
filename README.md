@@ -35,7 +35,7 @@ A **minimal example** of a two-slice Visium dataset is available [here](https://
 
 ## Tutorials on small examples
 
-To get started please follow the [Installation instructions](#Installation-instructions) to clone and build **STIM**. It might be easiest to **not** install into `$HOME/bin` but rather just call `./install` during the installation process. There are two different examples based on the storage layout, a single slice one and one with multiple slices. Therefore, we first explain the basics of our storage layout.
+To get started please follow the [Installation instructions](#Installation-instructions) to clone and build **STIM**. **TODO CONDA** It might be easiest to **not** install into `$HOME/bin` but rather just call `./install` during the installation process. There are two different examples based on the storage layout, a single slice one and one with multiple slices. Therefore, we first explain the basics of our storage layout.
 
 For the tutorials, please download the example Visium data by clicking [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view?usp=sharing) and store the zip file in the same directory that contains the executables (assuming you just did `./install`).
 ***Note: your browser might automatically unzip the data, we cover both cases during the resaving step in the tutorials below.***
