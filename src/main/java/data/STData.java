@@ -22,9 +22,9 @@ public interface STData extends IterableRealInterval< RealLocalizable >
 	public IterableRealInterval< DoubleType > getExprData( final String geneName );
 
 	/**
-	 * @return additional metadata that maps any location to an arbitrary value
+	 * @return additional annotations that map any location to an arbitrary value
 	 */
-	public Map< String, RandomAccessibleInterval< ? extends NativeType< ? > > > getMetaData();
+	public Map< String, RandomAccessibleInterval< ? extends NativeType< ? > > > getAnnotations();
 
 	int getIndexForGene( final String geneName );
 

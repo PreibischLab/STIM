@@ -64,12 +64,12 @@ public abstract class SpatialDataIO {
 			instance.readAndSetTransformation(reader, transform, name);
 		}
 
-		public List<String> detectMetaData(N5Reader reader) throws IOException {
-			return instance.detectMetaData(reader);
+		public List<String> detectAnnotations(N5Reader reader) throws IOException {
+			return instance.detectAnnotations(reader);
 		}
 
-		public <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(N5Reader reader, String label) throws IOException {
-			return instance.readMetaData(reader, label);
+		public <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readAnnotations(N5Reader reader, String label) throws IOException {
+			return instance.readAnnotations(reader, label);
 		}
 
 		public void writeHeader(N5Writer writer, STData data) throws IOException {
@@ -96,8 +96,8 @@ public abstract class SpatialDataIO {
 			instance.writeTransformation(writer, transform, name);
 		}
 
-		public void writeMetaData(N5Writer writer, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
-			instance.writeMetaData(writer, label, data);
+		public void writeAnnotations(N5Writer writer, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
+			instance.writeAnnotations(writer, label, data);
 		}
 	}
 
@@ -188,8 +188,8 @@ public abstract class SpatialDataIO {
 		AffineTransform2D transform = new AffineTransform2D();
 		readAndSetTransformation(reader, transform, "transform");
 
-		for (final String annotationLabel : detectMetaData(reader))
-			stData.getMetaData().put(annotationLabel, readMetaData(reader, annotationLabel));
+		for (final String annotationLabel : detectAnnotations(reader))
+			stData.getAnnotations().put(annotationLabel, readAnnotations(reader, annotationLabel));
 
 		System.out.println("Loading took " + (System.currentTimeMillis() - time) + " ms.");
 		System.out.println("Metadata:" +
@@ -220,17 +220,17 @@ public abstract class SpatialDataIO {
 
 	protected abstract <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(N5Reader reader, AffineSet transform, String name) throws IOException;
 
-	protected List<String> detectMetaData(N5Reader reader) throws IOException {
-		return detectMetaData(reader, storageSpec.annotationPath);
+	protected List<String> detectAnnotations(N5Reader reader) throws IOException {
+		return detectAnnotations(reader, storageSpec.annotationPath);
 	}
 
-	protected abstract List<String> detectMetaData(N5Reader reader, String annotationsPath) throws IOException;
+	protected abstract List<String> detectAnnotations(N5Reader reader, String annotationsPath) throws IOException;
 
-	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(N5Reader reader, String label) throws IOException {
-		return readMetaData(reader, storageSpec.annotationPath, label);
+	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readAnnotations(N5Reader reader, String label) throws IOException {
+		return readAnnotations(reader, storageSpec.annotationPath, label);
 	}
 
-	protected abstract <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(N5Reader reader, String annotationsPath, String label) throws IOException;
+	protected abstract <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readAnnotations(N5Reader reader, String annotationsPath, String label) throws IOException;
 
 	public void writeData(STDataAssembly data) throws IOException {
 		if (readOnly)
@@ -251,23 +251,23 @@ public abstract class SpatialDataIO {
 		writeTransformation(writer, data.transform(), "transform");
 		writeTransformation(writer, data.intensityTransform(), "intensity_transform");
 
-		updateStoredMetadata(data.data().getMetaData());
+		updateStoredAnnotations(data.data().getAnnotations());
 
 		System.out.println( "Saving took " + ( System.currentTimeMillis() - time ) + " ms." );
 	}
 
-	public void updateStoredMetadata(Map<String, RandomAccessibleInterval<? extends NativeType<?>>> metadata) throws IOException {
+	public void updateStoredAnnotations(Map<String, RandomAccessibleInterval<? extends NativeType<?>>> metadata) throws IOException {
 		if (readOnly)
 			throw new IllegalStateException("Trying to write to read-only file.");
 
 		N5Writer writer = writerSupplier.get();
-		List<String> existingMetadata = detectMetaData(writer);
+		List<String> existingAnnotations = detectAnnotations(writer);
 
 		for (Entry<String, RandomAccessibleInterval<? extends NativeType<?>>> newEntry : metadata.entrySet()) {
-			if (existingMetadata.contains(newEntry.getKey()))
+			if (existingAnnotations.contains(newEntry.getKey()))
 				System.out.println("Existing metadata '" + newEntry.getKey() + "' was not updated.");
 			else
-				writeMetaData(writer, newEntry.getKey(),  newEntry.getValue());
+				writeAnnotations(writer, newEntry.getKey(), newEntry.getValue());
 		}
 	}
 
@@ -291,11 +291,11 @@ public abstract class SpatialDataIO {
 
 	protected abstract void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException;
 
-	protected void writeMetaData(N5Writer writer, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
-		writeMetaData(writer, storageSpec.annotationPath, label, data);
+	protected void writeAnnotations(N5Writer writer, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
+		writeAnnotations(writer, storageSpec.annotationPath, label, data);
 	}
 
-	protected abstract void writeMetaData(N5Writer writer, String annotationsPath, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException;
+	protected abstract void writeAnnotations(N5Writer writer, String annotationsPath, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException;
 
 	public void updateTransformation(AffineGet transform, String name) throws IOException {
 		if (readOnly)

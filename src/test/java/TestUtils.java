@@ -64,13 +64,13 @@ public class TestUtils {
 		assertArrayEquals(actual.transform().getRowPackedCopy(), expected.transform().getRowPackedCopy(), "2D transforms not equal.");
 		assertArrayEquals(actual.intensityTransform().getRowPackedCopy(), expected.intensityTransform().getRowPackedCopy(), "Intensity transforms not equal.");
 
-		assertTrue(expected.data().getMetaData().keySet().containsAll(actual.data().getMetaData().keySet()), "Expected meta data correct");
-		assertTrue(actual.data().getMetaData().keySet().containsAll(expected.data().getMetaData().keySet()), "Actual meta data correct");
+		assertTrue(expected.data().getAnnotations().keySet().containsAll(actual.data().getAnnotations().keySet()), "Expected meta data correct");
+		assertTrue(actual.data().getAnnotations().keySet().containsAll(expected.data().getAnnotations().keySet()), "Actual meta data correct");
 
-		for (String label : expected.data().getMetaData().keySet())
+		for (String label : expected.data().getAnnotations().keySet())
 			TestUtils.assertRaiEquals(
-					(RandomAccessibleInterval<IntType>) expected.data().getMetaData().get(label),
-					(RandomAccessibleInterval<IntType>) actual.data().getMetaData().get(label));
+					(RandomAccessibleInterval<IntType>) expected.data().getAnnotations().get(label),
+					(RandomAccessibleInterval<IntType>) actual.data().getAnnotations().get(label));
 	}
 
 	public static STData createTestDataSet() {

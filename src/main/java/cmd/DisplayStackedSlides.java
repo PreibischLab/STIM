@@ -19,7 +19,7 @@ import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
 import data.STDataUtils;
-import examples.VisualizeMetadata;
+import examples.VisualizeAnnotations;
 import examples.VisualizeStack;
 import filter.FilterFactory;
 import filter.MedianFilterFactory;
@@ -47,11 +47,11 @@ public class DisplayStackedSlides implements Callable<Void> {
 	@Option(names = {"-g", "--genes"}, required = true, description = "comma separated list of one or more gene to visualize, e.g. -g Calm2,Ubb")
 	private String genes = null;
 
-	@Option(names = {"-md", "--metadata"}, required = false, description = "comma separated list of metadata to visualize, e.g. -md celltype")
-	private String metadata = null;
+	@Option(names = {"-a", "--annotation"}, required = false, description = "comma separated list of annotations to visualize, e.g. -a celltype")
+	private String annotations = null;
 
-	@Option(names = {"-mdr", "--metadataRadius"}, required = false, description = "radius of metadata spots as a factor of their median distance, e.g. -mdr 2.0 (default: 0.75; in 3d: zSpacing*0.75)")
-	private double metadataRadius = 0.75;
+	@Option(names = {"-ar", "--annotationRadius"}, required = false, description = "radius of annotation spots as a factor of their median distance, e.g. -ar 2.0 (default: 0.75; in 3d: zSpacing*0.75)")
+	private double annotationRadius = 0.75;
 
 	@Option(names = {"-z", "--zSpacingFactor"}, required = false, description = "define the z-spacing between different sections (as a factor of median spacing between sequenced locations), e.g. -z 10.0 (default: 5.0)")
 	private double zSpacingFactor = 5.0;
@@ -130,11 +130,11 @@ public class DisplayStackedSlides implements Callable<Void> {
 			return null;
 		}
 
-		List< String > metadataList;
-		if ( metadata != null && metadata.length() > 0 )
-			metadataList = Arrays.asList( metadata.split( "," ) );
+		List< String > annotationList;
+		if ( annotations != null && annotations.length() > 0 )
+			annotationList = Arrays.asList(annotations.split("," ) );
 		else
-			metadataList = new ArrayList<>();
+			annotationList = new ArrayList<>();
 
 		double minI = RenderThread.min;
 		double maxI = RenderThread.max;
@@ -175,12 +175,12 @@ public class DisplayStackedSlides implements Callable<Void> {
 		BdvStackSource< ? > source = null;
 
 		//
-		// Display metadata
+		// Display annotations
 		//
-		for ( final String meta : metadataList )
+		for ( final String annotation : annotationList )
 		{
 			final IntType outofboundsInt = new IntType( -1 );
-			final double spotSize = dataToVisualize.get( 0 ).statistics().getMedianDistance() * metadataRadius;
+			final double spotSize = dataToVisualize.get( 0 ).statistics().getMedianDistance() * annotationRadius;
 			final HashMap<Long, ARGBType > lut = new HashMap<>();
 
 			final List< FilterFactory< IntType, IntType > > filterFactorysInt = new ArrayList<>();
@@ -197,7 +197,7 @@ public class DisplayStackedSlides implements Callable<Void> {
 			if ( dataToVisualize.size() > 1 )
 			{
 				final Pair< RealRandomAccessible< IntType >, Interval > stack =
-						VisualizeMetadata.createStack( dataToVisualize, meta, zSpacingFactor * 0.75 * spotSize, zSpacingFactor, outofboundsInt, filterFactorysInt, lut );
+						VisualizeAnnotations.createStack(dataToVisualize, annotation, zSpacingFactor * 0.75 * spotSize, zSpacingFactor, outofboundsInt, filterFactorysInt, lut );
 				rra = stack.getA();
 				interval = stack.getB();
 			}
@@ -205,9 +205,9 @@ public class DisplayStackedSlides implements Callable<Void> {
 			{
 				final STDataAssembly slide = dataToVisualize.get( 0 );
 
-				rra = VisualizeMetadata.visualize2d(
+				rra = VisualizeAnnotations.visualize2d(
 						slide.data(),
-						meta,
+						annotation,
 						spotSize,
 						slide.transform(),
 						outofboundsInt,
@@ -228,7 +228,7 @@ public class DisplayStackedSlides implements Callable<Void> {
 			BdvOptions options = BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() ).addTo( source );
 			if ( dataToVisualize.size() == 1 )
 				options = options.is2D();
-			source = BdvFunctions.show( rraRGB, interval, meta, options );
+			source = BdvFunctions.show( rraRGB, interval, annotation, options );
 			source.setDisplayRange( 0, 255 );
 			source.setDisplayRangeBounds( 0, 2550 );
 

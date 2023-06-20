@@ -144,11 +144,11 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	@Override
-	protected List<String> detectMetaData(N5Reader reader, String annotationPath) throws IOException {
+	protected List<String> detectAnnotations(N5Reader reader, String annotationPath) throws IOException {
 		return AnnDataDetails.getExistingDataFrameDatasets(reader, annotationPath);
 	}
 
-	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(N5Reader reader, String annotationPath, String label) throws IOException {
+	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readAnnotations(N5Reader reader, String annotationPath, String label) throws IOException {
 		return AnnDataDetails.readFromDataFrame(reader, annotationPath, label);
 	}
 
@@ -177,7 +177,7 @@ public class AnnDataIO extends SpatialDataIO {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	protected void writeMetaData(N5Writer writer, String annotationPath, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
+	protected void writeAnnotations(N5Writer writer, String annotationPath, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
 		AnnDataDetails.addToDataFrame(writer, annotationPath, label, (RandomAccessibleInterval<IntType>) data, options1d);
 	}
 

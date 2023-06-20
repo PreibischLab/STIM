@@ -136,23 +136,23 @@ public class Render
 
 	public static IterableRealInterval< IntType > getRealIterable(
 			final STData stdata,
-			final String meta,
+			final String annotation,
 			final AffineTransform2D transform,
 			final List< FilterFactory< IntType, IntType > > filterFactorys, // optional
 			final HashMap<Long, ARGBType> lut )
 	{
-		final RandomAccessibleInterval idsIn = stdata.getMetaData().get( meta );
+		final RandomAccessibleInterval idsIn = stdata.getAnnotations().get(annotation);
 
 		if ( idsIn == null )
 		{
-			System.out.println( "WARNING: metadata '" + meta + "' does not exist. skipping.");
+			System.out.println( "WARNING: annotation '" + annotation + "' does not exist. skipping.");
 			return null;
 		}
 
 		final Object type = Views.iterable( idsIn ).firstElement();
 		if ( !IntegerType.class.isInstance( type ) )
 		{
-			System.out.println( "WARNING: metadata '" + meta + "' is not an integer type (but "+ type.getClass().getSimpleName() +". don't know how to render it. skipping.");
+			System.out.println( "WARNING: annotation '" + annotation + "' is not an integer type (but "+ type.getClass().getSimpleName() +". don't know how to render it. skipping.");
 			return null;
 		}
 
@@ -174,7 +174,7 @@ public class Render
 			}
 		}
 
-		System.out.println( "Rendering metadata '" + meta + "', type="+ type.getClass().getSimpleName() + ", min=" + min + ", max= " + max + " as integers" );
+		System.out.println( "Rendering annotation '" + annotation + "', type="+ type.getClass().getSimpleName() + ", min=" + min + ", max= " + max + " as integers" );
 
 		final RandomAccessibleInterval< IntType > ids;
 		if ( IntType.class.isInstance( type ) )

@@ -17,8 +17,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -80,12 +78,12 @@ public class IOTest extends AbstractIOTest {
 
 	@ParameterizedTest
 	@MethodSource("provideDatasetPaths")
-	public void io_conserves_metadata_order(String path) {
+	public void io_conserves_annotation_order(String path) {
 		STDataAssembly expected = new STDataAssembly(TestUtils.createTestDataSet());
 		long n = expected.data().numLocations();
 		List<String> labels = Arrays.asList("annotation_1", "celltypes_2", "annotation_3");
 		for (String label : labels)
-			expected.data().getMetaData().put(label, ArrayImgs.ints(new int[(int) n], n));
+			expected.data().getAnnotations().put(label, ArrayImgs.ints(new int[(int) n], n));
 
 		try {
 			SpatialDataIO sdio = SpatialDataIO.inferFromName(getPlaygroundPath(path), executorService);

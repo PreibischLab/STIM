@@ -96,12 +96,12 @@ public class N5IO extends SpatialDataIO {
 	}
 
 	@Override
-	protected List<String> detectMetaData(N5Reader reader, String annotationsGroup) throws IOException {
+	protected List<String> detectAnnotations(N5Reader reader, String annotationsGroup) throws IOException {
 		return Arrays.asList(reader.list(annotationsGroup));
 	}
 
 	@Override
-	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readMetaData(N5Reader reader, String annotationsGroup, String label) throws IOException {
+	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readAnnotations(N5Reader reader, String annotationsGroup, String label) throws IOException {
 		return N5Utils.open(reader, reader.groupPath(annotationsGroup, label));
 	}
 
@@ -141,7 +141,7 @@ public class N5IO extends SpatialDataIO {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	protected void writeMetaData(N5Writer writer, String annotationsGroup, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
+	protected void writeAnnotations(N5Writer writer, String annotationsGroup, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
 		String datasetName = writer.groupPath(annotationsGroup, label);
 		writer.createGroup(datasetName);
 		try {

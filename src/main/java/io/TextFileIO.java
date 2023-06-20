@@ -75,7 +75,7 @@ public class TextFileIO
 
 		Map<String, int[]> annotationIds = new HashMap<>();
 		for (Entry<String, BufferedReader> entry : annotations.entrySet()) {
-			int[] ids = readMetaData(
+			int[] ids = readAnnotations(
 					entry.getValue(),
 					barcodes,
 					notAssigned);
@@ -127,13 +127,13 @@ public class TextFileIO
 
 			data = new STDataText( coordinatesRed, geneMapRed );
 			for (Entry<String, int[]> entry : annotationIdsRed.entrySet())
-				data.getMetaData().put(entry.getKey(), ArrayImgs.ints(entry.getValue(), (int)data.numLocations()));
+				data.getAnnotations().put(entry.getKey(), ArrayImgs.ints(entry.getValue(), (int)data.numLocations()));
 		}
 		else
 		{
 			data = new STDataText( geneData.getA(), geneData.getB() );
 			for (Entry<String, int[]> entry : annotationIds.entrySet())
-				data.getMetaData().put(entry.getKey(), ArrayImgs.ints(entry.getValue(), (int)data.numLocations()));
+				data.getAnnotations().put(entry.getKey(), ArrayImgs.ints(entry.getValue(), (int)data.numLocations()));
 		}
 
 		System.out.println( "Parsing took " + ( System.currentTimeMillis() - time ) + " ms." );
@@ -141,16 +141,16 @@ public class TextFileIO
 		return data;
 	}
 
-	public static int[] readMetaData( final BufferedReader metaFile, final List< String > barcodes ) throws IOException
+	public static int[] readAnnotations( final BufferedReader annotationFile, final List< String > barcodes ) throws IOException
 	{
-		return readMetaData(metaFile, barcodes, null);
+		return readAnnotations(annotationFile, barcodes, null);
 	}
 
 	/*
-	 * Important: the barcodes list defines the order of the returned int[] array. Not all barcodes might be listed in the metaFile,
+	 * Important: the barcodes list defines the order of the returned int[] array. Not all barcodes might be listed in the annotationFile,
 	 * 			  those id's that were not assigned will be listed in the notAssigned map
 	 */
-	public static int[] readMetaData( final BufferedReader metaFile, final List< String > barcodes, final Set< Integer > notAssigned ) throws IOException
+	public static int[] readAnnotations( final BufferedReader annotationFile, final List< String > barcodes, final Set< Integer > notAssigned ) throws IOException
 	{
 		final HashMap< String, Integer > barcodeMap = new HashMap<>();
 
@@ -164,7 +164,7 @@ public class TextFileIO
 		i = 0;
 		String nextLine = null;
 
-		while ( (nextLine = metaFile.readLine()) != null ) 
+		while ( (nextLine = annotationFile.readLine()) != null )
 		{
 			String[] barcodeWithId = nextLine.split( "," );
 
@@ -200,19 +200,19 @@ public class TextFileIO
 	/**
 	 * Assumes that the order of the entries in the file are the same (no barcode-check)
 	 * 
-	 * @param metaFile
+	 * @param annotationFile
 	 * @param numLocations
 	 * @return
 	 * @throws IOException
 	 */
-	public static int[] readMetaData( final BufferedReader metaFile, final int numLocations ) throws IOException
+	public static int[] readAnnotations( final BufferedReader annotationFile, final int numLocations ) throws IOException
 	{
 		int[] ids = new int[ numLocations ];
 
 		int i = 0;
 		String nextLine = null;
 
-		while ( (nextLine = metaFile.readLine()) != null ) 
+		while ( (nextLine = annotationFile.readLine()) != null )
 		{
 			String[] val = nextLine.split( "," );
 

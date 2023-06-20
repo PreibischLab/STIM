@@ -21,7 +21,7 @@ A **minimal example** of a two-slice Visium dataset is available [here](https://
    3. [Tutorial: aligning a multi-slice dataset](#tutorial-aligning-a-multi-slice-dataset)
 2. [Installation instructions](#installation-instructions)
    1. [Resaving](#Resaving)
-   2. [Adding metadata](#adding-metadata) (TODO: rename to annotations)
+   2. [Adding annotations](#adding-annotations)
    3. [Normalization](#normalization)
    4. [Iteractive viewing application](#iteractive-viewing-application)
    5. [Render images and view or save as TIFF](#render-images-and-view-or-save-as-tiff)
@@ -50,10 +50,10 @@ For a slice-dataset, you can:
 * interactively view it using `st-explorer` (explore all genes & annotations) or `st-bdv-view` (view multiple genes in parallel)
 * render the dataset in ImageJ/Fiji and save the rendering, e.g., as TIFF, using `st-render`;
 * normalize the dataset using `st-normalize`;
-* add metadata such as, e.g., celltype annotations, using `st-add-metadata`;
+* add annotations such as, e.g., celltypes, using `st-add-annotations`;
 * create a container-dataset from several slice-datasets (see below).
 
-For alignment of several slices, slices have to be grouped into an N5-container to allow additional metadata to be stored. In addition to all commands listed above for single datasets, the subsequent commands can be used for datasets within an N5-container:
+For alignment of several slices, slices have to be grouped into an N5-container to allow additional annotations to be stored. In addition to all commands listed above for single datasets, the subsequent commands can be used for datasets within an N5-container:
 * create a container-dataset containing one or more existing slice-datasets using `st-add-dataset` (TODO st-add-slice rename);
 * add a slice-dataset to a pre-existing container-dataset using `st-add-dataset` (TODO st-add-slice rename);
 * perform pairwise alignment of slices using `st-align-pairs` (pre-processing);
@@ -159,7 +159,7 @@ Install into your favorite local binary `$PATH` (or leave empty for using the ch
 ```
 All dependencies will be downloaded and managed by maven automatically.
 
-This currently installs several tools: `st-resave, st-add-dataset, st-normalize, st-explorer, st-render, st-bdv-view, st-add-metadata, st-align-pairs, st-align-pairs-view, st-align-global`.
+This currently installs several tools: `st-resave, st-add-dataset, st-normalize, st-explorer, st-render, st-bdv-view, st-add-annotations, st-align-pairs, st-align-pairs-view, st-align-global`.
 
 The process should finish with a message similar to this (here we only called `./install` thus installing in the code directory):
 ```bash
@@ -169,7 +169,7 @@ Installing 'st-bdv-view' command into /Users/spreibi/Downloads/stim_test/stim
 Installing 'st-resave' command into /Users/spreibi/Downloads/stim_test/stim
 Installing 'st-add-dataset' command into /Users/spreibi/Downloads/stim_test/stim
 Installing 'st-normalize' command into /Users/spreibi/Downloads/stim_test/stim
-Installing 'st-add-metadata' command into /Users/spreibi/Downloads/stim_test/stim
+Installing 'st-add-annotations' command into /Users/spreibi/Downloads/stim_test/stim
 Installing 'st-align-pairs' command into /Users/spreibi/Downloads/stim_test/stim
 Installing 'st-align-pairs-view' command into /Users/spreibi/Downloads/stim_test/stim
 Installing 'st-align-global' command into /Users/spreibi/Downloads/stim_test/stim
@@ -221,15 +221,15 @@ ACCGTCTGAATTC,40
 ...
 ```
 
-### Adding metadata
-You can also add CSV metadata (e.g., celltypes) to an existing dataset (within or outside some N5-container):
+### Adding annotations
+You can also add CSV annotations (e.g., celltypes) to an existing dataset (within or outside some N5-container):
 ```bash
-./st-add-metadata \
+./st-add-annotations \
      -i '/path/input.n5' \
-     -m '/path/celltypes.csv' \
+     -a '/path/celltypes.csv' \
      [-l 'label']
 ```
-The metadata is stored in the dataset within the intended group as `label` if the `-l` option is given, otherwise the label is taken from the file name (in the above case, `celltypes`).
+The annotations are stored in the dataset within the intended group as `label` if the `-l` option is given, otherwise the label is taken from the file name (in the above case, `celltypes`).
 Note that this command does not act upon missing barcodes, but only warns about them.
 
 ### Normalization
@@ -278,7 +278,7 @@ In order to interactively browse the 2D/3D space of one or more datasets with Bi
 ./st-bdv-view \
      -i '/path/directory.n5' \
      -g Calm2,Hpca \
-     [-md 'celltype']
+     [-a 'celltype']
      [-d 'Puck_180528_20.n5,Puck_180528_22.n5'] \
      [-z 5.0] \
      [-c '0,255'] \
@@ -287,7 +287,7 @@ In order to interactively browse the 2D/3D space of one or more datasets with Bi
      [-sf 2.0] \
 ```
 Dataset(s) from the selected input `-i` (single dataset or N5-container) will be interactively rendered for one or more selected genes `-g` (multiple genes will be overlaid into different colors).
-The switch `-md` will overlay for example celltype annotations.
+The switch `-a` will overlay for example celltype annotations.
 By default all datasets will be displayed, but they can be limited (or ordered) using `-d`.
 You can define the distance between sections with `-z` (as a factor of median spacing between sequenced locations), `-c` allows to preset the BigDataViewer intensity range and parameters `-f, -m, -sf` are explained above (4).
 

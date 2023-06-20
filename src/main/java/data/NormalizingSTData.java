@@ -45,9 +45,9 @@ public class NormalizingSTData implements STData
 	}
 
 	@Override
-	public Map< String, RandomAccessibleInterval< ? extends NativeType< ? > > > getMetaData()
+	public Map< String, RandomAccessibleInterval< ? extends NativeType< ? > > > getAnnotations()
 	{
-		return data.getMetaData();
+		return data.getAnnotations();
 	}
 
 	/*

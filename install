@@ -59,7 +59,7 @@ install_command st-bdv-view "cmd.DisplayStackedSlides"
 install_command st-resave "cmd.Resave"
 install_command st-add-dataset "cmd.AddDataset"
 install_command st-normalize "cmd.Normalize"
-install_command st-add-metadata "cmd.AddMetaData"
+install_command st-add-annotations "cmd.AddAnnotations"
 install_command st-align-pairs "cmd.PairwiseSectionAligner"
 install_command st-align-pairs-view "cmd.ViewPairwiseAlignment"
 install_command st-align-global "cmd.GlobalOpt"
@@ -75,7 +75,7 @@ else
     mv st-resave $INSTALL_DIR/
     mv st-add-dataset $INSTALL_DIR/
     mv st-normalize $INSTALL_DIR/
-    mv st-add-metadata $INSTALL_DIR/
+    mv st-add-annotations $INSTALL_DIR/
     mv st-align-pairs $INSTALL_DIR/
     mv st-align-pairs-view $INSTALL_DIR/
     mv st-align-global $INSTALL_DIR/
