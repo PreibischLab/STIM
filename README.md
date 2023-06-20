@@ -17,8 +17,8 @@ A **minimal example** of a two-slice Visium dataset is available [here](https://
 ## Contents
 1. **[Tutorials on small examples](#tutorials-on-small-examples)**
    1. [Data layout](#data-layout)
-   2. [Tutorial: interactively exploring a single dataset](#tutorial-interactively-exploring-a-single-dataset)
-   3. [Tutorial: aligning a multi-slice dataset](#tutorial-aligning-a-multi-slice-dataset)
+   2. [Tutorial: interactively exploring a single slice-dataset](#tutorial-interactively-exploring-a-single-slice-dataset)
+   3. [Tutorial: aligning a multi-slice container-dataset](#tutorial-aligning-a-multi-slice-container-dataset)
 2. [Installation instructions](#installation-instructions)
    1. [Conda](#using-conda-all-platforms)
    2. [Building from source](#building-from-source-ubuntu)
@@ -64,46 +64,44 @@ For alignment of several slices, slices have to be grouped into an N5-container 
 * perform global alignment of all slices using `st-align-global` (yielding the actual transformation for each slice-dataset);
 * visualize globally aligned data in BigDataViewer using `st-bdv-view`.
 
-### Tutorial: interactively exploring a single dataset
+### Tutorial: interactively exploring a single slice-dataset
 
 1. First, we need to convert the data we just downloaded as CSV into one of the supported formats for efficent storage and access to the dataset. We want the first slice of the data to be saved in an anndata file called `slice1.h5ad`. Assuming the data are in the downloaded `visium.zip` file in the same directory as the executables, execute the following:
 ```bash
 ./st-resave -i visium.zip/section1_locations.csv,visium.zip/section1_reads.csv,slice1.h5ad
 ```
-(TODO: n5 container here?)
-This will automatically load the `*.csv` files from within the zipped file and create a `slice1.h5ad` file in the current directory *(alternatively, you could extract the `*.csv` files as well and link them)*. It will automatically load the `*.csv` files from within the zipped file and create a `visium.n5` folder containing the re-saved dataset. The entire resaving process should take about 10 seconds on a modern notebook with an SSD. **Note: if your browser automatically unzipped the data, just change `visium.zip` to the respective folder name, most likely `visium`.***
+This will automatically load the `*.csv` files from within the zipped file and create a `slice1.h5ad` file in the current directory *(alternatively, you could extract the `*.csv` files as well and link them)*. The entire resaving process should take about 10 seconds on a modern notebook with an SSD. **Note: if your browser automatically unzipped the data, just change `visium.zip` to the respective folder name, most likely `visium`.***
 
 2. Next, we will simply take a look at the slice-dataset directly:
 ```bash
 ./st-explorer -i slice1.h5ad -c '0,110'
 ```
-First, type `calm2` into the 'search gene' box. Using `-c '0,110'` we already set the display range to more or less match this dataset. You can manually change it by clicking in the BigDataViewer window and press `s` to bring up the brightness dialog. As you switch between **sec1** and **sec2** (TODO: second slice missing here)
-
-3. add new slice?? (No, later, rihgt?)
-you'll see that they are not aligned. Feel free to play with the **Visualization Options** in the explorer, e.g. move **Gauss Rendering** to 0.5 to get a sharper image and then play with the **Median Filter** radius to filter the data.
+First, type `calm2` into the 'search gene' box. Using `-c '0,110'` we already set the display range to more or less match this dataset. You can manually change it by clicking in the BigDataViewer window and press `s` to bring up the brightness dialog. Feel free to play with the **Visualization Options** in the explorer, e.g. move **Gauss Rendering** to 0.5 to get a sharper image and then play with the **Median Filter** radius to filter the data.
 
 3. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/overlay calm2-mbp.png" alt="Example overlay of calm-2, mbp" width="280">Now, we will create a TIFF image for gene Calm2 and Mbp:
 ```bash
 ./st-render -i slice1.h5ad -g 'Calm2,Mbp' -sf 0.5
 ```
-You can now for example overlay both images into a two-channel image using `Image > Color > Merge Channels` and select **Calm2** as magenta and **Mbp** as green. You could for example convert this image to RGB `Image > Type > RGB Color` and then save it as TIFF, JPEG or AVI (e.g JPEG compression). **These can be added to your presentation or paper for example, check out our beautiful AVI** [here](https://github.com/PreibischLab/STIM/blob/master/src/main/resources/calm2-mbp.avi) (you need to click download on the right top). You could render a bigger image setting `-s 0.1`. ***Note: Please check the documentation of [ImageJ](https://imagej.net) and [Fiji](http://fiji.sc) for  help how to further process images.***
+You can now for example overlay both images into a two-channel image using `Image > Color > Merge Channels` and select **Calm2** as magenta and **Mbp** as green. You could for example convert this image to RGB `Image > Type > RGB Color` and then save it as TIFF, JPEG or AVI (e.g JPEG compression). **These can be added to your presentation or paper for example, check out our beautiful AVI** [here](https://github.com/PreibischLab/STIM/blob/master/src/main/resources/calm2-mbp.avi) (you need to click download on the right top). You could render a bigger image setting `-s 0.1`. ***Note: Please check the documentation of [ImageJ](https://imagej.net) and [Fiji](http://fiji.sc) for help how to further process images.***
 
 
-### Tutorial: aligning a multi-slice dataset
+### Tutorial: aligning a multi-slice container-dataset
 
-0. If (TODO: no if's here, gets too complicated) you followed the previous tutorial, you've already resaved the first (TODO: will we already have two slices here?) slice of the visium dataset as anndata file. In order to perform the alignment of the whole dataset (would work identically for more than two slices), we need to combine all datasets into a N5 container-dataset:
+0. Make sure you followed the previous tutorial such that you've already resaved the first slice of the visium dataset as anndata file `slice1.h5ad`.
+
+1. In order to perform the alignment of the whole dataset (would work identically for more than two slices), we need to create a container-dataset containing the already resaved slice-dataset:
 ```bash
 ./st-add-slice -c visium.n5 -i slice1.h5ad
 ```
-This will create a container-dataset `visium.n5` and link the first slice to it. If you don't want the slice to be linked but moved instead, you can use the `-m` flag. Also, custom locations for locations, expression values, and annotations within the slice can be given by `-l`, `-e`, and `-a`, respectively.
+This will create an N5 container `visium.n5` and link the first slice to it. If you don't want the slice to be linked but moved instead, you can use the `-m` flag. Also, custom storage locations for the location, expression values, and annotations arrays within the slice can be given by `-l`, `-e`, and `-a`, respectively.
 
-1. Now we resave the second slice of the data as N5 slice-dataset. Assuming the data are in the downloaded `visium.zip` file in the same directory as the executables:
+2. Now we resave the second slice of the data as N5 slice-dataset. Assuming the data are in the downloaded `visium.zip` file in the same directory as the executables:
 ```bash
 ./st-resave \
    -i visium.zip/section2_locations.csv,visium.zip/section2_reads.csv,slice2.n5 \
    -c visium.n5
 ```
-It will automatically load the `*.csv` files from within the zipped file and add it to the `visium.n5` folder containing the re-saved dataset as well as the first slice. The entire resaving process should take about 10 seconds on a modern notebook with an SSD. **Note**: if your browser automatically unzipped the data, just change `visium.zip` to the respective folder name, most likely `visium`.
+It will automatically load the `*.csv` files from within the zipped file and add it to the `visium.n5` container-dataset already containing the first slice. The entire resaving process should take about 10 seconds on a modern notebook with an SSD. **Note**: if your browser automatically unzipped the data, just change `visium.zip` to the respective folder name, most likely `visium`.
 
 3. Next, we can again take a look at the data, which now includes both slice-datasets. We can do this interactively or by rendering: 
 ```bash
@@ -123,7 +121,7 @@ TODO: how to choose N and inliers? or what do i do if it doesn't work on my data
 ./st-align-pairs -c visium.n5 -n 15 -sf 0.5 --maxEpsilon 100 --minNumInliersGene 30
 ```
 
-5. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/align_mt-Nd4-1.gif" alt="Example alignment" width="480"> Now we will visualize before/after alignment of this pair of slices. To achieve this, we create two independent images, one using `st-render` (see above) and one using `st-align-pairs-view` on the automatically selected gene **mt-Nd4**. `st-render` will display the slices unaligned, while `st-align-pairs-view` will show them aligned. 
+5. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/align_mt-Nd4-1.gif" alt="Example alignment" width="480"> Now we will visualize before/after alignment of this pair of slices. To this end, we create two independent images, one using `st-render` (see above) and one using `st-align-pairs-view` on the automatically selected gene **mt-Nd4**. `st-render` will display the slices unaligned, while `st-align-pairs-view` will show them aligned. 
 ```bash
 ./st-render -i visium.n5 -sf 0.5 -g mt-Nd4
 ./st-align-pairs-view -c visium.n5 -sf 0.5 -g mt-Nd4
@@ -139,7 +137,7 @@ TODO: how to choose N and inliers? or what do i do if it doesn't work on my data
 ```bash
 ./st-bdv-view -i visium.n5 -g Calm2,Mbp,mt-Nd4 -c '0,90' -sf 0.6 -z 3
 ```
-We encourage you to use this small dataset as a starting point for playing with and extending **STIM**. If you have any questions, feature requests or concerns please open an issue here on GitHub. Thanks so much!
+We encourage you to use this small two slice dataset as a starting point for playing with and extending **STIM**. If you have any questions, feature requests or concerns please open an issue here on GitHub. Thanks so much!
 
 ## Installation instructions
 
