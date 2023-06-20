@@ -20,8 +20,8 @@ A **minimal example** of a two-slice Visium dataset is available [here](https://
    2. [Tutorial: interactively exploring a single dataset](#tutorial-interactively-exploring-a-single-dataset)
    3. [Tutorial: aligning a multi-slice dataset](#tutorial-aligning-a-multi-slice-dataset)
 2. [Installation instructions](#installation-instructions)
-   1. [Conda](#conda)
-   2. [Building from source](#building-from-source)
+   1. [Conda](#using-conda-all-platforms)
+   2. [Building from source](#building-from-source-ubuntu)
 3. [Command line API documentation](#command-line-api-documentation)
    1. [Resaving](#Resaving)
    2. [Adding annotations](#adding-annotations)
@@ -43,22 +43,22 @@ To get started please follow the [Installation instructions](#Installation-instr
 For the tutorials, please download the example Visium data by clicking [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view?usp=sharing) and store the zip file in the same directory that contains the executables (assuming you just did `./install`).
 ***Note: your browser might automatically unzip the data, we cover both cases during the resaving step in the tutorials below.***
 
-### Data layout (TODO: use slice-dataset and container-dataset that contains multiple slices)
+### Data layout
 
 A spatial transcriptomics dataset can consist of a single 2-dimensional (2d) slice, or a container that contains several 2d slices and thereby forms a 3d volume. Note that for any 3d volume (container-dataset), each 2d slice can also be addressed as an individual dataset (slice-dataset). Most commands support both types of datasets, while some require a container (e.g. alignment).
 
-Slice-datasets can either be saved in an [anndata](https://anndata.readthedocs.io/en/latest/)-conforming layout, where the expression values, locations and annotations are stored in `/expressionValues`, `/locations` and `/annotations`, and `/X`, `/obsm/spatial` and `/obs`, respectively; or in a [generic hierarchical layout](). The [N5 API](https://github.com/saalfeldlab/n5) is used to read and write these layouts using the N5, Zarr, or HDF5 backend. If your slice(s) are stored in `.csv` files, you can use the `st-resave` command (see below) to resave your data into one of the supported formats by specifying the extension of the output as `.h5` (generic HDF5), `.n5` (generic N5), or `.zarr` (generic Zarr); an additional suffix `ad` is used to indicate the AnnData-conforming layout (e.g. `h5ad` for HDF5-backed AnnData).
+Slice-datasets can either be saved in an [anndata](https://anndata.readthedocs.io/en/latest/)-conforming layout, where the expression values, locations and annotations are stored in `/X`, `/obsm/spatial` and `/obs`, respectively; or in a [generic hierarchical layout](https://www.biorxiv.org/content/10.1101/2021.12.07.471629), where the arrays are stored in `/expressionValues`, `/locations` and `/annotations`, respectively. The [N5 API](https://github.com/saalfeldlab/n5) is used to read and write these layouts using the N5, Zarr, or HDF5 backend. If your slice(s) are stored in `.csv` files, you can use the `st-resave` command (see below) to resave your data into one of the supported formats by specifying the extension of the output as `.h5` (generic HDF5), `.n5` (generic N5), or `.zarr` (generic Zarr); an additional suffix `ad` is used to indicate the AnnData-conforming layout (e.g. `h5ad` for HDF5-backed AnnData).
 
 For a slice-dataset, you can:
 * interactively view it using `st-explorer` (explore all genes & annotations) or `st-bdv-view` (view multiple genes in parallel)
 * render the dataset in ImageJ/Fiji and save the rendering, e.g., as TIFF, using `st-render`;
 * normalize the dataset using `st-normalize`;
 * add annotations such as, e.g., celltypes, using `st-add-annotations`;
-* create a container-dataset from several slice-datasets (see below).
+* create a container-dataset from one or more slice-datasets (see below).
 
-For alignment of several slices, slices have to be grouped into an N5-container to allow additional annotations to be stored. In addition to all commands listed above for single datasets, the subsequent commands can be used for datasets within an N5-container:
-* create a container-dataset containing one or more existing slice-datasets using `st-add-dataset` (TODO st-add-slice rename);
-* add a slice-dataset to a pre-existing container-dataset using `st-add-dataset` (TODO st-add-slice rename);
+For alignment of several slices, slices have to be grouped into an N5-container to allow additional annotations to be stored. In addition to all commands listed above for slice-datasets, the subsequent commands can be used for container-datasets:
+* create a container-dataset containing one or more existing slice-datasets using `st-add-slice`;
+* add a slice-dataset to a pre-existing container-dataset using `st-add-slice`;
 * perform pairwise alignment of slices using `st-align-pairs` (pre-processing);
 * visualize aligned pairs of slices using `st-align-pairs-view` (optional user verification);
 * perform global alignment of all slices using `st-align-global` (yielding the actual transformation for each slice-dataset);
@@ -66,16 +66,16 @@ For alignment of several slices, slices have to be grouped into an N5-container 
 
 ### Tutorial: interactively exploring a single dataset
 
-1. First, we need to convert the data we just downloaded as CSV into one of the supported formats for efficent storage and access to the dataset. We want the first slice of the data to be saved in an anndata file called `section1.h5ad` (TODO: change filenames to slice). Assuming the data are in the downloaded `visium.zip` file in the same directory as the executables, execute the following:
+1. First, we need to convert the data we just downloaded as CSV into one of the supported formats for efficent storage and access to the dataset. We want the first slice of the data to be saved in an anndata file called `slice1.h5ad`. Assuming the data are in the downloaded `visium.zip` file in the same directory as the executables, execute the following:
 ```bash
-./st-resave -i visium.zip/section1_locations.csv,visium.zip/section1_reads.csv,section1.h5ad
+./st-resave -i visium.zip/section1_locations.csv,visium.zip/section1_reads.csv,slice1.h5ad
 ```
 (TODO: n5 container here?)
-This will automatically load the `*.csv` files from within the zipped file and create a `section1.h5ad` file in the current directory *(alternatively, you could extract the `*.csv` as well and link them)*. It will automatically load the `*.csv` files from within the zipped file and create a `visium.n5` folder containing the re-saved dataset. The entire resaving process should take about 10 seconds on a modern notebook with an SSD. **Note: if your browser automatically unzipped the data, just change `visium.zip` to the respective folder name, most likely `visium`.***
+This will automatically load the `*.csv` files from within the zipped file and create a `slice1.h5ad` file in the current directory *(alternatively, you could extract the `*.csv` files as well and link them)*. It will automatically load the `*.csv` files from within the zipped file and create a `visium.n5` folder containing the re-saved dataset. The entire resaving process should take about 10 seconds on a modern notebook with an SSD. **Note: if your browser automatically unzipped the data, just change `visium.zip` to the respective folder name, most likely `visium`.***
 
 2. Next, we will simply take a look at the slice-dataset directly:
 ```bash
-./st-explorer -i section1.h5ad -c '0,110'
+./st-explorer -i slice1.h5ad -c '0,110'
 ```
 First, type `calm2` into the 'search gene' box. Using `-c '0,110'` we already set the display range to more or less match this dataset. You can manually change it by clicking in the BigDataViewer window and press `s` to bring up the brightness dialog. As you switch between **sec1** and **sec2** (TODO: second slice missing here)
 
@@ -84,23 +84,23 @@ you'll see that they are not aligned. Feel free to play with the **Visualization
 
 3. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/overlay calm2-mbp.png" alt="Example overlay of calm-2, mbp" width="280">Now, we will create a TIFF image for gene Calm2 and Mbp:
 ```bash
-./st-render -i section1.h5ad -g 'Calm2,Mbp' -sf 0.5
+./st-render -i slice1.h5ad -g 'Calm2,Mbp' -sf 0.5
 ```
 You can now for example overlay both images into a two-channel image using `Image > Color > Merge Channels` and select **Calm2** as magenta and **Mbp** as green. You could for example convert this image to RGB `Image > Type > RGB Color` and then save it as TIFF, JPEG or AVI (e.g JPEG compression). **These can be added to your presentation or paper for example, check out our beautiful AVI** [here](https://github.com/PreibischLab/STIM/blob/master/src/main/resources/calm2-mbp.avi) (you need to click download on the right top). You could render a bigger image setting `-s 0.1`. ***Note: Please check the documentation of [ImageJ](https://imagej.net) and [Fiji](http://fiji.sc) for  help how to further process images.***
 
 
 ### Tutorial: aligning a multi-slice dataset
 
-0. If (TODO: no if's here, gets too complicated) you followed the previous tutorial, you've already resaved the first (TODO: will we already have two slices here?) section of the visium dataset as anndata file. In order to perform the alignment of the whole dataset (would work identically for more than two slices), we need to combine all datasets into an N5-container:
+0. If (TODO: no if's here, gets too complicated) you followed the previous tutorial, you've already resaved the first (TODO: will we already have two slices here?) slice of the visium dataset as anndata file. In order to perform the alignment of the whole dataset (would work identically for more than two slices), we need to combine all datasets into a N5 container-dataset:
 ```bash
-./st-add-dataset -c visium.n5 -i section1.h5ad
+./st-add-slice -c visium.n5 -i slice1.h5ad
 ```
-This will create an N5-container `visium.n5` and link the first section to it. If you don't want the dataset to be linked but moved instead, you can use the `-m` flag. Also, custom locations for locations, expression values, and annotations within the dataset can be given by `-l`, `-e`, and `-a`, respectively.
+This will create a container-dataset `visium.n5` and link the first slice to it. If you don't want the slice to be linked but moved instead, you can use the `-m` flag. Also, custom locations for locations, expression values, and annotations within the slice can be given by `-l`, `-e`, and `-a`, respectively.
 
-1. Now we resave the second section of the data into an N5-container. We want to store this section as N5-dataset. Assuming the data are in the downloaded `visium.zip` file in the same directory as the executables:
+1. Now we resave the second slice of the data as N5 slice-dataset. Assuming the data are in the downloaded `visium.zip` file in the same directory as the executables:
 ```bash
 ./st-resave \
-   -i visium.zip/section2_locations.csv,visium.zip/section2_reads.csv,section2.n5 \
+   -i visium.zip/section2_locations.csv,visium.zip/section2_reads.csv,slice2.n5 \
    -c visium.n5
 ```
 It will automatically load the `*.csv` files from within the zipped file and add it to the `visium.n5` folder containing the re-saved dataset as well as the first slice. The entire resaving process should take about 10 seconds on a modern notebook with an SSD. **Note**: if your browser automatically unzipped the data, just change `visium.zip` to the respective folder name, most likely `visium`.
@@ -112,9 +112,9 @@ It will automatically load the `*.csv` files from within the zipped file and add
 ./st-render -i visium.n5 -g 'Calm2,Mbp' -sf 0.5
 ```
 Selecting genes and adjusting visualization options work exactly as in the first tutorial.
-<img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/overlay calm2-mbp.png" alt="Example overlay of calm-2, mbp" width="280">We can now overlay both images into a two-channel image again using `Image > Color > Merge Channels` and select **Calm2** as magenta and **Mbp** as green. By flipping through the slices (sec1 and sec2) you will realize that they are not aligned.
+<img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/overlay calm2-mbp.png" alt="Example overlay of calm-2, mbp" width="280">We can now overlay both images into a two-channel image again using `Image > Color > Merge Channels` and select **Calm2** as magenta and **Mbp** as green. By flipping through the slices (slice1 and slice2) you will realize that they are not aligned.
 
-4. To remedy this, we will perform alignment of the two slices. We will use 15 automatically selected genes `-n` (the more the better, but it is also slower), a maximum error of 100 `--maxEpsilon` (in units of the sequenced locations) and require at least 30 inliers per gene `--minNumInliersGene` (this dataset is more robust than the SlideSeq one). **The alignment process takes around 1-2 minutes on a modern notebook.** *Note: at this point no transformations are stored within the N5-container, but only the list of corresponding points between all pairs of slices.*
+4. To remedy this, we will perform alignment of the two slices. We will use 15 automatically selected genes `-n` (the more the better, but it is also slower), a maximum error of 100 `--maxEpsilon` (in units of the sequenced locations) and require at least 30 inliers per gene `--minNumInliersGene` (this dataset is more robust than the SlideSeq one). **The alignment process takes around 1-2 minutes on a modern notebook.** *Note: at this point no transformations are stored within the container-dataset, but only the list of corresponding points between all pairs of slices.*
 
 TODO: how do I choose maxEpsilon??? maybe use as baseline the avg distance between sequenced points * 10?
 TODO: how to choose N and inliers? or what do i do if it doesn't work on my data?
@@ -123,14 +123,14 @@ TODO: how to choose N and inliers? or what do i do if it doesn't work on my data
 ./st-align-pairs -c visium.n5 -n 15 -sf 0.5 --maxEpsilon 100 --minNumInliersGene 30
 ```
 
-5. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/align_mt-Nd4-1.gif" alt="Example alignment" width="480"> Now we will visualize before/after alignment of this pair of slices. To achieve this, we create two independent images, one using `st-render` (see above) and one using `st-align-pairs-view` on the automatically selected gene **mt-Nd4**. `st-render` will display the sections unaligned, while `st-align-pairs-view` will show them aligned. 
+5. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/align_mt-Nd4-1.gif" alt="Example alignment" width="480"> Now we will visualize before/after alignment of this pair of slices. To achieve this, we create two independent images, one using `st-render` (see above) and one using `st-align-pairs-view` on the automatically selected gene **mt-Nd4**. `st-render` will display the slices unaligned, while `st-align-pairs-view` will show them aligned. 
 ```bash
 ./st-render -i visium.n5 -sf 0.5 -g mt-Nd4
 ./st-align-pairs-view -c visium.n5 -sf 0.5 -g mt-Nd4
 ```
 *Note: to create the GIF shown I saved both images independently, opened them in Fiji, cropped them, combined them, converted them to 8-bit color, set framerate to 1 fps, and saved it as one GIF.* 
 
-6. Finally, we perform the global alignment. In this particular case, it is identical to the pairwise alignment process as we only have two sections. However, we still need to do it so the **final transformations for the sections are stored in the datasets.** After that, `st-explorer`, `st-bdv-view` and `st-render` will take these transformations into account when displaying the data. This final processing step usually only takes a few seconds.
+6. Finally, we perform the global alignment. In this particular case, it is identical to the pairwise alignment process as we only have two slices. However, we still need to do it so the **final transformations for the slices are stored in the slice-datasets.** After that, `st-explorer`, `st-bdv-view` and `st-render` will take these transformations into account when displaying the data. This final processing step usually only takes a few seconds.
 ```bash
 ./st-align-global -c visium.n5 --absoluteThreshold 100 -sf 0.5 --lambda 0.0 --skipICP
 ```
@@ -174,7 +174,7 @@ To install into your favorite local binary `$PATH` (e.g., `$HOME/bin`) you can c
 All dependencies will be downloaded and managed by maven automatically.
 For platforms other than Ubuntu, please find your way and report back if interested.
 
-This currently installs several tools: `st-resave, st-add-dataset, st-normalize, st-explorer, st-render, st-bdv-view, st-add-annotations, st-align-pairs, st-align-pairs-view, st-align-global`.
+This currently installs several tools: `st-resave, st-add-slice, st-normalize, st-explorer, st-render, st-bdv-view, st-add-annotations, st-align-pairs, st-align-pairs-view, st-align-global`.
 
 The process should finish with a message similar to this (here we only called `./install` thus installing in the code directory):
 ```bash
@@ -182,7 +182,7 @@ Installing 'st-explorer' command into /Users/spreibi/Downloads/stim_test/stim
 Installing 'st-render' command into /Users/spreibi/Downloads/stim_test/stim
 Installing 'st-bdv-view' command into /Users/spreibi/Downloads/stim_test/stim
 Installing 'st-resave' command into /Users/spreibi/Downloads/stim_test/stim
-Installing 'st-add-dataset' command into /Users/spreibi/Downloads/stim_test/stim
+Installing 'st-add-slice' command into /Users/spreibi/Downloads/stim_test/stim
 Installing 'st-normalize' command into /Users/spreibi/Downloads/stim_test/stim
 Installing 'st-add-annotations' command into /Users/spreibi/Downloads/stim_test/stim
 Installing 'st-align-pairs' command into /Users/spreibi/Downloads/stim_test/stim
@@ -304,7 +304,7 @@ In order to interactively browse the 2D/3D space of one or more datasets with Bi
 Dataset(s) from the selected input `-i` (single dataset or N5-container) will be interactively rendered for one or more selected genes `-g` (multiple genes will be overlaid into different colors).
 The switch `-a` will overlay for example celltype annotations.
 By default all datasets will be displayed, but they can be limited (or ordered) using `-d`.
-You can define the distance between sections with `-z` (as a factor of median spacing between sequenced locations), `-c` allows to preset the BigDataViewer intensity range and parameters `-f, -m, -sf` are explained above (4).
+You can define the distance between slices with `-z` (as a factor of median spacing between sequenced locations), `-c` allows to preset the BigDataViewer intensity range and parameters `-f, -m, -sf` are explained above (4).
 
 ### Alignment of 2D slices
 
