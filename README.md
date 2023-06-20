@@ -20,6 +20,9 @@ A **minimal example** of a two-slice Visium dataset is available [here](https://
    2. [Tutorial: interactively exploring a single dataset](#tutorial-interactively-exploring-a-single-dataset)
    3. [Tutorial: aligning a multi-slice dataset](#tutorial-aligning-a-multi-slice-dataset)
 2. [Installation instructions](#installation-instructions)
+   1. [Conda](#conda)
+   2. [Building from source](#building-from-source)
+3. [Command line API documentation](#command-line-api-documentation)
    1. [Resaving](#Resaving)
    2. [Adding annotations](#adding-annotations)
    3. [Normalization](#normalization)
@@ -30,12 +33,12 @@ A **minimal example** of a two-slice Visium dataset is available [here](https://
       1. [Pairwise alignment](#pairwise-alignment)
       2. [View pairwise alignment](#view-pairwise-alignment)
       3. [Global optimization and ICP refinement](#global-optimization-and-ICP-refinement)
-3. [Wrapping in Python](#wrapping-in-Python)
-4. [Java code examples](#Java-code-examples) 
+4. [Wrapping in Python](#wrapping-in-Python)
+5. [Java code examples](#Java-code-examples) 
 
 ## Tutorials on small examples
 
-To get started please follow the [Installation instructions](#Installation-instructions) to clone and build **STIM**. **![#f03c15](https://placehold.co/15x15/f03c15/f03c15.png) TODO CONDA or INSTALL** It might be easiest to **not** install into `$HOME/bin` but rather just call `./install` during the installation process. There are two different examples based on the storage layout, a single slice one and one with multiple slices. Therefore, we first explain the basics of our storage layout.
+To get started please follow the [Installation instructions](#Installation-instructions) to install **STIM** either through Conda or by building it from source. There are two different examples based on the storage layout, a single slice one and one with multiple slices. Therefore, we first explain the basics of our storage layout.
 
 For the tutorials, please download the example Visium data by clicking [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view?usp=sharing) and store the zip file in the same directory that contains the executables (assuming you just did `./install`).
 ***Note: your browser might automatically unzip the data, we cover both cases during the resaving step in the tutorials below.***
@@ -138,26 +141,38 @@ TODO: how to choose N and inliers? or what do i do if it doesn't work on my data
 ```
 We encourage you to use this small dataset as a starting point for playing with and extending **STIM**. If you have any questions, feature requests or concerns please open an issue here on GitHub. Thanks so much!
 
-## Installation instructions (TODO: conda)
+## Installation instructions
 
-Installation requires maven and OpenJDK8 (or newer) on Ubuntu:
+### Using Conda (all platforms)
+
+We recommend using Conda to install STIM. If you don't have Conda installed, please follow the instructions [here](https://docs.conda.io/projects/conda/en/latest/user-guide/install/). Once Conda is installed, you can install STIM from conda-forge by running:
+```bash
+conda install -c conda-forge stim
+```
+
+### Building from source (Ubuntu)
+
+Building STIM from source requires maven and OpenJDK8 (or newer). On Ubuntu, you can install them via the default package manager:
 ```bash
 sudo apt-get install openjdk-8-jdk maven
 ```
-On other platforms, please find your way and report back if interested.
 
 Next, please check out this repository and go into the folder
-
 ```
 git clone https://github.com/PreibischLab/stim.git
 cd stim
 ```
 
-Install into your favorite local binary `$PATH` (or leave empty for using the checked out directory):
+The recommended way is to just call the install script without any arguments to install STIM into the checked out directory:
+```bash
+./install
+```
+To install into your favorite local binary `$PATH` (e.g., `$HOME/bin`) you can call:
 ```bash
 ./install $HOME/bin
 ```
 All dependencies will be downloaded and managed by maven automatically.
+For platforms other than Ubuntu, please find your way and report back if interested.
 
 This currently installs several tools: `st-resave, st-add-dataset, st-normalize, st-explorer, st-render, st-bdv-view, st-add-annotations, st-align-pairs, st-align-pairs-view, st-align-global`.
 
