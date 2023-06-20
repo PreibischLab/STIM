@@ -63,8 +63,8 @@ public class PairwiseSectionAligner implements Callable<Void> {
 	@Option(names = {"-n", "--numGenes"}, required = false, description = "use N number of genes that have the highest entropy (default: 100)")
 	private int numGenes = 100;
 
-	@Option(names = {"-e", "--maxEpsilon"}, required = false, description = "maximally allowed alignment error (in global space, independent of scaling factor) for SIFT on a 2D rigid model (default: 250.0 for slideseq)")
-	private double maxEpsilon = 250.0;
+	@Option(names = {"-e", "--maxEpsilon"}, required = false, description = "maximally allowed alignment error (in global space, independent of scaling factor) for SIFT on a 2D rigid model (default: 10 times the average distance between sequenced locations)")
+	private double maxEpsilon = -Double.MAX_VALUE;
 
 	@Option(names = {"--minNumInliers"}, required = false, description = "minimal number of inliers across all tested genes that support the same 2D rigid model (default: 30 for slideseq)")
 	private int minNumInliers = 30;
@@ -113,6 +113,13 @@ public class PairwiseSectionAligner implements Callable<Void> {
 		for (final String dataset : datasetNames) {
 			System.out.println("Opening dataset '" + dataset + "' in '" + containerPath + "' ...");
 			dataToAlign.add(container.openDataset(dataset).readData());
+		}
+
+		if (maxEpsilon <= 0.0) {
+			maxEpsilon = 10 * dataToAlign.stream()
+					.mapToDouble((data) -> data.statistics().getMeanDistance())
+					.summaryStatistics().getAverage();
+			System.out.println("Parameter maxEpsilon is unset or negative; using 10 * average distance between sequenced locations = " + maxEpsilon);
 		}
 
 		// iterate once just to be sure we will not crash half way through because something exists

@@ -103,23 +103,21 @@ This will create an N5 container `visium.n5` and link the first slice to it. If 
 ```
 It will automatically load the `*.csv` files from within the zipped file and add it to the `visium.n5` container-dataset already containing the first slice. The entire resaving process should take about 10 seconds on a modern notebook with an SSD. **Note**: if your browser automatically unzipped the data, just change `visium.zip` to the respective folder name, most likely `visium`.
 
-3. Next, we can again take a look at the data, which now includes both slice-datasets. We can do this interactively or by rendering: 
+3. Next, we can again take a look at the data, which now includes both slice-datasets. We can do this interactively or by rendering using one of the following commands:
 ```bash
 ./st-explorer -i visium.n5 -c '0,110'
-./st-bdv-view ... TODO - but i thinkt it would render as 3d, so not here yet
+./st-bdv-view -i visium.n5 -c '0,110' -g 'Calm2,Mbp' -sf 0.5
 ./st-render -i visium.n5 -g 'Calm2,Mbp' -sf 0.5
 ```
 Selecting genes and adjusting visualization options work exactly as in the first tutorial.
 <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/overlay calm2-mbp.png" alt="Example overlay of calm-2, mbp" width="280">We can now overlay both images into a two-channel image again using `Image > Color > Merge Channels` and select **Calm2** as magenta and **Mbp** as green. By flipping through the slices (slice1 and slice2) you will realize that they are not aligned.
 
-4. To remedy this, we will perform alignment of the two slices. We will use 15 automatically selected genes `-n` (the more the better, but it is also slower), a maximum error of 100 `--maxEpsilon` (in units of the sequenced locations) and require at least 30 inliers per gene `--minNumInliersGene` (this dataset is more robust than the SlideSeq one). **The alignment process takes around 1-2 minutes on a modern notebook.** *Note: at this point no transformations are stored within the container-dataset, but only the list of corresponding points between all pairs of slices.*
-
-TODO: how do I choose maxEpsilon??? maybe use as baseline the avg distance between sequenced points * 10?
-TODO: how to choose N and inliers? or what do i do if it doesn't work on my data?
-
+4. To remedy this, we will perform alignment of the two slices. We will use 15 automatically selected genes `-n`, a maximum error of 100 `--maxEpsilon` (in units of the sequenced locations) and require at least 30 inliers per gene `--minNumInliersGene` (this dataset is more robust than the SlideSeq one). **The alignment process takes around 1-2 minutes on a modern notebook.** *Note: at this point no transformations are stored within the container-dataset, but only the list of corresponding points between all pairs of slices.*
 ```bash
 ./st-align-pairs -c visium.n5 -n 15 -sf 0.5 --maxEpsilon 100 --minNumInliersGene 30
 ```
+
+For your dataset, the optimal choice of parameters may vary. A good baseline for the `--maxEpsilon` parameter is ten times the average distance between the sequenced points. If the `--maxEpsilon` option is not given, this value is computed and used automatically. For the number of selected genes `-n`, higher values yield better results but then alignment is slower. Increasing the minimal number of inliers per gene `--minNumInliersGene` can also increase alignment quality, but can lead to the alignment to fail.
 
 5. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/align_mt-Nd4-1.gif" alt="Example alignment" width="480"> Now we will visualize before/after alignment of this pair of slices. To this end, we create two independent images, one using `st-render` (see above) and one using `st-align-pairs-view` on the automatically selected gene **mt-Nd4**. `st-render` will display the slices unaligned, while `st-align-pairs-view` will show them aligned. 
 ```bash
