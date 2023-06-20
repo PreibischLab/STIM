@@ -1,10 +1,12 @@
 package examples;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
@@ -16,8 +18,8 @@ import gui.STDataAssembly;
 import gui.celltype.CellTypeExplorer;
 import imglib2.StackedIterableRealInterval;
 import imglib2.TransformedIterableRealInterval;
-import io.N5IO;
 import io.Path;
+import io.SpatialDataContainer;
 import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
@@ -29,14 +31,14 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import render.Render;
 
-public class VisualizeMetadata
+public class VisualizeAnnotations
 {
 	// minimal GUI for cell type selection
 	// alignment
 
 	public static Pair< RealRandomAccessible< IntType >, Interval > createStack(
 			final List< STDataAssembly > stdata,
-			final String meta,
+			final String annotation,
 			final double spotSize,
 			final double spacingFactor,
 			final IntType outofbounds,
@@ -46,7 +48,7 @@ public class VisualizeMetadata
 		final ArrayList< IterableRealInterval< IntType > > slices = new ArrayList<>();
 
 		for ( int i = 0; i < stdata.size(); ++i )
-			slices.add( Render.getRealIterable( stdata.get( i ).data(), meta, stdata.get( i ).transform(), filterFactorys, lut ) );
+			slices.add( Render.getRealIterable( stdata.get( i ).data(), annotation, stdata.get( i ).transform(), filterFactorys, lut ) );
 
 		final double medianDistance = stdata.get( 0 ).statistics().getMedianDistance();
 
@@ -70,15 +72,15 @@ public class VisualizeMetadata
 
 	public static void visualize2d(
 			final STData stdata,
-			final String meta,
+			final String annotation,
 			final double spotSize,
 			final AffineTransform2D transform )
 	{
 		final HashMap<Long, ARGBType > lut = new HashMap<>();
 
-		final RealRandomAccessible< IntType > rra = VisualizeMetadata.visualize2d(
+		final RealRandomAccessible< IntType > rra = VisualizeAnnotations.visualize2d(
 				stdata,
-				meta,
+				annotation,
 				spotSize,
 				transform,
 				new IntType( -1 ),
@@ -96,7 +98,7 @@ public class VisualizeMetadata
 		BdvStackSource< ? > source = BdvFunctions.show(
 				Render.switchableConvertToRGB( rra, new IntType( -1 ), new ARGBType(), lut, cte.panel() ),
 				interval,
-				meta,
+				annotation,
 				options );
 		source.setDisplayRange( 0, 255 );
 		source.setDisplayRangeBounds( 0, 2550 );
@@ -106,27 +108,32 @@ public class VisualizeMetadata
 
 	public static RealRandomAccessible< IntType > visualize2d(
 			final STData stdata,
-			final String meta,
+			final String annotation,
 			final double spotSize,
 			final AffineTransform2D transform,
 			final IntType outofbounds,
 			final List< FilterFactory< IntType, IntType > > filterFactorys, // optional
 			final HashMap<Long, ARGBType> lut )
 	{
-		final IterableRealInterval< IntType > data = Render.getRealIterable(stdata, meta, transform, filterFactorys, lut);
+		final IterableRealInterval< IntType > data = Render.getRealIterable(stdata, annotation, transform, filterFactorys, lut);
 
 		return Render.renderNN( data, outofbounds, spotSize );
 	}
 
 	public static void main( String[] args ) throws IOException
 	{
-		final ArrayList< STDataAssembly > puckData =
-				N5IO.openAllDatasets( new File( Path.getPath() + "slide-seq-test.n5" ) );
+		final ExecutorService service = Executors.newFixedThreadPool(8);
+		final List<STDataAssembly> puckData =
+				SpatialDataContainer.openExisting(Path.getPath() + "slide-seq-test.n5", service).openAllDatasets().stream()
+								.map(sdio ->
+									 {try {return sdio.readData();} catch (IOException e) {throw new RuntimeException(e);}
+								}).collect(Collectors.toList());
 
 		visualize2d(
 				puckData.get( 12 ).data(),
 				"celltype",
 				puckData.get( 12 ).statistics().getMedianDistance() / 1.5,
 				puckData.get( 12 ).transform() );
+		service.shutdown();
 	}
 }

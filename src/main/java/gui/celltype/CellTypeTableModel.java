@@ -48,7 +48,7 @@ public class CellTypeTableModel extends AbstractTableModel
 
 	public CellTypeTableModel( final HashMap< Long, ARGBType > lut, final CellTypeExplorerPanel panel )
 	{
-		this.columnNames = new ArrayList< String >();
+		this.columnNames = new ArrayList<>();
 
 		this.columnNames.add( "Cell Type" );
 

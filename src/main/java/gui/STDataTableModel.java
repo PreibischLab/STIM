@@ -71,10 +71,7 @@ public class STDataTableModel extends AbstractTableModel
 	@Override
 	public boolean isCellEditable( final int row, final int column )
 	{
-		if ( column == 5 )
-			return true;
-		else
-			return false;
+		return (column == 5);
 	}
 
 	@Override

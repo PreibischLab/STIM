@@ -1,91 +1,91 @@
 package cmd;
 
-import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-import org.janelia.saalfeldlab.n5.N5FSReader;
-import org.janelia.saalfeldlab.n5.N5FSWriter;
+import gui.STDataAssembly;
+import io.SpatialDataContainer;
+import io.SpatialDataIO;
 
 import data.NormalizingSTData;
-import data.STDataN5;
-import io.N5IO;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 
 public class Normalize implements Callable<Void> {
 
-		@Option(names = {"-o", "--output"}, required = false, description = "output N5 container (default: same as input)")
+		@Option(names = {"-c", "--container"}, required = false, description = "N5 container; if given, all datasets are taken from and added to that container")
+		private String containerPath = null;
+
+		@Option(names = {"-o", "--output"}, required = false, description = "comma separated list of output datasets (default: same as input)")
 		private String output = null;
 
-		@Option(names = {"-i", "--input"}, required = true, description = "input N5 container, e.g. -i /home/ssq.n5")
+		@Option(names = {"-i", "--input"}, required = true, description = "comma separated list of input datasets, e.g. -i /home/ssq.n5")
 		private String input = null;
-
-		@Option(names = {"-d", "--datasets"}, required = false, description = "comma-separated list of datasets to be normalized, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: all datasets)")
-		private String datasets = null;
-
-		@Option(names = {"-n", "--normdatasets"}, required = false, description = "comma-separated list of with the corresponding names of normalized datasets to be normalized, e.g. -n 'NormPuck_180528_20,NormPuck_180528_22' (default: old names extended with -norm if same N5)")
-		private String normdatasets = null;
 
 		@Override
 		public Void call() throws Exception {
-
-			final boolean sameN5;
-
-			if ( output == null || output.length() == 0 )
-			{
-				output = input;
-				sameN5 = true;
-			}
-			else
-			{
-				sameN5 = true;
-			}
-
-			final N5FSReader n5in = N5IO.openN5( new File( input ) );
-			final File n5Path = new File( output );
-			final N5FSWriter n5out = n5Path.exists() ? N5IO.openN5write( n5Path ) : N5IO.createN5( n5Path );
-
-			List< String > inputDatasets, outputDatasets;
-
-			if ( datasets == null || datasets.length() == 0 )
-				inputDatasets = Arrays.asList( n5in.list( "/" ) );
-			else
-				inputDatasets = Arrays.asList( datasets.split( "," ) );
-
-			if ( inputDatasets.size() == 0 )
-			{
-				System.out.println( "no input datasets available. stopping.");
+			List<String> inputDatasets = (input == null) ? new ArrayList<>() :
+					Arrays.stream(input.split(",")).map(String::trim).collect(Collectors.toList());
+			if (inputDatasets.isEmpty()) {
+				System.out.println("No input paths defined: " + input + ". Stopping.");
 				return null;
 			}
 
-			if ( normdatasets == null || normdatasets.length() == 0 )
-				outputDatasets = inputDatasets.stream().map( in -> sameN5 ? in + "-norm" : in ).collect( Collectors.toList() );
-			else
-				outputDatasets = Arrays.asList( normdatasets.split( "," ) );
+			final boolean outputNamesMissing = (output == null || output.trim().isEmpty());
+			List<String> outputDatasets = new ArrayList<>();
+			if (outputNamesMissing) {
+				for (final String dataset : inputDatasets) {
+					int indexOfLastDot = dataset.lastIndexOf(".");
+					if (indexOfLastDot == -1 || indexOfLastDot == 0)
+						outputDatasets.add(dataset + "-normed");
+					else
+						outputDatasets.add(dataset.substring(0, indexOfLastDot) + "-normed" + dataset.substring(indexOfLastDot));
+				}
+			}
+			else {
+				outputDatasets = Arrays.stream(output.split(",")).map(String::trim).collect(Collectors.toList());
+			}
 
-			if ( outputDatasets.size() == 0 )
-			{
-				System.out.println( "no output datasets available. stopping.");
+			if (outputDatasets.size() != inputDatasets.size()) {
+				System.out.println("Size of input datasets " + inputDatasets + " not equal to size of output datasets " + outputDatasets + ". Stopping.");
 				return null;
 			}
 
-			if ( inputDatasets.size() != outputDatasets.size() )
-			{
-				System.out.println( "different number of input datasets and output datasets specified. stopping.");
-				return null;
+			final boolean isStandaloneDataset = (containerPath == null || containerPath.trim().isEmpty());
+			final ExecutorService service = Executors.newFixedThreadPool(8);
+			SpatialDataContainer container = isStandaloneDataset ? null : SpatialDataContainer.openExisting(containerPath, service);
+			SpatialDataIO sdin = null;
+
+			for (int i = 0; i < inputDatasets.size(); i++) {
+				final String inputPath = inputDatasets.get(i);
+				final String outputPath = outputDatasets.get(i);
+
+				sdin = isStandaloneDataset ? SpatialDataIO.inferFromName(inputPath, service) : container.openDataset(inputPath);
+				STDataAssembly stData = sdin.readData();
+
+				if (stData == null) {
+					System.out.println("Could not load dataset '" + inputPath + "'. Stopping.");
+					return null;
+				}
+
+				STDataAssembly normalizedData = new STDataAssembly(new NormalizingSTData(stData.data()),
+																   stData.statistics(),
+																   stData.transform(),
+																   stData.intensityTransform());
+
+				SpatialDataIO sdout = SpatialDataIO.inferFromName(outputPath, service);
+				sdout.writeData(normalizedData);
+				if (!isStandaloneDataset)
+					container.addExistingDataset(outputPath);
 			}
 
-			for ( int i = 0; i < inputDatasets.size(); ++i )
-			{
-				STDataN5 data = N5IO.readN5( n5in, inputDatasets.get( i ) );
-				if ( data != null )
-					N5IO.writeN5(n5out, outputDatasets.get( i ), new NormalizingSTData( data ) );
-			}
-
-			System.out.println( "done." );
+			System.out.println("Done.");
+			service.shutdown();
 
 			return null;
 		}

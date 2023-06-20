@@ -1,6 +1,5 @@
 package data;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,7 +8,6 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealInterval;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.util.Pair;
 
 /**
  * An implementation of STData that uses ImgLib2 datastructures to hold the actual data
@@ -32,7 +30,7 @@ public class STDataImgLib2 extends STDataAbstract
 	private final List< String > geneNames, barcodes;
 	private final HashMap< String, Integer > geneLookup;
 
-	private final Map<String, RandomAccessibleInterval<? extends NativeType< ? >>> metadata;
+	private final Map<String, RandomAccessibleInterval<? extends NativeType< ? >>> annotations;
 
 	private RealInterval realInterval;
 
@@ -63,15 +61,15 @@ public class STDataImgLib2 extends STDataAbstract
 		this.barcodes = barcodes;
 		this.geneLookup = geneLookup;
 
-		this.metadata = new HashMap<>();
+		this.annotations = new HashMap<>();
 
 		this.realInterval = STDataUtils.computeRealInterval( this );
 	}
 
 	@Override
-	public Map<String, RandomAccessibleInterval<? extends NativeType< ? >>> getMetaData()
+	public Map<String, RandomAccessibleInterval<? extends NativeType< ? >>> getAnnotations()
 	{
-		return metadata;
+		return annotations;
 	}
 
 	@Override

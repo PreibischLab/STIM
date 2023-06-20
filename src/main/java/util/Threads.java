@@ -23,11 +23,11 @@ public class Threads
 		if ( imageSize <= Threads.numThreads() )
 			numPortions = (int)imageSize;
 		else
-			numPortions = Math.max( Threads.numThreads(), (int)( imageSize / ( 64l*64l*64l ) ) );
+			numPortions = Math.max( Threads.numThreads(), (int)( imageSize / (64L * 64L * 64L) ) );
 
 		//System.out.println( "nPortions for copy:" + numPortions );
 
-		final Vector<ImagePortion> portions = new Vector<ImagePortion>();
+		final Vector<ImagePortion> portions = new Vector<>();
 
 		if ( imageSize == 0 )
 			return portions;
@@ -47,7 +47,7 @@ public class Threads
 			// move to the starting position of the current thread
 			final long startPosition = portionID * threadChunkSize;
 
-			// the last thread may has to run longer if the number of pixels cannot be divided by the number of threads
+			// the last thread may have to run longer if the number of pixels cannot be divided by the number of threads
 			final long loopSize;
 			if ( portionID == numPortions - 1 )
 				loopSize = threadChunkSize + threadChunkMod;
@@ -71,7 +71,6 @@ public class Threads
 		{
 			System.out.println( "Failed to " + jobDescription + ": " + e );
 			e.printStackTrace();
-			return;
 		}
 	}
 

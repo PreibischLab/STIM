@@ -1,12 +1,11 @@
 package render;
 
 import java.awt.Color;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
-import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import data.STData;
 import filter.FilterFactory;
@@ -22,15 +21,16 @@ import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.KDTree;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.RealCursor;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.converter.Converters;
-import net.imglib2.interpolation.neighborsearch.InverseDistanceWeightingInterpolator;
 import net.imglib2.interpolation.neighborsearch.InverseDistanceWeightingInterpolatorFactory;
 import net.imglib2.interpolation.neighborsearch.NearestNeighborSearchInterpolatorFactory;
 import net.imglib2.neighborsearch.KNearestNeighborSearchOnKDTree;
 import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform2D;
+import net.imglib2.type.Type;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.RealType;
@@ -58,9 +58,9 @@ public class Render
 			final STDataAssembly stdata,
 			final String gene,
 			final double renderSigmaFactor,
-			final List< FilterFactory< DoubleType, DoubleType > > filterFactorys )
+			final List< FilterFactory< DoubleType, DoubleType > > filterFactories )
 	{
-		final IterableRealInterval< DoubleType > data = getRealIterable( stdata, gene, filterFactorys );
+		final IterableRealInterval< DoubleType > data = getRealIterable( stdata, gene, filterFactories );
 
 		// gauss crisp
 		double gaussRenderSigma = stdata.statistics().getMedianDistance() * renderSigmaFactor;
@@ -75,9 +75,9 @@ public class Render
 	public static IterableRealInterval< DoubleType > getRealIterable(
 			final STDataAssembly stdata,
 			final String gene,
-			final List< FilterFactory< DoubleType, DoubleType > > filterFactorys )
+			final List< FilterFactory< DoubleType, DoubleType > > filterFactories )
 	{
-		return getRealIterable(stdata.data(), stdata.transform(), stdata.intensityTransform(), gene, filterFactorys);
+		return getRealIterable(stdata.data(), stdata.transform(), stdata.intensityTransform(), gene, filterFactories);
 	}
 
 	public static IterableRealInterval< DoubleType > getRealIterable(
@@ -85,7 +85,7 @@ public class Render
 			final AffineGet coordinateTransform,
 			final AffineGet intensityTransform,
 			final String gene,
-			final List< FilterFactory< DoubleType, DoubleType > > filterFactorys )
+			final List< FilterFactory< DoubleType, DoubleType > > filterFactories )
 	{
 		IterableRealInterval< DoubleType > data;
 
@@ -110,8 +110,8 @@ public class Render
 					coordinateTransform );
 
 		// filter the iterable
-		if ( filterFactorys != null )
-			for ( final FilterFactory<DoubleType, DoubleType> filterFactory : filterFactorys )
+		if ( filterFactories != null )
+			for ( final FilterFactory<DoubleType, DoubleType> filterFactory : filterFactories )
 				data = Filters.filter( data, filterFactory );
 
 		/*
@@ -136,23 +136,23 @@ public class Render
 
 	public static IterableRealInterval< IntType > getRealIterable(
 			final STData stdata,
-			final String meta,
+			final String annotation,
 			final AffineTransform2D transform,
 			final List< FilterFactory< IntType, IntType > > filterFactorys, // optional
 			final HashMap<Long, ARGBType> lut )
 	{
-		final RandomAccessibleInterval idsIn = stdata.getMetaData().get( meta );
+		final RandomAccessibleInterval idsIn = stdata.getAnnotations().get(annotation);
 
 		if ( idsIn == null )
 		{
-			System.out.println( "WARNING: metadata '" + meta + "' does not exist. skipping.");
+			System.out.println( "WARNING: annotation '" + annotation + "' does not exist. skipping.");
 			return null;
 		}
 
 		final Object type = Views.iterable( idsIn ).firstElement();
 		if ( !IntegerType.class.isInstance( type ) )
 		{
-			System.out.println( "WARNING: metadata '" + meta + "' is not an integer type (but "+ type.getClass().getSimpleName() +". don't know how to render it. skipping.");
+			System.out.println( "WARNING: annotation '" + annotation + "' is not an integer type (but "+ type.getClass().getSimpleName() +". don't know how to render it. skipping.");
 			return null;
 		}
 
@@ -174,7 +174,7 @@ public class Render
 			}
 		}
 
-		System.out.println( "Rendering metadata '" + meta + "', type="+ type.getClass().getSimpleName() + ", min=" + min + ", max= " + max + " as integers" );
+		System.out.println( "Rendering annotation '" + annotation + "', type="+ type.getClass().getSimpleName() + ", min=" + min + ", max= " + max + " as integers" );
 
 		final RandomAccessibleInterval< IntType > ids;
 		if ( IntType.class.isInstance( type ) )
@@ -203,7 +203,7 @@ public class Render
 	public static < T extends RealType< T > > RealRandomAccessible< T > renderNN( final IterableRealInterval< T > data )
 	{
 		return Views.interpolate(
-				new NearestNeighborSearchOnKDTree< T >( new KDTree< T > ( data ) ),
+				new NearestNeighborSearchOnKDTree< T >(createParallelizableKDTreeFrom(data)),
 				new NearestNeighborSearchInterpolatorFactory< T >() );
 	}
 
@@ -213,7 +213,7 @@ public class Render
 			final double p )
 	{
 		return Views.interpolate(
-				new KNearestNeighborSearchOnKDTree< T >( new KDTree< T > ( data ), numNeighbors ),
+				new KNearestNeighborSearchOnKDTree< T >(createParallelizableKDTreeFrom(data), numNeighbors),
 				new InverseDistanceWeightingInterpolatorFactory< T >( p ) );
 	}
 
@@ -226,9 +226,9 @@ public class Render
 	{
 		return Views.interpolate(
 				new KNearestNeighborMaxDistanceSearchOnKDTree< T >(
-						new KDTree< T > ( data ),
+						createParallelizableKDTreeFrom(data),
 						numNeighbors,
-						outofbounds,
+						() -> outofbounds.copy(),
 						maxRadius ),
 				new InverseDistanceWeightingInterpolatorFactory< T >( p ) );
 	}
@@ -237,19 +237,19 @@ public class Render
 	{
 		return Views.interpolate(
 				new NearestNeighborMaxDistanceSearchOnKDTree< T >(
-						new KDTree< T > ( data ),
-						outofbounds,
+						createParallelizableKDTreeFrom(data),
+						() -> outofbounds.copy(),
 						maxRadius ),
 				new NearestNeighborSearchInterpolatorFactory< T >() );
 	}
 
-	public static < S, T > RealRandomAccessible< T > render( final IterableRealInterval< S > data, final RadiusSearchFilterFactory< S, T > filterFactory )
+	public static < S extends Type<S>, T > RealRandomAccessible< T > render( final IterableRealInterval< S > data, final RadiusSearchFilterFactory< S, T > filterFactory )
 	{
 		return Views.interpolate(
-				new FilteringRadiusSearchOnKDTree< S, T >(
-						new KDTree<> ( data ),
+				new FilteringRadiusSearchOnKDTree< S, T >( // data source (F)
+						createParallelizableKDTreeFrom(data),
 						filterFactory ),
-				new IntegratingNeighborSearchInterpolatorFactory< T >() );
+				new IntegratingNeighborSearchInterpolatorFactory< T >() ); // interpolatorfactory (T,F)
 	}
 
 	public static < T extends IntegerType< T > > RealRandomAccessible< ARGBType > convertToRGB( final RealRandomAccessible< T > rra, final T outofbounds, final ARGBType background, final HashMap<Long, ARGBType> lut )
@@ -293,4 +293,17 @@ public class Render
 		return new ARGBType( ARGBType.rgba(c.getRed(), c.getGreen(), c.getBlue(), c.getAlpha()));
 	}
 
+	protected static <T extends Type<T>> KDTree<T> createParallelizableKDTreeFrom(IterableRealInterval<T> data) {
+		final List<RealCursor<T>> positions = new ArrayList<>();
+		final List<T> values = new ArrayList<>();
+
+		RealCursor<T> cursor = data.localizingCursor();
+		while (cursor.hasNext()) {
+			cursor.next();
+			positions.add(cursor.copyCursor());
+			values.add(cursor.get().copy());
+		}
+
+		return new KDTree<T>(values, positions);
+	}
 }

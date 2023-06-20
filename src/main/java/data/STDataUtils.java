@@ -135,7 +135,7 @@ public class STDataUtils
 
 	public static < R extends RealLocalizable > DistanceStats distanceStats( final KDTree< R > tree )
 	{
-		final KNearestNeighborSearch< R > search =  new KNearestNeighborSearchOnKDTree< R >( tree, 2 );
+		final KNearestNeighborSearch< R > search =  new KNearestNeighborSearchOnKDTree<>( tree, 2 );
 
 		final double[] values = new double[ (int)tree.size() ];
 		double min = Double.MAX_VALUE;
@@ -195,23 +195,4 @@ public class STDataUtils
 
 		return new FinalRealInterval( min, max );
 	}
-
-
-	public static STData createTestDataSet()
-	{
-		final ArrayList<  Pair< double[], String > > coordinates = new ArrayList<>();
-		coordinates.add( new ValuePair<>( new double[] { -1, 1 }, "ATTA" ) );
-		coordinates.add( new ValuePair<>( new double[] { 2.1, 2 }, "GTTC" ) );
-		coordinates.add( new ValuePair<>( new double[] { 17.1, -5.1 }, "CCCT" ) );
-
-		final HashMap< String, double[] > geneMap = new HashMap<>();
-
-		geneMap.put( "gene1", new double[] { 1.1, 2.2, 13.1 } );
-		geneMap.put( "gene2", new double[] { 14.1, 23.12, 1.1 } );
-		geneMap.put( "gene3", new double[] { 4.1, 4.15, 7.65 } );
-		geneMap.put( "gene4", new double[] { 0.1, 6.12, 5.12 } );
-
-		return new STDataText( coordinates, geneMap );
-	}
-
 }

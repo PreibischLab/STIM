@@ -4,20 +4,22 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
-import org.janelia.saalfeldlab.n5.N5FSReader;
+import io.SpatialDataContainer;
 
 import align.AlignTools;
 import align.GlobalOptSIFT;
-import io.N5IO;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import util.Threads;
 
 public class GlobalOpt implements Callable<Void> {
 
-	@Option(names = {"-i", "--input"}, required = true, description = "input N5 container, e.g. -i /home/ssq.n5")
-	private String input = null;
+	@Option(names = {"-c", "--container"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")
+	private String containerPath = null;
 
 	@Option(names = {"-d", "--datasets"}, required = false, description = "ordered, comma separated list of one or more datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: all, in order as saved in N5 metadata)")
 	private String datasets = null;
@@ -75,43 +77,35 @@ public class GlobalOpt implements Callable<Void> {
 
 	@Override
 	public Void call() throws Exception {
-
-		final File n5File = new File( input );
-
-		if ( !n5File.exists() )
-		{
-			System.out.println( "N5 '" + n5File.getAbsolutePath() + "'not found. stopping.");
+		if (!(new File(containerPath)).exists()) {
+			System.out.println("Container '" + containerPath + "' does not exist. Stopping.");
 			return null;
 		}
 
-		final N5FSReader n5 = N5IO.openN5( n5File );
-		final List< String > inputDatasets;
-
-		if ( datasets == null || datasets.trim().length() == 0 )
-			inputDatasets = N5IO.listAllDatasets( n5 );
-		else
-			inputDatasets = Arrays.asList( datasets.split( "," ) );
-
-		if ( inputDatasets.size() == 0 )
-		{
-			System.out.println( "no input datasets available. stopping.");
+		if (!SpatialDataContainer.isCompatibleContainer(containerPath)) {
+			System.out.println("Global alignment does not work for single dataset '" + containerPath + "'. Stopping.");
 			return null;
 		}
 
-		
-		//final List< STData > stdata = new ArrayList<>();
+		final ExecutorService service = Executors.newFixedThreadPool(8);
+		SpatialDataContainer container = SpatialDataContainer.openExisting(containerPath, service);
 
-		for ( final String dataset : inputDatasets )
-		{
-			if ( !n5.exists( n5.groupPath( dataset ) ) )
-			{
-				System.out.println( "dataset '" + dataset + "' not found. stopping.");
+		final List<String> datasetNames;
+		if (datasets != null && datasets.trim().length() != 0) {
+			datasetNames = Arrays.stream(datasets.split(","))
+					.map(String::trim)
+					.collect(Collectors.toList());
+		}
+		else {
+			System.out.println("No input datasets specified. Trying to open all datasets in '" + containerPath + "' ...");
+			datasetNames = container.getDatasets();
+		}
+
+		for (final String dataset : datasetNames) {
+			if (!container.getDatasets().contains(dataset)) {
+				System.out.println("Container does not contain dataset '" + dataset + "' in '" + containerPath + "'. Stopping.");
 				return null;
 			}
-			/*else
-			{
-				stdata.add( N5IO.readN5( n5, dataset ) );
-			}*/
 		}
 
 		// -d 'Puck_180602_20,Puck_180602_17'
@@ -133,8 +127,8 @@ public class GlobalOpt implements Callable<Void> {
 		final int maxPlateauwhidthICP = this.minIterationsICP;
 
 		GlobalOptSIFT.globalOpt(
-				n5File,
-				inputDatasets,
+				container,
+				datasetNames,
 				useQuality,
 				lambda,
 				maxAllowedError,
@@ -153,6 +147,7 @@ public class GlobalOpt implements Callable<Void> {
 				smoothnessFactor,
 				gene );
 
+		service.shutdown();
 		return null;
 	}
 

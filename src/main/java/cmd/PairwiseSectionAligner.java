@@ -6,17 +6,21 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
-import org.janelia.saalfeldlab.n5.N5FSWriter;
+import gui.STDataAssembly;
+import io.SpatialDataContainer;
 import org.joml.Math;
 
 import align.AlignTools;
 import align.Pairwise;
 import align.PairwiseSIFT;
 import align.PairwiseSIFT.SIFTParam;
+import align.SiftMatch;
 import data.STData;
 import ij.ImageJ;
-import io.N5IO;
 import mpicbg.models.RigidModel2D;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
@@ -24,8 +28,8 @@ import util.Threads;
 
 public class PairwiseSectionAligner implements Callable<Void> {
 
-	@Option(names = {"-i", "--input"}, required = true, description = "input N5 container, e.g. -i /home/ssq.n5")
-	private String input = null;
+	@Option(names = {"-c", "--container"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")
+	private String containerPath = null;
 
 	@Option(names = {"-d", "--datasets"}, required = false, description = "ordered, comma separated list of one or more datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: all, in order as saved in N5 metadata)")
 	private String datasets = null;
@@ -59,8 +63,8 @@ public class PairwiseSectionAligner implements Callable<Void> {
 	@Option(names = {"-n", "--numGenes"}, required = false, description = "use N number of genes that have the highest entropy (default: 100)")
 	private int numGenes = 100;
 
-	@Option(names = {"-e", "--maxEpsilon"}, required = false, description = "maximally allowed alignment error (in global space, independent of scaling factor) for SIFT on a 2D rigid model (default: 250.0 for slideseq)")
-	private double maxEpsilon = 250.0;
+	@Option(names = {"-e", "--maxEpsilon"}, required = false, description = "maximally allowed alignment error (in global space, independent of scaling factor) for SIFT on a 2D rigid model (default: 10 times the average distance between sequenced locations)")
+	private double maxEpsilon = -Double.MAX_VALUE;
 
 	@Option(names = {"--minNumInliers"}, required = false, description = "minimal number of inliers across all tested genes that support the same 2D rigid model (default: 30 for slideseq)")
 	private int minNumInliers = 30;
@@ -75,90 +79,70 @@ public class PairwiseSectionAligner implements Callable<Void> {
 
 	@Override
 	public Void call() throws Exception {
-
-		final File n5File = new File( input );
-
-		if ( !n5File.exists() )
-		{
-			System.out.println( "N5 '" + n5File.getAbsolutePath() + "'not found. stopping.");
+		if (!(new File(containerPath)).exists()) {
+			System.out.println("Container '" + containerPath + "' does not exist. Stopping.");
 			return null;
 		}
 
-		final N5FSWriter n5 = N5IO.openN5write( n5File );
-
-		final List< String > inputDatasets;
-
-		if ( datasets == null || datasets.trim().length() == 0 )
-		{
-			System.out.println( "no input datasets specified. Trying to load all of them.");
-			inputDatasets = N5IO.listAllDatasets( n5 );
-		}
-		else
-		{
-			inputDatasets = Arrays.asList( datasets.split( "," ) );
-		}
-
-		if ( inputDatasets.size() == 0 )
-		{
-			System.out.println( "no input datasets available. stopping.");
+		if (!SpatialDataContainer.isCompatibleContainer(containerPath)) {
+			System.out.println("Pairwise alignment does not work for single dataset '" + containerPath + "'. Stopping.");
 			return null;
 		}
-		else
-		{
-			System.out.println( "Following datasets were found: ");
-			for ( String s : inputDatasets )
-				System.out.println( s );
-		}
 
-		final List< STData > stdata = new ArrayList<>();
+		final ExecutorService service = Executors.newFixedThreadPool(8);
+		SpatialDataContainer container = SpatialDataContainer.openExisting(containerPath, service);
 
-		for ( final String dataset : inputDatasets )
-		{
-			if ( !n5.exists( n5.groupPath( dataset ) ) )
-			{
-				System.out.println( "dataset '" + dataset + "' not found. stopping.");
+		final List<String> datasetNames;
+		if (datasets != null && datasets.trim().length() != 0) {
+			datasetNames = Arrays.stream(datasets.split(","))
+					.map(String::trim)
+					.collect(Collectors.toList());
+
+			if (datasetNames.size() == 1) {
+				System.out.println("Only one single dataset found (" + datasetNames.get(0) + "). Stopping.");
 				return null;
 			}
-			else
-			{
-				stdata.add( N5IO.readN5( n5, dataset ) );
-			}
+		}
+		else {
+			// TODO: should this really continue? the order of the datasets matters, but getDatasets() returns random order
+			System.out.println("No input datasets specified. Trying to open all datasets in '" + containerPath + "' ...");
+			datasetNames = container.getDatasets();
+		}
+
+		final List<STDataAssembly> dataToAlign = new ArrayList<>();
+		for (final String dataset : datasetNames) {
+			System.out.println("Opening dataset '" + dataset + "' in '" + containerPath + "' ...");
+			dataToAlign.add(container.openDataset(dataset).readData());
+		}
+
+		if (maxEpsilon <= 0.0) {
+			maxEpsilon = 10 * dataToAlign.stream()
+					.mapToDouble((data) -> data.statistics().getMeanDistance())
+					.summaryStatistics().getAverage();
+			System.out.println("Parameter maxEpsilon is unset or negative; using 10 * average distance between sequenced locations = " + maxEpsilon);
 		}
 
 		// iterate once just to be sure we will not crash half way through because something exists
-		for ( int i = 0; i < stdata.size() - 1; ++i )
-		{
-			for ( int j = i + 1; j < stdata.size(); ++j )
-			{
+		List<String> matches = container.getMatches();
+		for ( int i = 0; i < dataToAlign.size() - 1; ++i ) {
+			for ( int j = i + 1; j < dataToAlign.size(); ++j ) {
 				if ( Math.abs( j - i ) > range )
 					continue;
 
 				// clear the alignment metadata
-				final String matchesGroupName = n5.groupPath( "matches" );
-
-				if ( !n5.exists(matchesGroupName) )
-				{
-					System.out.println( "Creating new dataset '" + matchesGroupName + "'" );
-					n5.createGroup( matchesGroupName );
-				}
-
-				final String pairwiseGroupName = n5.groupPath( "matches", inputDatasets.get( i ) + "-" + inputDatasets.get( j ) );
-				if ( new File( n5File, pairwiseGroupName ).exists() )// n5.exists( pairwiseGroupName ) )
-				{
-					if ( overwrite )
-					{
-						System.out.println( "Overwriting previous results for: " + pairwiseGroupName );
-						n5.remove( pairwiseGroupName );
+				final String pairwiseMatchName = container.constructMatchName(datasetNames.get( i ), datasetNames.get( j ));
+				if (matches.contains(pairwiseMatchName)) {
+					if ( overwrite ) {
+						System.out.println("Overwriting previous results for: " + pairwiseMatchName);
+						container.deleteMatch(pairwiseMatchName);
 					}
-					else
-					{
-						System.out.println( "Previous results exist '" + pairwiseGroupName + "', stopping. [Rerun with --overwrite for automatic deletion of previouse results]");
+					else {
+						System.out.println("Previous results exist '" + pairwiseMatchName + "', stopping. [Rerun with --overwrite for automatic deletion of previouse results]");
 						return null;
 					}
 				}
-				else
-				{
-					System.out.println( "To align: " + pairwiseGroupName );
+				else {
+					System.out.println("To align: " + pairwiseMatchName);
 				}
 			}
 		}
@@ -166,17 +150,15 @@ public class PairwiseSectionAligner implements Callable<Void> {
 		if ( !hidePairwiseRendering )
 			new ImageJ();
 
-		for ( int i = 0; i < stdata.size() - 1; ++i )
-		{
-			for ( int j = i + 1; j < stdata.size(); ++j )
-			{
+		for ( int i = 0; i < dataToAlign.size() - 1; ++i ) {
+			for ( int j = i + 1; j < dataToAlign.size(); ++j ) {
 				if ( Math.abs( j - i ) > range )
 					continue;
 
-				final STData stData1 = stdata.get( i );
-				final STData stData2 = stdata.get( j );
-				final String dataset1 = inputDatasets.get( i );
-				final String dataset2 = inputDatasets.get( j );
+				final STData stData1 = dataToAlign.get( i ).data();
+				final STData stData2 = dataToAlign.get( j ).data();
+				final String dataset1 = datasetNames.get( i );
+				final String dataset2 = datasetNames.get( j );
 
 				System.out.println( "Processing " + dataset1 + " <> " + dataset2 );
 
@@ -274,19 +256,25 @@ public class PairwiseSectionAligner implements Callable<Void> {
 
 				// hard case: -i /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d1 Puck_180602_15 -d2 Puck_180602_16 -n 30
 				// even harder: -i /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d1 Puck_180602_20 -d2 Puck_180602_18 -n 100 --overwrite
-				PairwiseSIFT.pairwiseSIFT(
+				SiftMatch match = PairwiseSIFT.pairwiseSIFT(
 						stData1, dataset1, stData2, dataset2,
 						new RigidModel2D(), new RigidModel2D(),
-						n5File, new ArrayList<>( genesToTest ),
+						new ArrayList<>( genesToTest ),
 						p, scale, smoothnessFactor, maxEpsilon,
 						minNumInliers, minNumInliersGene,
-						saveResult, visualizeResult, Threads.numThreads() );
+						visualizeResult, Threads.numThreads() );
+
+				if (saveResult && match.getNumInliers() >= minNumInliers) {
+					container.savePairwiseMatch(match);
+				}
+
 
 				System.out.println( "Took " + (System.currentTimeMillis() - time)/1000 + " sec." );
 
 			}
 		}
 
+		service.shutdown();
 		return null;
 	}
 

@@ -391,18 +391,13 @@ public class ImgLib2Util
 	{
 		final long numPixels = Views.iterable( input ).size();
 		final Vector< ImagePortion > portions = Threads.divideIntoPortions( numPixels );
-		final ArrayList< Callable< Void > > tasks = new ArrayList< Callable< Void > >();
+		final ArrayList< Callable< Void > > tasks = new ArrayList<>();
 
 		for ( final ImagePortion portion : portions )
 		{
-			tasks.add( new Callable< Void >()
-			{
-				@Override
-				public Void call() throws Exception
-				{
-					copyImg( portion.getStartPosition(), portion.getLoopSize(), input, output );
-					return null;
-				}
+			tasks.add(() -> {
+				copyImg( portion.getStartPosition(), portion.getLoopSize(), input, output );
+				return null;
 			});
 		}
 
@@ -448,18 +443,18 @@ public class ImgLib2Util
 
 	public static Img< FloatType > openAs32Bit( final File file )
 	{
-		return openAs32Bit( file, new ArrayImgFactory< FloatType >( new FloatType( )) );
+		return openAs32Bit( file, new ArrayImgFactory<>(new FloatType()) );
 	}
 
 	public static Img< FloatType > openAs32Bit( final File file, final ImgFactory< FloatType > factory )
 	{
 		if ( !file.exists() )
-			throw new RuntimeException( "File '" + file.getAbsolutePath() + "' does not exisit." );
+			throw new RuntimeException( "File '" + file.getAbsolutePath() + "' does not exist." );
 
 		final ImagePlus imp = new Opener().openImage( file.getAbsolutePath() );
 
 		if ( imp == null )
-			throw new RuntimeException( "File '" + file.getAbsolutePath() + "' coult not be opened." );
+			throw new RuntimeException( "File '" + file.getAbsolutePath() + "' could not be opened." );
 
 		final Img< FloatType > img;
 
@@ -489,7 +484,7 @@ public class ImgLib2Util
 			final Cursor< FloatType > c = img.localizingCursor();
 
 			// for efficiency reasons
-			final ArrayList< ImageProcessor > ips = new ArrayList< ImageProcessor >();
+			final ArrayList< ImageProcessor > ips = new ArrayList<>();
 
 			for ( int z = 0; z < imp.getStack().getSize(); ++z )
 				ips.add( imp.getStack().getProcessor( z + 1 ) );

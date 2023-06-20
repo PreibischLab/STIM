@@ -27,15 +27,16 @@ import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 import javax.swing.JFrame;
 
-import io.N5IO;
 import io.Path;
+import io.SpatialDataContainer;
 
 public class STDataExplorer
 {
@@ -89,13 +90,18 @@ public class STDataExplorer
 
 	public static void main( String[] args ) throws IOException
 	{
-		final ArrayList< STDataAssembly > slides =
-				N5IO.openAllDatasets( new File( Path.getPath() + "slide-seq-test.n5" ) );
+		final ExecutorService service = Executors.newFixedThreadPool(8);
+		final List<STDataAssembly> slides =
+				SpatialDataContainer.openExisting(Path.getPath() + "visium.n5", service).openAllDatasets().stream()
+						.map(sdio ->
+							 {try {return sdio.readData();} catch (IOException e) {throw new RuntimeException(e);}})
+						.collect(Collectors.toList());
 
 		// ignore intensity adjustments
 		for ( final STDataAssembly s : slides )
 			s.intensityTransform().set( 1, 0 );
 
 		new STDataExplorer( slides );
+		service.shutdown();
 	}
 }

@@ -1,21 +1,19 @@
 package align;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
-import org.janelia.saalfeldlab.n5.DataType;
-import org.janelia.saalfeldlab.n5.GzipCompression;
-import org.janelia.saalfeldlab.n5.N5FSReader;
-import org.janelia.saalfeldlab.n5.N5FSWriter;
+import gui.STDataAssembly;
+import io.SpatialDataContainer;
 import org.joml.Math;
 
 import data.STData;
@@ -25,22 +23,17 @@ import ij.ImageJ;
 import ij.ImagePlus;
 import ij.process.ImageProcessor;
 import imglib2.ImgLib2Util;
-import io.N5IO;
 import io.Path;
 import mpicbg.ij.FeatureTransform;
 import mpicbg.ij.SIFT;
 import mpicbg.ij.util.Util;
 import mpicbg.imagefeatures.Feature;
 import mpicbg.imagefeatures.FloatArray2DSIFT;
-import mpicbg.models.AbstractModel;
 import mpicbg.models.Affine2D;
-import mpicbg.models.AffineModel2D;
-import mpicbg.models.InterpolatedAffineModel2D;
 import mpicbg.models.Model;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
-import mpicbg.models.RigidModel2D;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.RealFloatConverter;
@@ -139,8 +132,8 @@ public class PairwiseSIFT
 	}
 	public static List< PointMatch > extractCandidates( final ImageProcessor ip1, final ImageProcessor ip2, final String gene, final SIFTParam p )
 	{
-		final List< Feature > fs1 = new ArrayList< Feature >();
-		final List< Feature > fs2 = new ArrayList< Feature >();
+		final List< Feature > fs1 = new ArrayList<>();
+		final List< Feature > fs2 = new ArrayList<>();
 
 		final FloatArray2DSIFT sift = new FloatArray2DSIFT( p.sift );
 
@@ -148,10 +141,10 @@ public class PairwiseSIFT
 		ijSIFT.extractFeatures( ip1, fs1 );
 		ijSIFT.extractFeatures( ip2, fs2 );
 
-		final List< PointMatch > candidates = new ArrayList< PointMatch >();
+		final List< PointMatch > candidates = new ArrayList<>();
 		FeatureTransform.matchFeatures( fs1, fs2, candidates, p.rod );
 
-		final List< PointMatch > candidatesST = new ArrayList< PointMatch >();
+		final List< PointMatch > candidatesST = new ArrayList<>();
 		for ( final PointMatch pm : candidates )
 			candidatesST.add(
 					new PointMatch(
@@ -163,7 +156,7 @@ public class PairwiseSIFT
 
 	public static ArrayList< PointMatch > consensus( final List< PointMatch > candidates, final Model< ? > model, final int minNumInliers, final double maxEpsilon )
 	{
-		final ArrayList< PointMatch > inliers = new ArrayList< PointMatch >();
+		final ArrayList< PointMatch > inliers = new ArrayList<>();
 
 		boolean modelFound;
 
@@ -195,8 +188,8 @@ public class PairwiseSIFT
 	{
 		if ( inliers.size() > 0 )
 		{
-			final ArrayList< Point > p1 = new ArrayList< Point >();
-			final ArrayList< Point > p2 = new ArrayList< Point >();
+			final ArrayList< Point > p1 = new ArrayList<>();
+			final ArrayList< Point > p2 = new ArrayList<>();
 
 			PointMatch.sourcePoints( inliers, p1 );
 			PointMatch.targetPoints( inliers, p2 );
@@ -206,14 +199,13 @@ public class PairwiseSIFT
 		}
 	}
 
-	public static < M extends Affine2D<M> & Model<M>, N extends Affine2D<N> & Model<N> > void pairwiseSIFT(
+	public static <M extends Affine2D<M> & Model<M>, N extends Affine2D<N> & Model<N>> SiftMatch pairwiseSIFT(
 			final STData stDataA,
 			final String stDataAname,
 			final STData stDataB,
 			final String stDataBname,
 			final M modelPairwise,
 			final N modelGlobal,
-			final File n5File,
 			final List< String > genesToTest,
 			final SIFTParam p,
 			final double scale,
@@ -221,9 +213,8 @@ public class PairwiseSIFT
 			final double maxEpsilon,
 			final int minNumInliers,
 			final int minNumInliersPerGene,
-			final boolean saveResult,
 			final boolean visualizeResult,
-			final int numThreads ) throws IOException
+			final int numThreads )
 	{
 		final AffineTransform2D tS = new AffineTransform2D();
 		tS.scale( scale );
@@ -371,36 +362,6 @@ public class PairwiseSIFT
 		// the model that maps J to I
 		System.out.println( stDataAname + "\t" + stDataBname + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + AlignTools.modelToAffineTransform2D( modelGlobal ).inverse() );
 
-		if ( saveResult && inliers.size() >= minNumInliers )
-		{
-			final HashSet< String > genes = new HashSet< String >();
-			for ( final PointMatch pm : inliers )
-				genes.add( ((PointST)pm.getP1()).getGene() );
-
-			final N5FSWriter n5 = N5IO.openN5write( n5File );
-			final String pairwiseGroupName = n5.groupPath( "/", "matches", stDataAname + "-" + stDataBname );
-			if (n5.exists(pairwiseGroupName))
-				n5.remove( pairwiseGroupName );
-			n5.createDataset(
-					pairwiseGroupName,
-					new long[] {1},
-					new int[] {1},
-					DataType.OBJECT,
-					new GzipCompression());
-	
-			n5.setAttribute( pairwiseGroupName, "stDataAname", stDataAname );
-			n5.setAttribute( pairwiseGroupName, "stDataBname", stDataBname );
-			n5.setAttribute( pairwiseGroupName, "inliers", inliers.size() );
-			n5.setAttribute( pairwiseGroupName, "candidates", allCandidates.size() );
-			n5.setAttribute( pairwiseGroupName, "genes", genes );
-	
-			n5.writeSerializedBlock(
-					inliers,
-					pairwiseGroupName,
-					n5.getDatasetAttributes( pairwiseGroupName ),
-					new long[]{0});
-		}
-
 		if ( visualizeResult && inliers.size() >= minNumInliers )
 		{
 			ImagePlus rendered = AlignTools.visualizePair(
@@ -433,6 +394,7 @@ public class PairwiseSIFT
 		}
 
 		System.out.println( "errors: " + minError + "/" + error + "/" + maxError );
+		return new SiftMatch(stDataAname, stDataBname, allCandidates.size(), inliers);
 	}
 
 	public static void main( String[] args ) throws IOException
@@ -460,20 +422,18 @@ public class PairwiseSIFT
 		//final String[] pucks = new String[] { "Puck_180531_23", "Puck_180531_22" };
 		//final String[] pucks = new String[] { "Puck_180602_18", "Puck_180531_18" }; // 1-8
 
-		final File n5File = new File( path + "slide-seq-normalized.n5" );
-		final N5FSReader n5 = N5IO.openN5( n5File );
-		final List< String > pucks = N5IO.listAllDatasets( n5 );
+		final ExecutorService service = Executors.newFixedThreadPool(8);
+		SpatialDataContainer container = SpatialDataContainer.openExisting(path + "slide-seq-normalized.n5", service);
 
-		final ArrayList< STData > puckData = new ArrayList<STData>();
-		for ( final String puck : pucks )
-			puckData.add( N5IO.readN5( n5, puck ) );
+		List<String> pucks = container.getDatasets();
+		final List<STDataAssembly> puckData = container.openAllDatasets().stream().
+				map(sdio -> {
+					try {return sdio.readData();} catch (IOException e) {throw new RuntimeException(e);}
+				}).collect(Collectors.toList());
 
 		// clear the alignment metadata
-		final String matchesGroupName = n5.groupPath( "/", "matches" );
-		final N5FSWriter n5Writer = N5IO.openN5write( n5File );
-		if (n5.exists(matchesGroupName))
-			n5Writer.remove( matchesGroupName );
-		n5Writer.createGroup( matchesGroupName );
+		for (String match : container.getMatches())
+			container.deleteMatch(match);
 
 		// visualize using the global transform
 		final double scale = 0.1;
@@ -500,8 +460,8 @@ public class PairwiseSIFT
 				//final int ki = i;
 				//final int kj = j;
 
-				final STData stDataA = puckData.get(i);
-				final STData stDataB = puckData.get(j);
+				final STData stDataA = puckData.get(i).data();
+				final STData stDataB = puckData.get(j).data();
 
 				final String puckA = pucks.get( i );
 				final String puckB = pucks.get( j );
@@ -522,10 +482,13 @@ public class PairwiseSIFT
 				// check out ROD!
 				*/
 
-				pairwiseSIFT(stDataA, puckA, stDataB, puckB, new RigidModel2D(), new RigidModel2D(), n5File, genesToTest, p, scale, smoothnessFactor, maxEpsilon,
-						minNumInliers, minNumInliersPerGene, saveResult, visualizeResult, numThreads);
+//				pairwiseSIFT(stDataA, puckA, stDataB, puckB, new RigidModel2D(), new RigidModel2D(), n5File, genesToTest, p, scale, smoothnessFactor, maxEpsilon,
+//						minNumInliers, minNumInliersPerGene, saveResult, visualizeResult, numThreads);
 			}
 		}
 		System.out.println("done.");
+		service.shutdown();
 	}
+
+
 }

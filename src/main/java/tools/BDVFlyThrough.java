@@ -247,8 +247,8 @@ public class BDVFlyThrough
 
 		final ArrayList< AffineTransform3D > viewerTransformsLocal = new ArrayList<>();
 
-		for ( int i = 0; i < viewerTransforms.size(); ++i )
-			viewerTransformsLocal.add( viewerTransforms.get( i ).copy() );
+		for (AffineTransform3D viewerTransform : viewerTransforms)
+			viewerTransformsLocal.add(viewerTransform.copy());
 
 		if ( !skipDialog )
 		{

@@ -2,7 +2,6 @@ package align;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import data.STData;
 import data.STDataStatistics;
@@ -10,8 +9,6 @@ import data.STDataUtils;
 import filter.Filters;
 import filter.GaussianFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
-import gui.STDataAssembly;
-import filter.MedianFilterFactory;
 import filter.SingleSpotRemovingFilterFactory;
 import ij.ImagePlus;
 import ij.ImageStack;
@@ -21,12 +18,10 @@ import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
-import net.imglib2.converter.Converter;
 import net.imglib2.converter.Converters;
 import net.imglib2.converter.RealFloatConverter;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.realtransform.AffineGet;
-import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.realtransform.RealViews;
 import net.imglib2.type.numeric.real.DoubleType;
@@ -148,9 +143,7 @@ public class AlignTools
 		final double gaussRenderSigma = stStats.getMedianDistance();
 		final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderSigma*smoothnessFactor, WeightType.NONE ) );
 
-		final RandomAccessibleInterval< DoubleType > rendered = Views.interval( RealViews.affine( renderRRA, transform ), renderInterval );
-
-		return rendered;
+		return Views.interval( RealViews.affine( renderRRA, transform ), renderInterval );
 	}
 
 	public static ImagePlus visualizePair( final STData stDataA, final STData stDataB, final AffineTransform2D transformA, final AffineTransform2D transformB, final double smoothnessFactor )

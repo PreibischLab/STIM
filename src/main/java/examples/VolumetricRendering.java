@@ -1,24 +1,23 @@
 package examples;
 
-import java.io.File;
 import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import bvv.util.Bvv;
 import bvv.util.BvvFunctions;
 import bvv.util.BvvSource;
 import data.STData;
 import data.STDataStatistics;
+import gui.STDataAssembly;
 import imglib2.DoubleUnsignedShortConverter;
-import imglib2.ImgLib2Util;
-import io.N5IO;
-import io.TextFileIO;
+import io.SpatialDataContainer;
 import io.Path;
 import net.imglib2.IterableRealInterval;
-import net.imglib2.RealPointSampleList;
 import net.imglib2.converter.Converters;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
-import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
 import render.Render;
@@ -33,7 +32,8 @@ public class VolumetricRendering
 
 		long time = System.currentTimeMillis();
 
-		final STData stdata = N5IO.readN5( new File( path + "examples.n5" ), "fly3d" );
+		final ExecutorService service = Executors.newFixedThreadPool(8);
+		final STData stdata = SpatialDataContainer.openForReading(path + "examples.n5", service).openDataset("fly3d").readData().data();
 
 		System.out.println( System.currentTimeMillis() - time + " ms." );
 
@@ -83,6 +83,7 @@ public class VolumetricRendering
 		// gauss smooth
 		gaussRenderSigma = displayRadius / 2;
 		gaussRenderRadius = displayRadius * 2;
+		service.shutdown();
 
 		//new ImageJ();
 		//ImageJFunctions.show( Views.interval( Views.raster( Render.render( data, new GaussianFilterFactory<>( outofbounds, gaussRenderRadius, gaussRenderSigma, false ) ) ), stdata.renderInterval ) );

@@ -1,11 +1,9 @@
 package align;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,18 +13,19 @@ import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.janelia.saalfeldlab.n5.N5FSReader;
-import org.janelia.saalfeldlab.n5.N5FSWriter;
+import gui.STDataAssembly;
+import io.SpatialDataContainer;
+import io.SpatialDataIO;
+import net.imglib2.realtransform.AffineGet;
 
-import align.GlobalOptSIFT.Matches;
 import data.STData;
 import data.STDataStatistics;
 import filter.Filters;
 import filter.GaussianFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
-import io.N5IO;
 import io.Path;
 import mpicbg.models.Affine1D;
 import mpicbg.models.AffineModel1D;
@@ -53,7 +52,7 @@ import util.Threads;
 public class IntensityAdjustment
 {
 	public static HashMap< Integer, AffineModel1D > adjustIntensities(
-			final N5FSReader n5,
+			final SpatialDataContainer container,
 			final List< String > pucks,
 			final ArrayList< STData > puckData,
 			final ArrayList< AffineTransform2D > transforms,
@@ -69,9 +68,9 @@ public class IntensityAdjustment
 			for ( int j = i + 1; j < pucks.size(); ++j )
 			{
 				// load the matches
-				final Matches siftmatches = GlobalOptSIFT.loadMatches( n5, pucks.get( i ), pucks.get( j ) );
+				final SiftMatch siftmatches = GlobalOptSIFT.loadMatch(container, pucks.get(i), pucks.get(j));
 
-				if ( siftmatches.numInliers == 0 )
+				if ( siftmatches.getNumInliers() == 0 )
 					continue;
 
 				// use all genes that were used for alignment
@@ -114,9 +113,9 @@ public class IntensityAdjustment
 				final int j0 = j;
 
 				// load the matches
-				final Matches siftmatches = GlobalOptSIFT.loadMatches( n5, pucks.get( i ), pucks.get( j ) );
+				final SiftMatch siftmatches = GlobalOptSIFT.loadMatch(container, pucks.get(i), pucks.get(j));
 
-				if ( siftmatches.numInliers == 0 )
+				if ( siftmatches.getNumInliers() == 0 )
 					continue;
 
 				final List< Callable< ArrayList< PointMatch > > > tasks = new ArrayList<>();
@@ -195,17 +194,7 @@ public class IntensityAdjustment
 		final Random rnd = new Random( 344 );
 		for ( final Entry< Pair< Integer, Integer >, ArrayList< PointMatch > > matches : intensityMatches.entrySet() )
 		{
-			Collections.sort( matches.getValue(), new Comparator<PointMatch>() {
-				@Override
-				public int compare(PointMatch o1, PointMatch o2) {
-					if ( o1.getWeight() == o2.getWeight() )
-						return 0;
-					else if ( o1.getWeight() < o2.getWeight() )
-						return 1;
-					else
-						return -1;
-				}
-			});
+			Collections.sort( matches.getValue(), (o1, o2) -> Double.compare(o2.getWeight(), o1.getWeight()));
 
 			ArrayList< PointMatch > newList = new ArrayList<>();
 			for ( int i = 0; i < Math.min( maxMatches * 2, matches.getValue().size() ) ; ++i )
@@ -428,8 +417,7 @@ public class IntensityAdjustment
 
 	private final static void addPointMatches( final List< ? extends PointMatch > correspondences, final Tile< ? > tileA, final Tile< ? > tileB )
 	{
-		final ArrayList< PointMatch > pm = new ArrayList<>();
-		pm.addAll( correspondences );
+		final ArrayList<PointMatch> pm = new ArrayList<>(correspondences);
 
 		if ( correspondences.size() > 0 )
 		{
@@ -453,9 +441,9 @@ public class IntensityAdjustment
 	public static void main( String[] args ) throws IOException
 	{
 		final String path = Path.getPath();
-		final File n5File = new File( path + "slide-seq-test.n5" );
-		final N5FSReader n5 = N5IO.openN5( n5File );
-		final List< String > pucks = N5IO.listAllDatasets( n5 );
+		final ExecutorService service = Executors.newFixedThreadPool(8);
+		final SpatialDataContainer container = SpatialDataContainer.openExisting(path + "slide-seq-test.n5", service);
+		final List<String> pucks = container.getDatasets();
 
 		final ArrayList< STData > puckData = new ArrayList<>();
 		final ArrayList< STDataStatistics > puckDataStatistics = new ArrayList<>();
@@ -464,12 +452,10 @@ public class IntensityAdjustment
 		// load data and transformations for each puck
 		for ( final String puck : pucks )
 		{
-			puckData.add( N5IO.readN5( n5, puck ) );
-			puckDataStatistics.add( new STDataStatistics( puckData.get( puckData.size() - 1) ) );
-
-			final AffineTransform2D t = new AffineTransform2D();
-			t.set( n5.getAttribute( n5.groupPath( puck ), "transform", double[].class ) );
-			transforms.add( t );
+			STDataAssembly stData = container.openDataset(puck).readData();
+			puckData.add(stData.data());
+			puckDataStatistics.add(stData.statistics());
+			transforms.add(stData.transform());
 		}
 
 		final double maxDistance = avgMedianDist( puckDataStatistics );
@@ -481,28 +467,25 @@ public class IntensityAdjustment
 
 		long time = System.currentTimeMillis();
 
-		final HashMap< Integer, AffineModel1D > models = adjustIntensities( n5, pucks, puckData, transforms, maxDistance, maxMatches, correctScaling, nThreads );
+		final HashMap< Integer, AffineModel1D > models = adjustIntensities(container, pucks, puckData, transforms, maxDistance, maxMatches, correctScaling, nThreads );
 
 		System.out.println( "took " + (System.currentTimeMillis() - time ) + " msec." );
-
-		final N5FSWriter n5Writer = N5IO.openN5write( n5File );
 
 		for ( int i = 0; i < pucks.size(); ++i )
 		{
 			AffineModel1D model = models.get( i );
+			final String puck = pucks.get(i);
 
 			if ( model == null ) // wasn't connected
 				model = new AffineModel1D();
 
-			final String groupName = n5Writer.groupPath( pucks.get( i ) );
-			final double[] array = new double[ 2 ];
-			model.toArray( array );
-
-			n5Writer.setAttribute( groupName, "intensity_transform", array );
+			final SpatialDataIO sdio = container.openDataset(puck);
+			sdio.updateTransformation((AffineGet) model, "intensity_transform");
 
 			System.out.println( pucks.get( i ) + ": " + model );
 		}
 
 		System.out.println( "done." );
+		service.shutdown();
 	}
 }

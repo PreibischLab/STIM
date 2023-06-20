@@ -206,16 +206,10 @@ public class StDataExplorerPanel extends JPanel
 			{
 				String input = text.getText().trim().toLowerCase();
 
-				final boolean startsWith;
-
-				if ( input.startsWith( "_" ) )
+				final boolean searchFromBeginning = input.startsWith( "_" );
+				if ( searchFromBeginning )
 				{
-					startsWith = true;
-					input = input.substring( 1, input.length() );
-				}
-				else
-				{
-					startsWith = false;
+					input = input.substring( 1 );
 				}
 
 				final String search = input;
@@ -225,7 +219,7 @@ public class StDataExplorerPanel extends JPanel
 
 				for ( final String s : allGenesLowerCase )
 				{
-					if ( startsWith ? s.toLowerCase().startsWith( search ) : s.toLowerCase().contains( search ) )
+					if ( searchFromBeginning ? s.toLowerCase().startsWith( search ) : s.toLowerCase().contains( search ) )
 					{
 						final int row = geneToLocation.get( s );
 						System.out.println( search  + " >> " + s + " @ " + row  );
@@ -258,10 +252,9 @@ public class StDataExplorerPanel extends JPanel
 					{
 						this.visFrame = new VisualizationOptionsFrame( this );
 					}
-					else
+					else if ( this.visFrame.isVisible() )
 					{
-						if ( this.visFrame.isVisible() )
-							this.visFrame.dispose();
+						this.visFrame.dispose();
 					}
 				} );
 
@@ -273,35 +266,25 @@ public class StDataExplorerPanel extends JPanel
 		this.add( new JScrollPane( table ), BorderLayout.SOUTH );
 
 		// ensure that the cells are not made smaller to match the size,
-		// which introduces horizontal scrollbars if nessecary
+		// which introduces horizontal scrollbars if necessary
 		table.setAutoResizeMode( JTable.AUTO_RESIZE_OFF );
 
 		for ( int column = 0; column < tableModel.getColumnCount(); ++column )
 			table.getColumnModel().getColumn( column ).setPreferredWidth( 150 );
 
-		table.getSelectionModel().addListSelectionListener( new ListSelectionListener()
-		{
-			public void valueChanged( ListSelectionEvent e )
-			{
-				// Ignore extra messages.
-				if ( e.getValueIsAdjusting() )
-					return;
+		table.getSelectionModel().addListSelectionListener(e -> {
+			// Ignore extra messages.
+			if ( e.getValueIsAdjusting() )
+				return;
+			update();
+		});
 
-				update();
-			}
-		} );
-
-		table.getColumnModel().getSelectionModel().addListSelectionListener( new ListSelectionListener()
-		{
-			public void valueChanged( ListSelectionEvent e )
-			{
-				// Ignore extra messages.
-				if ( e.getValueIsAdjusting() )
-					return;
-
-				update();
-			}
-		} );
+		table.getColumnModel().getSelectionModel().addListSelectionListener(e -> {
+			// Ignore extra messages.
+			if ( e.getValueIsAdjusting() )
+				return;
+			update();
+		});
 
 		table.addMouseListener( new MouseListener()
 		{
@@ -356,14 +339,7 @@ public class StDataExplorerPanel extends JPanel
 		final JPopupMenu popupMenu = new JPopupMenu();
 		final JMenuItem deleteItem = new JMenuItem( "Delete" );
 
-		deleteItem.addActionListener(new ActionListener()
-		{
-			@Override
-			public void actionPerformed( final ActionEvent e )
-			{
-				System.out.println( "Right-click performed on table and choose DELETE" );
-			}
-		});
+		deleteItem.addActionListener(e -> System.out.println( "Right-click performed on table and choose DELETE" ));
 
 		popupMenu.add( deleteItem );
 

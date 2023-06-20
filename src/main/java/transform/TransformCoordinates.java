@@ -52,12 +52,9 @@ public class TransformCoordinates
 
 		final List< double[] > locations = data.getLocationsCopy();
 
-		for ( int i = 0; i < locations.size(); ++i )
-		{
-			final double[] loc = locations.get( i );
-
-			for ( int d = 0; d < n; ++d )
-				loc[ d ] -= min[ d ];
+		for (final double[] loc : locations) {
+			for (int d = 0; d < n; ++d)
+				loc[d] -= min[d];
 		}
 
 		data.setLocations( locations );
@@ -69,12 +66,9 @@ public class TransformCoordinates
 
 		final List< double[] > locations = data.getLocationsCopy();
 
-		for ( int i = 0; i < locations.size(); ++i )
-		{
-			final double[] loc = locations.get( i );
-
-			for ( int d = 0; d < n; ++d )
-				loc[ d ] += vector[ d ];
+		for (final double[] loc : locations) {
+			for (int d = 0; d < n; ++d)
+				loc[d] += vector[d];
 		}
 
 		data.setLocations( locations );
@@ -91,12 +85,9 @@ public class TransformCoordinates
 
 		final List< double[] > locations = data.getLocationsCopy();
 
-		for ( int i = 0; i < locations.size(); ++i )
-		{
-			final double[] loc = locations.get( i );
-
-			for ( int d = 0; d < n; ++d )
-				loc[ d ] *= scale[ d ];
+		for (final double[] loc : locations) {
+			for (int d = 0; d < n; ++d)
+				loc[d] *= scale[d];
 		}
 
 		data.setLocations( locations );

@@ -1,6 +1,5 @@
 package align;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -10,10 +9,13 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
-import org.janelia.saalfeldlab.n5.N5FSReader;
+import gui.STDataAssembly;
+import io.SpatialDataContainer;
 
 import analyze.ExtractGeneLists;
 import data.STData;
@@ -26,7 +28,6 @@ import imglib2.icp.PointMatchIdentification;
 import imglib2.icp.StDataPointMatchIdentification;
 import imglib2.phasecorrelation.PhaseCorrelation2;
 import imglib2.phasecorrelation.PhaseCorrelationPeak2;
-import io.N5IO;
 import io.Path;
 import mpicbg.models.AffineModel2D;
 import net.imglib2.Interval;
@@ -490,7 +491,7 @@ public class Pairwise
 			}
 
 			if ( !inserted && topPeaks.size() < topN )
-				topPeaks.add( new ValuePair< PhaseCorrelationPeak2, Double >( newPeak, (double)deg ) );
+				topPeaks.add( new ValuePair< PhaseCorrelationPeak2, Double >( newPeak, deg ) );
 		}
 	}
 
@@ -520,19 +521,21 @@ public class Pairwise
 		//final String[] pucks = new String[] { "Puck_180531_18", "Puck_180531_17" };
 		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18" };
 
-		final N5FSReader n5 = N5IO.openN5( new File( path + "slide-seq-normalized-gzip3.n5" ) );
-		final List< String > pucks = N5IO.listAllDatasets( n5 );
+		final ExecutorService service = Executors.newFixedThreadPool(8);
+		final SpatialDataContainer container = SpatialDataContainer.openExisting(path + "slide-seq-normalized-gzip3.n5", service);
+		final List<String> pucks = container.getDatasets();
 
-		final ArrayList< STData > puckData = new ArrayList<STData>();
-		for ( final String puck : pucks )
-			puckData.add( N5IO.readN5( n5, puck ) );
+		final List<STDataAssembly> puckData = container.openAllDatasets().stream()
+				.map(sdio -> {
+					try {return sdio.readData();} catch (IOException e) {throw new RuntimeException(e);}
+				}).collect(Collectors.toList());
 
 		for ( int i = 0; i < pucks.size() - 1; ++i )
 		{
 			for ( int j = i + 1; j < pucks.size(); ++j )
 			{
-				final STData stDataA = puckData.get(i);
-				final STData stDataB = puckData.get(j);
+				final STData stDataA = puckData.get(i).data();
+				final STData stDataB = puckData.get(j).data();
 		
 				System.out.println( new Date( System.currentTimeMillis() ) + ": Finding genes" );
 
@@ -591,5 +594,6 @@ public class Pairwise
 				ImageJFunctions.show( AlignTools.display( stDataB, new STDataStatistics( stDataB ), "Calm1", finalInterval, tB_ICP, null, AlignTools.defaultSmoothnessFactor ) ).setTitle( "Calm1-ICP" );
 			}
 		}
+		service.shutdown();
 	}
 }

@@ -16,7 +16,6 @@ import net.imglib2.RealCursor;
 import net.imglib2.RealLocalizable;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
 
 public class NormalizingSTData implements STData
@@ -46,9 +45,9 @@ public class NormalizingSTData implements STData
 	}
 
 	@Override
-	public Map< String, RandomAccessibleInterval< ? extends NativeType< ? > > > getMetaData()
+	public Map< String, RandomAccessibleInterval< ? extends NativeType< ? > > > getAnnotations()
 	{
-		return data.getMetaData();
+		return data.getAnnotations();
 	}
 
 	/*
@@ -89,7 +88,7 @@ public class NormalizingSTData implements STData
 	}
 
 	@Override
-	public double[] getExpValuesCopy( String geneName )
+	public double[] getExpValuesCopy( final String geneName )
 	{
 		final IterableInterval< DoubleType > exprValues = Views.flatIterable( getExprValues( geneName ) );
 
