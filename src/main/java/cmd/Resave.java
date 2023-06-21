@@ -39,7 +39,7 @@ import picocli.CommandLine.Option;
 
 public class Resave implements Callable<Void> {
 
-	@Option(names = {"-c", "--container"}, required = false, description = "N5 output container path to which a new dataset will be added (N5 can exist or new one will be created), e.g. -o /home/ssq.n5. If left if omitted, the dataset will be stored in the current path.")
+	@Option(names = {"-c", "--container"}, required = false, description = "N5 output container path to which a new dataset will be added (N5 can exist or new one will be created), e.g. -o /home/ssq.n5. If omitted, a single slice-dataset will be stored in the current path.")
 	private String containerPath = null;
 
 	@Option(names = {"-i", "--input"}, required = true, description = "list of csv input files as triple 'locations.csv,reads.csv,datasetName' or optionally quadruple 'locations.csv,reads.csv,celltypes.csv,datasetName' with celltype annotations , e.g. -i '$HOME/Puck_180528_20/BeadLocationsForR.csv,$HOME/Puck_180528_20/MappedDGEForR.csv,Puck_180528_20'")

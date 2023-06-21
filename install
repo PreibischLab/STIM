@@ -2,7 +2,7 @@
 
 # This script is shamelessly adapted from https://github.com/saalfeldlab/n5-utils, thanks @axtimwalde & co!
 
-VERSION="0.1.0-SNAPSHOT"
+VERSION="0.2.0-SNAPSHOT"
 INSTALL_DIR=${1:-$(pwd)}
 
 echo ""
