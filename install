@@ -63,6 +63,7 @@ install_command st-add-annotations "cmd.AddAnnotations"
 install_command st-align-pairs "cmd.PairwiseSectionAligner"
 install_command st-align-pairs-view "cmd.ViewPairwiseAlignment"
 install_command st-align-global "cmd.GlobalOpt"
+install_command st-help "cmd.PrintHelp"
 
 if [ $(pwd) == "$INSTALL_DIR" ]; then
     echo "Installation directory equals current directory, we are done."
@@ -79,6 +80,7 @@ else
     mv st-align-pairs $INSTALL_DIR/
     mv st-align-pairs-view $INSTALL_DIR/
     mv st-align-global $INSTALL_DIR/
+    mv st-help $INSTALL_DIR/
 fi
 
 rm cp.txt
