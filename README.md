@@ -40,7 +40,7 @@ A **minimal example** of a two-slice Visium dataset is available [here](https://
 
 To get started please follow the [Installation instructions](#Installation-instructions) to install **STIM** either through Conda or by building it from source. There are two different examples based on the storage layout, a single slice one and one with multiple slices. Therefore, we first explain the basics of our storage layout.
 
-For the tutorials, please download the example Visium data by clicking [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view?usp=sharing) and store the zip file in the same directory that contains the executables (assuming you just did `./install`).
+For the tutorials, please download the example Visium data by clicking [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view?usp=sharing) and navigate to the folder where the data is stored. We assume you installed STIM using Conda and have the appropriate Conda environment active. If you compiled STIM from source, the executables may not be in your `$PATH`. In this case, call them with the full path (e.g., `./st-explorer` if you installed them in the current directory).
 ***Note: your browser might automatically unzip the data, we cover both cases during the resaving step in the tutorials below.***
 
 ### Data layout
@@ -68,19 +68,19 @@ For alignment of several slices, slices have to be grouped into an N5-container 
 
 1. First, we need to convert the data we just downloaded as CSV into one of the supported formats for efficent storage and access to the dataset. We want the first slice of the data to be saved in an anndata file called `slice1.h5ad`. Assuming the data are in the downloaded `visium.zip` file in the same directory as the executables, execute the following:
 ```bash
-./st-resave -i visium.zip/section1_locations.csv,visium.zip/section1_reads.csv,slice1.h5ad
+st-resave -i visium.zip/section1_locations.csv,visium.zip/section1_reads.csv,slice1.h5ad
 ```
 This will automatically load the `*.csv` files from within the zipped file and create a `slice1.h5ad` file in the current directory *(alternatively, you could extract the `*.csv` files as well and link them)*. The entire resaving process should take about 10 seconds on a modern notebook with an SSD. **Note: if your browser automatically unzipped the data, just change `visium.zip` to the respective folder name, most likely `visium`.***
 
 2. Next, we will simply take a look at the slice-dataset directly:
 ```bash
-./st-explorer -i slice1.h5ad -c '0,110'
+st-explorer -i slice1.h5ad -c '0,110'
 ```
 First, type `calm2` into the 'search gene' box. Using `-c '0,110'` we already set the display range to more or less match this dataset. You can manually change it by clicking in the BigDataViewer window and press `s` to bring up the brightness dialog. Feel free to play with the **Visualization Options** in the explorer, e.g. move **Gauss Rendering** to 0.5 to get a sharper image and then play with the **Median Filter** radius to filter the data.
 
 3. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/overlay calm2-mbp.png" alt="Example overlay of calm-2, mbp" width="280">Now, we will create a TIFF image for gene Calm2 and Mbp:
 ```bash
-./st-render -i slice1.h5ad -g 'Calm2,Mbp' -sf 0.5
+st-render -i slice1.h5ad -g 'Calm2,Mbp' -sf 0.5
 ```
 You can now for example overlay both images into a two-channel image using `Image > Color > Merge Channels` and select **Calm2** as magenta and **Mbp** as green. You could for example convert this image to RGB `Image > Type > RGB Color` and then save it as TIFF, JPEG or AVI (e.g JPEG compression). **These can be added to your presentation or paper for example, check out our beautiful AVI** [here](https://github.com/PreibischLab/STIM/blob/master/src/main/resources/calm2-mbp.avi) (you need to click download on the right top). You could render a bigger image setting `-s 0.1`. ***Note: Please check the documentation of [ImageJ](https://imagej.net) and [Fiji](http://fiji.sc) for help how to further process images.***
 
@@ -91,13 +91,13 @@ You can now for example overlay both images into a two-channel image using `Imag
 
 1. In order to perform the alignment of the whole dataset (would work identically for more than two slices), we need to create a container-dataset containing the already resaved slice-dataset:
 ```bash
-./st-add-slice -c visium.n5 -i slice1.h5ad
+st-add-slice -c visium.n5 -i slice1.h5ad
 ```
 This will create an N5 container `visium.n5` and link the first slice to it. If you don't want the slice to be linked but moved instead, you can use the `-m` flag. Also, custom storage locations for the location, expression values, and annotations arrays within the slice can be given by `-l`, `-e`, and `-a`, respectively.
 
 2. Now we resave the second slice of the data as N5 slice-dataset. Assuming the data are in the downloaded `visium.zip` file in the same directory as the executables:
 ```bash
-./st-resave \
+st-resave \
    -i visium.zip/section2_locations.csv,visium.zip/section2_reads.csv,slice2.n5 \
    -c visium.n5
 ```
@@ -105,35 +105,35 @@ It will automatically load the `*.csv` files from within the zipped file and add
 
 3. Next, we can again take a look at the data, which now includes both slice-datasets. We can do this interactively or by rendering using one of the following commands:
 ```bash
-./st-explorer -i visium.n5 -c '0,110'
-./st-bdv-view -i visium.n5 -c '0,110' -g 'Calm2,Mbp' -sf 0.5
-./st-render -i visium.n5 -g 'Calm2,Mbp' -sf 0.5
+st-explorer -i visium.n5 -c '0,110'
+st-bdv-view -i visium.n5 -c '0,110' -g 'Calm2,Mbp' -sf 0.5
+st-render -i visium.n5 -g 'Calm2,Mbp' -sf 0.5
 ```
 Selecting genes and adjusting visualization options work exactly as in the first tutorial.
 <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/overlay calm2-mbp.png" alt="Example overlay of calm-2, mbp" width="280">We can now overlay both images into a two-channel image again using `Image > Color > Merge Channels` and select **Calm2** as magenta and **Mbp** as green. By flipping through the slices (slice1 and slice2) you will realize that they are not aligned.
 
 4. To remedy this, we will perform alignment of the two slices. We will use 15 automatically selected genes `-n`, a maximum error of 100 `--maxEpsilon` (in units of the sequenced locations) and require at least 30 inliers per gene `--minNumInliersGene` (this dataset is more robust than the SlideSeq one). **The alignment process takes around 1-2 minutes on a modern notebook.** *Note: at this point no transformations are stored within the container-dataset, but only the list of corresponding points between all pairs of slices.*
 ```bash
-./st-align-pairs -c visium.n5 -n 15 -sf 0.5 --maxEpsilon 100 --minNumInliersGene 30
+st-align-pairs -c visium.n5 -n 15 -sf 0.5 --maxEpsilon 100 --minNumInliersGene 30
 ```
 
 For your dataset, the optimal choice of parameters may vary. A good baseline for the `--maxEpsilon` parameter is ten times the average distance between the sequenced points. If the `--maxEpsilon` option is not given, this value is computed and used automatically. For the number of selected genes `-n`, higher values yield better results but then alignment is slower. Increasing the minimal number of inliers per gene `--minNumInliersGene` can also increase alignment quality, but can lead to the alignment to fail.
 
 5. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/align_mt-Nd4-1.gif" alt="Example alignment" width="480"> Now we will visualize before/after alignment of this pair of slices. To this end, we create two independent images, one using `st-render` (see above) and one using `st-align-pairs-view` on the automatically selected gene **mt-Nd4**. `st-render` will display the slices unaligned, while `st-align-pairs-view` will show them aligned. 
 ```bash
-./st-render -i visium.n5 -sf 0.5 -g mt-Nd4
-./st-align-pairs-view -c visium.n5 -sf 0.5 -g mt-Nd4
+st-render -i visium.n5 -sf 0.5 -g mt-Nd4
+st-align-pairs-view -c visium.n5 -sf 0.5 -g mt-Nd4
 ```
 *Note: to create the GIF shown I saved both images independently, opened them in Fiji, cropped them, combined them, converted them to 8-bit color, set framerate to 1 fps, and saved it as one GIF.* 
 
 6. Finally, we perform the global alignment. In this particular case, it is identical to the pairwise alignment process as we only have two slices. However, we still need to do it so the **final transformations for the slices are stored in the slice-datasets.** After that, `st-explorer`, `st-bdv-view` and `st-render` will take these transformations into account when displaying the data. This final processing step usually only takes a few seconds.
 ```bash
-./st-align-global -c visium.n5 --absoluteThreshold 100 -sf 0.5 --lambda 0.0 --skipICP
+st-align-global -c visium.n5 --absoluteThreshold 100 -sf 0.5 --lambda 0.0 --skipICP
 ```
 
 7. <img align="right" src="https://github.com/PreibischLab/STIM/blob/master/src/main/resources/bdv-calm2-mbp-mtnd4.png" alt="Example alignment" width="240">The final dataset can for example be visualized and interactively explored using BigDataViewer. Therefore, we specify three genes `-g Calm2,Mbp,mt-Nd4`, a crisper rendering `-sf 0.5`, and a relative z-spacing between the two planes that shows them close to each other `-z 2`. Of course, the same data can be visualized using `st-explorer` and `st-render`, and visualization options such as color or contrast per gene can be adjusted manually.
 ```bash
-./st-bdv-view -i visium.n5 -g Calm2,Mbp,mt-Nd4 -c '0,150' -sf 0.5 -z 2
+st-bdv-view -i visium.n5 -g Calm2,Mbp,mt-Nd4 -c '0,150' -sf 0.5 -z 2
 ```
 We encourage you to use this small two slice dataset as a starting point for playing with and extending **STIM**. If you have any questions, feature requests or concerns please open an issue here on GitHub. Thanks so much!
 
@@ -195,7 +195,7 @@ The installation should take around 1 minute.
 ### Resaving
 Resave (compressed) textfiles to one of the layouts described above (and optionally `--normalize`) using
 ```bash
-./st-resave \
+st-resave \
      -i '/Puck_180528_20.tar/BeadLocationsForR.csv,/Puck_180528_20.tar/MappedDGEForR.csv,Puck_180528_20.n5' \
      -a '/path/celltypes.csv' \
      -a ...
@@ -235,7 +235,7 @@ ACCGTCTGAATTC,40
 ### Adding annotations
 You can also add CSV annotations (e.g., celltypes) to an existing dataset (within or outside some N5-container):
 ```bash
-./st-add-annotations \
+st-add-annotations \
      -i '/path/input.n5' \
      -a '/path/celltypes.csv' \
      [-l 'label']
@@ -246,7 +246,7 @@ Note that this command does not act upon missing barcodes, but only warns about 
 ### Normalization
 You can run the normalization also independently after resaving if desired. The tool can resave datasets within or outside of an N5-container:
 ```bash
-./st-normalize \
+st-normalize \
      -i '/path/input1.n5,/path/input2.n5' \
      [-o '/path/output1.n5,/path/output1.n5'] \
      [-c '/path/container.n5'] \
@@ -257,7 +257,7 @@ You can optionally define a comma separated list of output paths `-o` (otherwise
 ### Iteractive viewing application
 Run the interactive viewer as follows
 ```bash
-./st-explorer \
+st-explorer \
      -i '/path/directory.n5' \
      [-d 'Puck_180528_20.h5ad,Puck_180528_22.h5ad'] \
      [-c '0,255']
@@ -269,7 +269,7 @@ The optional switch `-d` allows you to select a subset of datasets if `-i` is an
 ### Render images and view or save as TIFF
 In order to render images of spatial sequencing datasets (can be saved as TIFF or displayed on screen using ImageJ) please run
 ```bash
-./st-render \
+st-render \
      -i '/path/directory.n5' \
      -g 'Calm2,Hpca,Ptgds' \
      [-o '/path/exportdir'] \
@@ -286,7 +286,7 @@ If you only define the input path `-i` and one or more genes `-g`, the rendered 
 ### View selected genes for an entire container as 2D or 3D using BigDataViewer
 In order to interactively browse the 2D/3D space of one or more datasets with BigDataViewer you can
 ```bash
-./st-bdv-view \
+st-bdv-view \
      -i '/path/directory.n5' \
      -g Calm2,Hpca \
      [-a 'celltype']
@@ -317,7 +317,7 @@ _**Important note:** the order of the datasets as they are passed into the progr
 If not specified, they are used in the order as stored in the JSON file inside the N5-container._
 The 2d alignment can be called as follows, the resulting transformations and corresponding points are automatically stored in the N5:
 ```bash
-./st-align-pairs \
+st-align-pairs \
      -c '/path/directory.n5' \
      [-d 'Puck_180528_20.n5,Puck_180528_22.n5'] \
      [-r 2] \
@@ -349,7 +349,7 @@ The results of the alignment will be shown by default using a gene (selected aut
 
 This command allows to manually inspect pairwise alignments between slices and to test out the effect of different transformation models (from fully rigid to fully affine). It uses all identified corresponding points to compute the respective transformation that minimizes the distance between all points.
 ```bash
-./st-align-pairs-view \
+st-align-pairs-view \
      -c '/path/directory.n5' \
      -g Calm2 \
      [-d 'Puck_180528_20.n5,Puck_180528_22.n5'] \
@@ -363,7 +363,7 @@ Pairs of datasets `-d` from the selected N5-container `-c` will be visualized fo
 
 The global optimization step minimizes the distance between all corresponding points across all pairs of slices (at least two) and includes an optional refinement step using the iterative closest point (ICP) algorithm.
 ```bash
-./st-align-global \
+st-align-global \
      -c '/path/directory.n5' \
      [-d 'Puck_180528_20.n5,Puck_180528_22.n5'] \
      [-l 0.1] \
