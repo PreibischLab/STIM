@@ -133,6 +133,9 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	protected <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(N5Reader reader, AffineSet transform, String name) throws IOException {
+		if (!reader.exists("/uns/" + name))
+			return;
+
 		RandomAccessibleInterval<T> trafoValues = AnnDataDetails.readArray(reader, "/uns/" + name);
 		RandomAccess<T> ra = trafoValues.randomAccess();
 		int n = (int) trafoValues.dimension(0);

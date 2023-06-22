@@ -251,7 +251,7 @@ public abstract class SpatialDataIO {
 		writeTransformation(writer, data.transform(), "transform");
 		writeTransformation(writer, data.intensityTransform(), "intensity_transform");
 
-		updateStoredAnnotations(data.data().getAnnotations());
+		updateStoredAnnotations(stData.getAnnotations());
 
 		System.out.println( "Saving took " + ( System.currentTimeMillis() - time ) + " ms." );
 	}

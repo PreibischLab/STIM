@@ -12,6 +12,7 @@ import net.imglib2.img.Img;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.IntegerType;
+import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
@@ -31,6 +32,9 @@ class AnnDataDetails {
     public static <T extends NativeType<T> & RealType<T>, I extends NativeType<I> & IntegerType<I>> RandomAccessibleInterval<T> readArray(N5Reader reader, String path) throws IOException {
         final AnnDataFieldType type = getFieldType(reader, path);
         switch (type) {
+            case MISSING:
+                System.out.println("Array is missing metadata. Assuming dense array.");
+                return N5Utils.open(reader, path);
             case DENSE_ARRAY:
                 return N5Utils.open(reader, path);
             case CSR_MATRIX:
@@ -88,15 +92,27 @@ class AnnDataDetails {
         if (!existingData.contains(label))
             throw new IOException("Dataframe '" + dataFrame + "' does not contain '" + label + "'.");
 
+        // TODO: this returns null for non-readble datatypes (e.g. string); is there a better way to treat string annotations?
+        DatasetAttributes attributes = reader.getDatasetAttributes(dataFrame + "/" + label);
+        if (attributes == null || attributes.getDataType() == null)
+            return null;
+
         return N5Utils.open(reader, dataFrame + "/" + label);
     }
 
     public static List<String> getExistingDataFrameDatasets(N5Reader reader, String dataFrame) throws IOException {
+        if (!reader.exists(dataFrame))
+            return new ArrayList<>();
+
         String[] rawArray = reader.getAttribute(dataFrame, "column-order", String[].class);
+        rawArray = (rawArray == null) ? reader.list(dataFrame) : rawArray;
+
         if (rawArray == null || rawArray.length == 0)
             return new ArrayList<>();
-        else
-            return new ArrayList<>(Arrays.asList(rawArray));
+
+        List<String> datasets = new ArrayList<>(Arrays.asList(rawArray));
+        datasets.remove("_index");
+        return datasets;
     }
 
     protected static List<String> readCategoricalList(N5Reader reader, String path) throws IOException {
