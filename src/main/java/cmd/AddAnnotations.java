@@ -20,7 +20,9 @@ import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.type.numeric.integer.IntType;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.Command;
 
+@Command(name = "st-add-annotations", mixinStandardHelpOptions = true, version = "0.2.0", description = "Spatial Transcriptomics as IMages project - add annotations to slice-dataset")
 public class AddAnnotations implements Callable<Void> {
 
 	@Option(names = {"-i", "--input"}, required = true, description = "input dataset, e.g. -i /home/ssq.n5")

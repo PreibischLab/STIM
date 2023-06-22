@@ -14,8 +14,10 @@ import align.AlignTools;
 import align.GlobalOptSIFT;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.Command;
 import util.Threads;
 
+@Command(name = "st-align-global", mixinStandardHelpOptions = true, version = "0.2.0", description = "Spatial Transcriptomics as IMages project - global alignment of all slices")
 public class GlobalOpt implements Callable<Void> {
 
 	@Option(names = {"-c", "--container"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")

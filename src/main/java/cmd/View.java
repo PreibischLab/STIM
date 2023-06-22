@@ -16,7 +16,9 @@ import gui.STDataAssembly;
 import gui.STDataExplorer;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.Command;
 
+@Command(name = "st-explorer", mixinStandardHelpOptions = true, version = "0.2.0", description = "Spatial Transcriptomics as IMages project - interactive viewer for ST data")
 public class View implements Callable<Void> {
 
 	@Option(names = {"-i", "--input"}, required = true, description = "input file or N5 container path, e.g. -i /home/ssq.n5.")

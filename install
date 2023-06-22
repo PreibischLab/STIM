@@ -21,7 +21,7 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
   MEMGB=$(($MEM/1024/1024/1024))
   MEM=$((($MEMGB/5)*4))
 else
-  echo "ERROR - Operating system (arg2) must be either linux or osx - EXITING (on windows please run as a normal Java class from e.g. Eclipse)"
+  echo "ERROR - Operating system (arg2) must be either linux or osx - EXITING (on windows please run the windows specific install script)"
   exit
 fi
 

@@ -45,8 +45,10 @@ import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.Command;
 import render.Render;
 
+@Command(name = "st-render", mixinStandardHelpOptions = true, version = "0.2.0", description = "Spatial Transcriptomics as IMages project - render ST data as images in Fiji/ImageJ")
 public class RenderImage implements Callable<Void> {
 
 	@Option(names = {"-i", "--input"}, required = true, description = "input file or N5 container path, e.g. -i /home/ssq.n5.")

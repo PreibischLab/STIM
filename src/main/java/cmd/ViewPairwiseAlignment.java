@@ -22,7 +22,9 @@ import mpicbg.models.RigidModel2D;
 import net.imglib2.realtransform.AffineTransform2D;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.Command;
 
+@Command(name = "st-align-pairs-view", mixinStandardHelpOptions = true, version = "0.2.0", description = "Spatial Transcriptomics as IMages project - view and check pairwise alignments")
 public class ViewPairwiseAlignment implements Callable<Void> {
 
 	@Option(names = {"-c", "--container"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")

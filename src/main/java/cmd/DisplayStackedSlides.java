@@ -37,8 +37,10 @@ import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.Command;
 import render.Render;
 
+@Command(name = "st-bdv-view", mixinStandardHelpOptions = true, version = "0.2.0", description = "Spatial Transcriptomics as IMages project - visualize ST data in BigDataViewer")
 public class DisplayStackedSlides implements Callable<Void> {
 
 	@Option(names = {"-i", "--input"}, required = true, description = "input file or N5 container, e.g. -i /home/ssq.n5")
