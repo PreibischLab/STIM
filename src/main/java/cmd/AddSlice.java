@@ -1,7 +1,6 @@
 package cmd;
 
 import io.SpatialDataContainer;
-import io.StorageSpec;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Command;
@@ -50,12 +49,10 @@ public class AddSlice implements Callable<Void> {
 				? SpatialDataContainer.openExisting(containerPath, service)
 				: SpatialDataContainer.createNew(containerPath, service);
 
-		StorageSpec storageSpec = new StorageSpec(locationPath, exprValPath, annotationPath);
-
 		if (shouldBeMoved)
-			container.addExistingDataset(inputDatasetPath, storageSpec);
+			container.addExistingDataset(inputDatasetPath, locationPath, exprValPath, annotationPath);
 		else
-			container.linkExistingDataset(inputDatasetPath, storageSpec);
+			container.linkExistingDataset(inputDatasetPath, locationPath, exprValPath, annotationPath);
 
 		final String operation = shouldBeMoved ? "Moved" : "Linked";
 		System.out.println(operation + " dataset '" + inputDatasetPath + "' to container '" + containerPath + "'.");

@@ -32,35 +32,29 @@ public class N5IO extends SpatialDataIO {
 		super(readerSupplier, writerSupplier, service);
 	}
 
-	public N5IO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier, final ExecutorService service, StorageSpec storageSpec) {
-		super(readerSupplier, writerSupplier, service, storageSpec);
-	}
-
 	public N5IO(
 			final Supplier<? extends N5Reader> readerSupplier,
 			final Supplier<N5Writer> writerSupplier,
 			final int vectorBlockSize,
 			final int[] matrixBlockSize,
 			final Compression compression,
-			final ExecutorService service,
-			final StorageSpec storageSpec) {
+			final ExecutorService service) {
 
-		super(readerSupplier, writerSupplier, vectorBlockSize, matrixBlockSize, compression, service, storageSpec);
+		super(readerSupplier, writerSupplier, vectorBlockSize, matrixBlockSize, compression, service);
 	}
 
 	@Override
-	protected StorageSpec createStorageSpecOrDefault(String locationPath, String exprValuePath, String annotationPath) {
-		String arg1 = (locationPath == null) ? "/locations" : locationPath;
-		String arg2 = (exprValuePath == null) ? "/expressionValues" : exprValuePath;
-		String arg3 = (annotationPath == null) ? "/annotations" : annotationPath;
-		return new StorageSpec(arg1, arg2, arg3);
+	public void setDataPaths(String locationPath, String exprValuePath, String annotationPath) {
+		this.locationPath = (locationPath == null) ? "/locations" : locationPath;
+		this.exprValuePath = (exprValuePath == null) ? "/expressionValues" : exprValuePath;
+		this.annotationPath = (annotationPath == null) ? "/annotations" : annotationPath;
 	}
 
 	@Override
 	protected void writeHeader(N5Writer writer, STData data) throws IOException {
-		writer.createGroup(storageSpec.locationPath);
-		writer.createGroup(storageSpec.exprValuePath);
-		writer.createGroup(storageSpec.annotationPath);
+		writer.createGroup(locationPath);
+		writer.createGroup(exprValuePath);
+		writer.createGroup(annotationPath);
 		writer.setAttribute("/", "dim", data.numDimensions());
 		writer.setAttribute("/", "numLocations", data.numLocations());
 		writer.setAttribute("/", "numGenes", data.numGenes());

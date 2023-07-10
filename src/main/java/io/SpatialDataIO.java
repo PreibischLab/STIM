@@ -108,7 +108,9 @@ public abstract class SpatialDataIO {
 	protected boolean readOnly;
 	protected N5Options options;
 	protected N5Options options1d;
-	protected StorageSpec storageSpec;
+	protected String locationPath;
+	protected String exprValuePath;
+	protected String annotationPath;
 
 	/**
 	 * Create a new SpatialDataIO instance.
@@ -128,19 +130,7 @@ public abstract class SpatialDataIO {
 	 * @param service {@link ExecutorService} for parallel IO
 	 */
 	public SpatialDataIO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier, final ExecutorService service) {
-		this(readerSupplier, writerSupplier,  service, new StorageSpec(null, null, null));
-	}
-
-	/**
-	 * Create a new SpatialDataIO instance.
-	 *
-	 * @param readerSupplier {@link Supplier} for N5Reader
-	 * @param writerSupplier {@link Supplier} for N5Writer (may be null to get a read-only instance)
-	 * @param service {@link ExecutorService} for parallel IO
-	 * @param storageSpec {@link StorageSpec} specifying where locations, expression values, and barcodes are stored
-	 */
-	public SpatialDataIO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier, final ExecutorService service, StorageSpec storageSpec) {
-		this(readerSupplier, writerSupplier, 1024, new int[]{512, 512}, new GzipCompression(3), service, storageSpec);
+		this(readerSupplier, writerSupplier, 1024, new int[]{512, 512}, new GzipCompression(3), service);
 	}
 
 	/**
@@ -152,7 +142,6 @@ public abstract class SpatialDataIO {
 	 * @param matrixBlockSize block size for matrix data
 	 * @param compression compression type
 	 * @param service {@link ExecutorService} for parallel IO
-	 * @param storageSpec {@link StorageSpec} specifying where locations, expression values, and barcodes are stored
 	 */
 	public SpatialDataIO(
 			final Supplier<? extends N5Reader> readerSupplier,
@@ -160,8 +149,7 @@ public abstract class SpatialDataIO {
 			final int vectorBlockSize,
 			final int[] matrixBlockSize,
 			final Compression compression,
-			final ExecutorService service,
-			final StorageSpec storageSpec) {
+			final ExecutorService service) {
 
 		if (readerSupplier == null)
 			throw new IllegalArgumentException("No N5 reader supplier given.");
@@ -172,19 +160,18 @@ public abstract class SpatialDataIO {
 
 		this.options = new N5Options(matrixBlockSize, compression, service);
 		this.options1d = new N5Options(new int[]{vectorBlockSize}, compression, service);
-		this.storageSpec = createStorageSpecOrDefault(storageSpec.locationPath, storageSpec.exprValuePath, storageSpec.annotationPath);
+		setDataPaths(null, null, null);
 	}
 
 	/**
-	 * Create a {@link StorageSpec} from the given paths.
+	 * Set paths to locations, expression values, and barcodes. Implementing classes should replace null arguments by
+	 * default values.
 	 *
 	 * @param locationPath path to locations
 	 * @param exprValuePath path to expression values
 	 * @param annotationPath path to annotations
-	 * @return {@link StorageSpec} specifying where locations, expression values, and barcodes are stored;
-	 *     implementing classes should replace null arguments by default values
 	 */
-	protected abstract StorageSpec createStorageSpecOrDefault(String locationPath, String exprValuePath, String annotationPath);
+	public abstract void setDataPaths(String locationPath, String exprValuePath, String annotationPath);
 
 	/**
 	 * Read data (locations, expression values, barcodes, gene names, and transformations) from the given instance.
@@ -247,13 +234,13 @@ public abstract class SpatialDataIO {
 	}
 
 	protected RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader) throws IOException {
-		return readLocations(reader, storageSpec.locationPath);
+		return readLocations(reader, locationPath);
 	}
 
 	protected abstract RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader, String locationPath) throws IOException; // size: [numLocations x numDimensions]
 
 	protected RandomAccessibleInterval<DoubleType> readExpressionValues(N5Reader reader) throws IOException {
-		return readExpressionValues(reader, storageSpec.exprValuePath);
+		return readExpressionValues(reader, exprValuePath);
 	}
 
 	protected abstract RandomAccessibleInterval<DoubleType> readExpressionValues(N5Reader reader, String exprValuesPath) throws IOException; // size: [numGenes x numLocations]
@@ -265,13 +252,13 @@ public abstract class SpatialDataIO {
 	protected abstract <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(N5Reader reader, AffineSet transform, String name) throws IOException;
 
 	protected List<String> detectAnnotations(N5Reader reader) throws IOException {
-		return detectAnnotations(reader, storageSpec.annotationPath);
+		return detectAnnotations(reader, annotationPath);
 	}
 
 	protected abstract List<String> detectAnnotations(N5Reader reader, String annotationsPath) throws IOException;
 
 	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readAnnotations(N5Reader reader, String label) throws IOException {
-		return readAnnotations(reader, storageSpec.annotationPath, label);
+		return readAnnotations(reader, annotationPath, label);
 	}
 
 	protected abstract <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readAnnotations(N5Reader reader, String annotationsPath, String label) throws IOException;
@@ -330,13 +317,13 @@ public abstract class SpatialDataIO {
 	protected abstract void writeHeader(N5Writer writer, STData data) throws IOException;
 
 	protected void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations) throws IOException {
-		writeLocations(writer, locations, storageSpec.locationPath);
+		writeLocations(writer, locations, locationPath);
 	}
 
 	protected abstract void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations, String locationsPath) throws IOException;
 
 	protected void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues) throws IOException {
-		writeExpressionValues(writer, exprValues, storageSpec.exprValuePath);
+		writeExpressionValues(writer, exprValues, exprValuePath);
 	}
 
 	protected abstract void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues, String exprValuesPath) throws IOException;
@@ -348,7 +335,7 @@ public abstract class SpatialDataIO {
 	protected abstract void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException;
 
 	protected void writeAnnotations(N5Writer writer, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
-		writeAnnotations(writer, storageSpec.annotationPath, label, data);
+		writeAnnotations(writer, annotationPath, label, data);
 	}
 
 	protected abstract void writeAnnotations(N5Writer writer, String annotationsPath, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException;
@@ -376,18 +363,6 @@ public abstract class SpatialDataIO {
 	 * @throws IOException
 	 */
 	public static SpatialDataIO inferFromName(final String path, final ExecutorService service) throws IOException {
-		return inferFromName(path, service, new StorageSpec(null, null, null));
-	}
-
-	/**
-	 * Open file solely based on the file name.
-	 *
-	 * @param path the path to the file
-	 * @param service {@link ExecutorService} to use for parallel IO
-	 * @param storageSpec {@link StorageSpec} specifying the paths to the data
-	 * @throws IOException
-	 */
-	public static SpatialDataIO inferFromName(final String path, final ExecutorService service, StorageSpec storageSpec) throws IOException {
 		Path absolutePath = Paths.get(path).toAbsolutePath();
 		String fileName = absolutePath.getFileName().toString();
 		String[] components = fileName.split("\\.");
@@ -417,9 +392,9 @@ public abstract class SpatialDataIO {
 		}
 
 		if (extension.endsWith("ad"))
-			return new AnnDataIO(backendSupplier, backendSupplier, service, storageSpec);
+			return new AnnDataIO(backendSupplier, backendSupplier, service);
 		else
-			return new N5IO(backendSupplier, backendSupplier, service, storageSpec);
+			return new N5IO(backendSupplier, backendSupplier, service);
 	}
 
 	// TODO: refactor when pulling out AnnData stuff

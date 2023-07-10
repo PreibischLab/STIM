@@ -54,20 +54,15 @@ public class AnnDataIO extends SpatialDataIO {
 		super(readerSupplier, writerSupplier, service);
 	}
 
-	public AnnDataIO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier, final ExecutorService service, StorageSpec storageSpec) {
-		super(readerSupplier, writerSupplier, service, storageSpec);
-	}
-
 	public AnnDataIO(
 			final Supplier<? extends N5Reader> readerSupplier,
 			final Supplier<N5Writer> writerSupplier,
 			final int vectorBlockSize,
 			final int[] matrixBlockSize,
 			final Compression compression,
-			final ExecutorService service,
-			final StorageSpec storageSpec) {
+			final ExecutorService service) {
 
-		super(readerSupplier, writerSupplier, vectorBlockSize, matrixBlockSize, compression, service, storageSpec);
+		super(readerSupplier, writerSupplier, vectorBlockSize, matrixBlockSize, compression, service);
 
 		// TODO: remove this check once the issue is fixed
 		if (!N5HDF5Reader.class.isInstance(readerSupplier.get()))
@@ -75,11 +70,10 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	@Override
-	protected StorageSpec createStorageSpecOrDefault(String locationPath, String exprValuePath, String annotationPath) {
-		String arg1 = (locationPath == null) ? "/obsm/spatial" : locationPath;
-		String arg2 = (exprValuePath == null) ? "/X" : exprValuePath;
-		String arg3 = (annotationPath == null) ? "/obs" : annotationPath;
-		return new StorageSpec(arg1, arg2, arg3);
+	public void setDataPaths(String locationPath, String exprValuePath, String annotationPath) {
+		this.locationPath = (locationPath == null) ? "/obsm/spatial" : locationPath;
+		this.exprValuePath = (exprValuePath == null) ? "/X" : exprValuePath;
+		this.annotationPath = (annotationPath == null) ? "/obs" : annotationPath;
 	}
 
 	public static void main( String[] args ) throws IOException
