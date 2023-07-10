@@ -110,20 +110,50 @@ public abstract class SpatialDataIO {
 	protected N5Options options1d;
 	protected StorageSpec storageSpec;
 
+	/**
+	 * Create a new SpatialDataIO instance.
+	 *
+	 * @param writerSupplier {@link Supplier} for N5Writer
+	 * @param service {@link ExecutorService} for parallel IO
+	 */
 	public SpatialDataIO(final Supplier<N5Writer> writerSupplier, final ExecutorService service) {
 		this(writerSupplier, writerSupplier, service);
 	}
 
-	// TODO: should be smaller for HDF5?
+	/**
+	 * Create a new SpatialDataIO instance.
+	 *
+	 * @param readerSupplier {@link Supplier} for N5Reader
+	 * @param writerSupplier {@link Supplier} for N5Writer (may be null to get a read-only instance)
+	 * @param service {@link ExecutorService} for parallel IO
+	 */
 	public SpatialDataIO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier, final ExecutorService service) {
 		this(readerSupplier, writerSupplier,  service, new StorageSpec(null, null, null));
 	}
 
+	/**
+	 * Create a new SpatialDataIO instance.
+	 *
+	 * @param readerSupplier {@link Supplier} for N5Reader
+	 * @param writerSupplier {@link Supplier} for N5Writer (may be null to get a read-only instance)
+	 * @param service {@link ExecutorService} for parallel IO
+	 * @param storageSpec {@link StorageSpec} specifying where locations, expression values, and barcodes are stored
+	 */
 	public SpatialDataIO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier, final ExecutorService service, StorageSpec storageSpec) {
 		this(readerSupplier, writerSupplier, 1024, new int[]{512, 512}, new GzipCompression(3), service, storageSpec);
 	}
 
-	// TODO: this has a lot of parameters -> encapsulate subsets, or use builder?
+	/**
+	 * Create a new SpatialDataIO instance.
+	 *
+	 * @param readerSupplier {@link Supplier} for N5Reader
+	 * @param writerSupplier {@link Supplier} for N5Writer (may be null to get a read-only instance)
+	 * @param vectorBlockSize block size for vector data
+	 * @param matrixBlockSize block size for matrix data
+	 * @param compression compression type
+	 * @param service {@link ExecutorService} for parallel IO
+	 * @param storageSpec {@link StorageSpec} specifying where locations, expression values, and barcodes are stored
+	 */
 	public SpatialDataIO(
 			final Supplier<? extends N5Reader> readerSupplier,
 			final Supplier<N5Writer> writerSupplier,
@@ -145,9 +175,23 @@ public abstract class SpatialDataIO {
 		this.storageSpec = createStorageSpecOrDefault(storageSpec.locationPath, storageSpec.exprValuePath, storageSpec.annotationPath);
 	}
 
-	// implementing classes should replace null arguments by default values
-	protected abstract StorageSpec createStorageSpecOrDefault(String locationPath, String exprValuePath, String annotation);
+	/**
+	 * Create a {@link StorageSpec} from the given paths.
+	 *
+	 * @param locationPath path to locations
+	 * @param exprValuePath path to expression values
+	 * @param annotationPath path to annotations
+	 * @return {@link StorageSpec} specifying where locations, expression values, and barcodes are stored;
+	 *     implementing classes should replace null arguments by default values
+	 */
+	protected abstract StorageSpec createStorageSpecOrDefault(String locationPath, String exprValuePath, String annotationPath);
 
+	/**
+	 * Read data (locations, expression values, barcodes, gene names, and transformations) from the given instance.
+	 *
+	 * @return {@link STDataAssembly} containing the data
+	 * @throws IOException
+	 */
 	public STDataAssembly readData() throws IOException {
 		long time = System.currentTimeMillis();
 		System.out.print( "Reading spatial data ... " );
@@ -232,6 +276,12 @@ public abstract class SpatialDataIO {
 
 	protected abstract <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readAnnotations(N5Reader reader, String annotationsPath, String label) throws IOException;
 
+	/**
+	 * Write data (locations, expression values, barcodes, gene names, and transformations) for the given instance.
+	 *
+	 * @param data {@link STDataAssembly} containing the data
+	 * @throws IOException
+	 */
 	public void writeData(STDataAssembly data) throws IOException {
 		if (readOnly)
 			throw new IllegalStateException("Trying to write to read-only file.");
@@ -256,6 +306,12 @@ public abstract class SpatialDataIO {
 		System.out.println( "Saving took " + ( System.currentTimeMillis() - time ) + " ms." );
 	}
 
+	/**
+	 * Write the given annotations to the underlying file; existing annotations are not updated.
+	 *
+	 * @param metadata map of annotations
+	 * @throws IOException
+	 */
 	public void updateStoredAnnotations(Map<String, RandomAccessibleInterval<? extends NativeType<?>>> metadata) throws IOException {
 		if (readOnly)
 			throw new IllegalStateException("Trying to write to read-only file.");
@@ -297,6 +353,13 @@ public abstract class SpatialDataIO {
 
 	protected abstract void writeAnnotations(N5Writer writer, String annotationsPath, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException;
 
+	/**
+	 * Write the given transformation to the underlying file; existing transformations with the same name will be overwritten.
+	 *
+	 * @param transform the new transformation
+	 * @param name the name of the transformation
+	 * @throws IOException
+	 */
 	public void updateTransformation(AffineGet transform, String name) throws IOException {
 		if (readOnly)
 			throw new IllegalStateException("Trying to modify a read-only file.");
@@ -305,10 +368,25 @@ public abstract class SpatialDataIO {
 		writeTransformation(writer, transform, name);
 	}
 
+	/**
+	 * Open file solely based on the file name.
+	 *
+	 * @param path the path to the file
+	 * @param service {@link ExecutorService} to use for parallel IO
+	 * @throws IOException
+	 */
 	public static SpatialDataIO inferFromName(final String path, final ExecutorService service) throws IOException {
 		return inferFromName(path, service, new StorageSpec(null, null, null));
 	}
 
+	/**
+	 * Open file solely based on the file name.
+	 *
+	 * @param path the path to the file
+	 * @param service {@link ExecutorService} to use for parallel IO
+	 * @param storageSpec {@link StorageSpec} specifying the paths to the data
+	 * @throws IOException
+	 */
 	public static SpatialDataIO inferFromName(final String path, final ExecutorService service, StorageSpec storageSpec) throws IOException {
 		Path absolutePath = Paths.get(path).toAbsolutePath();
 		String fileName = absolutePath.getFileName().toString();
