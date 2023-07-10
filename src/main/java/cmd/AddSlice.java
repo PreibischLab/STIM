@@ -12,7 +12,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 @Command(name = "st-add-dataset", mixinStandardHelpOptions = true, version = "0.2.0", description = "Spatial Transcriptomics as IMages project - add slice-dataset to a container")
-public class AddDataset implements Callable<Void> {
+public class AddSlice implements Callable<Void> {
 
 	@Option(names = {"-i", "--input"}, required = true, description = "input dataset, e.g. -i /home/ssq.n5")
 	private String inputDatasetPath = null;
@@ -64,6 +64,6 @@ public class AddDataset implements Callable<Void> {
 	}
 
 	public static void main(final String... args) {
-		CommandLine.call(new AddDataset(), args);
+		CommandLine.call(new AddSlice(), args);
 	}
 }

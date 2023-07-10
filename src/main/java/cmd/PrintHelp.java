@@ -19,7 +19,7 @@ public class PrintHelp implements Callable<Void> {
 				new RenderImage(),
 				new DisplayStackedSlides(),
 				new Resave(),
-				new AddDataset(),
+				new AddSlice(),
 				new Normalize(),
 				new AddAnnotations(),
 				new PairwiseSectionAligner(),

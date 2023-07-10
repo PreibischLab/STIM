@@ -102,6 +102,7 @@ public class SpatialDataContainer {
 	public void addExistingDataset(String path) throws IOException {
 		addExistingDataset(path, new StorageSpec(null, null, null));
 	}
+
 	public void addExistingDataset(String path, StorageSpec storageSpec) throws IOException {
 		associateDataset(path, (src, dest) -> {
 			try {return Files.move(src, dest);}
