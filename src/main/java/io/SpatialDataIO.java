@@ -15,13 +15,18 @@ import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Util;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.GzipCompression;
+import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
+import org.janelia.saalfeldlab.n5.zarr.N5ZarrReader;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -43,6 +48,7 @@ public abstract class SpatialDataIO {
 		public InternalMethods(final SpatialDataIO data) {
 			this.instance = data;
 		}
+
 
 		public RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader) throws IOException {
 			return instance.readLocations(reader);
@@ -101,6 +107,11 @@ public abstract class SpatialDataIO {
 		}
 	}
 
+	/**
+	 * Create a new InternalMethods instance that grants access to private methods of SpatialDataIO.
+	 *
+	 * @return {@link InternalMethods} linking to the calling SpatialDataIO instance
+	 */
 	public InternalMethods internalMethods() { return new InternalMethods( this ); }
 
 	protected final Supplier<? extends N5Reader> readerSupplier;
@@ -356,45 +367,73 @@ public abstract class SpatialDataIO {
 	}
 
 	/**
-	 * Open file solely based on the file name.
+	 * Open file with write access solely based on the file name.
 	 *
 	 * @param path the path to the file
 	 * @param service {@link ExecutorService} to use for parallel IO
 	 * @throws IOException
 	 */
-	public static SpatialDataIO inferFromName(final String path, final ExecutorService service) throws IOException {
+	public static SpatialDataIO open(final String path, final ExecutorService service) throws IOException {
+		return openBasedOnExtension(path, service, false);
+	}
+
+	/**
+	 * Open file read-only solely based on the file name.
+	 *
+	 * @param path the path to the file
+	 * @param service {@link ExecutorService} to use for parallel IO
+	 * @throws IOException
+	 */
+	public static SpatialDataIO openReadOnly(final String path, final ExecutorService service) throws IOException {
+		return openBasedOnExtension(path, service, true);
+	}
+
+	private static SpatialDataIO openBasedOnExtension(final String path, final ExecutorService service, boolean readOnly) throws IOException {
 		Path absolutePath = Paths.get(path).toAbsolutePath();
 		String fileName = absolutePath.getFileName().toString();
 		String[] components = fileName.split("\\.");
 		String extension = components[components.length-1];
 
-		Supplier<N5Writer> backendSupplier;
+		Supplier<N5Reader> readerSupplier;
+		Supplier<N5Writer> writerSupplier;
 		if (extension.startsWith("h5")) {
-			backendSupplier = () -> {
+			readerSupplier = () -> {
+				try {return new N5HDF5Reader(path);}
+				catch (IOException e) {throw new SpatialDataException("Supplier cannot open '" + path + "'.", e);}
+			};
+			writerSupplier = () -> {
 				try {return new N5HDF5Writer(path);}
 				catch (IOException e) {throw new SpatialDataException("Supplier cannot open '" + path + "'.", e);}
 			};
-		}
-		else if (extension.startsWith("n5")) {
-			backendSupplier = () -> {
+		} else if (extension.startsWith("n5")) {
+			readerSupplier = () -> {
+				try {return new N5FSReader(path);}
+				catch (IOException e) {throw new SpatialDataException("Supplier cannot open '" + path + "'.", e);}
+			};
+			writerSupplier = () -> {
 				try {return new N5FSWriter(path);}
 				catch (IOException e) {throw new SpatialDataException("Supplier cannot open '" + path + "'.", e);}
 			};
-		}
-		else if (extension.startsWith("zarr")) {
-			backendSupplier = () -> {
+		} else if (extension.startsWith("zarr")) {
+			readerSupplier = () -> {
+				try {return new N5ZarrReader(path);}
+				catch (IOException e) {throw new SpatialDataException("Supplier cannot open '" + path + "'.", e);}
+			};
+			writerSupplier = () -> {
 				try {return new N5ZarrWriter(path);}
 				catch (IOException e) {throw new SpatialDataException("Supplier cannot open '" + path + "'.", e);}
 			};
-		}
-		else {
+		} else {
 			throw new UnsupportedOperationException("Cannot find N5 backend for extension'" + extension + "'.");
 		}
 
+		if (readOnly)
+			writerSupplier = null;
+
 		if (extension.endsWith("ad"))
-			return new AnnDataIO(backendSupplier, backendSupplier, service);
+			return new AnnDataIO(readerSupplier, writerSupplier, service);
 		else
-			return new N5IO(backendSupplier, backendSupplier, service);
+			return new N5IO(readerSupplier, writerSupplier, service);
 	}
 
 	// TODO: refactor when pulling out AnnData stuff

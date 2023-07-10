@@ -74,7 +74,7 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 		final List<STData> dataToVisualize = new ArrayList<>();
 		for (final String dataset : datasetNames) {
 			System.out.println("Opening dataset '" + dataset + "' in '" + containerPath + "' ...");
-			dataToVisualize.add(container.openDataset(dataset).readData().data());
+			dataToVisualize.add(container.openDatasetReadOnly(dataset).readData().data());
 		}
 
 		if ( gene != null && gene.length() > 0 )

@@ -29,7 +29,7 @@ public class Resaving
 		for ( final String puck : pucks ) {
 			final STData stData = container.openDataset(puck + ".n5").readData().data();
 			final STData normalizedData = new NormalizingSTData( stData );
-			final SpatialDataIO sdout = SpatialDataIO.inferFromName(puck + "-normalized.n5", service);
+			final SpatialDataIO sdout = SpatialDataIO.open(puck + "-normalized.n5", service);
 			sdout.writeData(new STDataAssembly(normalizedData));
 		}
 		service.shutdown();
@@ -48,7 +48,7 @@ public class Resaving
 			final STData slideSeqOriginal = TextFileIO.readSlideSeq(
 					new File( path + "/slide-seq/" + puck + "/BeadLocationsForR.csv" ),
 					new File( path + "/slide-seq/" + puck + "/MappedDGEForR.csv" ) );
-			SpatialDataIO sdout = SpatialDataIO.inferFromName(puck + ".n5", service);
+			SpatialDataIO sdout = SpatialDataIO.open(puck + ".n5", service);
 			sdout.writeData(new STDataAssembly(slideSeqOriginal));
 		}
 

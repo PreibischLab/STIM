@@ -106,7 +106,7 @@ public class Resave implements Callable<Void> {
 		}
 
 		final ExecutorService service = Executors.newFixedThreadPool(8);
-		SpatialDataIO sdio = SpatialDataIO.inferFromName(outputFile.getAbsolutePath(), service);
+		SpatialDataIO sdio = SpatialDataIO.open(outputFile.getAbsolutePath(), service);
 		System.out.println("\nSaving in file='" + outputFile.getPath() + "'");
 		sdio.writeData(new STDataAssembly(data));
 

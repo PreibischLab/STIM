@@ -56,7 +56,7 @@ public class View implements Callable<Void> {
 		}
 		else {
 			System.out.println("Opening dataset '" + inputPath + "' ...");
-			dataToVisualize.add(SpatialDataIO.inferFromName(inputPath, service).readData());
+			dataToVisualize.add(SpatialDataIO.openReadOnly(inputPath, service).readData());
 		}
 
 		if ( contrastString != null && contrastString.length() > 0 )

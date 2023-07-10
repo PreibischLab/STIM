@@ -64,7 +64,7 @@ public class AddAnnotations implements Callable<Void> {
 
 		System.out.println("adding annotations to " + inputPath);
 		final ExecutorService service = Executors.newFixedThreadPool(8);
-		final SpatialDataIO sdio = SpatialDataIO.inferFromName(inputPath, service);
+		final SpatialDataIO sdio = SpatialDataIO.open(inputPath, service);
 		final STDataAssembly stData = sdio.readData();
 
 		for (int i = 0; i < annotationList.size(); ++i) {

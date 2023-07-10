@@ -85,7 +85,7 @@ public class SpatialDataContainerTest extends AbstractIOTest {
 		SpatialDataContainer container = SpatialDataContainer.createNew(path, executorService);
 		final String datasetName = "tmp.h5ad";
 
-		SpatialDataIO sdio = SpatialDataIO.inferFromName(getPlaygroundPath(datasetName), executorService);
+		SpatialDataIO sdio = SpatialDataIO.open(getPlaygroundPath(datasetName), executorService);
 		sdio.setDataPaths("/test", null, "/anotherTest");
 		STDataAssembly expected = new STDataAssembly(TestUtils.createTestDataSet());
 		sdio.writeData(expected);
@@ -93,7 +93,7 @@ public class SpatialDataContainerTest extends AbstractIOTest {
 		String fullPath = getPlaygroundPath(datasetName);
 		container.addExistingDataset(fullPath, "/test", null, "/anotherTest");
 
-		STDataAssembly actual = container.openDataset(datasetName).readData();
+		STDataAssembly actual = container.openDatasetReadOnly(datasetName).readData();
 		TestUtils.compareSTDataAssemblies(actual, expected);
 	}
 
@@ -110,7 +110,7 @@ public class SpatialDataContainerTest extends AbstractIOTest {
 		}
 
 		for (int k = 0; k < datasetNames.size(); k++) {
-			STDataAssembly actualData = container.openDataset(datasetNames.get(k)).readData();
+			STDataAssembly actualData = container.openDatasetReadOnly(datasetNames.get(k)).readData();
 			TestUtils.compareSTDataAssemblies(expectedData.get(k), actualData);
 		}
 
@@ -139,7 +139,7 @@ public class SpatialDataContainerTest extends AbstractIOTest {
 	}
 
 	protected STDataAssembly createAndWriteData(String path) throws IOException {
-		SpatialDataIO sdio = SpatialDataIO.inferFromName(getPlaygroundPath(path), executorService);
+		SpatialDataIO sdio = SpatialDataIO.open(getPlaygroundPath(path), executorService);
 		STDataAssembly data = new STDataAssembly(TestUtils.createTestDataSet());
 		sdio.writeData(data);
 		return data;

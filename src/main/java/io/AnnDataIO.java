@@ -81,7 +81,7 @@ public class AnnDataIO extends SpatialDataIO {
 		final String path = System.getProperty("user.dir") + "/data/human-lymph-node.h5ad";
 
 		ExecutorService service = Executors.newFixedThreadPool(8);
-		SpatialDataIO stio = SpatialDataIO.inferFromName(path, service);
+		SpatialDataIO stio = SpatialDataIO.open(path, service);
 		STDataAssembly data = stio.readData();
 		String gene = "IGKC";
 

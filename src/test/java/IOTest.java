@@ -42,7 +42,7 @@ public class IOTest extends AbstractIOTest {
 		STDataAssembly expected = new STDataAssembly(TestUtils.createTestDataSet());
 
 		try {
-			SpatialDataIO sdio = SpatialDataIO.inferFromName(getPlaygroundPath(path), executorService);
+			SpatialDataIO sdio = SpatialDataIO.open(getPlaygroundPath(path), executorService);
 			sdio.writeData(expected);
 			STDataAssembly actual = sdio.readData();
 
@@ -65,7 +65,7 @@ public class IOTest extends AbstractIOTest {
 		STDataAssembly expected = new STDataAssembly(data, stats, transform, intensityTransform);
 
 		try {
-			SpatialDataIO sdio = SpatialDataIO.inferFromName(getPlaygroundPath(path), executorService);
+			SpatialDataIO sdio = SpatialDataIO.open(getPlaygroundPath(path), executorService);
 			sdio.writeData(expected);
 			STDataAssembly actual = sdio.readData();
 
@@ -86,7 +86,7 @@ public class IOTest extends AbstractIOTest {
 			expected.data().getAnnotations().put(label, ArrayImgs.ints(new int[(int) n], n));
 
 		try {
-			SpatialDataIO sdio = SpatialDataIO.inferFromName(getPlaygroundPath(path), executorService);
+			SpatialDataIO sdio = SpatialDataIO.open(getPlaygroundPath(path), executorService);
 			sdio.writeData(expected);
 			STDataAssembly actual = sdio.readData();
 

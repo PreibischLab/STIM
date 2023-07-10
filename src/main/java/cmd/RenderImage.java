@@ -91,7 +91,7 @@ public class RenderImage implements Callable<Void> {
 		final ExecutorService service = Executors.newFixedThreadPool(8);
 		final Map<String, SpatialDataIO> iodata = new HashMap<>();
 		if (SpatialDataContainer.isCompatibleContainer(inputPath)) {
-			SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath, service);
+			SpatialDataContainer container = SpatialDataContainer.openForReading(inputPath, service);
 
 			final List<String> datasetNames;
 			if (datasets != null && datasets.length() != 0)
@@ -103,12 +103,12 @@ public class RenderImage implements Callable<Void> {
 
 			for (String dataset : datasetNames) {
 				System.out.println("Opening dataset '" + dataset + "' in '" + inputPath + "' ...");
-				iodata.put(dataset.trim(), container.openDataset(dataset.trim()));
+				iodata.put(dataset.trim(), container.openDatasetReadOnly(dataset.trim()));
 			}
 		}
 		else {
 			System.out.println("Opening dataset '" + inputPath + "' ...");
-			iodata.put(inputPath, SpatialDataIO.inferFromName(inputPath, service));
+			iodata.put(inputPath, SpatialDataIO.openReadOnly(inputPath, service));
 		}
 
 		if (genes == null || genes.length() == 0) {

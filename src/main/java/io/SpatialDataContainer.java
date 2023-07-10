@@ -160,20 +160,37 @@ public class SpatialDataContainer {
 	}
 
 	public SpatialDataIO openDataset(String datasetName) throws IOException {
+		if (readOnly)
+			throw new IllegalStateException("Trying to modify a read-only spatial data container.");
 		if (!datasets.contains(datasetName))
 			throw new SpatialDataException("Container does not contain dataset '" + datasetName + "'.");
 		String path1 = n5.getAttribute("/", datasetName + locationPathKey, String.class);
 		String path2 = n5.getAttribute("/", datasetName + exprValuePathKey, String.class);
 		String path3 = n5.getAttribute("/", datasetName + annotationPathKey, String.class);
-		SpatialDataIO sdio = SpatialDataIO.inferFromName(Paths.get(rootPath, datasetName).toRealPath().toString(), service);
+		SpatialDataIO sdio = SpatialDataIO.open(Paths.get(rootPath, datasetName).toRealPath().toString(), service);
+		sdio.setDataPaths(path1, path2, path3);
+		return sdio;
+	}
+
+	public SpatialDataIO openDatasetReadOnly(String datasetName) throws IOException {
+		if (!datasets.contains(datasetName))
+			throw new SpatialDataException("Container does not contain dataset '" + datasetName + "'.");
+		String path1 = n5.getAttribute("/", datasetName + locationPathKey, String.class);
+		String path2 = n5.getAttribute("/", datasetName + exprValuePathKey, String.class);
+		String path3 = n5.getAttribute("/", datasetName + annotationPathKey, String.class);
+		SpatialDataIO sdio = SpatialDataIO.openReadOnly(Paths.get(rootPath, datasetName).toRealPath().toString(), service);
 		sdio.setDataPaths(path1, path2, path3);
 		return sdio;
 	}
 
 	public List<SpatialDataIO> openAllDatasets() throws IOException {
 		List<SpatialDataIO> datasetIOs = new ArrayList<>();
-		for (final String datasetName : datasets)
-			datasetIOs.add(openDataset(datasetName));
+		if (readOnly)
+			for (final String datasetName : datasets)
+				datasetIOs.add(openDatasetReadOnly(datasetName));
+		else
+			for (final String datasetName : datasets)
+				datasetIOs.add(openDataset(datasetName));
 		return datasetIOs;
 	}
 

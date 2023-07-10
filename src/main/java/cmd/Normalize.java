@@ -67,7 +67,7 @@ public class Normalize implements Callable<Void> {
 				final String inputPath = inputDatasets.get(i);
 				final String outputPath = outputDatasets.get(i);
 
-				sdin = isStandaloneDataset ? SpatialDataIO.inferFromName(inputPath, service) : container.openDataset(inputPath);
+				sdin = isStandaloneDataset ? SpatialDataIO.openReadOnly(inputPath, service) : container.openDatasetReadOnly(inputPath);
 				STDataAssembly stData = sdin.readData();
 
 				if (stData == null) {
@@ -80,7 +80,7 @@ public class Normalize implements Callable<Void> {
 																   stData.transform(),
 																   stData.intensityTransform());
 
-				SpatialDataIO sdout = SpatialDataIO.inferFromName(outputPath, service);
+				SpatialDataIO sdout = SpatialDataIO.open(outputPath, service);
 				sdout.writeData(normalizedData);
 				if (!isStandaloneDataset)
 					container.addExistingDataset(outputPath);

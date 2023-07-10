@@ -33,7 +33,7 @@ public class VolumetricRendering
 		long time = System.currentTimeMillis();
 
 		final ExecutorService service = Executors.newFixedThreadPool(8);
-		final STData stdata = SpatialDataContainer.openForReading(path + "examples.n5", service).openDataset("fly3d").readData().data();
+		final STData stdata = SpatialDataContainer.openForReading(path + "examples.n5", service).openDatasetReadOnly("fly3d").readData().data();
 
 		System.out.println( System.currentTimeMillis() - time + " ms." );
 

@@ -87,12 +87,12 @@ public class DisplayStackedSlides implements Callable<Void> {
 		final ExecutorService service = Executors.newFixedThreadPool(8);
 		final List<SpatialDataIO> iodata = new ArrayList<>();
 		if (SpatialDataContainer.isCompatibleContainer(inputPath)) {
-			SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath, service);
+			SpatialDataContainer container = SpatialDataContainer.openForReading(inputPath, service);
 
 			if (datasets != null && datasets.length() != 0) {
 				for (String dataset : datasets.split(",")) {
 					System.out.println("Opening dataset '" + dataset + "' in '" + inputPath + "' ...");
-					iodata.add(container.openDataset(dataset.trim()));
+					iodata.add(container.openDatasetReadOnly(dataset.trim()));
 				}
 			}
 			else {
@@ -102,7 +102,7 @@ public class DisplayStackedSlides implements Callable<Void> {
 		}
 		else {
 			System.out.println("Opening dataset '" + inputPath + "' ...");
-			iodata.add(SpatialDataIO.inferFromName(inputPath, service));
+			iodata.add(SpatialDataIO.openReadOnly(inputPath, service));
 		}
 
 		if (genes == null || genes.length() == 0) {
