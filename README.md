@@ -31,8 +31,9 @@ A **minimal example** of a two-slice Visium dataset is available [here](https://
    6. [View selected genes for an entire N5 as 2D/3D using BigDataViewer](#view-selected-genes-for-an-entire-N5-as-2D-or-3D-using-BigDataViewer)
    7. [Alignment of 2D slices](#alignment-of-2D-slices)
       1. [Pairwise alignment](#pairwise-alignment)
-      2. [View pairwise alignment](#view-pairwise-alignment)
-      3. [Global optimization and ICP refinement](#global-optimization-and-ICP-refinement)
+      2. [Manually adding matches](#manually-adding-matches)
+      3. [View pairwise alignment](#view-pairwise-alignment)
+      4. [Global optimization and ICP refinement](#global-optimization-and-ICP-refinement)
 4. [Wrapping in Python](#wrapping-in-Python)
 5. [Java code examples](#Java-code-examples) 
 
@@ -344,6 +345,34 @@ The images used for alignment are rendered as in the viewing programs above. The
 The alignment itself has more paramters that can be adjusted. The maximal error (default 250.0) for the RANSAC matching in SIFT can be adjusted using `-e`, the minimally required number of RANSAC inliers per tested gene can be changed using `--minNumInliersGene` (default: 5), and the minimal number of inliers over all genes can be adjusted using `--minNumInliers` (default: 30).
 
 The results of the alignment will be shown by default using a gene (selected automatically or defined via `--renderingGene`, which can be deactivated using `--hidePairwiseRendering`. 
+
+
+#### Manually adding matches
+
+To manually add point matches between two slices (e.g., computed from an external program), you can use the following command:
+```bash
+st-align-pairs-add \
+     -c '/path/directory.n5' \
+     -d 'Puck_180528_20.n5,Puck_180528_22.n5' \
+     -m '/path/matches.csv' \
+     [--overwrite] \
+     [--hidePairwiseRendering] \
+     [--renderingGene Calm2] \
+     [-s 0.05] \
+     [-sf 4.0] \
+     [-l 1.0]
+```
+The two datasets `-d` must be present in the selected N5-container `-c`.
+A CSV file `-m` with the point matches must be provided, which should contain rows of the following shape:
+```
+gene,x1,y1,x2,y2
+```
+The entries represent the gene name and the x/y coordinates of the point matches in the two datasets; note that the order of the datasets is given by the order in the `-d` argument.
+
+The results of the alignment will be shown by default using a gene (selected automatically or defined via `--renderingGene`, which can be deactivated using `--hidePairwiseRendering`.
+
+The images used for alignment are rendered as in the viewing programs above. The scaling of the images can be changed using `-s` (default: 0.05 or 5%), and the smoothness factor can be changed using `-sf` (default: 4.0). If point matches for a particular pair are already present, the application will quit. To store them anyways, use `--overwrite`.
+
 
 #### View pairwise alignment
 
