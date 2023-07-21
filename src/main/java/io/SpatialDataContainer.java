@@ -289,7 +289,11 @@ public class SpatialDataContainer {
 	}
 
 	public String constructMatchName(final String stDataAName, final String stDataBName) {
-		return stDataAName + "-" + stDataBName;
+		// sort dataset names to ensure consistent naming and not doubling matches
+		if (stDataAName.compareTo(stDataBName) < 0)
+			return stDataAName + "-" + stDataBName;
+		else
+			return stDataBName + "-" + stDataAName;
 	}
 
 	private static class TreeDeleter extends SimpleFileVisitor<Path> {
