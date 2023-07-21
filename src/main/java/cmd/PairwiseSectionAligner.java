@@ -45,14 +45,15 @@ public class PairwiseSectionAligner implements Callable<Void> {
 	@Option(names = {"-o", "--overwrite"}, required = false, description = "overwrite existing pairwise matches (default: false)")
 	private boolean overwrite = false;
 
+	// TODO: do rendering parameters
 	// rendering parameters
-	@Option(names = {"-s", "--scale"}, required = false, description = "scaling factor rendering the coordinates into images, which highly sample-dependent (default: 0.05 for slideseq data)")
+	@Option(names = {"-s", "--scale"}, required = false, description = "scaling factor rendering the coordinates into images, which is highly sample-dependent (default: 0.05 for slideseq data)")
 	private double scale = 0.05;
 
 	@Option(names = {"-sf", "--smoothnessFactor"}, required = false, description = "factor for the sigma of the gaussian used for rendering, corresponds to smoothness, e.g -sf 2.0 (default: 4.0)")
 	private double smoothnessFactor = 4.0;
 
-	@Option(names = {"--renderingGene"}, required = false, description = "genes used for visualizing the results, e.g. renderingGene Calm2 (default: first gene in the list)")
+	@Option(names = {"--renderingGene"}, required = false, description = "gene used for visualizing the results, e.g. renderingGene Calm2 (default: Calm2 if present, else first gene in the list)")
 	private String renderingGene = null;
 
 	// alignment parameters
@@ -149,7 +150,9 @@ public class PairwiseSectionAligner implements Callable<Void> {
 			}
 		}
 
-		if ( !hidePairwiseRendering )
+		final boolean saveResult = true;
+		final boolean visualizeResult = !hidePairwiseRendering;
+		if (visualizeResult)
 			new ImageJ();
 
 		for ( int i = 0; i < dataToAlign.size() - 1; ++i ) {
@@ -233,8 +236,6 @@ public class PairwiseSectionAligner implements Callable<Void> {
 				//final int minNumInliersPerGene = 5;
 		
 				final SIFTParam p = new SIFTParam();
-				final boolean saveResult = true;
-				final boolean visualizeResult = !hidePairwiseRendering;
 
 				if ( visualizeResult )
 				{
