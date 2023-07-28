@@ -10,7 +10,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-@Command(name = "st-add-dataset", mixinStandardHelpOptions = true, version = "0.2.0", description = "Spatial Transcriptomics as IMages project - add slice-dataset to a container")
+@Command(name = "st-add-slice", mixinStandardHelpOptions = true, version = "0.2.0", description = "Spatial Transcriptomics as IMages project - add slice-dataset to a container")
 public class AddSlice implements Callable<Void> {
 
 	@Option(names = {"-i", "--input"}, required = true, description = "input dataset, e.g. -i /home/ssq.n5")
@@ -45,7 +45,7 @@ public class AddSlice implements Callable<Void> {
 		}
 
 		ExecutorService service = Executors.newFixedThreadPool(1);
-		SpatialDataContainer container = new File(containerPath).exists()
+		SpatialDataContainer container = (new File(containerPath).exists())
 				? SpatialDataContainer.openExisting(containerPath, service)
 				: SpatialDataContainer.createNew(containerPath, service);
 
@@ -57,6 +57,7 @@ public class AddSlice implements Callable<Void> {
 		final String operation = shouldBeMoved ? "Moved" : "Linked";
 		System.out.println(operation + " dataset '" + inputDatasetPath + "' to container '" + containerPath + "'.");
 
+		service.shutdown();
 		return null;
 	}
 
