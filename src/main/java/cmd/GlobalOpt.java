@@ -93,7 +93,7 @@ public class GlobalOpt implements Callable<Void> {
 		SpatialDataContainer container = SpatialDataContainer.openExisting(containerPath, service);
 
 		final List<String> datasetNames;
-		if (datasets != null && datasets.trim().length() != 0) {
+		if (datasets != null && !datasets.trim().isEmpty()) {
 			datasetNames = Arrays.stream(datasets.split(","))
 					.map(String::trim)
 					.collect(Collectors.toList());

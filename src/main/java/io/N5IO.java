@@ -24,23 +24,19 @@ import net.imglib2.type.numeric.real.DoubleType;
 
 public class N5IO extends SpatialDataIO {
 
-	public N5IO(final Supplier<N5Writer> writerSupplier, final ExecutorService service) {
-		super(writerSupplier, service);
-	}
-
-	public N5IO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier, final ExecutorService service) {
-		super(readerSupplier, writerSupplier, service);
+	public N5IO(final Supplier<? extends N5Reader> ioSupplier, final boolean readOnly, final ExecutorService service) {
+		super(ioSupplier, readOnly, service);
 	}
 
 	public N5IO(
-			final Supplier<? extends N5Reader> readerSupplier,
-			final Supplier<N5Writer> writerSupplier,
+			final Supplier<? extends N5Reader> ioSupplier,
+			final boolean readOnly,
 			final int vectorBlockSize,
 			final int[] matrixBlockSize,
 			final Compression compression,
 			final ExecutorService service) {
 
-		super(readerSupplier, writerSupplier, vectorBlockSize, matrixBlockSize, compression, service);
+		super(ioSupplier, readOnly, vectorBlockSize, matrixBlockSize, compression, service);
 	}
 
 	@Override

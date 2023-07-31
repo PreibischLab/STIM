@@ -1,6 +1,5 @@
 package align;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,6 +14,7 @@ import io.SpatialDataContainer;
 import data.STData;
 import ij.ImageJ;
 import io.Path;
+import io.SpatialDataIO;
 import mpicbg.models.AffineModel2D;
 import mpicbg.models.ErrorStatistic;
 import mpicbg.models.InterpolatedAffineModel2D;
@@ -77,9 +77,13 @@ public class GlobalOptSIFT
 			final double smoothnessFactor,
 			final String displaygene ) throws IOException
 	{
+		final ArrayList<SpatialDataIO> ioObjects = new ArrayList<>();
 		final ArrayList<STDataAssembly> data = new ArrayList<>();
-		for ( final String name : datasets )
-			data.add(container.openDataset(name).readData());
+		for (final String name : datasets) {
+			SpatialDataIO sdio = container.openDataset(name);
+			ioObjects.add(sdio);
+			data.add(sdio.readData());
+		}
 
 		final HashMap<STDataAssembly, Tile<InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>>> dataToTile = new HashMap<>();
 		final HashMap<Tile<InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>>, STDataAssembly> tileToData = new HashMap<>();
@@ -142,7 +146,7 @@ public class GlobalOptSIFT
 				tileToIndex.putIfAbsent( tileB, j );
 
 				final List< PointMatch > inliers = match.getInliers();
-				if ( inliers.size() > 0 )
+				if (!inliers.isEmpty())
 				{
 					System.out.println( "Connecting " + i + " to " + j + " ... "); 
 					tileA.connect( tileB, inliers );
@@ -208,8 +212,8 @@ public class GlobalOptSIFT
 		{
 			final AffineTransform2D transform = AlignTools.modelToAffineTransform2D( dataToTile.get( data.get( i ) ).getModel() );
 
-			container.openDataset(datasets.get(i)).updateTransformation(transform, "model_sift");
-			container.openDataset(datasets.get(i)).updateTransformation(transform, "transform"); // will be overwritten by ICP later
+			ioObjects.get(i).updateTransformation(transform, "model_sift");
+			ioObjects.get(i).updateTransformation(transform, "transform"); // will be overwritten by ICP later
 
 			System.out.println( data.get( i ) + ": " + transform );
 			dataTrafoPair.add(new ValuePair<>(data.get(i).data(), transform));
@@ -248,7 +252,7 @@ public class GlobalOptSIFT
 					final SiftMatch matches = loadMatch(container, datasets.get(i) , datasets.get(j));
 	
 					// they were connected and we use the genes that RANSAC filtered
-					if ( matches.genes.size() > 0 )
+					if (!matches.genes.isEmpty())
 					{
 						// was this one removed during global opt?
 						boolean wasRemoved = false;
@@ -299,7 +303,7 @@ public class GlobalOptSIFT
 							final Pair< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >, List< PointMatch > > icpT =
 									ICPAlign.alignICP(data.get(i).data(), data.get(j).data(), matches.genes, interpolated, maxDistance, maxDistance / 2.0, icpIterations);
 	
-							if ( icpT.getB().size() > 0 )
+							if (!icpT.getB().isEmpty())
 							{
 								final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileA = dataToTileICP.get(data.get(i));
 								final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileB = dataToTileICP.get(data.get(j));

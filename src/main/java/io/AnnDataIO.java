@@ -46,26 +46,22 @@ import static io.AnnDataDetails.AnnDataFieldType;
 
 public class AnnDataIO extends SpatialDataIO {
 
-	public AnnDataIO(final Supplier<N5Writer> writerSupplier, final ExecutorService service) {
-		super(writerSupplier, service);
-	}
-
-	public AnnDataIO(final Supplier<? extends N5Reader> readerSupplier, final Supplier<N5Writer> writerSupplier, final ExecutorService service) {
-		super(readerSupplier, writerSupplier, service);
+	public AnnDataIO(final Supplier<? extends N5Reader> ioSupplier, final boolean readOnly, final ExecutorService service) {
+		super(ioSupplier, readOnly, service);
 	}
 
 	public AnnDataIO(
-			final Supplier<? extends N5Reader> readerSupplier,
-			final Supplier<N5Writer> writerSupplier,
+			final Supplier<? extends N5Reader> ioSupplier,
+			final boolean readOnly,
 			final int vectorBlockSize,
 			final int[] matrixBlockSize,
 			final Compression compression,
 			final ExecutorService service) {
 
-		super(readerSupplier, writerSupplier, vectorBlockSize, matrixBlockSize, compression, service);
+		super(ioSupplier, readOnly, vectorBlockSize, matrixBlockSize, compression, service);
 
 		// TODO: remove this check once the issue is fixed
-		if (!N5HDF5Reader.class.isInstance(readerSupplier.get()))
+		if (!N5HDF5Reader.class.isInstance(ioSupplier.get()))
 			throw new IllegalArgumentException("IO for AnnData currently only supports hdf5.");
 	}
 
@@ -106,7 +102,7 @@ public class AnnDataIO extends SpatialDataIO {
 
 	@Override
 	public STDataAssembly readData() throws IOException {
-		N5Reader reader = readerSupplier.get();
+		N5Reader reader = ioSupplier.get();
 		if (!AnnDataDetails.isValidAnnData(reader))
 			System.out.println("Anndata file seems to be missing some metadata. Trying to read it anyways...");
 		return super.readData();
