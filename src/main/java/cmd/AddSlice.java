@@ -44,8 +44,12 @@ public class AddSlice implements Callable<Void> {
 			return null;
 		}
 
+		final File containerFile = new File(containerPath);
+		final boolean containerExists = (containerFile.exists());
+		System.out.println( "Container '" + containerFile.getAbsolutePath() + "' " + ( containerExists ? "exists" : "is new ..." ) );
+
 		ExecutorService service = Executors.newFixedThreadPool(1);
-		SpatialDataContainer container = (new File(containerPath).exists())
+		SpatialDataContainer container = containerExists
 				? SpatialDataContainer.openExisting(containerPath, service)
 				: SpatialDataContainer.createNew(containerPath, service);
 
