@@ -31,6 +31,7 @@ import imglib2.TransformedIterableRealInterval;
 import net.imglib2.Interval;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.realtransform.AffineTransform2D;
+import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.real.DoubleType;
@@ -281,6 +282,11 @@ public class DisplayStackedSlides implements Callable<Void> {
 			if ( genesToShow.size() > 1 )
 				source.setColor( Render.randomColor( rnd ) );
 		}
+
+		final AffineTransform3D t = new AffineTransform3D();
+		source.getBdvHandle().getViewerPanel().state().getViewerTransform( t );
+		t.set(0, 2, 3 );
+		source.getBdvHandle().getViewerPanel().state().setViewerTransform( t );
 
 		service.shutdown();
 		return null;
