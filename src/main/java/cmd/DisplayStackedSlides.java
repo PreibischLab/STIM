@@ -85,7 +85,7 @@ public class DisplayStackedSlides implements Callable<Void> {
 			return null;
 		}
 
-		final ExecutorService service = Executors.newFixedThreadPool(8);
+		final ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 		final List<SpatialDataIO> iodata = new ArrayList<>();
 		if (SpatialDataContainer.isCompatibleContainer(inputPath)) {
 			SpatialDataContainer container = SpatialDataContainer.openForReading(inputPath, service);
@@ -139,25 +139,7 @@ public class DisplayStackedSlides implements Callable<Void> {
 		else
 			annotationList = new ArrayList<>();
 
-		double minI = RenderThread.min;
-		double maxI = RenderThread.max;
-
-		if ( contrastString != null && contrastString.length() > 0 )
-		{
-			String[] contrastStrings = contrastString.trim().split( "," );
-
-			if ( contrastStrings.length != 2 )
-			{
-				System.out.println( "contrast string could not parsed " + Arrays.asList( contrastStrings ) + ", ignoring - setting default range (" + minI + "," + maxI + ")" );
-			}
-			else
-			{
-				minI = Double.parseDouble( contrastStrings[ 0 ] );
-				maxI = Double.parseDouble( contrastStrings[ 1 ] );
-	
-				System.out.println( "contrast range set to (" + minI + "," + maxI + ")" );
-			}
-		}
+		final double[] minmax = parseContrastString(contrastString, RenderThread.min, RenderThread.max );
 
 		final DoubleType outofbounds = new DoubleType( 0 );
 
@@ -274,7 +256,7 @@ public class DisplayStackedSlides implements Callable<Void> {
 			if ( dataToVisualize.size() == 1 )
 				options = options.is2D();
 			source = BdvFunctions.show( rra, interval, gene, options );
-			source.setDisplayRange( minI, maxI );
+			source.setDisplayRange( minmax[0], minmax[1] );
 			source.setDisplayRangeBounds( 0, 200 );
 			source.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.FUSED );
 			source.setCurrent();
@@ -292,6 +274,30 @@ public class DisplayStackedSlides implements Callable<Void> {
 		return null;
 	}
 
+	public static double[] parseContrastString( final String contrastString, final double defaultMin, final double defaultMax )
+	{
+		double minI = defaultMin;
+		double maxI = defaultMax;
+
+		if ( contrastString != null && contrastString.length() > 0 )
+		{
+			String[] contrastStrings = contrastString.trim().split( "," );
+
+			if ( contrastStrings.length != 2 )
+			{
+				System.out.println( "contrast string could not parsed " + Arrays.asList( contrastStrings ) + ", ignoring - setting default range (" + minI + "," + maxI + ")" );
+			}
+			else
+			{
+				minI = Double.parseDouble( contrastStrings[ 0 ] );
+				maxI = Double.parseDouble( contrastStrings[ 1 ] );
+	
+				System.out.println( "contrast range set to (" + minI + "," + maxI + ")" );
+			}
+		}
+
+		return new double[] { minI, maxI };
+	}
 
 	public static final void main(final String... args) {
 		CommandLine.call(new DisplayStackedSlides(), args);
