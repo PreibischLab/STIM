@@ -7,13 +7,12 @@ import net.imglib2.type.numeric.RealType;
 public class MeanFilterFactory< S extends RealType< S >, T extends RealType< T > > extends RadiusSearchFilterFactory< S, T >
 {
 	final T outofbounds;
-	final double radius;
 
 	public MeanFilterFactory(
 			final T outofbounds,
 			final double radius )
 	{
-		this.radius = radius;
+		super( radius );
 		this.outofbounds = outofbounds;
 	}
 
@@ -22,7 +21,7 @@ public class MeanFilterFactory< S extends RealType< S >, T extends RealType< T >
 	{
 		return new MeanFilter< S, T >(
 				new RadiusNeighborSearchOnKDTree<>( tree ),
-				radius,
+				this,
 				outofbounds );
 	}
 

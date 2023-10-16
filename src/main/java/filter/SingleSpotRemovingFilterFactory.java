@@ -7,13 +7,12 @@ import net.imglib2.type.numeric.RealType;
 public class SingleSpotRemovingFilterFactory< T extends RealType< T > > extends RadiusSearchFilterFactory< T, T >
 {
 	final T outofbounds;
-	final double radius;
 
 	public SingleSpotRemovingFilterFactory(
 			final T outofbounds,
 			final double radius )
 	{
-		this.radius = radius;
+		super( radius );
 		this.outofbounds = outofbounds;
 	}
 
@@ -22,7 +21,7 @@ public class SingleSpotRemovingFilterFactory< T extends RealType< T > > extends 
 	{
 		return new SingleSpotRemovingFilter< T >(
 				new RadiusNeighborSearchOnKDTree<>( tree ),
-				radius,
+				this,
 				outofbounds );
 	}
 

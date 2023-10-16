@@ -5,13 +5,16 @@ import net.imglib2.neighborsearch.RadiusNeighborSearch;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.util.Util;
 
-public class MedianFilter< T extends RealType< T > > extends RadiusSearchFilter< T, T >
+public class MedianFilter< T extends RealType< T > > extends RadiusSearchFilter< T, T, MedianFilterFactory< T > >
 {
 	final T outofbounds;
 
-	public MedianFilter( final RadiusNeighborSearch< T > search, final double radius, final T outofbounds )
+	public MedianFilter(
+			final RadiusNeighborSearch< T > search,
+			final MedianFilterFactory< T > factory,
+			final T outofbounds )
 	{
-		super( search, radius );
+		super( search, factory );
 
 		this.outofbounds = outofbounds;
 	}
@@ -19,7 +22,7 @@ public class MedianFilter< T extends RealType< T > > extends RadiusSearchFilter<
 	@Override
 	public void filter( final RealLocalizable position, final T output )
 	{
-		search.search( position, radius, false );
+		search.search( position, factory.getRadius(), false );
 
 		if ( search.numNeighbors() > 1 )
 		{

@@ -2,16 +2,18 @@ package filter;
 
 import net.imglib2.neighborsearch.RadiusNeighborSearch;
 
-public abstract class RadiusSearchFilter< S, T > implements Filter< T >
+public abstract class RadiusSearchFilter< S, T, F extends RadiusSearchFilterFactory<S, T> > implements Filter< T >
 {
 	final RadiusNeighborSearch< S > search;
-	final double radius;
+	final F factory;
 
 	public RadiusSearchFilter(
 			final RadiusNeighborSearch< S > search,
-			final double radius )
+			final F factory )
 	{
 		this.search = search;
-		this.radius = radius;
+		this.factory = factory;
 	}
+
+	public F getFactory() { return factory; }
 }

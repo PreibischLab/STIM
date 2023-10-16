@@ -4,16 +4,16 @@ import net.imglib2.RealLocalizable;
 import net.imglib2.neighborsearch.RadiusNeighborSearch;
 import net.imglib2.type.numeric.RealType;
 
-public class MeanFilter< S extends RealType< S >, T extends RealType< T > > extends RadiusSearchFilter< S, T >
+public class MeanFilter< S extends RealType< S >, T extends RealType< T > > extends RadiusSearchFilter< S, T, MeanFilterFactory< S, T > >
 {
 	final T outofbounds;
 
 	public MeanFilter(
 			final RadiusNeighborSearch< S > search,
-			final double radius,
+			final MeanFilterFactory< S, T > factory,
 			final T outofbounds )
 	{
-		super( search, radius );
+		super( search, factory );
 
 		this.outofbounds = outofbounds;
 	}
@@ -21,7 +21,7 @@ public class MeanFilter< S extends RealType< S >, T extends RealType< T > > exte
 	@Override
 	public void filter( final RealLocalizable position, final T output )
 	{
-		search.search( position, radius, false );
+		search.search( position, factory.getRadius(), false );
 
 		if ( search.numNeighbors() == 0 )
 		{

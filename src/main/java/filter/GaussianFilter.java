@@ -5,33 +5,31 @@ import net.imglib2.RealLocalizable;
 import net.imglib2.neighborsearch.RadiusNeighborSearch;
 import net.imglib2.type.numeric.RealType;
 
-public class GaussianFilter< S extends RealType< S >, T extends RealType< T > > extends RadiusSearchFilter< S, T >
+public class GaussianFilter< S extends RealType< S >, T extends RealType< T > > extends RadiusSearchFilter< S, T, GaussianFilterFactory< S, T > >
 {
 	final T outofbounds;
-	final WeightType normalize;
-	final double two_sq_sigma;
+	//final WeightType normalize;
+	//final double two_sq_sigma;
 
 	final double thresholdMax = 0.5;
 	final double thresholdMin = 0.001;
 
 	public GaussianFilter(
 			final RadiusNeighborSearch< S > search,
-			final T outofbounds,
-			final double radius,
-			final double sigma,
-			final WeightType normalize )
+			final GaussianFilterFactory<S, T> factory,
+			final T outofbounds )
 	{
-		super( search, radius );
+		super( search, factory );
 
 		this.outofbounds = outofbounds;
-		this.normalize = normalize;
-		this.two_sq_sigma = 2 * sigma * sigma;
+		//this.normalize = normalize;
+		//this.two_sq_sigma = 2 * sigma * sigma;
 	}
 
 	@Override
 	public void filter( final RealLocalizable position, final T output )
 	{
-		search.search( position, radius, false );
+		search.search( position, factory.getRadius(), false );
 
 		if ( search.numNeighbors() == 0 )
 		{
@@ -45,16 +43,16 @@ public class GaussianFilter< S extends RealType< S >, T extends RealType< T > > 
 			for ( int i = 0; i < search.numNeighbors(); ++i )
 			{
 				final double dist = search.getDistance( i );
-				final double w = Math.exp( -( dist * dist ) / two_sq_sigma );
+				final double w = Math.exp( -( dist * dist ) / factory.getTwoSqSigma() );
 
 				// hypothesis: these cursors are not copied again, so they are accessed in parallel
 				value += search.getSampler( i ).get().getRealDouble() * w;
 
-				if ( normalize == WeightType.BY_SUM_OF_WEIGHTS || normalize == WeightType.PARTIAL_BY_SUM_OF_WEIGHTS )
+				if ( factory.getNormalize() == WeightType.BY_SUM_OF_WEIGHTS || factory.getNormalize() == WeightType.PARTIAL_BY_SUM_OF_WEIGHTS )
 					weight += w;
 			}
 
-			if ( normalize == WeightType.PARTIAL_BY_SUM_OF_WEIGHTS )
+			if ( factory.getNormalize() == WeightType.PARTIAL_BY_SUM_OF_WEIGHTS )
 			{
 				if ( weight > thresholdMax )
 					output.setReal( value / weight );
@@ -68,9 +66,9 @@ public class GaussianFilter< S extends RealType< S >, T extends RealType< T > > 
 				else
 					output.setReal( value );
 			}
-			else if ( normalize == WeightType.BY_SUM_OF_WEIGHTS )
+			else if ( factory.getNormalize() == WeightType.BY_SUM_OF_WEIGHTS )
 				output.setReal( value / weight );
-			else if ( normalize == WeightType.BY_SUM_OF_SAMPLES )
+			else if ( factory.getNormalize() == WeightType.BY_SUM_OF_SAMPLES )
 				output.setReal( value / search.numNeighbors() );
 			else
 				output.setReal( value );

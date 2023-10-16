@@ -11,17 +11,17 @@ import net.imglib2.type.numeric.RealType;
  *
  * @param <T> - a RealType
  */
-public class DensityFilter< T extends RealType< T > > extends RadiusSearchFilter< T, T >
+public class DensityFilter< T extends RealType< T > > extends RadiusSearchFilter< T, T, DensityFilterFactory< T > >
 {
-	public DensityFilter( final RadiusNeighborSearch< T > search, final double radius )
+	public DensityFilter( final RadiusNeighborSearch< T > search, final DensityFilterFactory< T > factory )
 	{
-		super( search, radius );
+		super( search, factory );
 	}
 
 	@Override
 	public void filter( final RealLocalizable position, final T output )
 	{
-		search.search( position, radius, false );
+		search.search( position, factory.getRadius(), false );
 
 		output.setReal( search.numNeighbors() );
 	}

@@ -7,13 +7,12 @@ import net.imglib2.type.numeric.RealType;
 public class MedianFilterFactory< T extends RealType< T > > extends RadiusSearchFilterFactory< T, T >
 {
 	final T outofbounds;
-	final double radius;
 
 	public MedianFilterFactory(
 			final T outofbounds,
 			final double radius )
 	{
-		this.radius = radius;
+		super( radius );
 		this.outofbounds = outofbounds;
 	}
 
@@ -22,7 +21,7 @@ public class MedianFilterFactory< T extends RealType< T > > extends RadiusSearch
 	{
 		return new MedianFilter< T >(
 				new RadiusNeighborSearchOnKDTree<>( tree ),
-				radius,
+				this,
 				outofbounds );
 	}
 
