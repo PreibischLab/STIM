@@ -1,38 +1,38 @@
 package imglib2;
 
 import java.util.Iterator;
-import java.util.function.BiConsumer;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RealCursor;
 import net.imglib2.RealLocalizable;
-import net.imglib2.RealPoint;
-import net.imglib2.position.AbstractFunctionEuclideanSpace;
 
-public class ConvertingIterableRealInterval< S, T > extends AbstractFunctionEuclideanSpace< RealLocalizable, T > implements IterableRealInterval< T >
+public class ConvertingIterableRealInterval< S, T > implements IterableRealInterval< T >
 {
 	final IterableRealInterval< S > underlyingRealInterval;
 
-	public ConvertingIterableRealInterval(
-			final IterableRealInterval< S > underlyingRealInterval,
-			final BiConsumer< RealLocalizable, ? super T > function,
-			final Supplier< T > typeSupplier )
-	{
-		super( underlyingRealInterval.numDimensions(), function, typeSupplier );
-		//java.util.function.BiFunction<T, U, R>
-		this.underlyingRealInterval = underlyingRealInterval;
-	}
+	protected final Supplier< TriConsumer< RealLocalizable, ? super S, ? super T > > functionSupplier;
+	protected final Supplier< T > typeSupplier;
 
 	public ConvertingIterableRealInterval(
 			final IterableRealInterval< S > underlyingRealInterval,
-			final Supplier< BiConsumer< RealLocalizable, ? super T > > function,
+			final Supplier< TriConsumer< RealLocalizable, ? super S, ? super T > > functionSupplier,
 			final Supplier< T > typeSupplier )
 	{
-		super( underlyingRealInterval.numDimensions(), function, typeSupplier );
-
 		this.underlyingRealInterval = underlyingRealInterval;
+		this.functionSupplier = functionSupplier;
+		this.typeSupplier = typeSupplier;
 	}
+
+	/*
+	public ConvertingIterableRealInterval(
+			final IterableRealInterval< S > underlyingRealInterval,
+			final TriConsumer< RealLocalizable, ? super S, ? super T > function,
+			final Supplier< T > typeSupplier )
+	{
+		this( underlyingRealInterval, () -> function, typeSupplier );
+	}*/
 
 	@Override
 	public Iterator<T> iterator() { return cursor(); }
@@ -58,49 +58,103 @@ public class ConvertingIterableRealInterval< S, T > extends AbstractFunctionEucl
 	@Override
 	public Object iterationOrder() { return underlyingRealInterval.iterationOrder(); }
 
-	public class ConvertingIterableRealIntervalCursor extends RealPoint implements RealCursor< T >
+	@Override
+	public int numDimensions() { return underlyingRealInterval.numDimensions(); }
+
+	public class ConvertingIterableRealIntervalCursor /*extends RealPoint*/ implements RealCursor< T >
 	{
 		private final T t = typeSupplier.get();
-		private final BiConsumer< RealLocalizable, ? super T > function = functionSupplier.get();
-
+		private final TriConsumer< RealLocalizable, ? super S, ? super T > function = functionSupplier.get();
 		private final RealCursor< S > underlyingCursor = underlyingRealInterval.localizingCursor();
-
-		public ConvertingIterableRealIntervalCursor()
-		{
-			super( ConvertingIterableRealInterval.this.n );
-		}
+		private int index = -1;
 
 		@Override
 		public T get()
 		{
-			function.accept( this, t );
+			function.accept( underlyingCursor, underlyingCursor.get(), t );
 			return t;
 		}
 
 		@Override
-		public RealCursor<T> copyCursor() { return copy(); }
+		public T next()
+		{
+			fwd();
+			return get();
+		}
 
 		@Override
-		public ConvertingIterableRealIntervalCursor copy() { return new ConvertingIterableRealIntervalCursor(); }
+		public void jumpFwd( final long steps )
+		{
+			underlyingCursor.jumpFwd( steps );
+			index += steps;
+		}
 
 		@Override
-		public void jumpFwd( final long steps ) { underlyingCursor.jumpFwd( steps ); }
+		public void fwd()
+		{
+			underlyingCursor.fwd();
+			++index;
+		}
 
 		@Override
-		public void fwd() { underlyingCursor.fwd(); }
-
-		@Override
-		public void reset() { underlyingCursor.reset(); }
+		public void reset()
+		{
+			underlyingCursor.reset();
+			index = -1;
+		}
 
 		@Override
 		public boolean hasNext() { return underlyingCursor.hasNext(); }
 
 		@Override
-		public T next()
-		{
-			underlyingCursor.fwd();
-			return get();
-		}
+		public double getDoublePosition(int d) { return underlyingCursor.getDoublePosition(d); }
 
+		@Override
+		public int numDimensions() { return underlyingCursor.numDimensions(); }
+
+		@Override
+		public RealCursor<T> copyCursor() { return copy(); }
+
+		@Override
+		public ConvertingIterableRealIntervalCursor copy()
+		{
+			final ConvertingIterableRealIntervalCursor c = new ConvertingIterableRealIntervalCursor();
+			c.jumpFwd( index );
+			return c;
+		}
+	}
+
+	@FunctionalInterface
+	public static interface TriConsumer<T, U, V> {
+
+	    /**
+	     * Performs this operation on the given arguments.
+	     *
+	     * @param t the first input argument
+	     * @param u the second input argument
+	     * @param v the third input argument
+	     */
+	    void accept(T t, U u, V v);
+
+	    /**
+	     * Returns a composed {@code TriConsumer} that performs, in sequence, this
+	     * operation followed by the {@code after} operation. If performing either
+	     * operation throws an exception, it is relayed to the caller of the
+	     * composed operation.  If performing this operation throws an exception,
+	     * the {@code after} operation will not be performed.
+	     *
+	     * @param after the operation to perform after this operation
+	     * @return a composed {@code TriConsumer} that performs in sequence this
+	     * operation followed by the {@code after} operation
+	     * @throws NullPointerException if {@code after} is null
+	     */
+	    default TriConsumer<T, U, V> andThen(TriConsumer<? super T, ? super U, ? super V> after) {
+	        Objects.requireNonNull(after);
+
+	        return (l, r, s) -> {
+	            accept(l, r, s);
+	            after.accept(l, r, s);
+	        };
+	    }
 	}
 }
