@@ -6,7 +6,10 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.Supplier;
 
+import imglib2.ConvertingIterableRealInterval;
+import imglib2.ConvertingIterableRealInterval.TriConsumer;
 import net.imglib2.Cursor;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.Iterator;
@@ -16,10 +19,39 @@ import net.imglib2.RealCursor;
 import net.imglib2.RealLocalizable;
 import net.imglib2.RealPoint;
 import net.imglib2.RealPointSampleList;
+import net.imglib2.type.Type;
 import net.imglib2.view.Views;
+import render.Render;
 
 public class Filters
 {
+	public static < S extends Type< S >, T > IterableRealInterval< T > filterVirtual(
+			final IterableRealInterval< S > data,
+			final FilterFactory< S, T > filterFactory,
+			final Supplier< T > typeSupplier )
+	{
+		// can't use standard converters because we need location
+		final Supplier<TriConsumer<RealLocalizable, ? super S, ? super T>> functionSupplier = new Supplier< TriConsumer<RealLocalizable, ? super S, ? super T>>()
+		{
+			// we share a KDtree for all instances
+			final KDTree< S > tree = Render.createParallelizableKDTreeFrom( data );
+
+			// when requesting a new TriConsumer, we create a new filter
+			@Override
+			public TriConsumer<RealLocalizable, S, T> get()
+			{
+				final Filter<T> filter = filterFactory.createFilter( tree );
+
+				return ( r, s, t ) -> filter.filter( r, t );
+			}
+		};
+
+		return new ConvertingIterableRealInterval<>(
+				data,
+				functionSupplier,
+				typeSupplier );
+	}
+
 	public static < S, T > RealPointSampleList< T > filter( final IterableRealInterval< S > data, final FilterFactory< S, T > filterFactory, ExecutorService service )
 	{
 		// create full realpointsamplelist
