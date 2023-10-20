@@ -36,10 +36,19 @@ import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.util.Pair;
+import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 
 public class Render
 {
+	public static IterableRealInterval< DoubleType > getRealIterable(
+			final STDataAssembly stdata,
+			final String gene )
+	{
+		return getRealIterable(stdata, gene, null );
+	}
+
 	public static RealRandomAccessible< DoubleType > getRealRandomAccessible(
 			final STDataAssembly stdata,
 			final String gene )
@@ -47,14 +56,23 @@ public class Render
 		return getRealRandomAccessible( stdata, gene, 1.0, null );
 	}
 
-	public static IterableRealInterval< DoubleType > getRealIterable(
+	public static Pair< RealRandomAccessible< DoubleType >, GaussianFilterFactory< DoubleType, DoubleType > > getRealRandomAccessible2(
 			final STDataAssembly stdata,
 			final String gene )
 	{
-		return getRealIterable(stdata, gene, null );
+		return getRealRandomAccessible2( stdata, gene, 1.0, null );
 	}
-	
+
 	public static RealRandomAccessible< DoubleType > getRealRandomAccessible(
+			final STDataAssembly stdata,
+			final String gene,
+			final double renderSigmaFactor,
+			final List< FilterFactory< DoubleType, DoubleType > > filterFactories )
+	{
+		return getRealRandomAccessible2( stdata, gene, renderSigmaFactor, filterFactories ).getA();
+	}
+
+	public static Pair< RealRandomAccessible< DoubleType >, GaussianFilterFactory< DoubleType, DoubleType > > getRealRandomAccessible2(
 			final STDataAssembly stdata,
 			final String gene,
 			final double renderSigmaFactor,
@@ -63,13 +81,16 @@ public class Render
 		final IterableRealInterval< DoubleType > data = getRealIterable( stdata, gene, filterFactories );
 
 		// gauss crisp
-		double gaussRenderSigma = stdata.statistics().getMedianDistance() * renderSigmaFactor;
+		final double gaussRenderSigmaBase = stdata.statistics().getMedianDistance();
 
 		//return Render.renderNN( data );
 		//return Render.renderNN( data, new DoubleType( 0 ), gaussRenderRadius );
 		//return Render.render( data, new MeanFilterFactory<>( new DoubleType( 0 ), 2 * gaussRenderSigma ) );
 		//return Render.render( data, new MedianFilterFactory<>( new DoubleType( 0 ), 2 * gaussRenderSigma ) );
-		return Render.render( data, new GaussianFilterFactory<>( new DoubleType( 0 ), gaussRenderSigma, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS ) );
+		final GaussianFilterFactory< DoubleType, DoubleType > factory =
+				new GaussianFilterFactory<>( new DoubleType( 0 ), gaussRenderSigmaBase * renderSigmaFactor, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS );
+
+		return new ValuePair<>( Render.render( data, factory ), factory );
 	}
 
 	public static IterableRealInterval< DoubleType > getRealIterable(
@@ -113,6 +134,7 @@ public class Render
 		if ( filterFactories != null )
 			for ( final FilterFactory<DoubleType, DoubleType> filterFactory : filterFactories )
 				data = Filters.filter( data, filterFactory );
+				// data = Filters.filterVirtual( data, filterFactory, DoubleType::new );
 
 		/*
 		if ( medianRadius > 0 )
@@ -293,7 +315,7 @@ public class Render
 		return new ARGBType( ARGBType.rgba(c.getRed(), c.getGreen(), c.getBlue(), c.getAlpha()));
 	}
 
-	protected static <T extends Type<T>> KDTree<T> createParallelizableKDTreeFrom(IterableRealInterval<T> data) {
+	public static <T extends Type<T>> KDTree<T> createParallelizableKDTreeFrom(IterableRealInterval<T> data) {
 		final List<RealCursor<T>> positions = new ArrayList<>();
 		final List<T> values = new ArrayList<>();
 
