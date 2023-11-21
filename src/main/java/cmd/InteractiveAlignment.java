@@ -23,6 +23,8 @@ import bdv.util.BdvHandle;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
+import bdv.viewer.SourceGroup;
+import bdv.viewer.SynchronizedViewerState;
 import data.STDataUtils;
 import filter.FilterFactory;
 import filter.GaussianFilterFactory;
@@ -37,6 +39,7 @@ import net.imglib2.Interval;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.miginfocom.swing.MigLayout;
@@ -162,55 +165,103 @@ public class InteractiveAlignment implements Callable<Void> {
 
 		System.out.println( "Starting BDV ... " );
 
+
 		for ( int i = 0; i < numGenes; ++i )
 		{
 			final String gene = genesToTest.get( i ); //"Calm2";
 			System.out.println( "Rendering gene (each available as its own source): " + gene );
 
-			minmax[ 0 ] = Double.MAX_VALUE;
-			minmax[ 1 ] = -Double.MAX_VALUE;
-
-			for ( final DoubleType t : data1.data().getExprData(gene) )
+			for ( int s = 0; s <=1; ++s )
 			{
-				minmax[ 0 ] = Math.min( minmax[ 0 ], t.get() );
-				minmax[ 1 ] = Math.max( minmax[ 1 ], t.get() );
-			}
-
-			System.out.println( "min/max: " + minmax[0] + "/" + minmax[1] );
-			System.out.println( "min/max display range: " + "0" + "/" + minmax[1]/2 );
-
-			final List< FilterFactory< DoubleType, DoubleType > > filterFactorys = new ArrayList<>();
-			//filterFactorys.add( new MedianFilterFactory<DoubleType>( new DoubleType(), 3 * medianDistance ) );
-
-			final Pair< RealRandomAccessible< DoubleType >, GaussianFilterFactory< DoubleType, DoubleType > > rendered = 
-					Render.getRealRandomAccessible2( data1, gene, smoothnessFactor, filterFactorys );
-
-			final RealRandomAccessible< DoubleType > rra = rendered.getA();
-			final GaussianFilterFactory< DoubleType, DoubleType > factory = rendered.getB();
-			factories.add( factory );
-
-			final Interval interval =
-						STDataUtils.getIterableInterval(
-								new TransformedIterableRealInterval<>(
-										data1.data(),
-										data1.transform() ) );
-
-			BdvOptions options =
-					BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() / 2 ).addTo( source ).is2D();
-
-			source = BdvFunctions.show( rra, interval, gene, options );
-
-			source.setDisplayRangeBounds( 0, minmax[1] );
-			source.setDisplayRange( minmax[0], minmax[1]/2 );
-			source.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
-			source.setCurrent();
+				final STDataAssembly data = (s==0) ? data1 : data2;
+				minmax[ 0 ] = Double.MAX_VALUE;
+				minmax[ 1 ] = -Double.MAX_VALUE;
 	
-			final AffineTransform3D t = new AffineTransform3D();
-			source.getBdvHandle().getViewerPanel().state().getViewerTransform( t );
-			t.set( 0, 2, 3 );
-			source.getBdvHandle().getViewerPanel().state().setViewerTransform( t );
+				for ( final DoubleType t : data.data().getExprData(gene) )
+				{
+					minmax[ 0 ] = Math.min( minmax[ 0 ], t.get() );
+					minmax[ 1 ] = Math.max( minmax[ 1 ], t.get() );
+				}
+	
+				System.out.println( "min/max: " + minmax[0] + "/" + minmax[1] );
+				System.out.println( "min/max display range: " + "0" + "/" + minmax[1]/2 );
+	
+				final List< FilterFactory< DoubleType, DoubleType > > filterFactorys = new ArrayList<>();
+				//filterFactorys.add( new MedianFilterFactory<DoubleType>( new DoubleType(), 3 * medianDistance ) );
+	
+				final Pair< RealRandomAccessible< DoubleType >, GaussianFilterFactory< DoubleType, DoubleType > > rendered = 
+						Render.getRealRandomAccessible2( data, gene, smoothnessFactor, filterFactorys );
+	
+				final RealRandomAccessible< DoubleType > rra = rendered.getA();
+				final GaussianFilterFactory< DoubleType, DoubleType > factory = rendered.getB();
+				factories.add( factory );
+	
+				final Interval interval =
+							STDataUtils.getIterableInterval(
+									new TransformedIterableRealInterval<>(
+											data.data(),
+											data.transform() ) );
+	
+				BdvOptions options =
+						BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() / 2 ).addTo( source ).is2D();
+	
+				source = BdvFunctions.show( rra, interval, gene, options );
+	
+				source.setDisplayRangeBounds( 0, minmax[1] );
+				source.setDisplayRange( minmax[0], minmax[1]/2 );
+				if ( s == 0 )
+				{
+					source.setColor( new ARGBType( ARGBType.rgba(0, 255, 0, 0) ) );
+				}
+				else
+				{
+					source.setColor( new ARGBType( ARGBType.rgba(255, 0, 255, 0) ) );
+				}
+				source.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
+				source.setCurrent();
+
+	
+				final AffineTransform3D t = new AffineTransform3D();
+				source.getBdvHandle().getViewerPanel().state().getViewerTransform( t );
+				t.set( 0, 2, 3 );
+				source.getBdvHandle().getViewerPanel().state().setViewerTransform( t );
+			}
 		}
 
+		final SynchronizedViewerState state = source.getBdvHandle().getViewerPanel().state();
+
+		ArrayList oldGroups = new ArrayList<>( state.getGroups() );
+
+		for ( int i = 0; i < numGenes; ++i )
+		{
+			final String gene = genesToTest.get( i );
+
+			final SourceGroup handle = new SourceGroup();
+			state.addGroup( handle );
+			state.setGroupName( handle, gene );
+			state.setGroupActive( handle, true );
+			state.addSourceToGroup( state.getSources().get(i*2), handle );
+			state.addSourceToGroup( state.getSources().get(i*2 + 1), handle );
+		}
+
+		source.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.GROUP );
+
+		state.removeGroups( oldGroups );
+
+		/*
+		[13:19, 11/21/2023] Tobias Pietzsch: ViewerPanel.state()
+		[13:20, 11/21/2023] Tobias Pietzsch: und dann in dem ViewerState addSourcesToGroup( Collection< ? extends SourceAndConverter< ? > > collection, SourceGroup group );
+		[13:20, 11/21/2023] Tobias Pietzsch: und auch im ViewerState setDisplayMode(GROUP)
+		[13:21, 11/21/2023] Stephan Preibisch: und wie mache ich 10 groups initial?
+		[13:21, 11/21/2023] Stephan Preibisch: also die SourceGroup objekte
+		[13:21, 11/21/2023] Tobias Pietzsch: einfach new bdv.viewer.SourceGroup()
+		[13:22, 11/21/2023] Tobias Pietzsch: das sind quasi nur IDs
+		[13:22, 11/21/2023] Stephan Preibisch: ok, cool, danke!
+		[13:22, 11/21/2023] Tobias Pietzsch: dann ViewerState:addGroup(…) ode addGroups(…)
+		[13:22, 11/21/2023] Stephan Preibisch: ich versuche mein Glück :)
+		[13:22, 11/21/2023] Tobias Pietzsch: ViewerState.setGroupName(SourceGroup, String)
+		[13:23, 11/21/2023] Tobias Pietzsch: etc
+		*/
 		final double medianDistance = (data1.statistics().getMedianDistance() + data2.statistics().getMedianDistance()) / 2.0;
 
 		System.out.println( "Setting panel ... " );
@@ -219,14 +270,12 @@ public class InteractiveAlignment implements Callable<Void> {
 		final SplitPanel splitPanel = source.getBdvHandle().getSplitPanel();
 
 		/*
-		// add STIMCard panel
+		// add STIMAlignmentCard panel
 		System.out.println( "Adding STIMAlignmentCard ... " );
 		final STIMAlignmentCard cardAlign = new STIMAlignmentCard(medianDistance, medianDistance*2, 25, 10, numGenes, source.getBdvHandle());
 		source.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlign.getPanel(), false );
 
-		card.toggleActiveListeners();
-		source.getBdvHandle().getCardPanel().setCardExpanded(card, true); // collapse groups panel
-		source.getBdvHandle().getCardPanel().setCardExpanded(cardAlign, true); // collapse sources panel
+		source.getBdvHandle().getCardPanel().setCardExpanded(cardAlign, true); // expand STIMAlignmentCard panel
 		System.out.println("done");
 		*/
 
@@ -243,18 +292,19 @@ public class InteractiveAlignment implements Callable<Void> {
 		// add STIMCard panel
 		System.out.println( "Adding STIMCard ... " );
 		final STIMCard card = new STIMCard(factories, medianDistance, source.getBdvHandle());
-		source.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), false );
+		source.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
 
 		// collapse all existing panels (except sources)
-		source.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_SOURCEGROUPS_CARD, false); // collapse groups panel
-		source.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_SOURCES_CARD, true); // collapse sources panel
+		source.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_SOURCEGROUPS_CARD, true); // collapse groups panel
+		source.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_SOURCES_CARD, false); // collapse sources panel
 		source.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_VIEWERMODES_CARD, false); // collapse display modes panel
-
-		// Expands the split Panel
-		splitPanel.setCollapsed(false);
 
 		// activate listeners
 		card.toggleActiveListeners();
+		//source.getBdvHandle().getCardPanel().setCardExpanded(card, true); // expand STIMCard panel
+
+		// Expands the split Panel
+		splitPanel.setCollapsed(false);
 
 		//service.shutdown();
 
