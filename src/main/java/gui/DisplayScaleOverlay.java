@@ -5,6 +5,7 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.text.DecimalFormat;
 
+import bdv.ui.UIUtils;
 import bdv.viewer.OverlayRenderer;
 import bdv.viewer.TransformListener;
 import net.imglib2.realtransform.AffineTransform3D;
@@ -31,7 +32,7 @@ public class DisplayScaleOverlay implements OverlayRenderer, TransformListener<A
 	{
 		final double scale = computeScale( viewerTransform );
 
-		g.setFont(new Font("Monospaced", Font.PLAIN, 12));
+		g.setFont( UIUtils.getFont( "defaultFont" )); //new Font("Monospaced", Font.PLAIN, 12));
 		g.setColor(Color.white);
 		g.drawString(
 				"scale = " + format.format(scale) + "x",
