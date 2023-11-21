@@ -220,11 +220,6 @@ public class InteractiveAlignment implements Callable<Void> {
 
 		/*
 		// add STIMCard panel
-		System.out.println( "Adding STIMCard ... " );
-		final STIMCard card = new STIMCard(factory, medianDistance, source.getBdvHandle());
-		source.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), false );
-
-		// add STIMCard panel
 		System.out.println( "Adding STIMAlignmentCard ... " );
 		final STIMAlignmentCard cardAlign = new STIMAlignmentCard(medianDistance, medianDistance*2, 25, 10, numGenes, source.getBdvHandle());
 		source.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlign.getPanel(), false );
@@ -245,6 +240,11 @@ public class InteractiveAlignment implements Callable<Void> {
 		System.out.println( "Adding ScaleBar ... " );
 		source.getBdvHandle().getAppearanceManager().appearance().setShowScaleBar( true );
 
+		// add STIMCard panel
+		System.out.println( "Adding STIMCard ... " );
+		final STIMCard card = new STIMCard(factories, medianDistance, source.getBdvHandle());
+		source.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), false );
+
 		// collapse all existing panels (except sources)
 		source.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_SOURCEGROUPS_CARD, false); // collapse groups panel
 		source.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_SOURCES_CARD, true); // collapse sources panel
@@ -252,6 +252,9 @@ public class InteractiveAlignment implements Callable<Void> {
 
 		// Expands the split Panel
 		splitPanel.setCollapsed(false);
+
+		// activate listeners
+		card.toggleActiveListeners();
 
 		//service.shutdown();
 
@@ -335,7 +338,8 @@ public class InteractiveAlignment implements Callable<Void> {
 		private boolean listenersActive = false;
 
 		public STIMCard(
-				final GaussianFilterFactory< DoubleType, DoubleType > gaussFactory,
+				//final GaussianFilterFactory< DoubleType, DoubleType > gaussFactory,
+				final List< GaussianFilterFactory< DoubleType, DoubleType > > gaussFactories,
 				final double medianDistance,
 				final BdvHandle bdvhandle )
 		{
@@ -343,7 +347,7 @@ public class InteractiveAlignment implements Callable<Void> {
 
 			this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 0, fill", "[right][grow]", "center"));
 
-			final double currentSigma = gaussFactory.getSigma()/medianDistance;
+			final double currentSigma = gaussFactories.get( 0 ).getSigma()/medianDistance;
 			final BoundedValuePanel sigmaSlider = new BoundedValuePanel(new BoundedValue(0, Math.max( 2.50, currentSigma * 1.5 ), currentSigma ));
 			sigmaSlider.setBorder(null);
 			final JLabel sigmaLabel = new JLabel("sigma (-sf)");
@@ -358,7 +362,8 @@ public class InteractiveAlignment implements Callable<Void> {
 			{
 				if ( this.listenersActive )
 				{
-					gaussFactory.setSigma( sigmaSlider.getValue().getValue() * medianDistance );
+					for ( final GaussianFilterFactory< DoubleType, DoubleType > gaussFactory : gaussFactories )
+						gaussFactory.setSigma( sigmaSlider.getValue().getValue() * medianDistance );
 					bdvhandle.getViewerPanel().requestRepaint();
 				}
 			} );
