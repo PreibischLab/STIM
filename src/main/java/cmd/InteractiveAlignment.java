@@ -5,7 +5,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -18,6 +20,7 @@ import javax.swing.JPopupMenu;
 
 import align.Pairwise;
 import bdv.ui.splitpanel.SplitPanel;
+import bdv.util.Bdv;
 import bdv.util.BdvFunctions;
 import bdv.util.BdvHandle;
 import bdv.util.BdvOptions;
@@ -31,6 +34,7 @@ import filter.GaussianFilterFactory;
 import gui.DisplayScaleOverlay;
 import gui.RenderThread;
 import gui.STDataAssembly;
+import gui.geneselection.GeneSelectionExplorer;
 import imglib2.TransformedIterableRealInterval;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
@@ -42,6 +46,7 @@ import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
+import net.imglib2.util.ValuePair;
 import net.miginfocom.swing.MigLayout;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
@@ -116,7 +121,7 @@ public class InteractiveAlignment implements Callable<Void> {
 
 		// TODO: right temp directory
 		final File tmp = new File( "/tmp/" + inputPath.hashCode() + "_" + dataset1.hashCode() + "_" + dataset2.hashCode() );
-		final List< String > genesToTest = new ArrayList<>();
+		final List< Pair< String, Double > > allGenes = new ArrayList<>();
 
 		if ( tmp.exists() )
 		{
@@ -124,38 +129,45 @@ public class InteractiveAlignment implements Callable<Void> {
 			try
 			{
 				final BufferedReader in = TextFileAccess.openFileReadEx( tmp );
-				in.lines().forEach( s -> genesToTest.add( s.trim() ) );
+				in.lines().forEach( s -> {
+					String[] entries = s.split( "\t" );
+					allGenes.add( new ValuePair<>( entries[ 0 ], Double.parseDouble( entries[1] ) ) );
+				});
 				in.close();
 			}
 			catch (IOException e )
 			{
 				System.out.println( "Couldn't load tmp file: " + e);
-				genesToTest.clear();
+				allGenes.clear();
 			}
 		}
 
 		// get all genes sorted (so we can pick quickly later)
-		if ( genesToTest.size() == 0 )
+		if ( allGenes.size() == 0 )
 		{
-			genesToTest.addAll( Pairwise.genesToTest( data1.data(), data2.data(), Integer.MAX_VALUE, Threads.numThreads() ) );
+			allGenes.addAll( Pairwise.allGenes( data1.data(), data2.data(), Threads.numThreads() ) );
 
 			System.out.println( "Attempting to save cached sorted result: " + tmp.getAbsolutePath() );
 
 			try
 			{
 				final PrintWriter out = TextFileAccess.openFileWriteEx( tmp );
-				genesToTest.forEach( s -> out.println( s ) );
+				allGenes.forEach( s -> out.println( s.getA() + "\t" + s.getB() ) );
 				out.close();
 			}
 			catch (IOException e )
 			{
-				System.out.println( "Couldn't load tmp file: " + e);
-				genesToTest.clear();
+				System.out.println( "Couldn't save tmp file: " + e);
 			}
 		}
 
 		if ( numGenes > 0 )
-			System.out.println( "Automatically identified " + genesToTest.size() + " genes that can be used for alignment" );
+			System.out.println( "Automatically identified " + allGenes.size() + " genes that can be used for alignment" );
+		else
+		{
+			System.err.println( "No common genes between both datasets. stopping.");
+			System.exit( 0 );
+		}
 
 		// the plan is to open two BDV windows next to each other,
 		// render in parallel and overlay candidates and inliers
@@ -164,15 +176,23 @@ public class InteractiveAlignment implements Callable<Void> {
 		ArrayList< GaussianFilterFactory< DoubleType, DoubleType > > factories = new ArrayList<>();
 
 		System.out.println( "Starting BDV ... " );
-
+		System.out.println( "Starting with the top " + numGenes + " genes (you find them in the 'groups' panel, you can add/remove genes in the GUI." );
 
 		for ( int i = 0; i < numGenes; ++i )
 		{
-			final String gene = genesToTest.get( i ); //"Calm2";
+			final String gene = allGenes.get( i ).getA(); //"Calm2";
 			System.out.println( "Rendering gene (each available as its own source): " + gene );
 
 			for ( int s = 0; s <=1; ++s )
 			{
+				source = addGene(
+						source,
+						factories,
+						(s==0) ? data1 : data2,
+						gene,
+						smoothnessFactor,
+						(s==0) ? new ARGBType( ARGBType.rgba(0, 255, 0, 0) ) : new ARGBType( ARGBType.rgba(255, 0, 255, 0) ) );
+				/*
 				final STDataAssembly data = (s==0) ? data1 : data2;
 				minmax[ 0 ] = Double.MAX_VALUE;
 				minmax[ 1 ] = -Double.MAX_VALUE;
@@ -225,16 +245,18 @@ public class InteractiveAlignment implements Callable<Void> {
 				source.getBdvHandle().getViewerPanel().state().getViewerTransform( t );
 				t.set( 0, 2, 3 );
 				source.getBdvHandle().getViewerPanel().state().setViewerTransform( t );
+				*/
 			}
 		}
 
 		final SynchronizedViewerState state = source.getBdvHandle().getViewerPanel().state();
+		final ArrayList< SourceGroup > oldGroups = new ArrayList<>( state.getGroups() );
 
-		ArrayList oldGroups = new ArrayList<>( state.getGroups() );
+		final HashMap< String, SourceGroup > geneToBDVSource = new HashMap<>();
 
 		for ( int i = 0; i < numGenes; ++i )
 		{
-			final String gene = genesToTest.get( i );
+			final String gene = allGenes.get( i ).getA();
 
 			final SourceGroup handle = new SourceGroup();
 			state.addGroup( handle );
@@ -242,6 +264,8 @@ public class InteractiveAlignment implements Callable<Void> {
 			state.setGroupActive( handle, true );
 			state.addSourceToGroup( state.getSources().get(i*2), handle );
 			state.addSourceToGroup( state.getSources().get(i*2 + 1), handle );
+
+			geneToBDVSource.put( gene, handle );
 		}
 
 		source.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.GROUP );
@@ -269,16 +293,6 @@ public class InteractiveAlignment implements Callable<Void> {
 		// the side panel
 		final SplitPanel splitPanel = source.getBdvHandle().getSplitPanel();
 
-		/*
-		// add STIMAlignmentCard panel
-		System.out.println( "Adding STIMAlignmentCard ... " );
-		final STIMAlignmentCard cardAlign = new STIMAlignmentCard(medianDistance, medianDistance*2, 25, 10, numGenes, source.getBdvHandle());
-		source.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlign.getPanel(), false );
-
-		source.getBdvHandle().getCardPanel().setCardExpanded(cardAlign, true); // expand STIMAlignmentCard panel
-		System.out.println("done");
-		*/
-
 		// add scale (so the right size of the images for alignment can be selected)
 		System.out.println( "Adding DisplayScaleOverlay ... " );
 		final DisplayScaleOverlay overlay = new DisplayScaleOverlay();
@@ -289,26 +303,90 @@ public class InteractiveAlignment implements Callable<Void> {
 		System.out.println( "Adding ScaleBar ... " );
 		source.getBdvHandle().getAppearanceManager().appearance().setShowScaleBar( true );
 
-		// add STIMCard panel
-		System.out.println( "Adding STIMCard ... " );
-		final STIMCard card = new STIMCard(factories, medianDistance, source.getBdvHandle());
-		source.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
-
 		// collapse all existing panels (except sources)
 		source.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_SOURCEGROUPS_CARD, true); // collapse groups panel
 		source.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_SOURCES_CARD, false); // collapse sources panel
 		source.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_VIEWERMODES_CARD, false); // collapse display modes panel
 
+		// add STIMCard panel
+		System.out.println( "Adding STIMCard ... " );
+		final STIMCard card = new STIMCard(factories, medianDistance, source.getBdvHandle());
+		source.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
+
+		// add STIMAlignmentCard panel
+		System.out.println( "Adding STIMAlignmentCard ... " );
+		final STIMAlignmentCard cardAlign = new STIMAlignmentCard( data1, data2, card, allGenes, geneToBDVSource, medianDistance, medianDistance*2, 25, 10, numGenes, source.getBdvHandle());
+		source.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlign.getPanel(), true );
+
 		// activate listeners
 		card.toggleActiveListeners();
-		//source.getBdvHandle().getCardPanel().setCardExpanded(card, true); // expand STIMCard panel
 
 		// Expands the split Panel
 		splitPanel.setCollapsed(false);
 
+		System.out.println("done");
+
 		//service.shutdown();
 
 		return null;
+	}
+
+	public static BdvStackSource< ? > addGene(
+			final Bdv bdv,
+			final List< GaussianFilterFactory< DoubleType, DoubleType > > factories,
+			final STDataAssembly data,
+			final String gene,
+			final double smoothnessFactor,
+			final ARGBType color )
+	{
+		final double[] minmax = new double[ 2 ];
+
+		minmax[ 0 ] = Double.MAX_VALUE;
+		minmax[ 1 ] = -Double.MAX_VALUE;
+
+		for ( final DoubleType t : data.data().getExprData(gene) )
+		{
+			minmax[ 0 ] = Math.min( minmax[ 0 ], t.get() );
+			minmax[ 1 ] = Math.max( minmax[ 1 ], t.get() );
+		}
+
+		System.out.println( "min/max: " + minmax[0] + "/" + minmax[1] );
+		System.out.println( "min/max display range: " + "0" + "/" + minmax[1]/2 );
+
+		final List< FilterFactory< DoubleType, DoubleType > > filterFactorys = new ArrayList<>();
+		//filterFactorys.add( new MedianFilterFactory<DoubleType>( new DoubleType(), 3 * medianDistance ) );
+
+		final Pair< RealRandomAccessible< DoubleType >, GaussianFilterFactory< DoubleType, DoubleType > > rendered = 
+				Render.getRealRandomAccessible2( data, gene, smoothnessFactor, filterFactorys );
+
+		final RealRandomAccessible< DoubleType > rra = rendered.getA();
+		final GaussianFilterFactory< DoubleType, DoubleType > factory = rendered.getB();
+		factories.add( factory );
+
+		final Interval interval =
+					STDataUtils.getIterableInterval(
+							new TransformedIterableRealInterval<>(
+									data.data(),
+									data.transform() ) );
+
+		BdvOptions options =
+				BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() / 2 ).addTo( bdv ).is2D();
+
+		BdvStackSource< ? > source = BdvFunctions.show( rra, interval, gene, options );
+
+		source.setDisplayRangeBounds( 0, minmax[1] );
+		source.setDisplayRange( minmax[0], minmax[1]/2 );
+		source.setColor( color );
+		//source.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
+		source.setCurrent();
+
+
+		final AffineTransform3D t = new AffineTransform3D();
+		source.getBdvHandle().getViewerPanel().state().getViewerTransform( t );
+		t.set( 0, 2, 3 );
+		source.getBdvHandle().getViewerPanel().state().setViewerTransform( t );
+
+		return source;
 	}
 
 	public class STIMAlignmentCard
@@ -316,7 +394,14 @@ public class InteractiveAlignment implements Callable<Void> {
 		private final JPanel panel;
 		private boolean listenersActive = false;
 
+		private GeneSelectionExplorer gse = null;
+
 		public STIMAlignmentCard(
+				final STDataAssembly data1,
+				final STDataAssembly data2,
+				final STIMCard stimcard,
+				final List< Pair< String, Double > > allGenes,
+				final HashMap< String, SourceGroup > geneToBDVSource,
 				final double medianDistance,
 				final double errorInit,
 				final int minNumInliersInit,
@@ -344,11 +429,64 @@ public class InteractiveAlignment implements Callable<Void> {
 			panel.add(inliersPerGeneLabel, "aligny baseline");
 			panel.add(inliersPerGeneSlider, "growx, wrap");
 
-			final BoundedValuePanel numGenesSlides = new BoundedValuePanel(new BoundedValue(0, 100, numGenesInit ));
-			numGenesSlides.setBorder(null);
-			final JLabel numGenesSlidesLabel = new JLabel("num genes");
-			panel.add(numGenesSlidesLabel, "aligny baseline");
-			panel.add(numGenesSlides, "growx, wrap");
+			final JButton add = new JButton("Add genes ...");
+			panel.add(add);
+			add.addActionListener( l -> 
+			{
+				final List< Pair< String, Double > > genes = new ArrayList<>();
+
+				for ( int i = 100; i >=0; --i )
+					genes.add( new ValuePair<String, Double>("gene " + i, (double)i ) );
+
+				if ( gse == null || gse.frame().isVisible() == false )
+					gse = new GeneSelectionExplorer(
+							allGenes,
+							list ->
+							{
+								//
+								// first check if all groups are still present that are in the HashMap
+								//
+								final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
+								final ArrayList< SourceGroup > currentGroups = new ArrayList<>( state.getGroups() );
+
+								final ArrayList< String > toRemove = new ArrayList<>();
+								for ( final Entry<String, SourceGroup > entry : geneToBDVSource.entrySet() )
+									if ( !currentGroups.contains( entry.getValue() ) )
+										toRemove.add( entry.getKey() );
+
+								toRemove.forEach( s -> geneToBDVSource.remove( s ) );
+
+								//
+								// Now add the new ones (if it's not already there)
+								//
+								for ( final String gene : list )
+								{
+									if ( !geneToBDVSource.containsKey( gene ) )
+									{
+										System.out.println( "Gene " + gene + " will be added." );
+
+										addGene( bdvhandle, stimcard.gaussFactories(), data1, gene, stimcard.currentSigma(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ) );
+										addGene( bdvhandle, stimcard.gaussFactories(), data2, gene, stimcard.currentSigma(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ) );
+
+										final SourceGroup handle = new SourceGroup();
+										state.addGroup( handle );
+										state.setGroupName( handle, gene );
+										state.setGroupActive( handle, true );
+										state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), handle );
+										state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), handle );
+
+										geneToBDVSource.put( gene, handle );
+
+										bdvhandle.getViewerPanel().setDisplayMode( DisplayMode.GROUP );
+									}
+									else
+									{
+										System.out.println( "Gene " + gene + " is already being displayed, ignoring." );
+										// TODO: remove gaussFactories? - maybe not necessary
+									}
+								}
+							} );
+			});
 
 			final JButton run = new JButton("Run ...");
 			panel.add(run);
@@ -386,18 +524,20 @@ public class InteractiveAlignment implements Callable<Void> {
 	{
 		private final JPanel panel;
 		private boolean listenersActive = false;
+		private double currentSigma;
+		final List< GaussianFilterFactory< DoubleType, DoubleType > > gaussFactories;
 
 		public STIMCard(
-				//final GaussianFilterFactory< DoubleType, DoubleType > gaussFactory,
 				final List< GaussianFilterFactory< DoubleType, DoubleType > > gaussFactories,
 				final double medianDistance,
 				final BdvHandle bdvhandle )
 		{
 			System.out.println( "Setting up panel ... " );
 
+			this.gaussFactories = gaussFactories;
 			this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 0, fill", "[right][grow]", "center"));
 
-			final double currentSigma = gaussFactories.get( 0 ).getSigma()/medianDistance;
+			currentSigma = gaussFactories.get( 0 ).getSigma()/medianDistance;
 			final BoundedValuePanel sigmaSlider = new BoundedValuePanel(new BoundedValue(0, Math.max( 2.50, currentSigma * 1.5 ), currentSigma ));
 			sigmaSlider.setBorder(null);
 			final JLabel sigmaLabel = new JLabel("sigma (-sf)");
@@ -413,7 +553,9 @@ public class InteractiveAlignment implements Callable<Void> {
 				if ( this.listenersActive )
 				{
 					for ( final GaussianFilterFactory< DoubleType, DoubleType > gaussFactory : gaussFactories )
-						gaussFactory.setSigma( sigmaSlider.getValue().getValue() * medianDistance );
+						if ( gaussFactory != null ) // could vanish when genes are removed
+							gaussFactory.setSigma( ( currentSigma = sigmaSlider.getValue().getValue() ) * medianDistance );
+
 					bdvhandle.getViewerPanel().requestRepaint();
 				}
 			} );
@@ -427,6 +569,9 @@ public class InteractiveAlignment implements Callable<Void> {
 			System.out.println( "Done ... " );
 		}
 
+		public List< GaussianFilterFactory< DoubleType, DoubleType > > gaussFactories() { return gaussFactories; }
+
+		public double currentSigma() { return currentSigma; }
 		public void toggleActiveListeners() { this.listenersActive = !this.listenersActive; }
 		public JPanel getPanel() { return panel; }
 
