@@ -1,7 +1,6 @@
 package gui;
 
 import java.awt.Color;
-import java.awt.Font;
 import java.awt.Graphics;
 import java.text.DecimalFormat;
 
@@ -15,6 +14,8 @@ public class DisplayScaleOverlay implements OverlayRenderer, TransformListener<A
 {
 	private final DecimalFormat format = new DecimalFormat("0.###");
 	private final AffineTransform3D viewerTransform;
+
+	private double currentScale = 0;
 
 	public DisplayScaleOverlay()
 	{
@@ -30,18 +31,20 @@ public class DisplayScaleOverlay implements OverlayRenderer, TransformListener<A
 	@Override
 	public void drawOverlays(final Graphics g)
 	{
-		final double scale = computeScale( viewerTransform );
+		currentScale = computeScale( viewerTransform );
 
 		g.setFont( UIUtils.getFont( "defaultFont" )); //new Font("Monospaced", Font.PLAIN, 12));
 		g.setColor(Color.white);
 		g.drawString(
-				"scale = " + format.format(scale) + "x",
+				"scale = " + format.format(currentScale) + "x",
 				(int) g.getClipBounds().getWidth() - 120,
 				(int) g.getClipBounds().getHeight() - 24);
 
 		// TransformAwareBufferedImageOverlayRenderer t = null;
 		// t.bufferedImage;
 	}
+
+	public double currentScale() { return currentScale; }
 
 	public static double computeScale(final AffineTransform3D t)
 	{

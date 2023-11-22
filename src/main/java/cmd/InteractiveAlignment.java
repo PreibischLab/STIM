@@ -19,6 +19,9 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 
 import align.Pairwise;
+import align.PairwiseSIFT;
+import align.SiftMatch;
+import align.PairwiseSIFT.SIFTParam;
 import bdv.ui.splitpanel.SplitPanel;
 import bdv.util.Bdv;
 import bdv.util.BdvFunctions;
@@ -39,6 +42,7 @@ import imglib2.TransformedIterableRealInterval;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
 import io.TextFileAccess;
+import mpicbg.models.RigidModel2D;
 import net.imglib2.Interval;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.multithreading.SimpleMultiThreading;
@@ -72,9 +76,6 @@ public class InteractiveAlignment implements Callable<Void> {
 
 	@Option(names = {"-sf", "--smoothnessFactor"}, required = false, description = "initial factor for the sigma of the gaussian used for rendering, corresponds to smoothness, can be changed interactively, e.g -sf 2.0 (default: 4.0)")
 	private double smoothnessFactor = 1.0;
-
-	@Option(names = {"-c", "--contrast"}, description = "comma separated contrast range for BigDataViewer display, e.g. -c '0,255' (default 0.1,5)" )
-	private String contrastString = null;
 
 	@Option(names = {"-n", "--numGenes"}, required = false, description = "initial number of genes for alignment that have the highest entropy (default: 10)")
 	private int numGenes = 10;
@@ -112,8 +113,6 @@ public class InteractiveAlignment implements Callable<Void> {
 			data2.transform().set(new AffineTransform2D());
 		if (!useIntensityTransform)
 			data2.intensityTransform().set(1, 0);
-
-		final double[] minmax = DisplayStackedSlides.parseContrastString( contrastString, RenderThread.min, RenderThread.max );
 
 		//
 		// assemble genes to test
@@ -267,7 +266,7 @@ public class InteractiveAlignment implements Callable<Void> {
 
 		// add STIMAlignmentCard panel
 		System.out.println( "Adding STIMAlignmentCard ... " );
-		final STIMAlignmentCard cardAlign = new STIMAlignmentCard( data1, data2, card, allGenes, geneToBDVSource, medianDistance, medianDistance*2, 25, 10, numGenes, source.getBdvHandle());
+		final STIMAlignmentCard cardAlign = new STIMAlignmentCard( data1, data2, overlay, card, allGenes, geneToBDVSource, medianDistance, medianDistance*2, 25, 10, numGenes, source.getBdvHandle());
 		source.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlign.getPanel(), true );
 
 		// activate listeners
@@ -352,6 +351,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		public STIMAlignmentCard(
 				final STDataAssembly data1,
 				final STDataAssembly data2,
+				final DisplayScaleOverlay overlay,
 				final STIMCard stimcard,
 				final List< Pair< String, Double > > allGenes,
 				final HashMap< String, SourceGroup > geneToBDVSource,
@@ -392,9 +392,24 @@ public class InteractiveAlignment implements Callable<Void> {
 				final int minInliers = (int)Math.round( inliersSlider.getValue().getValue() );
 				final int minInliersPerGene = (int)Math.round( inliersPerGeneSlider.getValue().getValue() );
 				final double maxError = maxErrorSlider.getValue().getValue();
-				
+				final double scale = overlay.currentScale();
+				final double sigma = stimcard.currentSigma();
+
 				System.out.println( "Running SIFT align with the following parameters: ");
 				System.out.println( "maxError: " + maxError + ", minInliers (over all genes): " + minInliers + ", minInliers (per genes): " + minInliersPerGene );
+				System.out.println( "scale: " + scale + ", sigma: " + sigma );
+
+				final SIFTParam p = new SIFTParam();
+
+				SiftMatch match = PairwiseSIFT.pairwiseSIFT(
+						data1.data(), dataset1, data2.data(), dataset2,
+						new RigidModel2D(), new RigidModel2D(),
+						new ArrayList<>( geneToBDVSource.keySet() ),
+						p, scale, sigma, maxError,
+						minInliers, minInliersPerGene,
+						false, Threads.numThreads() );
+
+				System.out.println( match.getNumInliers() + "/" + match.getNumCandidates() );
 			});
 
 			add.addActionListener( l -> 
