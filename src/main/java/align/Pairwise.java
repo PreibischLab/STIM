@@ -167,6 +167,54 @@ public class Pairwise
 		}
 	}
 
+	public static List< Pair< String, Double > > allGenes( final STData stdataA, final STData stdataB, final int numThreads )
+	{
+		System.out.println( "Sorting all genes of both datasets by stdev (this takes a bit) ... ");
+		long time = System.currentTimeMillis();
+
+		// from big to small
+		final ArrayList< Pair< String, Double > > listA = ExtractGeneLists.sortByStDevIntensity( stdataA, numThreads );
+		final ArrayList< Pair< String, Double > > listB = ExtractGeneLists.sortByStDevIntensity( stdataB, numThreads );
+
+		System.out.println( "Took " + (System.currentTimeMillis() - time) + " ms." );
+
+		// now we want to find the combination of genes where both have high variance
+		// we therefore sort them by the sum of ranks of both lists
+
+		final HashMap<String, Integer > geneToIndexB = new HashMap<>();
+
+		for ( int i = 0; i < listB.size(); ++i )
+			geneToIndexB.put( listB.get( i ).getA(), i );
+
+		final ArrayList< Pair< Integer, Integer > > entries = new ArrayList<>();
+
+		for ( int i = 0; i < listA.size(); ++i )
+			if ( geneToIndexB.containsKey( listA.get( i ).getA() ) )
+				entries.add( new ValuePair<>( i, geneToIndexB.get( listA.get( i ).getA() ) ) );
+
+		Collections.sort( entries, (o1,o2) -> (o1.getA()+o1.getB()) - (o2.getA()+o2.getB()) ); 
+
+		//for ( int i = 0; i < 10; ++i )
+		//	System.out.println( entries.get( i ).getA() + " (" + listA.get( entries.get( i ).getA() ).getA() +"), " + entries.get( i ).getB() + " ("  + listB.get( entries.get( i ).getB() ).getA() + ")" );
+		//System.out.println( entries.get( entries.size() - 1 ).getA() + ", " + entries.get( entries.size() - 1 ).getB() );
+
+		final ArrayList< Pair< String, Double > > toTest = new ArrayList<>();
+
+		for ( int i = 0; i < entries.size(); ++i )
+		{
+			final String geneName = listA.get( entries.get( i ).getA() ).getA(); // gene names are identical in the matched lists
+			if ( !listB.get( entries.get( i ).getB() ).getA().equals( geneName ) )
+				throw new RuntimeException( "gene names do not match, that is a bug." );
+
+			final double stDev1 = listA.get( entries.get( i ).getA() ).getB();
+			final double stDev2 = listB.get( entries.get( i ).getB() ).getB();
+
+			toTest.add( new ValuePair<String, Double>( geneName, (stDev1 + stDev2) / 2.0 ) ); // gene names are identical in the matched lists
+		}
+
+		return toTest;
+	}
+
 	public static List< String > genesToTest( final STData stdataA, final STData stdataB, final int numGenes, final int numThreads )
 	{
 		if ( numGenes <= 0 )
