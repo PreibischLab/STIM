@@ -41,6 +41,7 @@ import io.SpatialDataIO;
 import io.TextFileAccess;
 import net.imglib2.Interval;
 import net.imglib2.RealRandomAccessible;
+import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
@@ -183,70 +184,21 @@ public class InteractiveAlignment implements Callable<Void> {
 			final String gene = allGenes.get( i ).getA(); //"Calm2";
 			System.out.println( "Rendering gene (each available as its own source): " + gene );
 
-			for ( int s = 0; s <=1; ++s )
-			{
-				source = addGene(
-						source,
-						factories,
-						(s==0) ? data1 : data2,
-						gene,
-						smoothnessFactor,
-						(s==0) ? new ARGBType( ARGBType.rgba(0, 255, 0, 0) ) : new ARGBType( ARGBType.rgba(255, 0, 255, 0) ) );
-				/*
-				final STDataAssembly data = (s==0) ? data1 : data2;
-				minmax[ 0 ] = Double.MAX_VALUE;
-				minmax[ 1 ] = -Double.MAX_VALUE;
-	
-				for ( final DoubleType t : data.data().getExprData(gene) )
-				{
-					minmax[ 0 ] = Math.min( minmax[ 0 ], t.get() );
-					minmax[ 1 ] = Math.max( minmax[ 1 ], t.get() );
-				}
-	
-				System.out.println( "min/max: " + minmax[0] + "/" + minmax[1] );
-				System.out.println( "min/max display range: " + "0" + "/" + minmax[1]/2 );
-	
-				final List< FilterFactory< DoubleType, DoubleType > > filterFactorys = new ArrayList<>();
-				//filterFactorys.add( new MedianFilterFactory<DoubleType>( new DoubleType(), 3 * medianDistance ) );
-	
-				final Pair< RealRandomAccessible< DoubleType >, GaussianFilterFactory< DoubleType, DoubleType > > rendered = 
-						Render.getRealRandomAccessible2( data, gene, smoothnessFactor, filterFactorys );
-	
-				final RealRandomAccessible< DoubleType > rra = rendered.getA();
-				final GaussianFilterFactory< DoubleType, DoubleType > factory = rendered.getB();
-				factories.add( factory );
-	
-				final Interval interval =
-							STDataUtils.getIterableInterval(
-									new TransformedIterableRealInterval<>(
-											data.data(),
-											data.transform() ) );
-	
-				BdvOptions options =
-						BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() / 2 ).addTo( source ).is2D();
-	
-				source = BdvFunctions.show( rra, interval, gene, options );
-	
-				source.setDisplayRangeBounds( 0, minmax[1] );
-				source.setDisplayRange( minmax[0], minmax[1]/2 );
-				if ( s == 0 )
-				{
-					source.setColor( new ARGBType( ARGBType.rgba(0, 255, 0, 0) ) );
-				}
-				else
-				{
-					source.setColor( new ARGBType( ARGBType.rgba(255, 0, 255, 0) ) );
-				}
-				source.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
-				source.setCurrent();
+			source = addGene(
+					source,
+					factories,
+					data1,
+					gene,
+					smoothnessFactor,
+					new ARGBType( ARGBType.rgba(0, 255, 0, 0) ) );
 
-	
-				final AffineTransform3D t = new AffineTransform3D();
-				source.getBdvHandle().getViewerPanel().state().getViewerTransform( t );
-				t.set( 0, 2, 3 );
-				source.getBdvHandle().getViewerPanel().state().setViewerTransform( t );
-				*/
-			}
+			source = addGene(
+					source,
+					factories,
+					data2,
+					gene,
+					smoothnessFactor,
+					new ARGBType( ARGBType.rgba(255, 0, 255, 0) ) );
 		}
 
 		final SynchronizedViewerState state = source.getBdvHandle().getViewerPanel().state();
@@ -321,7 +273,8 @@ public class InteractiveAlignment implements Callable<Void> {
 		// activate listeners
 		card.toggleActiveListeners();
 
-		// Expands the split Panel
+		// Expands the split Panel (after waiting 2 secs for the BDV to calm down)
+		SimpleMultiThreading.threadWait( 2000 );
 		splitPanel.setCollapsed(false);
 
 		System.out.println("done");
@@ -431,6 +384,19 @@ public class InteractiveAlignment implements Callable<Void> {
 
 			final JButton add = new JButton("Add genes ...");
 			panel.add(add);
+			final JButton run = new JButton("Run ...");
+			panel.add(run);
+
+			run.addActionListener( l ->
+			{
+				final int minInliers = (int)Math.round( inliersSlider.getValue().getValue() );
+				final int minInliersPerGene = (int)Math.round( inliersPerGeneSlider.getValue().getValue() );
+				final double maxError = maxErrorSlider.getValue().getValue();
+				
+				System.out.println( "Running SIFT align with the following parameters: ");
+				System.out.println( "maxError: " + maxError + ", minInliers (over all genes): " + minInliers + ", minInliers (per genes): " + minInliersPerGene );
+			});
+
 			add.addActionListener( l -> 
 			{
 				final List< Pair< String, Double > > genes = new ArrayList<>();
@@ -488,8 +454,6 @@ public class InteractiveAlignment implements Callable<Void> {
 							} );
 			});
 
-			final JButton run = new JButton("Run ...");
-			panel.add(run);
 
 			/*
 			final BoundedValuePanel sigmaSlider = new BoundedValuePanel(new BoundedValue(0, Math.max( 2.50, currentSigma * 1.5 ), currentSigma ));
@@ -512,12 +476,6 @@ public class InteractiveAlignment implements Callable<Void> {
 
 		public JPanel getPanel() { return panel; }
 		public void toggleActiveListeners() { this.listenersActive = !this.listenersActive; }
-
-		private JMenuItem runnableItem(final String text, final Runnable action) {
-			final JMenuItem item = new JMenuItem(text);
-			item.addActionListener(e -> action.run());
-			return item;
-		}
 	}
 
 	public class STIMCard
