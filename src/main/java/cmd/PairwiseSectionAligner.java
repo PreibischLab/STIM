@@ -18,6 +18,7 @@ import align.AlignTools;
 import align.Pairwise;
 import align.PairwiseSIFT;
 import align.PairwiseSIFT.SIFTParam;
+import align.PairwiseSIFT.SIFTParam.SIFTMatching;
 import align.SiftMatch;
 import data.STData;
 import ij.ImageJ;
@@ -235,7 +236,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 				//final int minNumInliers = 30;
 				//final int minNumInliersPerGene = 5;
 		
-				final SIFTParam p = new SIFTParam();
+				final SIFTParam p = new SIFTParam( SIFTMatching.VERYTHOROUGH );
 
 				if ( visualizeResult )
 				{

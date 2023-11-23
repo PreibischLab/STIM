@@ -47,30 +47,65 @@ public class PairwiseSIFT
 {
 	public static class SIFTParam
 	{
-		public SIFTParam()
+		final public FloatArray2DSIFT.Param sift = new FloatArray2DSIFT.Param();
+
+		/**
+		 * Closest/next closest neighbour distance ratio (default value from 
+		 */
+		public float rod = 0.92f;
+
+		/**
+		 * Try imgA vs imgB and imgB vs imgA
+		 */
+		public boolean biDirectional = false;
+
+		public static enum SIFTMatching { FAST, NORMAL, THOROUGH, VERYTHOROUGH };
+
+		public SIFTParam( final SIFTMatching matchingStrength )
 		{
-			this.sift.fdSize = 8;
-			this.sift.fdBins = 8;
-			this.sift.steps = 10;
-			this.rod = 0.90f;
-			this.sift.minOctaveSize = 128;
+			if ( matchingStrength == SIFTMatching.FAST )
+			{
+				// use default values from FloatArray2DSIFT.Param()
+				this.biDirectional = false;
+				this.rod = 0.92f;
+			}
+			else if ( matchingStrength == SIFTMatching.NORMAL )
+			{
+				this.sift.fdSize = 8;
+				this.sift.fdBins = 8;
+				this.sift.steps = 4;
+				this.biDirectional = false;
+				this.rod = 0.92f;
+			}
+			else if ( matchingStrength == SIFTMatching.THOROUGH )
+			{
+				this.sift.fdSize = 8;
+				this.sift.fdBins = 8;
+				this.sift.steps = 6;
+				this.sift.minOctaveSize = 128;
+				this.rod = 0.90f;
+				this.biDirectional = false;
+			}
+			else
+			{
+				this.sift.fdSize = 8;
+				this.sift.fdBins = 8;
+				this.sift.steps = 10;
+				this.rod = 0.90f;
+				this.sift.minOctaveSize = 128;
+				this.biDirectional = true;
+			}
 		}
 
-		public SIFTParam( final int fdSize, final int fdBins, final int steps, final float rod, final int minOctaveSize )
+		public SIFTParam( final int fdSize, final int fdBins, final int steps, final float rod, final int minOctaveSize, final boolean biDirectional )
 		{
 			this.sift.fdSize = fdSize;
 			this.sift.fdBins = fdBins;
 			this.sift.steps = steps;
 			this.rod = rod;
 			this.sift.minOctaveSize = minOctaveSize;
+			this.biDirectional = biDirectional;
 		}
-
-		final public FloatArray2DSIFT.Param sift = new FloatArray2DSIFT.Param();
-
-		/**
-		 * Closest/next closest neighbour distance ratio
-		 */
-		public float rod;
 	}
 
 	static public void matchFeatures(
@@ -130,6 +165,7 @@ public class PairwiseSIFT
 			else ++i;
 		}
 	}
+
 	public static List< PointMatch > extractCandidates( final ImageProcessor ip1, final ImageProcessor ip2, final String gene, final SIFTParam p )
 	{
 		final List< Feature > fs1 = new ArrayList<>();
@@ -245,20 +281,30 @@ public class PairwiseSIFT
 					final ImagePlus impB = ImageJFunctions.wrapFloat( imgB, new RealFloatConverter<>(), "B_" + gene );
 
 					final List< PointMatch > matchesAB = extractCandidates(impA.getProcessor(), impB.getProcessor(), gene, p );
-					final List< PointMatch > matchesBA = extractCandidates(impB.getProcessor(), impA.getProcessor(), gene, p );
-
-					//System.out.println( gene + " = " + matchesAB.size() );
-					//System.out.println( gene + " = " + matchesBA.size() );
-
-					if ( matchesAB.size() == 0 && matchesBA.size() == 0 )
-						continue;
-
 					final List< PointMatch > candidatesTmp = new ArrayList<>();
 
-					if ( matchesBA.size() > matchesAB.size() )
-						PointMatch.flip( matchesBA, candidatesTmp );
+					if ( p.biDirectional )
+					{
+						final List< PointMatch > matchesBA = extractCandidates(impB.getProcessor(), impA.getProcessor(), gene, p );
+
+						//System.out.println( gene + " = " + matchesAB.size() );
+						//System.out.println( gene + " = " + matchesBA.size() );
+	
+						if ( matchesAB.size() == 0 && matchesBA.size() == 0 )
+							continue;
+		
+						if ( matchesBA.size() > matchesAB.size() )
+							PointMatch.flip( matchesBA, candidatesTmp );
+						else
+							candidatesTmp.addAll( matchesAB );
+					}
 					else
+					{
+						if ( matchesAB.size() == 0 )
+							continue;
+
 						candidatesTmp.addAll( matchesAB );
+					}
 
 					//final List< PointMatch > inliersTmp = consensus( candidatesTmp, new RigidModel2D(), minNumInliersPerGene, maxEpsilon*scale );
 					//System.out.println( "remaining points" );
@@ -443,7 +489,7 @@ public class PairwiseSIFT
 
 		final double smoothnessFactor = 4.0;
 
-		final SIFTParam p = new SIFTParam();
+		final SIFTParam p = new SIFTParam( align.PairwiseSIFT.SIFTParam.SIFTMatching.VERYTHOROUGH );
 		final boolean saveResult = true;
 		final boolean visualizeResult = true;
 

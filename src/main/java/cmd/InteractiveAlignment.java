@@ -22,6 +22,7 @@ import align.Pairwise;
 import align.PairwiseSIFT;
 import align.SiftMatch;
 import align.PairwiseSIFT.SIFTParam;
+import align.PairwiseSIFT.SIFTParam.SIFTMatching;
 import bdv.ui.splitpanel.SplitPanel;
 import bdv.util.Bdv;
 import bdv.util.BdvFunctions;
@@ -399,7 +400,7 @@ public class InteractiveAlignment implements Callable<Void> {
 				System.out.println( "maxError: " + maxError + ", minInliers (over all genes): " + minInliers + ", minInliers (per genes): " + minInliersPerGene );
 				System.out.println( "scale: " + scale + ", sigma: " + sigma );
 
-				final SIFTParam p = new SIFTParam();
+				final SIFTParam p = new SIFTParam( SIFTMatching.NORMAL );
 
 				SiftMatch match = PairwiseSIFT.pairwiseSIFT(
 						data1.data(), dataset1, data2.data(), dataset2,
