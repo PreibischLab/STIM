@@ -13,16 +13,21 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 
+import align.AlignTools;
 import align.Pairwise;
 import align.PairwiseSIFT;
 import align.SiftMatch;
 import align.PairwiseSIFT.SIFTParam;
 import align.PairwiseSIFT.SIFTParam.SIFTMatching;
+import bdv.AbstractSpimSource;
+import bdv.tools.transformation.TransformedSource;
 import bdv.ui.splitpanel.SplitPanel;
 import bdv.util.Bdv;
 import bdv.util.BdvFunctions;
@@ -30,8 +35,11 @@ import bdv.util.BdvHandle;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
+import bdv.viewer.Source;
+import bdv.viewer.SourceAndConverter;
 import bdv.viewer.SourceGroup;
 import bdv.viewer.SynchronizedViewerState;
+import bdv.viewer.ViewerState;
 import data.STDataUtils;
 import filter.FilterFactory;
 import filter.GaussianFilterFactory;
@@ -39,10 +47,13 @@ import gui.DisplayScaleOverlay;
 import gui.RenderThread;
 import gui.STDataAssembly;
 import gui.geneselection.GeneSelectionExplorer;
+import ij.gui.GenericDialog;
 import imglib2.TransformedIterableRealInterval;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
 import io.TextFileAccess;
+import mpicbg.models.NotEnoughDataPointsException;
+import mpicbg.models.PointMatch;
 import mpicbg.models.RigidModel2D;
 import net.imglib2.Interval;
 import net.imglib2.RealRandomAccessible;
@@ -201,6 +212,7 @@ public class InteractiveAlignment implements Callable<Void> {
 					new ARGBType( ARGBType.rgba(255, 0, 255, 0) ) );
 		}
 
+
 		final SynchronizedViewerState state = source.getBdvHandle().getViewerPanel().state();
 		final ArrayList< SourceGroup > oldGroups = new ArrayList<>( state.getGroups() );
 
@@ -239,20 +251,17 @@ public class InteractiveAlignment implements Callable<Void> {
 		[13:23, 11/21/2023] Tobias Pietzsch: etc
 		*/
 		final double medianDistance = (data1.statistics().getMedianDistance() + data2.statistics().getMedianDistance()) / 2.0;
-
-		System.out.println( "Setting panel ... " );
+		System.out.println( "Median distance of spots: " + medianDistance );
 
 		// the side panel
 		final SplitPanel splitPanel = source.getBdvHandle().getSplitPanel();
 
 		// add scale (so the right size of the images for alignment can be selected)
-		System.out.println( "Adding DisplayScaleOverlay ... " );
 		final DisplayScaleOverlay overlay = new DisplayScaleOverlay();
 		source.getBdvHandle().getViewerPanel().renderTransformListeners().add(overlay);
 		source.getBdvHandle().getViewerPanel().getDisplay().overlays().add(overlay);
 
 		// show scalebar (so the right error can be selected)
-		System.out.println( "Adding ScaleBar ... " );
 		source.getBdvHandle().getAppearanceManager().appearance().setShowScaleBar( true );
 
 		// collapse all existing panels (except sources)
@@ -261,13 +270,11 @@ public class InteractiveAlignment implements Callable<Void> {
 		source.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_VIEWERMODES_CARD, false); // collapse display modes panel
 
 		// add STIMCard panel
-		System.out.println( "Adding STIMCard ... " );
 		final STIMCard card = new STIMCard(factories, medianDistance, source.getBdvHandle());
 		source.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
 
 		// add STIMAlignmentCard panel
-		System.out.println( "Adding STIMAlignmentCard ... " );
-		final STIMAlignmentCard cardAlign = new STIMAlignmentCard( data1, data2, overlay, card, allGenes, geneToBDVSource, medianDistance, medianDistance*2, 25, 10, numGenes, source.getBdvHandle());
+		final STIMAlignmentCard cardAlign = new STIMAlignmentCard( data1, data2, overlay, card, allGenes, geneToBDVSource, medianDistance, medianDistance*1.5, 25, 10, numGenes, source.getBdvHandle());
 		source.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlign.getPanel(), true );
 
 		// activate listeners
@@ -282,6 +289,24 @@ public class InteractiveAlignment implements Callable<Void> {
 		//service.shutdown();
 
 		return null;
+	}
+
+	public static ArrayList< TransformedSource< ? > > getTransformedSources( final ViewerState state )
+	{
+		final List< ? extends SourceAndConverter< ? > > sourceList;
+		synchronized ( state )
+		{
+			sourceList = new ArrayList<>( state.getSources() );
+		}
+
+		final ArrayList< TransformedSource< ? > > list = new ArrayList<>();
+		for ( final SourceAndConverter< ? > soc : sourceList )
+		{
+			final Source< ? > source = soc.getSpimSource();
+			if ( source instanceof TransformedSource )
+				list.add( (TransformedSource< ? > ) source );
+		}
+		return list;
 	}
 
 	public static BdvStackSource< ? > addGene(
@@ -323,7 +348,7 @@ public class InteractiveAlignment implements Callable<Void> {
 									data.transform() ) );
 
 		BdvOptions options =
-				BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() / 2 ).addTo( bdv ).is2D();
+				BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() / 2 ).addTo( bdv ).is2D().preferredSize(800, 800);
 
 		BdvStackSource< ? > source = BdvFunctions.show( rra, interval, gene, options );
 
@@ -333,6 +358,11 @@ public class InteractiveAlignment implements Callable<Void> {
 		//source.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
 		source.setCurrent();
 
+		/*
+		final AffineTransform3D mipmapTransform = getMipmapTransforms()[ level ];
+		currentSourceTransforms[ level ].set( reg );
+		currentSourceTransforms[ level ].concatenate( mipmapTransform );
+		 */
 
 		final AffineTransform3D t = new AffineTransform3D();
 		source.getBdvHandle().getViewerPanel().state().getViewerTransform( t );
@@ -345,7 +375,6 @@ public class InteractiveAlignment implements Callable<Void> {
 	public class STIMAlignmentCard
 	{
 		private final JPanel panel;
-		private boolean listenersActive = false;
 
 		private GeneSelectionExplorer gse = null;
 
@@ -365,7 +394,15 @@ public class InteractiveAlignment implements Callable<Void> {
 		{
 			this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 0, fill", "[right][grow]", "center"));
 
-			final BoundedValuePanel maxErrorSlider = new BoundedValuePanel(new BoundedValue(0, medianDistance * 10, errorInit ));
+			String options[] = { "Fast", "Normal", "Thorough", "Very thorough" }; // TODO: Advanced with window popping up
+			JComboBox< String > box = new JComboBox< String > (options);
+			box.setBorder( null );
+			box.setSelectedIndex( 1 );
+			final JLabel boxLabel = new JLabel("SIFT Matching ");
+			panel.add( boxLabel, "aligny baseline" );
+			panel.add( box, "growx, wrap" );
+
+			final BoundedValuePanel maxErrorSlider = new BoundedValuePanel(new BoundedValue(0, medianDistance * 5, errorInit ));
 			maxErrorSlider.setBorder(null);
 			final JLabel maxErrorLabel = new JLabel("max. error (px)");
 			panel.add(maxErrorLabel, "aligny baseline");
@@ -383,10 +420,17 @@ public class InteractiveAlignment implements Callable<Void> {
 			panel.add(inliersPerGeneLabel, "aligny baseline");
 			panel.add(inliersPerGeneSlider, "growx, wrap");
 
-			final JButton add = new JButton("Add genes ...");
-			panel.add(add);
-			final JButton run = new JButton("Run ...");
-			panel.add(run);
+			/*
+			final JCheckBox applyTransform = new JCheckBox( "Apply transformation" );
+			final JCheckBox overlayInliers = new JCheckBox( "Overlay SIFT features" );
+			panel.add(applyTransform, "aligny baseline");
+			panel.add(overlayInliers, "aligny baseline");
+			*/
+
+			final JButton add = new JButton("Genes (+)");
+			panel.add(add, "aligny baseline");
+			final JButton run = new JButton("Run & cmd-line args");
+			panel.add(run, "aligny baseline");
 
 			run.addActionListener( l ->
 			{
@@ -399,10 +443,11 @@ public class InteractiveAlignment implements Callable<Void> {
 				System.out.println( "Running SIFT align with the following parameters: ");
 				System.out.println( "maxError: " + maxError + ", minInliers (over all genes): " + minInliers + ", minInliers (per genes): " + minInliersPerGene );
 				System.out.println( "scale: " + scale + ", sigma: " + sigma );
+				System.out.println( "SIFT: " + SIFTMatching.values()[ box.getSelectedIndex() ] );
 
-				final SIFTParam p = new SIFTParam( SIFTMatching.NORMAL );
+				final SIFTParam p = new SIFTParam( SIFTMatching.values()[ box.getSelectedIndex() ] );
 
-				SiftMatch match = PairwiseSIFT.pairwiseSIFT(
+				final SiftMatch match = PairwiseSIFT.pairwiseSIFT(
 						data1.data(), dataset1, data2.data(), dataset2,
 						new RigidModel2D(), new RigidModel2D(),
 						new ArrayList<>( geneToBDVSource.keySet() ),
@@ -411,6 +456,49 @@ public class InteractiveAlignment implements Callable<Void> {
 						false, Threads.numThreads() );
 
 				System.out.println( match.getNumInliers() + "/" + match.getNumCandidates() );
+
+				// TODO: print out cmd-line args
+
+				// 
+				// apply transformations
+				//
+				if ( match.getInliers().size() > 0 )
+				{
+					try
+					{
+						RigidModel2D model = new RigidModel2D();
+						model.fit( match.getInliers() );
+						AffineTransform2D m = AlignTools.modelToAffineTransform2D( model ).inverse();
+						AffineTransform3D m3d = new AffineTransform3D();
+						m3d.set(m.get(0, 0), 0, 0 ); // row, column
+						m3d.set(m.get(0, 1), 0, 1 ); // row, column
+						m3d.set(m.get(1, 0), 1, 0 ); // row, column
+						m3d.set(m.get(1, 1), 1, 1 ); // row, column
+						m3d.set(m.get(0, 2), 0, 3 ); // row, column
+						m3d.set(m.get(1, 2), 1, 3 ); // row, column
+
+						System.out.println( m );
+						System.out.println( m3d );
+	
+						SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
+						ArrayList<TransformedSource<?>> tsources = getTransformedSources(state);
+	
+						// every second source will be transformed
+						for ( int i = 1; i < tsources.size(); i = i + 2 )
+							tsources.get( i ).setFixedTransform( m3d );
+
+						bdvhandle.getViewerPanel().requestRepaint();
+	
+					} catch (NotEnoughDataPointsException e)
+					{
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+				//
+				// Overlay detections
+				//
+
 			});
 
 			add.addActionListener( l -> 
@@ -491,7 +579,6 @@ public class InteractiveAlignment implements Callable<Void> {
 		}
 
 		public JPanel getPanel() { return panel; }
-		public void toggleActiveListeners() { this.listenersActive = !this.listenersActive; }
 	}
 
 	public class STIMCard
@@ -556,6 +643,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		}
 	}
 
+	
 	public static void main(final String... args) {
 		CommandLine.call(new InteractiveAlignment(), args);
 	}
