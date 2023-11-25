@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
@@ -356,6 +357,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		private final JPanel panel;
 
 		private GeneSelectionExplorer gse = null;
+		final SIFTOverlay siftoverlay = new SIFTOverlay( new ArrayList<>() );
 
 		public STIMAlignmentCard(
 				final STDataAssembly data1,
@@ -401,10 +403,26 @@ public class InteractiveAlignment implements Callable<Void> {
 			panel.add(inliersPerGeneSlider, "growx, wrap");
 
 			//final JCheckBox applyTransform = new JCheckBox( "Apply transform  " );
-			//final JCheckBox overlayInliers = new JCheckBox( "Overlay features" );
-			//panel.add(applyTransform, "aligny baseline");
-			//panel.add(overlayInliers, "growx, wrap");
+			final JCheckBox overlayInliers = new JCheckBox( "Overlay SIFT features" );
 			//BorderFactory.createEmptyBorder(24,24,24,24);
+			//panel.add(applyTransform, "aligny baseline");
+			panel.add(overlayInliers, "span,growx,pushy");
+			overlayInliers.setSelected( true );
+			overlayInliers.setEnabled( false );
+			overlayInliers.addChangeListener( e ->
+			{
+				if ( !overlayInliers.isSelected() )
+				{
+					bdvhandle.getViewerPanel().renderTransformListeners().remove( siftoverlay );
+					bdvhandle.getViewerPanel().getDisplay().overlays().remove( siftoverlay );
+				}
+				else
+				{
+					bdvhandle.getViewerPanel().renderTransformListeners().add( siftoverlay );
+					bdvhandle.getViewerPanel().getDisplay().overlays().add( siftoverlay );
+				}
+				bdvhandle.getViewerPanel().requestRepaint();
+			});
 
 			//final BoundedRangeModel model = new DefaultBoundedRangeModel();//
 			final JProgressBar bar = new JProgressBar(SwingConstants.HORIZONTAL, 0, 100);
@@ -490,27 +508,31 @@ public class InteractiveAlignment implements Callable<Void> {
 							// every second source will be transformed
 							for ( int i = 1; i < tsources.size(); i = i + 2 )
 								tsources.get( i ).setFixedTransform( m3d );
-	
-							bdvhandle.getViewerPanel().requestRepaint();
-	
+
 						} catch (NotEnoughDataPointsException e)
 						{
 							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
+
+						//
+						// Overlay detections
+						//
+						siftoverlay.setInliers( match.getInliers() );
+
+						overlayInliers.setSelected( true );
+						overlayInliers.setEnabled( true );
 					}
-	
-					//
-					// Overlay detections
-					//
-					final SIFTOverlay siftoverlay = new SIFTOverlay( match.getInliers() );
-					bdvhandle.getViewerPanel().renderTransformListeners().add( siftoverlay );
-					bdvhandle.getViewerPanel().getDisplay().overlays().add( siftoverlay );
-					//match.getInliers().forEach( s -> System.out.println( Util.printCoordinates( s.getP1().getL() )) );
+					else
+					{
+						siftoverlay.setInliers( new ArrayList<>() );
+						overlayInliers.setEnabled( false );
+					}
 
 					bar.setValue( 100 );
 					add.setEnabled( true );
 					run.setEnabled( true );
+					bdvhandle.getViewerPanel().requestRepaint();
 				}).start();
 
 			});
@@ -535,18 +557,6 @@ public class InteractiveAlignment implements Callable<Void> {
 								//
 								final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
 								updateRemainingSources( state, geneToBDVSource );
-
-								/*
-								final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
-								final ArrayList< SourceGroup > currentGroups = new ArrayList<>( state.getGroups() );
-
-								final ArrayList< String > toRemove = new ArrayList<>();
-								for ( final Entry<String, SourceGroup > entry : geneToBDVSource.entrySet() )
-									if ( !currentGroups.contains( entry.getValue() ) )
-										toRemove.add( entry.getKey() );
-
-								toRemove.forEach( s -> geneToBDVSource.remove( s ) );
-								*/
 
 								//
 								// Now add the new ones (if it's not already there)
