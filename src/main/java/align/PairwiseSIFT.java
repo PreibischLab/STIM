@@ -21,6 +21,7 @@ import data.STDataStatistics;
 import data.STDataUtils;
 import ij.ImageJ;
 import ij.ImagePlus;
+import ij.gui.PointRoi;
 import ij.process.ImageProcessor;
 import imglib2.ImgLib2Util;
 import io.Path;
@@ -67,6 +68,7 @@ public class PairwiseSIFT
 			{
 				// use default values from FloatArray2DSIFT.Param()
 				this.biDirectional = false;
+				this.sift.minOctaveSize = 128;
 				this.rod = 0.92f;
 			}
 			else if ( matchingStrength == SIFTMatching.NORMAL )
@@ -74,6 +76,7 @@ public class PairwiseSIFT
 				this.sift.fdSize = 8;
 				this.sift.fdBins = 8;
 				this.sift.steps = 4;
+				this.sift.minOctaveSize = 128;
 				this.biDirectional = false;
 				this.rod = 0.92f;
 			}
@@ -280,6 +283,10 @@ public class PairwiseSIFT
 					final ImagePlus impA = ImageJFunctions.wrapFloat( imgA, new RealFloatConverter<>(), "A_" + gene);
 					final ImagePlus impB = ImageJFunctions.wrapFloat( imgB, new RealFloatConverter<>(), "B_" + gene );
 
+					// this massively adjusts the amount of features, but min/max seems the right choice?
+					impA.resetDisplayRange();
+					impB.resetDisplayRange();
+
 					final List< PointMatch > matchesAB = extractCandidates(impA.getProcessor(), impB.getProcessor(), gene, p );
 					final List< PointMatch > candidatesTmp = new ArrayList<>();
 
@@ -412,11 +419,25 @@ public class PairwiseSIFT
 
 		if ( visualizeResult && inliers.size() >= minNumInliers )
 		{
+			new ImageJ();
+
 			ImagePlus rendered = AlignTools.visualizePair(
 					stDataA, stDataB,
 					new AffineTransform2D(),
 					AlignTools.modelToAffineTransform2D( modelGlobal ).inverse(),
+					genesToTest.get( 0 ),
+					scale,
 					smoothnessFactor );
+
+			PointRoi roi = new PointRoi();
+			for ( final PointMatch pm : inliers )
+			{
+				roi.addPoint(
+						pm.getP1().getL()[ 0 ] * scale - rendered.getCalibration().xOrigin,// finalInterval.min( 0 ),
+						pm.getP1().getL()[ 1 ] * scale - rendered.getCalibration().yOrigin ); //finalInterval.min( 1 ) );
+			}
+			
+			rendered.setRoi( roi );
 			rendered.setTitle( stDataAname + "-" + stDataBname + "-inliers-" + inliers.size() + " (" + AlignTools.defaultGene + ")" );
 		}
 
