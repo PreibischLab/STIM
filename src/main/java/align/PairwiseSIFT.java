@@ -401,6 +401,8 @@ public class PairwiseSIFT
 
 		service.shutdown();
 
+		System.out.println( "Running consensus across all genes ... ");
+
 		//final InterpolatedAffineModel2D<AffineModel2D, RigidModel2D> model = new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), 0.1 );//new RigidModel2D();
 		//final RigidModel2D model = new RigidModel2D();
 		final ArrayList< PointMatch > inliers = consensus( allCandidates, modelGlobal, minNumInliers, maxEpsilon );
