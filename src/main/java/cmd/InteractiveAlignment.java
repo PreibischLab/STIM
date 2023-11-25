@@ -23,10 +23,9 @@ import javax.swing.JPopupMenu;
 import align.AlignTools;
 import align.Pairwise;
 import align.PairwiseSIFT;
-import align.SiftMatch;
 import align.PairwiseSIFT.SIFTParam;
 import align.PairwiseSIFT.SIFTParam.SIFTMatching;
-import bdv.AbstractSpimSource;
+import align.SiftMatch;
 import bdv.tools.transformation.TransformedSource;
 import bdv.ui.splitpanel.SplitPanel;
 import bdv.util.Bdv;
@@ -44,10 +43,9 @@ import data.STDataUtils;
 import filter.FilterFactory;
 import filter.GaussianFilterFactory;
 import gui.DisplayScaleOverlay;
-import gui.RenderThread;
 import gui.STDataAssembly;
 import gui.geneselection.GeneSelectionExplorer;
-import ij.gui.GenericDialog;
+import gui.overlay.SIFTOverlay;
 import imglib2.TransformedIterableRealInterval;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
@@ -63,6 +61,7 @@ import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
+import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.miginfocom.swing.MigLayout;
 import picocli.CommandLine;
@@ -420,20 +419,21 @@ public class InteractiveAlignment implements Callable<Void> {
 			panel.add(inliersPerGeneLabel, "aligny baseline");
 			panel.add(inliersPerGeneSlider, "growx, wrap");
 
-			/*
-			final JCheckBox applyTransform = new JCheckBox( "Apply transformation" );
-			final JCheckBox overlayInliers = new JCheckBox( "Overlay SIFT features" );
-			panel.add(applyTransform, "aligny baseline");
-			panel.add(overlayInliers, "aligny baseline");
-			*/
+			//final JCheckBox applyTransform = new JCheckBox( "Apply transform  " );
+			//final JCheckBox overlayInliers = new JCheckBox( "Overlay features" );
+			//panel.add(applyTransform, "aligny baseline");
+			//panel.add(overlayInliers, "growx, wrap");
 
-			final JButton add = new JButton("Genes (+)");
+			final JButton add = new JButton("Add genes");
 			panel.add(add, "aligny baseline");
-			final JButton run = new JButton("Run & cmd-line args");
-			panel.add(run, "aligny baseline");
+			final JButton run = new JButton("Run SIFT");
+			panel.add(run, "growx, wrap");
 
 			run.addActionListener( l ->
 			{
+				final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
+				updateRemainingSources( state, geneToBDVSource );
+
 				final int minInliers = (int)Math.round( inliersSlider.getValue().getValue() );
 				final int minInliersPerGene = (int)Math.round( inliersPerGeneSlider.getValue().getValue() );
 				final double maxError = maxErrorSlider.getValue().getValue();
@@ -453,7 +453,7 @@ public class InteractiveAlignment implements Callable<Void> {
 						new ArrayList<>( geneToBDVSource.keySet() ),
 						p, scale, sigma, maxError,
 						minInliers, minInliersPerGene,
-						false, Threads.numThreads() );
+						true, Threads.numThreads() );
 
 				System.out.println( match.getNumInliers() + "/" + match.getNumCandidates() );
 
@@ -466,10 +466,10 @@ public class InteractiveAlignment implements Callable<Void> {
 				{
 					try
 					{
-						RigidModel2D model = new RigidModel2D();
+						final RigidModel2D model = new RigidModel2D();
 						model.fit( match.getInliers() );
-						AffineTransform2D m = AlignTools.modelToAffineTransform2D( model ).inverse();
-						AffineTransform3D m3d = new AffineTransform3D();
+						final AffineTransform2D m = AlignTools.modelToAffineTransform2D( model ).inverse();
+						final AffineTransform3D m3d = new AffineTransform3D();
 						m3d.set(m.get(0, 0), 0, 0 ); // row, column
 						m3d.set(m.get(0, 1), 0, 1 ); // row, column
 						m3d.set(m.get(1, 0), 1, 0 ); // row, column
@@ -479,26 +479,29 @@ public class InteractiveAlignment implements Callable<Void> {
 
 						System.out.println( m );
 						System.out.println( m3d );
-	
-						SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
-						ArrayList<TransformedSource<?>> tsources = getTransformedSources(state);
-	
+
+						final ArrayList<TransformedSource<?>> tsources = getTransformedSources(state);
+
 						// every second source will be transformed
 						for ( int i = 1; i < tsources.size(); i = i + 2 )
 							tsources.get( i ).setFixedTransform( m3d );
 
 						bdvhandle.getViewerPanel().requestRepaint();
-	
+
 					} catch (NotEnoughDataPointsException e)
 					{
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
 				}
+
 				//
 				// Overlay detections
 				//
-
+				final SIFTOverlay siftoverlay = new SIFTOverlay( match.getInliers() );
+				bdvhandle.getViewerPanel().renderTransformListeners().add( siftoverlay );
+				bdvhandle.getViewerPanel().getDisplay().overlays().add( siftoverlay );
+				//match.getInliers().forEach( s -> System.out.println( Util.printCoordinates( s.getP1().getL() )) );
 			});
 
 			add.addActionListener( l -> 
@@ -517,6 +520,10 @@ public class InteractiveAlignment implements Callable<Void> {
 								// first check if all groups are still present that are in the HashMap
 								//
 								final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
+								updateRemainingSources( state, geneToBDVSource );
+
+								/*
+								final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
 								final ArrayList< SourceGroup > currentGroups = new ArrayList<>( state.getGroups() );
 
 								final ArrayList< String > toRemove = new ArrayList<>();
@@ -525,6 +532,7 @@ public class InteractiveAlignment implements Callable<Void> {
 										toRemove.add( entry.getKey() );
 
 								toRemove.forEach( s -> geneToBDVSource.remove( s ) );
+								*/
 
 								//
 								// Now add the new ones (if it's not already there)
@@ -576,6 +584,18 @@ public class InteractiveAlignment implements Callable<Void> {
 			final JPopupMenu menu = new JPopupMenu();
 			menu.add(runnableItem("set bounds ...", sigmaSlider::setBoundsDialog));
 			sigmaSlider.setPopup(() -> menu);*/
+		}
+
+		protected void updateRemainingSources( final SynchronizedViewerState state, final HashMap< String, SourceGroup > geneToBDVSource )
+		{
+			final ArrayList< SourceGroup > currentGroups = new ArrayList<>( state.getGroups() );
+
+			final ArrayList< String > toRemove = new ArrayList<>();
+			for ( final Entry<String, SourceGroup > entry : geneToBDVSource.entrySet() )
+				if ( !currentGroups.contains( entry.getValue() ) )
+					toRemove.add( entry.getKey() );
+
+			toRemove.forEach( s -> geneToBDVSource.remove( s ) );
 		}
 
 		public JPanel getPanel() { return panel; }
