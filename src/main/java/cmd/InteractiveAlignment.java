@@ -13,12 +13,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.JProgressBar;
+import javax.swing.SwingConstants;
 
 import align.AlignTools;
 import align.Pairwise;
@@ -34,11 +35,8 @@ import bdv.util.BdvHandle;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
-import bdv.viewer.Source;
-import bdv.viewer.SourceAndConverter;
 import bdv.viewer.SourceGroup;
 import bdv.viewer.SynchronizedViewerState;
-import bdv.viewer.ViewerState;
 import data.STDataUtils;
 import filter.FilterFactory;
 import filter.GaussianFilterFactory;
@@ -51,7 +49,6 @@ import io.SpatialDataContainer;
 import io.SpatialDataIO;
 import io.TextFileAccess;
 import mpicbg.models.NotEnoughDataPointsException;
-import mpicbg.models.PointMatch;
 import mpicbg.models.RigidModel2D;
 import net.imglib2.Interval;
 import net.imglib2.RealRandomAccessible;
@@ -61,12 +58,12 @@ import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
-import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.miginfocom.swing.MigLayout;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import render.Render;
+import util.BDVUtils;
 import util.BoundedValue;
 import util.BoundedValuePanel;
 import util.Threads;
@@ -273,7 +270,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		source.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
 
 		// add STIMAlignmentCard panel
-		final STIMAlignmentCard cardAlign = new STIMAlignmentCard( data1, data2, overlay, card, allGenes, geneToBDVSource, medianDistance, medianDistance*1.5, 25, 10, numGenes, source.getBdvHandle());
+		final STIMAlignmentCard cardAlign = new STIMAlignmentCard( data1, data2, overlay, card, allGenes, geneToBDVSource, medianDistance, medianDistance*1.5, 25, 10, numGenes, source.getBdvHandle(), service );
 		source.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlign.getPanel(), true );
 
 		// activate listeners
@@ -285,27 +282,10 @@ public class InteractiveAlignment implements Callable<Void> {
 
 		System.out.println("done");
 
+		// service is used in alignment
 		//service.shutdown();
 
 		return null;
-	}
-
-	public static ArrayList< TransformedSource< ? > > getTransformedSources( final ViewerState state )
-	{
-		final List< ? extends SourceAndConverter< ? > > sourceList;
-		synchronized ( state )
-		{
-			sourceList = new ArrayList<>( state.getSources() );
-		}
-
-		final ArrayList< TransformedSource< ? > > list = new ArrayList<>();
-		for ( final SourceAndConverter< ? > soc : sourceList )
-		{
-			final Source< ? > source = soc.getSpimSource();
-			if ( source instanceof TransformedSource )
-				list.add( (TransformedSource< ? > ) source );
-		}
-		return list;
 	}
 
 	public static BdvStackSource< ? > addGene(
@@ -389,9 +369,10 @@ public class InteractiveAlignment implements Callable<Void> {
 				final int minNumInliersInit,
 				final int minNumInliersGeneInit,
 				final int numGenesInit,
-				final BdvHandle bdvhandle )
+				final BdvHandle bdvhandle,
+				final ExecutorService service )
 		{
-			this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 0, fill", "[right][grow]", "center"));
+			this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 5, fill", "[right][grow]", "center"));
 
 			String options[] = { "Fast", "Normal", "Thorough", "Very thorough" }; // TODO: Advanced with window popping up
 			JComboBox< String > box = new JComboBox< String > (options);
@@ -423,87 +404,120 @@ public class InteractiveAlignment implements Callable<Void> {
 			//final JCheckBox overlayInliers = new JCheckBox( "Overlay features" );
 			//panel.add(applyTransform, "aligny baseline");
 			//panel.add(overlayInliers, "growx, wrap");
+			//BorderFactory.createEmptyBorder(24,24,24,24);
+
+			//final BoundedRangeModel model = new DefaultBoundedRangeModel();//
+			final JProgressBar bar = new JProgressBar(SwingConstants.HORIZONTAL, 0, 100);
+			bar.setValue( 0 );
+			bar.setStringPainted(false);
+			panel.add(bar, "span,growx,pushy");
 
 			final JButton add = new JButton("Add genes");
 			panel.add(add, "aligny baseline");
 			final JButton run = new JButton("Run SIFT");
 			panel.add(run, "growx, wrap");
 
+			//
+			// Run SIFT alignment
+			//
 			run.addActionListener( l ->
 			{
-				final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
-				updateRemainingSources( state, geneToBDVSource );
+				run.setEnabled( false );
+				add.setEnabled( false );
+				bar.setValue( 1 );
 
-				final int minInliers = (int)Math.round( inliersSlider.getValue().getValue() );
-				final int minInliersPerGene = (int)Math.round( inliersPerGeneSlider.getValue().getValue() );
-				final double maxError = maxErrorSlider.getValue().getValue();
-				final double scale = overlay.currentScale();
-				final double sigma = stimcard.currentSigma();
-
-				System.out.println( "Running SIFT align with the following parameters: ");
-				System.out.println( "maxError: " + maxError + ", minInliers (over all genes): " + minInliers + ", minInliers (per genes): " + minInliersPerGene );
-				System.out.println( "scale: " + scale + ", sigma: " + sigma );
-				System.out.println( "SIFT: " + SIFTMatching.values()[ box.getSelectedIndex() ] );
-
-				final SIFTParam p = new SIFTParam( SIFTMatching.values()[ box.getSelectedIndex() ] );
-
-				final SiftMatch match = PairwiseSIFT.pairwiseSIFT(
-						data1.data(), dataset1, data2.data(), dataset2,
-						new RigidModel2D(), new RigidModel2D(),
-						new ArrayList<>( geneToBDVSource.keySet() ),
-						p, scale, sigma, maxError,
-						minInliers, minInliersPerGene,
-						true, Threads.numThreads() );
-
-				System.out.println( match.getNumInliers() + "/" + match.getNumCandidates() );
-
-				// TODO: print out cmd-line args
-
-				// 
-				// apply transformations
-				//
-				if ( match.getInliers().size() > 0 )
+				new Thread( () ->
 				{
-					try
+					final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
+					updateRemainingSources( state, geneToBDVSource );
+	
+					final int minInliers = (int)Math.round( inliersSlider.getValue().getValue() );
+					final int minInliersPerGene = (int)Math.round( inliersPerGeneSlider.getValue().getValue() );
+					final double maxError = maxErrorSlider.getValue().getValue();
+					final double scale = overlay.currentScale();
+					final double sigma = stimcard.currentSigma();
+	
+					System.out.println( "Running SIFT align with the following parameters: ");
+					System.out.println( "maxError: " + maxError + ", minInliers (over all genes): " + minInliers + ", minInliers (per genes): " + minInliersPerGene );
+					System.out.println( "scale: " + scale + ", sigma: " + sigma );
+					System.out.println( "SIFT: " + SIFTMatching.values()[ box.getSelectedIndex() ] );
+
+					final SIFTParam p = new SIFTParam( SIFTMatching.values()[ box.getSelectedIndex() ] );
+	
+					final boolean visResult = false;
+					final double[] progressBarValue = new double[] { 1.0 };
+
+					final SiftMatch match = PairwiseSIFT.pairwiseSIFT(
+							data1.data(), dataset1, data2.data(), dataset2,
+							new RigidModel2D(), new RigidModel2D(),
+							new ArrayList<>( geneToBDVSource.keySet() ),
+							p, scale, sigma, maxError,
+							minInliers, minInliersPerGene,
+							visResult, service, (v) -> {
+								synchronized ( this ) {
+									progressBarValue[ 0 ] += v;
+									bar.setValue( (int)Math.round( progressBarValue[ 0 ] ));
+								}
+							});
+	
+					System.out.println( match.getNumInliers() + "/" + match.getNumCandidates() );
+	
+					// TODO: print out cmd-line args
+	
+					// 
+					// apply transformations
+					//
+					if ( match.getInliers().size() > 0 )
 					{
-						final RigidModel2D model = new RigidModel2D();
-						model.fit( match.getInliers() );
-						final AffineTransform2D m = AlignTools.modelToAffineTransform2D( model ).inverse();
-						final AffineTransform3D m3d = new AffineTransform3D();
-						m3d.set(m.get(0, 0), 0, 0 ); // row, column
-						m3d.set(m.get(0, 1), 0, 1 ); // row, column
-						m3d.set(m.get(1, 0), 1, 0 ); // row, column
-						m3d.set(m.get(1, 1), 1, 1 ); // row, column
-						m3d.set(m.get(0, 2), 0, 3 ); // row, column
-						m3d.set(m.get(1, 2), 1, 3 ); // row, column
-
-						System.out.println( m );
-						System.out.println( m3d );
-
-						final ArrayList<TransformedSource<?>> tsources = getTransformedSources(state);
-
-						// every second source will be transformed
-						for ( int i = 1; i < tsources.size(); i = i + 2 )
-							tsources.get( i ).setFixedTransform( m3d );
-
-						bdvhandle.getViewerPanel().requestRepaint();
-
-					} catch (NotEnoughDataPointsException e)
-					{
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+						try
+						{
+							final RigidModel2D model = new RigidModel2D();
+							model.fit( match.getInliers() );
+							final AffineTransform2D m = AlignTools.modelToAffineTransform2D( model ).inverse();
+							final AffineTransform3D m3d = new AffineTransform3D();
+							m3d.set(m.get(0, 0), 0, 0 ); // row, column
+							m3d.set(m.get(0, 1), 0, 1 ); // row, column
+							m3d.set(m.get(1, 0), 1, 0 ); // row, column
+							m3d.set(m.get(1, 1), 1, 1 ); // row, column
+							m3d.set(m.get(0, 2), 0, 3 ); // row, column
+							m3d.set(m.get(1, 2), 1, 3 ); // row, column
+	
+							//System.out.println( m );
+							//System.out.println( m3d );
+	
+							final List<TransformedSource<?>> tsources = BDVUtils.getTransformedSources(state);
+	
+							// every second source will be transformed
+							for ( int i = 1; i < tsources.size(); i = i + 2 )
+								tsources.get( i ).setFixedTransform( m3d );
+	
+							bdvhandle.getViewerPanel().requestRepaint();
+	
+						} catch (NotEnoughDataPointsException e)
+						{
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
 					}
-				}
+	
+					//
+					// Overlay detections
+					//
+					final SIFTOverlay siftoverlay = new SIFTOverlay( match.getInliers() );
+					bdvhandle.getViewerPanel().renderTransformListeners().add( siftoverlay );
+					bdvhandle.getViewerPanel().getDisplay().overlays().add( siftoverlay );
+					//match.getInliers().forEach( s -> System.out.println( Util.printCoordinates( s.getP1().getL() )) );
 
-				//
-				// Overlay detections
-				//
-				final SIFTOverlay siftoverlay = new SIFTOverlay( match.getInliers() );
-				bdvhandle.getViewerPanel().renderTransformListeners().add( siftoverlay );
-				bdvhandle.getViewerPanel().getDisplay().overlays().add( siftoverlay );
-				//match.getInliers().forEach( s -> System.out.println( Util.printCoordinates( s.getP1().getL() )) );
+					bar.setValue( 100 );
+					add.setEnabled( true );
+					run.setEnabled( true );
+				}).start();
+
 			});
 
+			//
+			// Add genes ...
+			//
 			add.addActionListener( l -> 
 			{
 				final List< Pair< String, Double > > genes = new ArrayList<>();

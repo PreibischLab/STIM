@@ -10,6 +10,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import gui.STDataAssembly;
@@ -255,6 +256,37 @@ public class PairwiseSIFT
 			final boolean visualizeResult,
 			final int numThreads )
 	{
+		final ExecutorService service = Threads.createFixedExecutorService( numThreads );
+
+		final SiftMatch s =  pairwiseSIFT(
+				stDataA, stDataAname, stDataB, stDataBname,
+				modelPairwise, modelGlobal, genesToTest, p,
+				scale, smoothnessFactor, maxEpsilon, minNumInliers, minNumInliersPerGene, visualizeResult,
+				service, (v) -> {} );
+
+		service.shutdown();
+
+		return s;
+	}
+
+	public static <M extends Affine2D<M> & Model<M>, N extends Affine2D<N> & Model<N>> SiftMatch pairwiseSIFT(
+			final STData stDataA,
+			final String stDataAname,
+			final STData stDataB,
+			final String stDataBname,
+			final M modelPairwise,
+			final N modelGlobal,
+			final List< String > genesToTest,
+			final SIFTParam p,
+			final double scale,
+			final double smoothnessFactor,
+			final double maxEpsilon,
+			final int minNumInliers,
+			final int minNumInliersPerGene,
+			final boolean visualizeResult,
+			final ExecutorService service,
+			final Consumer< Double > progressBar )
+	{
 		final AffineTransform2D tS = new AffineTransform2D();
 		tS.scale( scale );
 
@@ -264,15 +296,20 @@ public class PairwiseSIFT
 		final List< PointMatch > allCandidates = new ArrayList<>();
 
 		final List< Callable< List< PointMatch > > > tasks = new ArrayList<>();
-		final AtomicInteger nextGene = new AtomicInteger();
+		//final AtomicInteger nextGene = new AtomicInteger();
 
-		for ( int threadNum = 0; threadNum < numThreads; ++threadNum )
+		final double progressPerGene = 90.0 / genesToTest.size();
+
+		//for ( int threadNum = 0; threadNum < numThreads; ++threadNum )
+		for ( int nextGene = 0; nextGene < genesToTest.size(); ++nextGene )
 		{
+			final int g = nextGene;
+
 			tasks.add( () ->
 			{
 				final List< PointMatch > allPerGeneInliers = new ArrayList<>();
 
-				for ( int g = nextGene.getAndIncrement(); g < genesToTest.size(); g = nextGene.getAndIncrement() )
+				//for ( int g = nextGene.getAndIncrement(); g < genesToTest.size(); g = nextGene.getAndIncrement() )
 				{
 					final String gene = genesToTest.get( g );
 					//System.out.println( "current gene: " + gene );
@@ -287,6 +324,8 @@ public class PairwiseSIFT
 					impA.resetDisplayRange();
 					impB.resetDisplayRange();
 
+					progressBar.accept( progressPerGene / 4.0 );
+
 					final List< PointMatch > matchesAB = extractCandidates(impA.getProcessor(), impB.getProcessor(), gene, p );
 					final List< PointMatch > candidatesTmp = new ArrayList<>();
 
@@ -298,7 +337,7 @@ public class PairwiseSIFT
 						//System.out.println( gene + " = " + matchesBA.size() );
 	
 						if ( matchesAB.size() == 0 && matchesBA.size() == 0 )
-							continue;
+							return allPerGeneInliers;
 		
 						if ( matchesBA.size() > matchesAB.size() )
 							PointMatch.flip( matchesBA, candidatesTmp );
@@ -308,10 +347,12 @@ public class PairwiseSIFT
 					else
 					{
 						if ( matchesAB.size() == 0 )
-							continue;
+							return allPerGeneInliers;
 
 						candidatesTmp.addAll( matchesAB );
 					}
+
+					progressBar.accept( progressPerGene / 2.0 );
 
 					//final List< PointMatch > inliersTmp = consensus( candidatesTmp, new RigidModel2D(), minNumInliersPerGene, maxEpsilon*scale );
 					//System.out.println( "remaining points" );
@@ -386,13 +427,15 @@ public class PairwiseSIFT
 						//System.out.println( ki + "-" + kj + ": " + inliers.size() + "/" + candidatesTmp.size() + ", " + ((PointST)inliers.get( 0 ).getP1()).getGene() + ", " );
 						//GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() ).setTitle( gene +"_" + inliers.size() );;
 					}
+
+					progressBar.accept( progressPerGene / 4.0 );
 				}
 
 				return allPerGeneInliers;
 			});
 		}
 
-		final ExecutorService service = Threads.createFixedExecutorService( numThreads );
+		//final ExecutorService service = Threads.createFixedExecutorService( numThreads );
 
 		try
 		{
@@ -406,7 +449,7 @@ public class PairwiseSIFT
 			throw new RuntimeException( e );
 		}
 
-		service.shutdown();
+		//service.shutdown();
 
 		System.out.println( "Running consensus across all genes ... ");
 
@@ -463,6 +506,9 @@ public class PairwiseSIFT
 		}
 
 		System.out.println( "errors: " + minError + "/" + error + "/" + maxError );
+
+		progressBar.accept( 10.0 );
+
 		return new SiftMatch(stDataAname, stDataBname, allCandidates.size(), inliers);
 	}
 
