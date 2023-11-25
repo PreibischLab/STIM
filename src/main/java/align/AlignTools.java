@@ -12,6 +12,7 @@ import filter.GaussianFilterFactory.WeightType;
 import filter.SingleSpotRemovingFilterFactory;
 import ij.ImagePlus;
 import ij.ImageStack;
+import ij.measure.Calibration;
 import imglib2.ImgLib2Util;
 import mpicbg.models.Affine2D;
 import net.imglib2.Interval;
@@ -148,6 +149,11 @@ public class AlignTools
 
 	public static ImagePlus visualizePair( final STData stDataA, final STData stDataB, final AffineTransform2D transformA, final AffineTransform2D transformB, final double smoothnessFactor )
 	{
+		return visualizePair(stDataA, stDataB, transformA, transformB, defaultGene, defaultScale, smoothnessFactor );
+	}
+
+	public static ImagePlus visualizePair( final STData stDataA, final STData stDataB, final AffineTransform2D transformA, final AffineTransform2D transformB, final String gene, final double scale, final double smoothnessFactor )
+	{
 		//final AffineTransform2D pcmTransform = new AffineTransform2D();
 		//pcmTransform.set( 0.43837114678907746, -0.8987940462991671, 5283.362652306015, 0.8987940462991671, 0.43837114678907746, -770.4745037840293 );
 
@@ -155,7 +161,7 @@ public class AlignTools
 
 		// visualize result using the global transform
 		final AffineTransform2D tS = new AffineTransform2D();
-		tS.scale( defaultScale );
+		tS.scale( scale );
 
 		final AffineTransform2D tA = transformA.copy();
 		tA.preConcatenate( tS );
@@ -167,13 +173,16 @@ public class AlignTools
 
 		final ImageStack stack = new ImageStack( (int)finalInterval.dimension( 0 ), (int)finalInterval.dimension( 1 ) );
 
-		final RandomAccessibleInterval<DoubleType> visA = display( stDataA, new STDataStatistics( stDataA ), defaultGene, finalInterval, tA, null, smoothnessFactor );
-		final RandomAccessibleInterval<DoubleType> visB = display( stDataB, new STDataStatistics( stDataB ), defaultGene, finalInterval, tB, null, smoothnessFactor );
+		final RandomAccessibleInterval<DoubleType> visA = display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tA, null, smoothnessFactor );
+		final RandomAccessibleInterval<DoubleType> visB = display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tB, null, smoothnessFactor );
 
 		stack.addSlice(stDataA.toString(), ImageJFunctions.wrapFloat( visA, new RealFloatConverter<>(), stDataA.toString(), null ).getProcessor());
 		stack.addSlice(stDataB.toString(), ImageJFunctions.wrapFloat( visB, new RealFloatConverter<>(), stDataB.toString(), null ).getProcessor());
 
 		ImagePlus imp = new ImagePlus("all", stack );
+		Calibration cal = imp.getCalibration();
+		cal.xOrigin = finalInterval.min( 0 );
+		cal.yOrigin = finalInterval.min( 1 );
 		imp.resetDisplayRange();
 		imp.show();
 
