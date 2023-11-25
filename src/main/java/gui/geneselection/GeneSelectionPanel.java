@@ -190,12 +190,20 @@ public class GeneSelectionPanel extends JPanel
 			}
 
 			@Override
-			public void keyPressed( KeyEvent e ) {}
+			public void keyPressed( KeyEvent e )
+			{
+				if ( e.getKeyCode()==KeyEvent.VK_ENTER )
+				{
+					go( action );
+				}
+			}
 		} );
 
 		final JButton addButton = new JButton( "Add & Close" );
 		addButton.addActionListener( e ->
 		{
+			go( action );
+			/*
 			final int[] rows = table.getSelectedRows();
 			if ( rows != null && rows.length > 0 )
 			{
@@ -206,7 +214,7 @@ public class GeneSelectionPanel extends JPanel
 				action.accept( selected );
 			}
 
-			parent.quit();
+			parent.quit();*/
 		});
 
 		this.add( label, BorderLayout.WEST );
@@ -262,6 +270,21 @@ public class GeneSelectionPanel extends JPanel
 
 		//if ( popUpAction != null && popUpItemName != null )
 		//	addPopupMenu( table, popUpItemName, popUpAction );
+	}
+
+	protected void go( final Consumer< List< String > > action )
+	{
+		final int[] rows = table.getSelectedRows();
+		if ( rows != null && rows.length > 0 )
+		{
+			final ArrayList< String > selected = new ArrayList<>();
+			for ( final int r : rows )
+				selected.add( data.get( r ).getA() );
+
+			action.accept( selected );
+		}
+
+		parent.quit();
 	}
 
 	protected static class MyRenderer extends DefaultTableCellRenderer
