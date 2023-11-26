@@ -50,6 +50,7 @@ import imglib2.TransformedIterableRealInterval;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
 import io.TextFileAccess;
+import mpicbg.models.AffineModel2D;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.PointMatch;
 import mpicbg.models.RigidModel2D;
@@ -500,6 +501,7 @@ public class InteractiveAlignment implements Callable<Void> {
 						try
 						{
 							final RigidModel2D model = new RigidModel2D();
+							//final AffineModel2D model = new AffineModel2D();
 							model.fit( match.getInliers() );
 							final AffineTransform2D m = AlignTools.modelToAffineTransform2D( model ).inverse();
 							final AffineTransform3D m3d = new AffineTransform3D();
@@ -519,7 +521,7 @@ public class InteractiveAlignment implements Callable<Void> {
 							for ( int i = 1; i < tsources.size(); i = i + 2 )
 								tsources.get( i ).setFixedTransform( m3d );
 
-						} catch (NotEnoughDataPointsException e)
+						} catch (Exception e)
 						{
 							// TODO Auto-generated catch block
 							e.printStackTrace();
