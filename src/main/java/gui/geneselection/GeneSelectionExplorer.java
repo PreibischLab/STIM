@@ -23,8 +23,6 @@
 package gui.geneselection;
 
 import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.Toolkit;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
@@ -57,12 +55,12 @@ public class GeneSelectionExplorer
 		frame.setVisible( true );
 		
 		// Get the size of the screen
-		final Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
+		//final Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
 
 		// Move the window
 		//frame.setSize( new Dimension( 350, 480 ) );
 		//frame.setSize( panel.getPreferredSize() );
-		frame.setLocation( ( dim.width - frame.getSize().width ) / 2, ( dim.height - frame.getSize().height ) / 4 );
+		//frame.setLocation( ( dim.width - frame.getSize().width ) / 2, ( dim.height - frame.getSize().height ) / 4 );
 
 		frame.addWindowListener( new WindowAdapter()
 		{
