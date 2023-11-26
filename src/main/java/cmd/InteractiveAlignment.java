@@ -25,6 +25,7 @@ import javax.swing.SwingConstants;
 import align.AlignTools;
 import align.Pairwise;
 import align.PairwiseSIFT;
+import align.PointST;
 import align.PairwiseSIFT.SIFTParam;
 import align.PairwiseSIFT.SIFTParam.SIFTMatching;
 import align.SiftMatch;
@@ -50,6 +51,7 @@ import io.SpatialDataContainer;
 import io.SpatialDataIO;
 import io.TextFileAccess;
 import mpicbg.models.NotEnoughDataPointsException;
+import mpicbg.models.PointMatch;
 import mpicbg.models.RigidModel2D;
 import net.imglib2.Interval;
 import net.imglib2.RealRandomAccessible;
@@ -360,7 +362,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		private final JPanel panel;
 
 		private GeneSelectionExplorer gse = null;
-		final SIFTOverlay siftoverlay = new SIFTOverlay( new ArrayList<>() );
+		final SIFTOverlay siftoverlay;
 
 		public STIMAlignmentCard(
 				final STDataAssembly data1,
@@ -377,6 +379,7 @@ public class InteractiveAlignment implements Callable<Void> {
 				final BdvHandle bdvhandle,
 				final ExecutorService service )
 		{
+			this.siftoverlay = new SIFTOverlay( new ArrayList<>(), bdvhandle );
 			this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 5, fill", "[right][grow]", "center"));
 
 			String options[] = { "Fast", "Normal", "Thorough", "Very thorough" }; // TODO: Advanced with window popping up
@@ -526,6 +529,10 @@ public class InteractiveAlignment implements Callable<Void> {
 						// Overlay detections
 						//
 						siftoverlay.setInliers( match.getInliers() );
+
+						// Very good to know!
+						//for ( final PointMatch pm : match.getInliers() )
+						//	System.out.println( ((PointST) pm.getP1()).getGene() );
 
 						overlayInliers.setSelected( true );
 						overlayInliers.setEnabled( true );
