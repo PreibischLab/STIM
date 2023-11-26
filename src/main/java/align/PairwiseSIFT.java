@@ -269,13 +269,13 @@ public class PairwiseSIFT
 		return s;
 	}
 
-	public static <M extends Affine2D<M> & Model<M>, N extends Affine2D<N> & Model<N>> SiftMatch pairwiseSIFT(
+	public static SiftMatch pairwiseSIFT(
 			final STData stDataA,
 			final String stDataAname,
 			final STData stDataB,
 			final String stDataBname,
-			final M modelPairwise,
-			final N modelGlobal,
+			final Model<?> modelPairwise,
+			final Model<?> modelGlobal,
 			final List< String > genesToTest,
 			final SIFTParam p,
 			final double scale,
@@ -386,7 +386,7 @@ public class PairwiseSIFT
 					}
 
 					// prefilter the candidates
-					final M model = modelPairwise.copy();//new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), 0.1 );//new RigidModel2D();
+					final Model<?> model = modelPairwise.copy();//new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), 0.1 );//new RigidModel2D();
 					final List< PointMatch > inliers = consensus( candidatesTmp, model, minNumInliersPerGene, maxEpsilon );
 
 					// reset world coordinates & compute error
@@ -458,7 +458,7 @@ public class PairwiseSIFT
 		final ArrayList< PointMatch > inliers = consensus( allCandidates, modelGlobal, minNumInliers, maxEpsilon );
 
 		// the model that maps J to I
-		System.out.println( stDataAname + "\t" + stDataBname + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + AlignTools.modelToAffineTransform2D( modelGlobal ).inverse() );
+		System.out.println( stDataAname + "\t" + stDataBname + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + AlignTools.modelToAffineTransform2D( (Affine2D<?>)modelGlobal ).inverse() );
 
 		if ( visualizeResult && inliers.size() >= minNumInliers )
 		{
@@ -467,7 +467,7 @@ public class PairwiseSIFT
 			ImagePlus rendered = AlignTools.visualizePair(
 					stDataA, stDataB,
 					new AffineTransform2D(),
-					AlignTools.modelToAffineTransform2D( modelGlobal ).inverse(),
+					AlignTools.modelToAffineTransform2D( (Affine2D<?>)modelGlobal ).inverse(),
 					genesToTest.get( 0 ),
 					scale,
 					smoothnessFactor );
