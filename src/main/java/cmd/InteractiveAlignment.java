@@ -89,6 +89,9 @@ public class InteractiveAlignment implements Callable<Void> {
 	@Option(names = {"-n", "--numGenes"}, required = false, description = "initial number of genes for alignment that have the highest entropy (default: 10)")
 	private int numGenes = 10;
 
+	@Option(names = {"-sk", "--skip"}, required = false, description = "skips the first N genes when selecting by highest entropy, as they can be outliers (default: 10)")
+	private int skipFirstNGenes = 10;
+
 	@Override
 	public Void call() throws Exception
 	{
@@ -187,7 +190,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		System.out.println( "Starting BDV ... " );
 		System.out.println( "Starting with the top " + numGenes + " genes (you find them in the 'groups' panel, you can add/remove genes in the GUI." );
 
-		for ( int i = 0; i < numGenes; ++i )
+		for ( int i = skipFirstNGenes; i < numGenes + skipFirstNGenes; ++i )
 		{
 			final String gene = allGenes.get( i ).getA(); //"Calm2";
 			System.out.println( "Rendering gene (each available as its own source): " + gene );
@@ -217,7 +220,7 @@ public class InteractiveAlignment implements Callable<Void> {
 
 		for ( int i = 0; i < numGenes; ++i )
 		{
-			final String gene = allGenes.get( i ).getA();
+			final String gene = allGenes.get( i + skipFirstNGenes ).getA();
 
 			final SourceGroup handle = new SourceGroup();
 			state.addGroup( handle );
@@ -440,8 +443,12 @@ public class InteractiveAlignment implements Callable<Void> {
 			//
 			run.addActionListener( l ->
 			{
+				siftoverlay.setInliers( new ArrayList<>() );
+				bdvhandle.getViewerPanel().renderTransformListeners().remove( siftoverlay );
+				bdvhandle.getViewerPanel().getDisplay().overlays().remove( siftoverlay );
 				run.setEnabled( false );
 				add.setEnabled( false );
+				overlayInliers.setEnabled( false );
 				bar.setValue( 1 );
 
 				new Thread( () ->
@@ -549,45 +556,45 @@ public class InteractiveAlignment implements Callable<Void> {
 
 				if ( gse == null || gse.frame().isVisible() == false )
 					gse = new GeneSelectionExplorer(
-							allGenes,
-							list ->
+						allGenes,
+						list ->
+						{
+							//
+							// first check if all groups are still present that are in the HashMap
+							//
+							final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
+							updateRemainingSources( state, geneToBDVSource );
+
+							//
+							// Now add the new ones (if it's not already there)
+							//
+							for ( final String gene : list )
 							{
-								//
-								// first check if all groups are still present that are in the HashMap
-								//
-								final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
-								updateRemainingSources( state, geneToBDVSource );
-
-								//
-								// Now add the new ones (if it's not already there)
-								//
-								for ( final String gene : list )
+								if ( !geneToBDVSource.containsKey( gene ) )
 								{
-									if ( !geneToBDVSource.containsKey( gene ) )
-									{
-										System.out.println( "Gene " + gene + " will be added." );
+									System.out.println( "Gene " + gene + " will be added." );
 
-										addGene( bdvhandle, stimcard.gaussFactories(), data1, gene, stimcard.currentSigma(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ) );
-										addGene( bdvhandle, stimcard.gaussFactories(), data2, gene, stimcard.currentSigma(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ) );
+									addGene( bdvhandle, stimcard.gaussFactories(), data1, gene, stimcard.currentSigma(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ) );
+									addGene( bdvhandle, stimcard.gaussFactories(), data2, gene, stimcard.currentSigma(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ) );
 
-										final SourceGroup handle = new SourceGroup();
-										state.addGroup( handle );
-										state.setGroupName( handle, gene );
-										state.setGroupActive( handle, true );
-										state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), handle );
-										state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), handle );
+									final SourceGroup handle = new SourceGroup();
+									state.addGroup( handle );
+									state.setGroupName( handle, gene );
+									state.setGroupActive( handle, true );
+									state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), handle );
+									state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), handle );
 
-										geneToBDVSource.put( gene, handle );
+									geneToBDVSource.put( gene, handle );
 
-										bdvhandle.getViewerPanel().setDisplayMode( DisplayMode.GROUP );
-									}
-									else
-									{
-										System.out.println( "Gene " + gene + " is already being displayed, ignoring." );
-										// TODO: remove gaussFactories? - maybe not necessary
-									}
+									bdvhandle.getViewerPanel().setDisplayMode( DisplayMode.GROUP );
 								}
-							} );
+								else
+								{
+									System.out.println( "Gene " + gene + " is already being displayed, ignoring." );
+									// TODO: remove gaussFactories? - maybe not necessary
+								}
+							}
+						} );
 			});
 
 
