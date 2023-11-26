@@ -12,6 +12,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -20,6 +21,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JProgressBar;
+import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 
 import align.AlignTools;
@@ -50,10 +52,15 @@ import imglib2.TransformedIterableRealInterval;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
 import io.TextFileAccess;
+import mpicbg.models.Affine2D;
 import mpicbg.models.AffineModel2D;
+import mpicbg.models.InterpolatedAffineModel2D;
+import mpicbg.models.Model;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.PointMatch;
 import mpicbg.models.RigidModel2D;
+import mpicbg.models.SimilarityModel2D;
+import mpicbg.models.TranslationModel2D;
 import net.imglib2.Interval;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.multithreading.SimpleMultiThreading;
@@ -315,7 +322,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		}
 
 		System.out.println( "min/max: " + minmax[0] + "/" + minmax[1] );
-		System.out.println( "min/max display range: " + "0" + "/" + minmax[1]/2 );
+		System.out.println( "min/max display range: " + "0" + "/" + minmax[1]/1.5 );
 
 		final List< FilterFactory< DoubleType, DoubleType > > filterFactorys = new ArrayList<>();
 		//filterFactorys.add( new MedianFilterFactory<DoubleType>( new DoubleType(), 3 * medianDistance ) );
@@ -361,9 +368,11 @@ public class InteractiveAlignment implements Callable<Void> {
 	public class STIMAlignmentCard
 	{
 		private final JPanel panel;
-
 		private GeneSelectionExplorer gse = null;
-		final SIFTOverlay siftoverlay;
+		private final SIFTOverlay siftoverlay;
+
+		final String optionsModel[] = { "Translation", "Rigid", "Similarity", "Affine" };
+		final String optionsModelReg[] = { "No Reg.", "Transl.", "Rigid", "Simil.", "Affine" };
 
 		public STIMAlignmentCard(
 				final STDataAssembly data1,
@@ -383,8 +392,8 @@ public class InteractiveAlignment implements Callable<Void> {
 			this.siftoverlay = new SIFTOverlay( new ArrayList<>(), bdvhandle );
 			this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 5, fill", "[right][grow]", "center"));
 
-			String options[] = { "Fast", "Normal", "Thorough", "Very thorough" }; // TODO: Advanced with window popping up
-			JComboBox< String > box = new JComboBox< String > (options);
+			final String options[] = { "Fast", "Normal", "Thorough", "Very thorough" }; // TODO: Advanced with window popping up
+			final JComboBox< String > box = new JComboBox< String > (options);
 			box.setBorder( null );
 			box.setSelectedIndex( 1 );
 			final JLabel boxLabel = new JLabel("SIFT Matching ");
@@ -409,10 +418,41 @@ public class InteractiveAlignment implements Callable<Void> {
 			panel.add(inliersPerGeneLabel, "aligny baseline");
 			panel.add(inliersPerGeneSlider, "growx, wrap");
 
-			//final JCheckBox applyTransform = new JCheckBox( "Apply transform  " );
+			// Panel for RANSAC MODEL
+			final JComboBox< String > boxModelRANSAC1 = new JComboBox< String > (optionsModel);
+			boxModelRANSAC1.setSelectedIndex( 1 );
+			final JLabel boxModeRANSACLabel1 = new JLabel("RANSAC model ");
+			panel.add( boxModeRANSACLabel1, "aligny baseline, sy 2" );
+			panel.add( boxModelRANSAC1, "growx, wrap" );
+			final JPanel panRANSAC = new JPanel( new MigLayout("gap 0, ins 0 0 0 0, fill", "[right][grow]", "center") );
+			final JComboBox< String > boxModelRANSAC2 = new JComboBox< String > (optionsModelReg);
+			boxModelRANSAC2.setSelectedIndex( 0 );
+			panRANSAC.add( boxModelRANSAC2 );
+			final JLabel labelRANSACReg = new JLabel( "λ=" );
+			panRANSAC.add( labelRANSACReg, "alignx right" );
+			final JTextField tfRANSAC = new JTextField( "0.1" );
+			panRANSAC.add( tfRANSAC, "growx" );
+			panRANSAC.setBorder( BorderFactory.createEmptyBorder(0,0,5,0));
+			panel.add( panRANSAC, "growx, wrap" );
+
+			// Panel for FINAL MODEL
+			final JComboBox< String > boxModelFinal1 = new JComboBox< String > (optionsModel);
+			boxModelFinal1.setSelectedIndex( 1 );
+			final JLabel boxModeFinalLabel1 = new JLabel("Final model ");
+			panel.add( boxModeFinalLabel1, "aligny baseline, sy 2" );
+			panel.add( boxModelFinal1, "growx, wrap" );
+			final JPanel panFinal = new JPanel( new MigLayout("gap 0, ins 0 0 0 0, fill", "[right][grow]", "center") );
+			final JComboBox< String > boxModelFinal2 = new JComboBox< String > (optionsModelReg);
+			boxModelFinal2.setSelectedIndex( 0 );
+			panFinal.add( boxModelFinal2 );
+			final JLabel labelFinalReg = new JLabel( "λ=" );
+			panFinal.add( labelFinalReg, "alignx right" );
+			final JTextField tfFinal = new JTextField( "0.1" );
+			panFinal.add( tfFinal, "growx" );
+			panFinal.setBorder( BorderFactory.createEmptyBorder(0,0,5,0));
+			panel.add( panFinal, "growx, wrap" );
+
 			final JCheckBox overlayInliers = new JCheckBox( "Overlay SIFT features" );
-			//BorderFactory.createEmptyBorder(24,24,24,24);
-			//panel.add(applyTransform, "aligny baseline");
 			panel.add(overlayInliers, "span,growx,pushy");
 			overlayInliers.setSelected( true );
 			overlayInliers.setEnabled( false );
@@ -431,7 +471,6 @@ public class InteractiveAlignment implements Callable<Void> {
 				bdvhandle.getViewerPanel().requestRepaint();
 			});
 
-			//final BoundedRangeModel model = new DefaultBoundedRangeModel();//
 			final JProgressBar bar = new JProgressBar(SwingConstants.HORIZONTAL, 0, 100);
 			bar.setValue( 0 );
 			bar.setStringPainted(false);
@@ -465,20 +504,29 @@ public class InteractiveAlignment implements Callable<Void> {
 					final double maxError = maxErrorSlider.getValue().getValue();
 					final double scale = overlay.currentScale();
 					final double sigma = stimcard.currentSigma();
-	
+					final double lambda1 = Double.parseDouble( tfRANSAC.getText().trim() );
+					final double lambda2 = Double.parseDouble( tfFinal.getText().trim() );
+					final SIFTParam p = new SIFTParam( SIFTMatching.values()[ box.getSelectedIndex() ] );
+
+					final Model model1 = getModelFor( boxModelRANSAC1.getSelectedIndex(), boxModelRANSAC2.getSelectedIndex(), lambda1 );
+					final Model model2 = getModelFor( boxModelFinal1.getSelectedIndex(), boxModelFinal2.getSelectedIndex(), lambda2 );
+
 					System.out.println( "Running SIFT align with the following parameters: ");
 					System.out.println( "maxError: " + maxError + ", minInliers (over all genes): " + minInliers + ", minInliers (per genes): " + minInliersPerGene );
 					System.out.println( "scale: " + scale + ", sigma: " + sigma );
 					System.out.println( "SIFT: " + SIFTMatching.values()[ box.getSelectedIndex() ] );
+					System.out.println( "RANSAC model: " + optionsModel[ boxModelRANSAC1.getSelectedIndex() ] + ", regularizer: " + optionsModelReg[ boxModelRANSAC2.getSelectedIndex() ] + ", lambda=" + lambda1 );
+					System.out.println( "FINAL model: " + optionsModel[ boxModelFinal1.getSelectedIndex() ] + ", regularizer: " + optionsModelReg[ boxModelFinal2.getSelectedIndex() ] + ", lambda=" + lambda2 );
 
-					final SIFTParam p = new SIFTParam( SIFTMatching.values()[ box.getSelectedIndex() ] );
-	
+					System.out.println( model1.getClass().getSimpleName() );
+					System.out.println( model2.getClass().getSimpleName() );
+
 					final boolean visResult = false;
 					final double[] progressBarValue = new double[] { 1.0 };
-
+					
 					final SiftMatch match = PairwiseSIFT.pairwiseSIFT(
 							data1.data(), dataset1, data2.data(), dataset2,
-							new RigidModel2D(), new RigidModel2D(),
+							(Affine2D & Model)model1, (Affine2D & Model)model1,
 							new ArrayList<>( geneToBDVSource.keySet() ),
 							p, scale, sigma, maxError,
 							minInliers, minInliersPerGene,
@@ -500,10 +548,10 @@ public class InteractiveAlignment implements Callable<Void> {
 					{
 						try
 						{
-							final RigidModel2D model = new RigidModel2D();
+							//final RigidModel2D model = new RigidModel2D();
 							//final AffineModel2D model = new AffineModel2D();
-							model.fit( match.getInliers() );
-							final AffineTransform2D m = AlignTools.modelToAffineTransform2D( model ).inverse();
+							model2.fit( match.getInliers() );
+							final AffineTransform2D m = AlignTools.modelToAffineTransform2D( (Affine2D)model2 ).inverse();
 							final AffineTransform3D m3d = new AffineTransform3D();
 							m3d.set(m.get(0, 0), 0, 0 ); // row, column
 							m3d.set(m.get(0, 1), 0, 1 ); // row, column
@@ -512,7 +560,7 @@ public class InteractiveAlignment implements Callable<Void> {
 							m3d.set(m.get(0, 2), 0, 3 ); // row, column
 							m3d.set(m.get(1, 2), 1, 3 ); // row, column
 	
-							//System.out.println( m );
+							System.out.println( "final model" + m );
 							//System.out.println( m3d );
 	
 							final List<TransformedSource<?>> tsources = BDVUtils.getTransformedSources(state);
@@ -631,6 +679,77 @@ public class InteractiveAlignment implements Callable<Void> {
 					toRemove.add( entry.getKey() );
 
 			toRemove.forEach( s -> geneToBDVSource.remove( s ) );
+		}
+
+		protected Model<?> getModelFor( final int modelIndex, final int regIndex, final double lambda )
+		{
+			if ( regIndex == 0 )
+			{
+				if ( modelIndex == 0 )
+					return new TranslationModel2D();
+				else if ( modelIndex == 1 )
+					return new RigidModel2D();
+				else if ( modelIndex == 2 )
+					return new SimilarityModel2D();
+				else if ( modelIndex == 3 )
+					return new AffineModel2D();
+				else
+					throw new RuntimeException( "Unknown model index: "+ modelIndex );
+			}
+			else if ( regIndex == 1 )
+			{
+				if ( modelIndex == 0 )
+					return new TranslationModel2D();
+				else if ( modelIndex == 1 )
+					return new InterpolatedAffineModel2D<TranslationModel2D, RigidModel2D>( new TranslationModel2D(), new RigidModel2D(), lambda );
+				else if ( modelIndex == 2 )
+					return new InterpolatedAffineModel2D<TranslationModel2D, SimilarityModel2D>( new TranslationModel2D(), new SimilarityModel2D(), lambda );
+				else if ( modelIndex == 3 )
+					return new InterpolatedAffineModel2D<TranslationModel2D, AffineModel2D>( new TranslationModel2D(), new AffineModel2D(), lambda );
+				else
+					throw new RuntimeException( "Unknown model index: "+ modelIndex );
+			}
+			else if ( regIndex == 2 )
+			{
+				if ( modelIndex == 0 )
+					return new InterpolatedAffineModel2D<RigidModel2D, TranslationModel2D>( new RigidModel2D(), new TranslationModel2D(), lambda );
+				else if ( modelIndex == 1 )
+					return new RigidModel2D();
+				else if ( modelIndex == 2 )
+					return new InterpolatedAffineModel2D<RigidModel2D, SimilarityModel2D>( new RigidModel2D(), new SimilarityModel2D(), lambda );
+				else if ( modelIndex == 3 )
+					return new InterpolatedAffineModel2D<RigidModel2D, AffineModel2D>( new RigidModel2D(), new AffineModel2D(), lambda );
+				else
+					throw new RuntimeException( "Unknown model index: "+ modelIndex );
+			}
+			else if ( regIndex == 3 )
+			{
+				if ( modelIndex == 0 )
+					return new InterpolatedAffineModel2D<SimilarityModel2D, TranslationModel2D>( new SimilarityModel2D(), new TranslationModel2D(), lambda );
+				else if ( modelIndex == 1 )
+					return new InterpolatedAffineModel2D<SimilarityModel2D, RigidModel2D>( new SimilarityModel2D(), new RigidModel2D(), lambda );
+				else if ( modelIndex == 2 )
+					return new SimilarityModel2D();
+				else if ( modelIndex == 3 )
+					return new InterpolatedAffineModel2D<SimilarityModel2D, AffineModel2D>( new SimilarityModel2D(), new AffineModel2D(), lambda );
+				else
+					throw new RuntimeException( "Unknown model index: "+ modelIndex );
+			}
+			else if ( regIndex == 4 )
+			{
+				if ( modelIndex == 0 )
+					return new InterpolatedAffineModel2D<AffineModel2D, TranslationModel2D>( new AffineModel2D(), new TranslationModel2D(), lambda );
+				else if ( modelIndex == 1 )
+					return new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>( new AffineModel2D(), new RigidModel2D(), lambda );
+				else if ( modelIndex == 2 )
+					return new InterpolatedAffineModel2D<AffineModel2D, SimilarityModel2D>( new AffineModel2D(), new SimilarityModel2D(), lambda );
+				else if ( modelIndex == 3 )
+					return new AffineModel2D();
+				else
+					throw new RuntimeException( "Unknown model index: "+ modelIndex );
+			}
+			else
+				throw new RuntimeException( "Unknown regularizer model index: "+ modelIndex );
 		}
 
 		public JPanel getPanel() { return panel; }
