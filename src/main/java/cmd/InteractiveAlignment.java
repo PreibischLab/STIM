@@ -556,11 +556,6 @@ public class InteractiveAlignment implements Callable<Void> {
 			//
 			add.addActionListener( l -> 
 			{
-				final List< Pair< String, Double > > genes = new ArrayList<>();
-
-				for ( int i = 100; i >=0; --i )
-					genes.add( new ValuePair<String, Double>("gene " + i, (double)i ) );
-
 				if ( gse == null || gse.frame().isVisible() == false )
 					gse = new GeneSelectionExplorer(
 						allGenes,
