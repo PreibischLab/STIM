@@ -27,7 +27,6 @@ import javax.swing.SwingConstants;
 import align.AlignTools;
 import align.Pairwise;
 import align.PairwiseSIFT;
-import align.PointST;
 import align.PairwiseSIFT.SIFTParam;
 import align.PairwiseSIFT.SIFTParam.SIFTMatching;
 import align.SiftMatch;
@@ -56,8 +55,6 @@ import mpicbg.models.Affine2D;
 import mpicbg.models.AffineModel2D;
 import mpicbg.models.InterpolatedAffineModel2D;
 import mpicbg.models.Model;
-import mpicbg.models.NotEnoughDataPointsException;
-import mpicbg.models.PointMatch;
 import mpicbg.models.RigidModel2D;
 import mpicbg.models.SimilarityModel2D;
 import mpicbg.models.TranslationModel2D;
@@ -79,6 +76,7 @@ import util.BoundedValue;
 import util.BoundedValuePanel;
 import util.Threads;
 
+// -i visium.n5 -d1 slice1.h5ad -d2 slice2.n5 -n 9 -sk 14
 public class InteractiveAlignment implements Callable<Void> {
 
 	@Option(names = {"-i", "--input"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")
@@ -198,7 +196,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		ArrayList< GaussianFilterFactory< DoubleType, DoubleType > > factories = new ArrayList<>();
 
 		System.out.println( "Starting BDV ... " );
-		System.out.println( "Starting with the top " + numGenes + " genes (you find them in the 'groups' panel, you can add/remove genes in the GUI." );
+		System.out.println( "Starting with the top " + numGenes + " genes after skipping the first " + skipFirstNGenes +" genes (you find them in the 'groups' panel, you can add/remove genes in the GUI." );
 
 		for ( int i = skipFirstNGenes; i < numGenes + skipFirstNGenes; ++i )
 		{
@@ -340,8 +338,8 @@ public class InteractiveAlignment implements Callable<Void> {
 									data.data(),
 									data.transform() ) );
 
-		BdvOptions options =
-				BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() / 2 ).addTo( bdv ).is2D().preferredSize(800, 800);
+		BdvOptions options = BdvOptions.options().numRenderingThreads(Math.max(2,Runtime.getRuntime().availableProcessors() / 2))
+				.addTo(bdv).is2D().preferredSize(1000, 800);
 
 		BdvStackSource< ? > source = BdvFunctions.show( rra, interval, gene, options );
 
