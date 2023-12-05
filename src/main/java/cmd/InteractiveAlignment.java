@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -40,6 +41,7 @@ import bdv.util.BdvHandle;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
+import bdv.viewer.SourceAndConverter;
 import bdv.viewer.SourceGroup;
 import bdv.viewer.SynchronizedViewerState;
 import data.STDataUtils;
@@ -202,7 +204,6 @@ public class InteractiveAlignment implements Callable<Void> {
 		// render in parallel and overlay candidates and inliers
 
 		BdvStackSource< ? > lastSource = null;
-		//final ArrayList< GaussianFilterFactory< DoubleType, DoubleType > > factories = new ArrayList<>();
 		final HashMap< String, Pair< AddedGene, AddedGene > > sourceData = new HashMap<>();
 
 		System.out.println( "Starting BDV ... " );
@@ -234,7 +235,6 @@ public class InteractiveAlignment implements Callable<Void> {
 			sourceData.put(gene, new ValuePair<>(addedGene1, addedGene2 ) );
 			lastSource = addedGene2.source;
 		}
-
 
 		final SynchronizedViewerState state = lastSource.getBdvHandle().getViewerPanel().state();
 		final ArrayList< SourceGroup > oldGroups = new ArrayList<>( state.getGroups() );
@@ -293,7 +293,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		lastSource.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_VIEWERMODES_CARD, false); // collapse display modes panel
 
 		// add STIMCard panel
-		final STIMCard card = new STIMCard( sourceData, geneToBDVSource, medianDistance, smoothnessFactor, brightnessMin, brightnessMax, lastSource.getBdvHandle());
+		final STIMCard card = new STIMCard( data1, data2, sourceData, geneToBDVSource, medianDistance, smoothnessFactor, brightnessMin, brightnessMax, lastSource.getBdvHandle());
 		lastSource.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
 
 		// add STIMAlignmentCard panel
@@ -584,7 +584,7 @@ public class InteractiveAlignment implements Callable<Void> {
 									final AddedGene gene1 = AddedGene.addGene( bdvhandle, data1, gene, stimcard.currentSigma(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
 									final AddedGene gene2 = AddedGene.addGene( bdvhandle, data2, gene, stimcard.currentSigma(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
 
-									stimcard.sourceData().put( gene, new ValuePair<>( gene1, gene2 ) );
+									sourceData.put( gene, new ValuePair<>( gene1, gene2 ) );
 									//stimcard.gaussFactories().add( gene1.factory );
 									//stimcard.gaussFactories().add( gene2.factory );
 
@@ -710,6 +710,8 @@ public class InteractiveAlignment implements Callable<Void> {
 		private double currentSigma, currentBrightnessMin, currentBrightnessMax;
 
 		public STIMCard(
+				final STDataAssembly data1,
+				final STDataAssembly data2,
 				final HashMap< String, Pair< AddedGene, AddedGene > > sourceData,
 				final HashMap< String, SourceGroup > geneToBDVSource,
 				final double medianDistance,
@@ -751,6 +753,52 @@ public class InteractiveAlignment implements Callable<Void> {
 			brightnessSliderMax.setBorder(null);
 			panel.add(brightnessLabelMax, "aligny baseline");
 			panel.add(brightnessSliderMax, "growx, wrap");
+
+			final JButton testButton = new JButton( "Show as NN" );
+			panel.add(testButton, "span,growx,pushy");
+			testButton.addActionListener( (e) -> {
+
+				final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
+				AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
+
+				for ( final String gene : geneToBDVSource.keySet() )
+				{
+					System.out.println( "replacing sources for '" + gene + "'");
+
+					final Pair< AddedGene, AddedGene > currentSource = sourceData.get( gene );
+					final SourceGroup currentSourceGroup = geneToBDVSource.get( gene );
+					final ArrayList<SourceAndConverter<?>> currentSources = new ArrayList<>( state.getSourcesInGroup( currentSourceGroup ) );
+
+					// TODO: re-use KDtree!
+					AddedGene gene1 = AddedGene.addGene( bdvhandle, data1, gene, currentSigma*2, new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin, currentBrightnessMax/2 );
+					AddedGene gene2 = AddedGene.addGene( bdvhandle, data2, gene, currentSigma*2, new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin, currentBrightnessMax/2 );
+
+					state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), currentSourceGroup );
+					state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), currentSourceGroup );
+
+					for ( final SourceAndConverter<?> s : currentSources )
+						state.removeSourceFromGroup( s, currentSourceGroup );
+					//currentSources.forEach( s -> state.removeSourceFromGroup( s, currentSourceGroup ) );
+
+					//state.removeSourceFromGroup(null, currentSourceGroup)
+					/*
+					sourceData.put( gene, new ValuePair<>( gene1, gene2 ) );
+
+					final SourceGroup handle = new SourceGroup();
+					state.addGroup( handle );
+					state.setGroupName( handle, gene );
+					state.setGroupActive( handle, true );
+					state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), handle );
+					state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), handle );
+
+					geneToBDVSource.put( gene, handle );
+
+					bdvhandle.getViewerPanel().setDisplayMode( DisplayMode.GROUP );*/
+
+				}
+
+				bdvhandle.getViewerPanel().setDisplayMode( DisplayMode.GROUP );
+			} );
 
 			// sigma listener
 			sigmaSlider.changeListeners().add( () ->
