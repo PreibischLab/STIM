@@ -831,9 +831,17 @@ public class InteractiveAlignment implements Callable<Void> {
 			} );
 
 			// popups
-			final JPopupMenu menu = new JPopupMenu();
-			menu.add(runnableItem("set bounds ...", sigmaSlider::setBoundsDialog));
-			sigmaSlider.setPopup(() -> menu);
+			final JPopupMenu menu1 = new JPopupMenu();
+			menu1.add(runnableItem("set bounds ...", sigmaSlider::setBoundsDialog));
+			sigmaSlider.setPopup(() -> menu1);
+
+			final JPopupMenu menu2 = new JPopupMenu();
+			menu2.add(runnableItem("set bounds ...", brightnessSliderMin::setBoundsDialog));
+			brightnessSliderMin.setPopup(() -> menu2);
+
+			final JPopupMenu menu3 = new JPopupMenu();
+			menu3.add(runnableItem("set bounds ...", brightnessSliderMax::setBoundsDialog));
+			brightnessSliderMax.setPopup(() -> menu3);
 
 			System.out.println( "Done ... " );
 		}
