@@ -2,6 +2,7 @@ package filter;
 
 import net.imglib2.IterableRealInterval;
 import net.imglib2.KDTree;
+import render.Render;
 
 public abstract class RadiusSearchFilterFactory< S, T > implements FilterFactory< S, T >
 {
@@ -15,7 +16,8 @@ public abstract class RadiusSearchFilterFactory< S, T > implements FilterFactory
 	@Override
 	public Filter< T > createFilter( final IterableRealInterval< S > data )
 	{
-		return createFilter( new KDTree< S >( data ) );
+		return createFilter( Render.createParallelizableKDTreeFrom( (IterableRealInterval)data ) );
+		//return createFilter( new KDTree< S >( data ) );
 	}
 
 	public abstract Filter< T > createFilter( final KDTree< S > tree );
