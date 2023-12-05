@@ -1,5 +1,6 @@
 package cmd;
 
+import java.awt.Font;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -7,6 +8,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -74,6 +76,7 @@ import render.Render;
 import util.BDVUtils;
 import util.BoundedValue;
 import util.BoundedValuePanel;
+import util.BoundedValuePanel.ChangeListener;
 import util.Threads;
 
 // -i visium.n5 -d1 slice1.h5ad -d2 slice2.n5 -n 9 -sk 14
@@ -90,6 +93,12 @@ public class InteractiveAlignment implements Callable<Void> {
 
 	@Option(names = {"-s", "--scale"}, required = false, description = "initial scaling factor for rendering the coordinates into images, can be changed interactively (default: 0.05 for slideseq data)")
 	private double scale = 0.05;
+
+	@Option(names = {"-bmin", "--brightnessMin"}, required = false, description = "min initial brightness relative to the maximal value + overall min intensity (default: 0.0)")
+	private double brightnessMin = 0.0;
+
+	@Option(names = {"-bmax", "--brightnessMax"}, required = false, description = "max initial brightness relative to the maximal value (default: 0.5)")
+	private double brightnessMax = 0.5;
 
 	@Option(names = {"-sf", "--smoothnessFactor"}, required = false, description = "initial factor for the sigma of the gaussian used for rendering, corresponds to smoothness, can be changed interactively, e.g -sf 2.0 (default: 4.0)")
 	private double smoothnessFactor = 1.0;
@@ -192,8 +201,9 @@ public class InteractiveAlignment implements Callable<Void> {
 		// the plan is to open two BDV windows next to each other,
 		// render in parallel and overlay candidates and inliers
 
-		BdvStackSource< ? > source = null;
-		ArrayList< GaussianFilterFactory< DoubleType, DoubleType > > factories = new ArrayList<>();
+		BdvStackSource< ? > lastSource = null;
+		//final ArrayList< GaussianFilterFactory< DoubleType, DoubleType > > factories = new ArrayList<>();
+		final HashMap< String, Pair< AddedGene, AddedGene > > sourceData = new HashMap<>();
 
 		System.out.println( "Starting BDV ... " );
 		System.out.println( "Starting with the top " + numGenes + " genes after skipping the first " + skipFirstNGenes +" genes (you find them in the 'groups' panel, you can add/remove genes in the GUI." );
@@ -203,25 +213,30 @@ public class InteractiveAlignment implements Callable<Void> {
 			final String gene = allGenes.get( i ).getA(); //"Calm2";
 			System.out.println( "Rendering gene (each available as its own source): " + gene );
 
-			source = addGene(
-					source,
-					factories,
+			final AddedGene addedGene1 = AddedGene.addGene(
+					lastSource,
 					data1,
 					gene,
 					smoothnessFactor,
-					new ARGBType( ARGBType.rgba(0, 255, 0, 0) ) );
+					new ARGBType( ARGBType.rgba(0, 255, 0, 0) ),
+					brightnessMin,
+					brightnessMax );
 
-			source = addGene(
-					source,
-					factories,
+			final AddedGene addedGene2 = AddedGene.addGene(
+					addedGene1.source,
 					data2,
 					gene,
 					smoothnessFactor,
-					new ARGBType( ARGBType.rgba(255, 0, 255, 0) ) );
+					new ARGBType( ARGBType.rgba(255, 0, 255, 0) ),
+					brightnessMin,
+					brightnessMax );
+
+			sourceData.put(gene, new ValuePair<>(addedGene1, addedGene2 ) );
+			lastSource = addedGene2.source;
 		}
 
 
-		final SynchronizedViewerState state = source.getBdvHandle().getViewerPanel().state();
+		final SynchronizedViewerState state = lastSource.getBdvHandle().getViewerPanel().state();
 		final ArrayList< SourceGroup > oldGroups = new ArrayList<>( state.getGroups() );
 
 		final HashMap< String, SourceGroup > geneToBDVSource = new HashMap<>();
@@ -240,7 +255,7 @@ public class InteractiveAlignment implements Callable<Void> {
 			geneToBDVSource.put( gene, handle );
 		}
 
-		source.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.GROUP );
+		lastSource.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.GROUP );
 
 		state.removeGroups( oldGroups );
 
@@ -262,31 +277,30 @@ public class InteractiveAlignment implements Callable<Void> {
 		System.out.println( "Median distance of spots: " + medianDistance );
 
 		// the side panel
-		final SplitPanel splitPanel = source.getBdvHandle().getSplitPanel();
+		final SplitPanel splitPanel = lastSource.getBdvHandle().getSplitPanel();
 
 		// add scale (so the right size of the images for alignment can be selected)
 		final DisplayScaleOverlay overlay = new DisplayScaleOverlay();
-		source.getBdvHandle().getViewerPanel().renderTransformListeners().add(overlay);
-		source.getBdvHandle().getViewerPanel().getDisplay().overlays().add(overlay);
+		lastSource.getBdvHandle().getViewerPanel().renderTransformListeners().add(overlay);
+		lastSource.getBdvHandle().getViewerPanel().getDisplay().overlays().add(overlay);
 
 		// show scalebar (so the right error can be selected)
-		source.getBdvHandle().getAppearanceManager().appearance().setShowScaleBar( true );
+		lastSource.getBdvHandle().getAppearanceManager().appearance().setShowScaleBar( true );
 
 		// collapse all existing panels (except sources)
-		source.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_SOURCEGROUPS_CARD, true); // collapse groups panel
-		source.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_SOURCES_CARD, false); // collapse sources panel
-		source.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_VIEWERMODES_CARD, false); // collapse display modes panel
+		lastSource.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_SOURCEGROUPS_CARD, true); // collapse groups panel
+		lastSource.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_SOURCES_CARD, false); // collapse sources panel
+		lastSource.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_VIEWERMODES_CARD, false); // collapse display modes panel
 
 		// add STIMCard panel
-		final STIMCard card = new STIMCard(factories, medianDistance, source.getBdvHandle());
-		source.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
+		final STIMCard card = new STIMCard( sourceData, geneToBDVSource, medianDistance, smoothnessFactor, brightnessMin, brightnessMax, lastSource.getBdvHandle());
+		lastSource.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
 
 		// add STIMAlignmentCard panel
-		final STIMAlignmentCard cardAlign = new STIMAlignmentCard( data1, data2, overlay, card, allGenes, geneToBDVSource, medianDistance, medianDistance*1.5, 25, 10, numGenes, source.getBdvHandle(), service );
-		source.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlign.getPanel(), true );
-
-		// activate listeners
-		card.toggleActiveListeners();
+		final STIMAlignmentCard cardAlign =
+				new STIMAlignmentCard(
+						data1, data2, overlay, card, allGenes, sourceData, geneToBDVSource, medianDistance, medianDistance*1.5, 25, 10, numGenes, lastSource.getBdvHandle(), service );
+		lastSource.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlign.getPanel(), true );
 
 		// Expands the split Panel (after waiting 2 secs for the BDV to calm down)
 		SimpleMultiThreading.threadWait( 2000 );
@@ -298,69 +312,6 @@ public class InteractiveAlignment implements Callable<Void> {
 		//service.shutdown();
 
 		return null;
-	}
-
-	public static BdvStackSource< ? > addGene(
-			final Bdv bdv,
-			final List< GaussianFilterFactory< DoubleType, DoubleType > > factories,
-			final STDataAssembly data,
-			final String gene,
-			final double smoothnessFactor,
-			final ARGBType color )
-	{
-		final double[] minmax = new double[ 2 ];
-
-		minmax[ 0 ] = Double.MAX_VALUE;
-		minmax[ 1 ] = -Double.MAX_VALUE;
-
-		for ( final DoubleType t : data.data().getExprData(gene) )
-		{
-			minmax[ 0 ] = Math.min( minmax[ 0 ], t.get() );
-			minmax[ 1 ] = Math.max( minmax[ 1 ], t.get() );
-		}
-
-		System.out.println( "min/max: " + minmax[0] + "/" + minmax[1] );
-		System.out.println( "min/max display range: " + "0" + "/" + minmax[1]/1.5 );
-
-		final List< FilterFactory< DoubleType, DoubleType > > filterFactorys = new ArrayList<>();
-		//filterFactorys.add( new MedianFilterFactory<DoubleType>( new DoubleType(), 3 * medianDistance ) );
-
-		final Pair< RealRandomAccessible< DoubleType >, GaussianFilterFactory< DoubleType, DoubleType > > rendered = 
-				Render.getRealRandomAccessible2( data, gene, smoothnessFactor, filterFactorys );
-
-		final RealRandomAccessible< DoubleType > rra = rendered.getA();
-		final GaussianFilterFactory< DoubleType, DoubleType > factory = rendered.getB();
-		factories.add( factory );
-
-		final Interval interval =
-					STDataUtils.getIterableInterval(
-							new TransformedIterableRealInterval<>(
-									data.data(),
-									data.transform() ) );
-
-		BdvOptions options = BdvOptions.options().numRenderingThreads(Math.max(2,Runtime.getRuntime().availableProcessors() / 2))
-				.addTo(bdv).is2D().preferredSize(1000, 800);
-
-		BdvStackSource< ? > source = BdvFunctions.show( rra, interval, gene, options );
-
-		source.setDisplayRangeBounds( 0, minmax[1] );
-		source.setDisplayRange( minmax[0], minmax[1]/2 );
-		source.setColor( color );
-		//source.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
-		source.setCurrent();
-
-		/*
-		final AffineTransform3D mipmapTransform = getMipmapTransforms()[ level ];
-		currentSourceTransforms[ level ].set( reg );
-		currentSourceTransforms[ level ].concatenate( mipmapTransform );
-		 */
-
-		final AffineTransform3D t = new AffineTransform3D();
-		source.getBdvHandle().getViewerPanel().state().getViewerTransform( t );
-		t.set( 0, 2, 3 );
-		source.getBdvHandle().getViewerPanel().state().setViewerTransform( t );
-
-		return source;
 	}
 
 	public class STIMAlignmentCard
@@ -378,6 +329,7 @@ public class InteractiveAlignment implements Callable<Void> {
 				final DisplayScaleOverlay overlay,
 				final STIMCard stimcard,
 				final List< Pair< String, Double > > allGenes,
+				final HashMap< String, Pair< AddedGene, AddedGene > > sourceData,
 				final HashMap< String, SourceGroup > geneToBDVSource,
 				final double medianDistance,
 				final double errorInit,
@@ -398,7 +350,7 @@ public class InteractiveAlignment implements Callable<Void> {
 			panel.add( boxLabel, "aligny baseline" );
 			panel.add( box, "growx, wrap" );
 
-			final BoundedValuePanel maxErrorSlider = new BoundedValuePanel(new BoundedValue(0, medianDistance * 5, errorInit ));
+			final BoundedValuePanel maxErrorSlider = new BoundedValuePanel(new BoundedValue(0, Math.round( Math.ceil( medianDistance * 5 ) ), errorInit ));
 			maxErrorSlider.setBorder(null);
 			final JLabel maxErrorLabel = new JLabel("max. error (px)");
 			panel.add(maxErrorLabel, "aligny baseline");
@@ -407,12 +359,17 @@ public class InteractiveAlignment implements Callable<Void> {
 			final BoundedValuePanel inliersSlider = new BoundedValuePanel(new BoundedValue(0, 50, minNumInliersInit ));
 			inliersSlider.setBorder(null);
 			final JLabel inliersLabel = new JLabel("min inliers (total)");
+			final Font font = inliersLabel.getFont().deriveFont( 10f );
+			inliersLabel.setFont( font );
+			inliersLabel.setBorder( null );
 			panel.add(inliersLabel, "aligny baseline");
 			panel.add(inliersSlider, "growx, wrap");
 
 			final BoundedValuePanel inliersPerGeneSlider = new BoundedValuePanel(new BoundedValue(0, 25, minNumInliersGeneInit ));
 			inliersPerGeneSlider.setBorder(null);
 			final JLabel inliersPerGeneLabel = new JLabel("min inliers (gene)");
+			inliersPerGeneLabel.setFont( font );
+			inliersPerGeneLabel.setBorder( null );
 			panel.add(inliersPerGeneLabel, "aligny baseline");
 			panel.add(inliersPerGeneSlider, "growx, wrap");
 
@@ -495,7 +452,7 @@ public class InteractiveAlignment implements Callable<Void> {
 				new Thread( () ->
 				{
 					final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
-					updateRemainingSources( state, geneToBDVSource );
+					AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
 	
 					final int minInliers = (int)Math.round( inliersSlider.getValue().getValue() );
 					final int minInliersPerGene = (int)Math.round( inliersPerGeneSlider.getValue().getValue() );
@@ -613,7 +570,7 @@ public class InteractiveAlignment implements Callable<Void> {
 							// first check if all groups are still present that are in the HashMap
 							//
 							final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
-							updateRemainingSources( state, geneToBDVSource );
+							AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
 
 							//
 							// Now add the new ones (if it's not already there)
@@ -624,8 +581,12 @@ public class InteractiveAlignment implements Callable<Void> {
 								{
 									System.out.println( "Gene " + gene + " will be added." );
 
-									addGene( bdvhandle, stimcard.gaussFactories(), data1, gene, stimcard.currentSigma(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ) );
-									addGene( bdvhandle, stimcard.gaussFactories(), data2, gene, stimcard.currentSigma(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ) );
+									final AddedGene gene1 = AddedGene.addGene( bdvhandle, data1, gene, stimcard.currentSigma(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
+									final AddedGene gene2 = AddedGene.addGene( bdvhandle, data2, gene, stimcard.currentSigma(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
+
+									stimcard.sourceData().put( gene, new ValuePair<>( gene1, gene2 ) );
+									//stimcard.gaussFactories().add( gene1.factory );
+									//stimcard.gaussFactories().add( gene2.factory );
 
 									final SourceGroup handle = new SourceGroup();
 									state.addGroup( handle );
@@ -665,18 +626,6 @@ public class InteractiveAlignment implements Callable<Void> {
 			final JPopupMenu menu = new JPopupMenu();
 			menu.add(runnableItem("set bounds ...", sigmaSlider::setBoundsDialog));
 			sigmaSlider.setPopup(() -> menu);*/
-		}
-
-		protected void updateRemainingSources( final SynchronizedViewerState state, final HashMap< String, SourceGroup > geneToBDVSource )
-		{
-			final ArrayList< SourceGroup > currentGroups = new ArrayList<>( state.getGroups() );
-
-			final ArrayList< String > toRemove = new ArrayList<>();
-			for ( final Entry<String, SourceGroup > entry : geneToBDVSource.entrySet() )
-				if ( !currentGroups.contains( entry.getValue() ) )
-					toRemove.add( entry.getKey() );
-
-			toRemove.forEach( s -> geneToBDVSource.remove( s ) );
 		}
 
 		protected Model<?> getModelFor( final int modelIndex, final int regIndex, final double lambda )
@@ -756,45 +705,132 @@ public class InteractiveAlignment implements Callable<Void> {
 	public class STIMCard
 	{
 		private final JPanel panel;
-		private boolean listenersActive = false;
-		private double currentSigma;
-		final List< GaussianFilterFactory< DoubleType, DoubleType > > gaussFactories;
+		private final HashMap< String, Pair< AddedGene, AddedGene > > sourceData;
+		private final HashMap< String, SourceGroup > geneToBDVSource;
+		private double currentSigma, currentBrightnessMin, currentBrightnessMax;
 
 		public STIMCard(
-				final List< GaussianFilterFactory< DoubleType, DoubleType > > gaussFactories,
+				final HashMap< String, Pair< AddedGene, AddedGene > > sourceData,
+				final HashMap< String, SourceGroup > geneToBDVSource,
 				final double medianDistance,
+				final double initialSigma,
+				final double initialBrightnessMin,
+				final double initialBrightnessMax,
 				final BdvHandle bdvhandle )
 		{
-			System.out.println( "Setting up panel ... " );
+			this.sourceData = sourceData;
+			this.geneToBDVSource = geneToBDVSource;
+			this.currentBrightnessMin = initialBrightnessMin;
+			this.currentBrightnessMax = initialBrightnessMax;
+			this.currentSigma = initialSigma;
 
-			this.gaussFactories = gaussFactories;
 			this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 0, fill", "[right][grow]", "center"));
 
-			currentSigma = gaussFactories.get( 0 ).getSigma()/medianDistance;
-			final BoundedValuePanel sigmaSlider = new BoundedValuePanel(new BoundedValue(0, Math.max( 2.50, currentSigma * 1.5 ), currentSigma ));
+			// sigma slider
+			final BoundedValuePanel sigmaSlider = new BoundedValuePanel(new BoundedValue(0, Math.round( Math.ceil( Math.max( 2.5, currentSigma * 1.5 ) ) ), currentSigma ));
 			sigmaSlider.setBorder(null);
 			final JLabel sigmaLabel = new JLabel("sigma (-sf)");
 			panel.add(sigmaLabel, "aligny baseline");
 			panel.add(sigmaSlider, "growx, wrap");
-			//panel.add
-			//final MinSigmaEditor minSigmaEditor = new MinSigmaEditor(minSigmaLabel, minSigmaSlider, editor.getModel());
 
-			System.out.println( "Adding Listeners ... " );
+			// brightness slider
+			final BoundedValuePanel brightnessSliderMin = new BoundedValuePanel(new BoundedValue(0, 1, currentBrightnessMin ));
+			final JLabel brightnessLabelMin = new JLabel("brightness (-bmin)");
+			final Font font = brightnessLabelMin.getFont().deriveFont( 10f );
+			brightnessLabelMin.setFont( font );
+			brightnessLabelMin.setBorder( null );
+			brightnessSliderMin.setBorder(null);
+			panel.add(brightnessLabelMin, "aligny baseline");
+			panel.add(brightnessSliderMin, "growx, wrap");
 
+			final BoundedValuePanel brightnessSliderMax = new BoundedValuePanel(new BoundedValue(0, 1, currentBrightnessMax ));
+			final JLabel brightnessLabelMax = new JLabel("brightness (-bmax)");
+			brightnessLabelMax.setFont( font );
+			brightnessLabelMax.setBorder( null );
+			brightnessSliderMin.setBorder(null);
+			brightnessSliderMax.setBorder(null);
+			panel.add(brightnessLabelMax, "aligny baseline");
+			panel.add(brightnessSliderMax, "growx, wrap");
+
+			// sigma listener
 			sigmaSlider.changeListeners().add( () ->
 			{
-				if ( this.listenersActive )
-				{
-					for ( final GaussianFilterFactory< DoubleType, DoubleType > gaussFactory : gaussFactories )
-						if ( gaussFactory != null ) // could vanish when genes are removed
-							gaussFactory.setSigma( ( currentSigma = sigmaSlider.getValue().getValue() ) * medianDistance );
+				final double oldSigma = currentSigma;
+				currentSigma = sigmaSlider.getValue().getValue();
 
+				if ( oldSigma != currentSigma )
+				{
+					final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
+					AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
+	
+					final double actualSigma = currentSigma * medianDistance;
+					sourceData.values().forEach( p -> {
+						p.getA().factory.setSigma( actualSigma );
+						p.getB().factory.setSigma( actualSigma );
+					} );
+	
 					bdvhandle.getViewerPanel().requestRepaint();
 				}
 			} );
 
-			System.out.println( "Adding Popups ... " );
+			// brightness listener
+			brightnessSliderMin.changeListeners().add( () -> {
 
+				final double oldBrightness = currentBrightnessMin;
+				currentBrightnessMin = brightnessSliderMin.getValue().getValue();
+
+				if ( currentBrightnessMin > currentBrightnessMax )
+				{
+					currentBrightnessMin = currentBrightnessMax;
+					brightnessSliderMin.setValue( new BoundedValue(brightnessSliderMin.getValue().getMinBound(), brightnessSliderMin.getValue().getMaxBound(), currentBrightnessMin) );
+				}
+
+				if ( oldBrightness != currentBrightnessMin )
+				{
+					sourceData.values().forEach( p -> {
+						final double displayMin = AddedGene.getDisplayMin( p.getA().min, p.getA().max, currentBrightnessMin );
+						final double displayMax = AddedGene.getDisplayMax( p.getA().max, currentBrightnessMax );
+	
+						p.getA().source.setDisplayRange(displayMin, displayMax);
+						p.getB().source.setDisplayRange(displayMin, displayMax);
+					} );
+	
+					final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
+					AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
+	
+					bdvhandle.getViewerPanel().requestRepaint();
+				}
+			} );
+
+			brightnessSliderMax.changeListeners().add( () -> {
+
+				final double oldBrightness = currentBrightnessMax;
+				currentBrightnessMax = brightnessSliderMax.getValue().getValue();
+
+				if ( currentBrightnessMax < currentBrightnessMin )
+				{
+					currentBrightnessMax = currentBrightnessMin;
+					brightnessSliderMax.setValue( new BoundedValue(brightnessSliderMax.getValue().getMinBound(), brightnessSliderMax.getValue().getMaxBound(), currentBrightnessMax) );
+				}
+
+				if ( oldBrightness != currentBrightnessMax )
+				{
+					sourceData.values().forEach( p -> {
+						final double displayMin = AddedGene.getDisplayMin( p.getA().min, p.getA().max, currentBrightnessMin );
+						final double displayMax = AddedGene.getDisplayMax( p.getA().max, currentBrightnessMax );
+	
+						p.getA().source.setDisplayRange(displayMin, displayMax);
+						p.getB().source.setDisplayRange(displayMin, displayMax);
+					} );
+	
+					final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
+					AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
+	
+					bdvhandle.getViewerPanel().requestRepaint();
+				}
+			} );
+
+			// popups
 			final JPopupMenu menu = new JPopupMenu();
 			menu.add(runnableItem("set bounds ...", sigmaSlider::setBoundsDialog));
 			sigmaSlider.setPopup(() -> menu);
@@ -802,10 +838,11 @@ public class InteractiveAlignment implements Callable<Void> {
 			System.out.println( "Done ... " );
 		}
 
-		public List< GaussianFilterFactory< DoubleType, DoubleType > > gaussFactories() { return gaussFactories; }
-
+		public HashMap< String, Pair< AddedGene, AddedGene > > sourceData() { return sourceData; }
+		public HashMap< String, SourceGroup > geneToBDVSource() { return geneToBDVSource; }
+		public double currentBrightnessMin() { return currentBrightnessMin; }
+		public double currentBrightnessMax() { return currentBrightnessMax; }
 		public double currentSigma() { return currentSigma; }
-		public void toggleActiveListeners() { this.listenersActive = !this.listenersActive; }
 		public JPanel getPanel() { return panel; }
 
 		private JMenuItem runnableItem(final String text, final Runnable action) {
@@ -815,7 +852,110 @@ public class InteractiveAlignment implements Callable<Void> {
 		}
 	}
 
-	
+	protected static class AddedGene
+	{
+		final GaussianFilterFactory< DoubleType, DoubleType > factory;
+		final BdvStackSource<?> source;
+		final double min, max;
+
+		public AddedGene(
+				final GaussianFilterFactory< DoubleType, DoubleType > factory,
+				final BdvStackSource<?> source,
+				final double min,
+				final double max )
+		{
+			this.factory = factory;
+			this.source = source;
+			this.min = min;
+			this.max = max;
+		}
+
+		public static synchronized void updateRemainingSources(
+				final SynchronizedViewerState state,
+				final Map< String, SourceGroup > geneToBDVSource,
+				final Map< String, Pair< AddedGene, AddedGene > > sourceData )
+		{
+			final ArrayList< SourceGroup > currentGroups = new ArrayList<>( state.getGroups() );
+
+			final ArrayList< String > toRemove = new ArrayList<>();
+			for ( final Entry<String, SourceGroup > entry : geneToBDVSource.entrySet() )
+				if ( !currentGroups.contains( entry.getValue() ) )
+					toRemove.add( entry.getKey() );
+
+			toRemove.forEach( s -> {
+				geneToBDVSource.remove( s );
+				sourceData.remove( s );
+				} );
+		}
+
+		public static double getDisplayMin( final double min, final double max, final double bMin ) { return min + max * bMin; }
+		public static double getDisplayMax( final double max, final double bMax ) { return max * bMax; }
+
+		public static AddedGene addGene(
+				final Bdv bdv,
+				final STDataAssembly data,
+				final String gene,
+				final double smoothnessFactor,
+				final ARGBType color,
+				final double relativeInitialBrightnessMin,
+				final double relativeInitialBrightnessMax )
+		{
+			double min = Double.MAX_VALUE;
+			double max = -Double.MAX_VALUE;
+
+			for ( final DoubleType t : data.data().getExprData(gene) )
+			{
+				min = Math.min( min, t.get() );
+				max = Math.max( max, t.get() );
+			}
+
+			final double minDisplay = getDisplayMin( min, max, relativeInitialBrightnessMin );
+			final double maxDisplay = getDisplayMax( max, relativeInitialBrightnessMax );
+
+			System.out.println( "min/max: " + min + "/" + max );
+			System.out.println( "min/max display range: " + minDisplay + "/" + maxDisplay );
+
+			final List< FilterFactory< DoubleType, DoubleType > > filterFactorys = new ArrayList<>();
+			//filterFactorys.add( new MedianFilterFactory<DoubleType>( new DoubleType(), 3 * medianDistance ) );
+
+			final Pair< RealRandomAccessible< DoubleType >, GaussianFilterFactory< DoubleType, DoubleType > > rendered = 
+					Render.getRealRandomAccessible2( data, gene, smoothnessFactor, filterFactorys );
+
+			final RealRandomAccessible< DoubleType > rra = rendered.getA();
+			final GaussianFilterFactory< DoubleType, DoubleType > factory = rendered.getB();
+
+			final Interval interval =
+						STDataUtils.getIterableInterval(
+								new TransformedIterableRealInterval<>(
+										data.data(),
+										data.transform() ) );
+
+			BdvOptions options = BdvOptions.options().numRenderingThreads(Math.max(2,Runtime.getRuntime().availableProcessors() / 2))
+					.addTo(bdv).is2D().preferredSize(1000, 800);
+
+			BdvStackSource< ? > source = BdvFunctions.show( rra, interval, gene, options );
+
+			source.setDisplayRangeBounds( 0, max );
+			source.setDisplayRange( minDisplay, maxDisplay );
+			source.setColor( color );
+			//source.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
+			source.setCurrent();
+
+			/*
+			final AffineTransform3D mipmapTransform = getMipmapTransforms()[ level ];
+			currentSourceTransforms[ level ].set( reg );
+			currentSourceTransforms[ level ].concatenate( mipmapTransform );
+			 */
+
+			final AffineTransform3D t = new AffineTransform3D();
+			source.getBdvHandle().getViewerPanel().state().getViewerTransform( t );
+			t.set( 0, 2, 3 );
+			source.getBdvHandle().getViewerPanel().state().setViewerTransform( t );
+
+			return new AddedGene( factory, source, min, max );
+		}
+	}
+
 	public static void main(final String... args) {
 		CommandLine.call(new InteractiveAlignment(), args);
 	}
