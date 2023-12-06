@@ -21,6 +21,7 @@ import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
 import render.Render;
+import render.NearestNeighborMaxDistanceSearchOnKDTree.NNParams;
 import transform.TransformCoordinates;
 import transform.TransformIntensities;
 
@@ -67,15 +68,15 @@ public class VolumetricRendering
 
 		//ImageJFunctions.show( Views.interval( Views.raster( Render.renderNN( data, outofbounds, gaussRenderRadius ) ), stdata.renderInterval ) );
 
-		final BvvSource source0 = BvvFunctions.show( Views.interval( Views.raster( Render.renderNN( ftz, outofbounds, gaussRenderRadius ) ), stdata.getRenderInterval() ), "ftz" );
+		final BvvSource source0 = BvvFunctions.show( Views.interval( Views.raster( Render.renderNN( ftz, outofbounds, new NNParams( gaussRenderRadius ) ) ), stdata.getRenderInterval() ), "ftz" );
 		source0.setDisplayRange( 0, 65535 );
 		source0.setColor( new ARGBType( 0xff00ff00 ) );
 
-		BvvSource source1 = BvvFunctions.show( Views.interval( Views.raster( Render.renderNN( eve, outofbounds, gaussRenderRadius ) ), stdata.getRenderInterval() ), "eve", Bvv.options().addTo( source0 ) );
+		BvvSource source1 = BvvFunctions.show( Views.interval( Views.raster( Render.renderNN( eve, outofbounds, new NNParams( gaussRenderRadius ) ) ), stdata.getRenderInterval() ), "eve", Bvv.options().addTo( source0 ) );
 		source1.setDisplayRange( 0, 25535 );
 		source1.setColor( new ARGBType( 0xffff0000 ) );
 
-		BvvSource source2 = BvvFunctions.show( Views.interval( Views.raster( Render.renderNN( rrp4, outofbounds, gaussRenderRadius ) ), stdata.getRenderInterval() ), "eve", Bvv.options().addTo( source0 ) );
+		BvvSource source2 = BvvFunctions.show( Views.interval( Views.raster( Render.renderNN( rrp4, outofbounds, new NNParams( gaussRenderRadius ) ) ), stdata.getRenderInterval() ), "eve", Bvv.options().addTo( source0 ) );
 		source2.setDisplayRange( 0, 25535 );
 		source2.setColor( new ARGBType( 0xff0000ff ) );
 

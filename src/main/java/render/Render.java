@@ -39,6 +39,7 @@ import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
+import render.NearestNeighborMaxDistanceSearchOnKDTree.NNParams;
 
 public class Render
 {
@@ -255,7 +256,7 @@ public class Render
 				new InverseDistanceWeightingInterpolatorFactory< T >( p ) );
 	}
 
-	public static < T extends RealType< T > > RealRandomAccessible< T > renderNN( final IterableRealInterval< T > data, final T outofbounds, final double maxRadius )
+	public static < T extends RealType< T > > RealRandomAccessible< T > renderNN( final IterableRealInterval< T > data, final T outofbounds, final NNParams maxRadius )
 	{
 		return Views.interpolate(
 				new NearestNeighborMaxDistanceSearchOnKDTree< T >(

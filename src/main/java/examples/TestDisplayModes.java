@@ -17,6 +17,7 @@ import io.SpatialDataContainer;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.type.numeric.real.DoubleType;
+import render.NearestNeighborMaxDistanceSearchOnKDTree.NNParams;
 import render.Render;
 
 public class TestDisplayModes
@@ -48,7 +49,7 @@ public class TestDisplayModes
 				Render.renderNN( data );
 
 		final RealRandomAccessible< DoubleType > renderNNT =
-				Render.renderNN(data, outofbounds, stStats.getMedianDistance() );
+				Render.renderNN(data, outofbounds, new NNParams( stStats.getMedianDistance() ) );
 
 		final RealRandomAccessible< DoubleType > renderLinear =
 				Render.renderLinear(data, 20, 2.0 );

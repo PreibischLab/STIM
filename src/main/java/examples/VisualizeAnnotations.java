@@ -30,6 +30,7 @@ import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import render.Render;
+import render.NearestNeighborMaxDistanceSearchOnKDTree.NNParams;
 
 public class VisualizeAnnotations
 {
@@ -66,7 +67,7 @@ public class VisualizeAnnotations
 		final StackedIterableRealInterval< IntType > stack = new StackedIterableRealInterval<>( slices, spacing );
 
 		return new ValuePair<>(
-				Render.renderNN( stack, outofbounds, spotSize ),
+				Render.renderNN( stack, outofbounds, new NNParams( spotSize ) ),
 				interval );
 	}
 
@@ -117,7 +118,7 @@ public class VisualizeAnnotations
 	{
 		final IterableRealInterval< IntType > data = Render.getRealIterable(stdata, annotation, transform, filterFactorys, lut);
 
-		return Render.renderNN( data, outofbounds, spotSize );
+		return Render.renderNN( data, outofbounds, new NNParams( spotSize ) );
 	}
 
 	public static void main( String[] args ) throws IOException
