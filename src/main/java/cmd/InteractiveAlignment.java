@@ -44,6 +44,7 @@ import bdv.viewer.DisplayMode;
 import bdv.viewer.SourceAndConverter;
 import bdv.viewer.SourceGroup;
 import bdv.viewer.SynchronizedViewerState;
+import cmd.InteractiveAlignment.AddedGene.Rendering;
 import data.STDataUtils;
 import filter.FilterFactory;
 import filter.GaussianFilterFactory;
@@ -63,6 +64,7 @@ import mpicbg.models.RigidModel2D;
 import mpicbg.models.SimilarityModel2D;
 import mpicbg.models.TranslationModel2D;
 import net.imglib2.Interval;
+import net.imglib2.IterableRealInterval;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform2D;
@@ -75,6 +77,7 @@ import net.miginfocom.swing.MigLayout;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import render.Render;
+import render.NearestNeighborMaxDistanceSearchOnKDTree.NNParams;
 import util.BDVUtils;
 import util.BoundedValue;
 import util.BoundedValuePanel;
@@ -215,6 +218,7 @@ public class InteractiveAlignment implements Callable<Void> {
 			System.out.println( "Rendering gene (each available as its own source): " + gene );
 
 			final AddedGene addedGene1 = AddedGene.addGene(
+					Rendering.GAUSS,
 					lastSource,
 					data1,
 					gene,
@@ -224,6 +228,7 @@ public class InteractiveAlignment implements Callable<Void> {
 					brightnessMax );
 
 			final AddedGene addedGene2 = AddedGene.addGene(
+					Rendering.GAUSS,
 					addedGene1.source,
 					data2,
 					gene,
@@ -581,8 +586,8 @@ public class InteractiveAlignment implements Callable<Void> {
 								{
 									System.out.println( "Gene " + gene + " will be added." );
 
-									final AddedGene gene1 = AddedGene.addGene( bdvhandle, data1, gene, stimcard.currentSigma(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
-									final AddedGene gene2 = AddedGene.addGene( bdvhandle, data2, gene, stimcard.currentSigma(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
+									final AddedGene gene1 = AddedGene.addGene( Rendering.GAUSS, bdvhandle, data1, gene, stimcard.currentSigma(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
+									final AddedGene gene2 = AddedGene.addGene( Rendering.GAUSS, bdvhandle, data2, gene, stimcard.currentSigma(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
 
 									sourceData.put( gene, new ValuePair<>( gene1, gene2 ) );
 									//stimcard.gaussFactories().add( gene1.factory );
@@ -765,36 +770,20 @@ public class InteractiveAlignment implements Callable<Void> {
 				{
 					System.out.println( "replacing sources for '" + gene + "'");
 
-					final Pair< AddedGene, AddedGene > currentSource = sourceData.get( gene );
 					final SourceGroup currentSourceGroup = geneToBDVSource.get( gene );
 					final ArrayList<SourceAndConverter<?>> currentSources = new ArrayList<>( state.getSourcesInGroup( currentSourceGroup ) );
 
 					// TODO: re-use KDtree!
-					AddedGene gene1 = AddedGene.addGene( bdvhandle, data1, gene, currentSigma*2, new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin, currentBrightnessMax/2 );
-					AddedGene gene2 = AddedGene.addGene( bdvhandle, data2, gene, currentSigma*2, new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin, currentBrightnessMax/2 );
+					AddedGene gene1 = AddedGene.addGene( Rendering.NN, bdvhandle, data1, gene, currentSigma, new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin, currentBrightnessMax );
+					AddedGene gene2 = AddedGene.addGene( Rendering.NN, bdvhandle, data2, gene, currentSigma, new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin, currentBrightnessMax );
 
 					state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), currentSourceGroup );
 					state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), currentSourceGroup );
 
 					for ( final SourceAndConverter<?> s : currentSources )
 						state.removeSourceFromGroup( s, currentSourceGroup );
-					//currentSources.forEach( s -> state.removeSourceFromGroup( s, currentSourceGroup ) );
 
-					//state.removeSourceFromGroup(null, currentSourceGroup)
-					/*
 					sourceData.put( gene, new ValuePair<>( gene1, gene2 ) );
-
-					final SourceGroup handle = new SourceGroup();
-					state.addGroup( handle );
-					state.setGroupName( handle, gene );
-					state.setGroupActive( handle, true );
-					state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), handle );
-					state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), handle );
-
-					geneToBDVSource.put( gene, handle );
-
-					bdvhandle.getViewerPanel().setDisplayMode( DisplayMode.GROUP );*/
-
 				}
 
 				bdvhandle.getViewerPanel().setDisplayMode( DisplayMode.GROUP );
@@ -812,9 +801,17 @@ public class InteractiveAlignment implements Callable<Void> {
 					AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
 	
 					final double actualSigma = currentSigma * medianDistance;
-					sourceData.values().forEach( p -> {
-						p.getA().factory.setSigma( actualSigma );
-						p.getB().factory.setSigma( actualSigma );
+					sourceData.values().forEach( p ->
+					{
+						if ( p.getA().factory != null )
+							p.getA().factory.setSigma( actualSigma );
+						else
+							p.getA().params.setMaxDistance( actualSigma );
+
+						if ( p.getB().factory != null )
+							p.getB().factory.setSigma( actualSigma );
+						else
+							p.getB().params.setMaxDistance( actualSigma );
 					} );
 	
 					bdvhandle.getViewerPanel().requestRepaint();
@@ -908,19 +905,24 @@ public class InteractiveAlignment implements Callable<Void> {
 		}
 	}
 
-	protected static class AddedGene
+	public static class AddedGene
 	{
+		public static enum Rendering { GAUSS, NN };
+
 		final GaussianFilterFactory< DoubleType, DoubleType > factory;
+		final NNParams params;
 		final BdvStackSource<?> source;
 		final double min, max;
 
 		public AddedGene(
 				final GaussianFilterFactory< DoubleType, DoubleType > factory,
+				final NNParams params,
 				final BdvStackSource<?> source,
 				final double min,
 				final double max )
 		{
 			this.factory = factory;
+			this.params = params;
 			this.source = source;
 			this.min = min;
 			this.max = max;
@@ -948,6 +950,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		public static double getDisplayMax( final double max, final double bMax ) { return max * bMax; }
 
 		public static AddedGene addGene(
+				final Rendering renderType,
 				final Bdv bdv,
 				final STDataAssembly data,
 				final String gene,
@@ -971,20 +974,35 @@ public class InteractiveAlignment implements Callable<Void> {
 			System.out.println( "min/max: " + min + "/" + max );
 			System.out.println( "min/max display range: " + minDisplay + "/" + maxDisplay );
 
-			final List< FilterFactory< DoubleType, DoubleType > > filterFactorys = new ArrayList<>();
+			//final List< FilterFactory< DoubleType, DoubleType > > filterFactorys = new ArrayList<>();
 			//filterFactorys.add( new MedianFilterFactory<DoubleType>( new DoubleType(), 3 * medianDistance ) );
 
-			final Pair< RealRandomAccessible< DoubleType >, GaussianFilterFactory< DoubleType, DoubleType > > rendered = 
-					Render.getRealRandomAccessible2( data, gene, smoothnessFactor, filterFactorys );
+			final RealRandomAccessible< DoubleType > rra;
+			final GaussianFilterFactory< DoubleType, DoubleType > gaussFactory;
+			final NNParams nnParams;
 
-			final RealRandomAccessible< DoubleType > rra = rendered.getA();
-			final GaussianFilterFactory< DoubleType, DoubleType > factory = rendered.getB();
+			if ( renderType == Rendering.GAUSS )
+			{
+				final Pair< RealRandomAccessible< DoubleType >, GaussianFilterFactory< DoubleType, DoubleType > > rendered = 
+						Render.getRealRandomAccessible2( data, gene, smoothnessFactor, null );
+	
+				rra = rendered.getA();
+				gaussFactory = rendered.getB();
+				nnParams = null;
+			}
+			else
+			{
+				final IterableRealInterval< DoubleType > iri = Render.getRealIterable( data, gene, null );
+				final double medianDistance = data.statistics().getMedianDistance();
+				rra = Render.renderNN( iri, new DoubleType( 0 ), nnParams = new NNParams( smoothnessFactor * medianDistance ) );
+				gaussFactory = null;
+			}
 
 			final Interval interval =
 						STDataUtils.getIterableInterval(
 								new TransformedIterableRealInterval<>(
 										data.data(),
-										data.transform() ) );
+										new AffineTransform2D()/*data.transform()*/ ) );
 
 			BdvOptions options = BdvOptions.options().numRenderingThreads(Math.max(2,Runtime.getRuntime().availableProcessors() / 2))
 					.addTo(bdv).is2D().preferredSize(1000, 800);
@@ -1008,7 +1026,7 @@ public class InteractiveAlignment implements Callable<Void> {
 			t.set( 0, 2, 3 );
 			source.getBdvHandle().getViewerPanel().state().setViewerTransform( t );
 
-			return new AddedGene( factory, source, min, max );
+			return new AddedGene( gaussFactory, nnParams, source, min, max );
 		}
 	}
 
