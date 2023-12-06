@@ -48,6 +48,9 @@ import cmd.InteractiveAlignment.AddedGene.Rendering;
 import data.STDataUtils;
 import filter.FilterFactory;
 import filter.GaussianFilterFactory;
+import filter.MeanFilterFactory;
+import filter.MedianFilterFactory;
+import filter.RadiusSearchFilterFactory;
 import gui.DisplayScaleOverlay;
 import gui.STDataAssembly;
 import gui.geneselection.GeneSelectionExplorer;
@@ -774,8 +777,8 @@ public class InteractiveAlignment implements Callable<Void> {
 					final ArrayList<SourceAndConverter<?>> currentSources = new ArrayList<>( state.getSourcesInGroup( currentSourceGroup ) );
 
 					// TODO: re-use KDtree!
-					AddedGene gene1 = AddedGene.addGene( Rendering.NN, bdvhandle, data1, gene, currentSigma, new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin, currentBrightnessMax );
-					AddedGene gene2 = AddedGene.addGene( Rendering.NN, bdvhandle, data2, gene, currentSigma, new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin, currentBrightnessMax );
+					AddedGene gene1 = AddedGene.addGene( Rendering.MEDIAN, bdvhandle, data1, gene, currentSigma, new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin, currentBrightnessMax );
+					AddedGene gene2 = AddedGene.addGene( Rendering.MEDIAN, bdvhandle, data2, gene, currentSigma, new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin, currentBrightnessMax );
 
 					state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), currentSourceGroup );
 					state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), currentSourceGroup );
@@ -803,13 +806,17 @@ public class InteractiveAlignment implements Callable<Void> {
 					final double actualSigma = currentSigma * medianDistance;
 					sourceData.values().forEach( p ->
 					{
-						if ( p.getA().factory != null )
-							p.getA().factory.setSigma( actualSigma );
+						if ( p.getA().gaussFactory != null )
+							p.getA().gaussFactory.setSigma( actualSigma );
+						else if ( p.getA().radiusFactory != null )
+							p.getA().radiusFactory.setRadius( actualSigma );
 						else
 							p.getA().params.setMaxDistance( actualSigma );
 
-						if ( p.getB().factory != null )
-							p.getB().factory.setSigma( actualSigma );
+						if ( p.getB().gaussFactory != null )
+							p.getB().gaussFactory.setSigma( actualSigma );
+						else if ( p.getB().radiusFactory != null )
+							p.getB().radiusFactory.setRadius( actualSigma );
 						else
 							p.getB().params.setMaxDistance( actualSigma );
 					} );
@@ -907,21 +914,24 @@ public class InteractiveAlignment implements Callable<Void> {
 
 	public static class AddedGene
 	{
-		public static enum Rendering { GAUSS, NN };
+		public static enum Rendering { GAUSS, NN, MEAN, MEDIAN };
 
-		final GaussianFilterFactory< DoubleType, DoubleType > factory;
+		final GaussianFilterFactory< DoubleType, DoubleType > gaussFactory;
+		final RadiusSearchFilterFactory< DoubleType, DoubleType > radiusFactory;
 		final NNParams params;
 		final BdvStackSource<?> source;
 		final double min, max;
 
 		public AddedGene(
-				final GaussianFilterFactory< DoubleType, DoubleType > factory,
+				final GaussianFilterFactory< DoubleType, DoubleType > gaussFactory,
+				final RadiusSearchFilterFactory< DoubleType, DoubleType > radiusFactory,
 				final NNParams params,
 				final BdvStackSource<?> source,
 				final double min,
 				final double max )
 		{
-			this.factory = factory;
+			this.gaussFactory = gaussFactory;
+			this.radiusFactory = radiusFactory;
 			this.params = params;
 			this.source = source;
 			this.min = min;
@@ -979,6 +989,7 @@ public class InteractiveAlignment implements Callable<Void> {
 
 			final RealRandomAccessible< DoubleType > rra;
 			final GaussianFilterFactory< DoubleType, DoubleType > gaussFactory;
+			final RadiusSearchFilterFactory< DoubleType, DoubleType > radiusFactory;
 			final NNParams nnParams;
 
 			if ( renderType == Rendering.GAUSS )
@@ -988,14 +999,45 @@ public class InteractiveAlignment implements Callable<Void> {
 	
 				rra = rendered.getA();
 				gaussFactory = rendered.getB();
+				radiusFactory = null;
 				nnParams = null;
 			}
-			else
+			else if ( renderType == Rendering.NN )
 			{
 				final IterableRealInterval< DoubleType > iri = Render.getRealIterable( data, gene, null );
 				final double medianDistance = data.statistics().getMedianDistance();
-				rra = Render.renderNN( iri, new DoubleType( 0 ), nnParams = new NNParams( smoothnessFactor * medianDistance ) );
+
+				nnParams = new NNParams( smoothnessFactor * medianDistance );
+				radiusFactory = null;
 				gaussFactory = null;
+				rra = Render.renderNN( iri, new DoubleType( 0 ), nnParams );
+			}
+			else if ( renderType == Rendering.MEAN )
+			{
+				final IterableRealInterval< DoubleType > iri = Render.getRealIterable( data, gene, null );
+				final double medianDistance = data.statistics().getMedianDistance();
+
+				radiusFactory = new MeanFilterFactory<>( new DoubleType( 0 ), smoothnessFactor * medianDistance );
+				nnParams = null;
+				gaussFactory = null;
+				rra = Render.render( iri, radiusFactory );
+			}
+			else if ( renderType == Rendering.MEDIAN )
+			{
+				final IterableRealInterval< DoubleType > iri = Render.getRealIterable( data, gene, null );
+				final double medianDistance = data.statistics().getMedianDistance();
+
+				radiusFactory = new MedianFilterFactory<>( new DoubleType( 0 ), smoothnessFactor * medianDistance );
+				nnParams = null;
+				gaussFactory = null;
+				rra = Render.render( iri, radiusFactory );
+			}
+			else
+			{
+				rra = null;
+				radiusFactory = null;
+				gaussFactory = null;
+				nnParams = null;
 			}
 
 			final Interval interval =
@@ -1026,7 +1068,7 @@ public class InteractiveAlignment implements Callable<Void> {
 			t.set( 0, 2, 3 );
 			source.getBdvHandle().getViewerPanel().state().setViewerTransform( t );
 
-			return new AddedGene( gaussFactory, nnParams, source, min, max );
+			return new AddedGene( gaussFactory, radiusFactory, nnParams, source, min, max );
 		}
 	}
 
