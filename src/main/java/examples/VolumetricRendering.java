@@ -1,7 +1,6 @@
 package examples;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -10,18 +9,17 @@ import bvv.util.BvvFunctions;
 import bvv.util.BvvSource;
 import data.STData;
 import data.STDataStatistics;
-import gui.STDataAssembly;
 import imglib2.DoubleUnsignedShortConverter;
-import io.SpatialDataContainer;
 import io.Path;
+import io.SpatialDataContainer;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.converter.Converters;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
+import render.MaxDistanceParam;
 import render.Render;
-import render.NearestNeighborMaxDistanceSearchOnKDTree.NNParams;
 import transform.TransformCoordinates;
 import transform.TransformIntensities;
 
@@ -68,15 +66,15 @@ public class VolumetricRendering
 
 		//ImageJFunctions.show( Views.interval( Views.raster( Render.renderNN( data, outofbounds, gaussRenderRadius ) ), stdata.renderInterval ) );
 
-		final BvvSource source0 = BvvFunctions.show( Views.interval( Views.raster( Render.renderNN( ftz, outofbounds, new NNParams( gaussRenderRadius ) ) ), stdata.getRenderInterval() ), "ftz" );
+		final BvvSource source0 = BvvFunctions.show( Views.interval( Views.raster( Render.renderNN( ftz, outofbounds, new MaxDistanceParam( gaussRenderRadius ) ) ), stdata.getRenderInterval() ), "ftz" );
 		source0.setDisplayRange( 0, 65535 );
 		source0.setColor( new ARGBType( 0xff00ff00 ) );
 
-		BvvSource source1 = BvvFunctions.show( Views.interval( Views.raster( Render.renderNN( eve, outofbounds, new NNParams( gaussRenderRadius ) ) ), stdata.getRenderInterval() ), "eve", Bvv.options().addTo( source0 ) );
+		BvvSource source1 = BvvFunctions.show( Views.interval( Views.raster( Render.renderNN( eve, outofbounds, new MaxDistanceParam( gaussRenderRadius ) ) ), stdata.getRenderInterval() ), "eve", Bvv.options().addTo( source0 ) );
 		source1.setDisplayRange( 0, 25535 );
 		source1.setColor( new ARGBType( 0xffff0000 ) );
 
-		BvvSource source2 = BvvFunctions.show( Views.interval( Views.raster( Render.renderNN( rrp4, outofbounds, new NNParams( gaussRenderRadius ) ) ), stdata.getRenderInterval() ), "eve", Bvv.options().addTo( source0 ) );
+		BvvSource source2 = BvvFunctions.show( Views.interval( Views.raster( Render.renderNN( rrp4, outofbounds, new MaxDistanceParam( gaussRenderRadius ) ) ), stdata.getRenderInterval() ), "eve", Bvv.options().addTo( source0 ) );
 		source2.setDisplayRange( 0, 25535 );
 		source2.setColor( new ARGBType( 0xff0000ff ) );
 

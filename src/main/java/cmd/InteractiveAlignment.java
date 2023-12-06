@@ -1,6 +1,5 @@
 package cmd;
 
-import java.awt.Font;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -10,62 +9,33 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JLabel;
-import javax.swing.JMenuItem;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.JProgressBar;
-import javax.swing.JTextField;
-import javax.swing.SwingConstants;
-
-import align.AlignTools;
 import align.Pairwise;
-import align.PairwiseSIFT;
-import align.PairwiseSIFT.SIFTParam;
-import align.PairwiseSIFT.SIFTParam.SIFTMatching;
-import align.SiftMatch;
-import bdv.tools.transformation.TransformedSource;
 import bdv.ui.splitpanel.SplitPanel;
 import bdv.util.Bdv;
 import bdv.util.BdvFunctions;
-import bdv.util.BdvHandle;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
-import bdv.viewer.SourceAndConverter;
 import bdv.viewer.SourceGroup;
 import bdv.viewer.SynchronizedViewerState;
 import cmd.InteractiveAlignment.AddedGene.Rendering;
 import data.STDataUtils;
-import filter.FilterFactory;
 import filter.GaussianFilterFactory;
+import filter.GaussianFilterFactory.WeightType;
 import filter.MeanFilterFactory;
-import filter.MedianFilterFactory;
 import filter.RadiusSearchFilterFactory;
 import gui.DisplayScaleOverlay;
 import gui.STDataAssembly;
-import gui.geneselection.GeneSelectionExplorer;
-import gui.overlay.SIFTOverlay;
+import gui.bdv.STIMAlignmentCard;
+import gui.bdv.STIMCard;
 import imglib2.TransformedIterableRealInterval;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
 import io.TextFileAccess;
-import mpicbg.models.Affine2D;
-import mpicbg.models.AffineModel2D;
-import mpicbg.models.InterpolatedAffineModel2D;
-import mpicbg.models.Model;
-import mpicbg.models.RigidModel2D;
-import mpicbg.models.SimilarityModel2D;
-import mpicbg.models.TranslationModel2D;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RealRandomAccessible;
@@ -76,15 +46,10 @@ import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
-import net.miginfocom.swing.MigLayout;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
+import render.MaxDistanceParam;
 import render.Render;
-import render.NearestNeighborMaxDistanceSearchOnKDTree.NNParams;
-import util.BDVUtils;
-import util.BoundedValue;
-import util.BoundedValuePanel;
-import util.BoundedValuePanel.ChangeListener;
 import util.Threads;
 
 // -i visium.n5 -d1 slice1.h5ad -d2 slice2.n5 -n 9 -sk 14
@@ -110,6 +75,9 @@ public class InteractiveAlignment implements Callable<Void> {
 
 	@Option(names = {"-sf", "--smoothnessFactor"}, required = false, description = "initial factor for the sigma of the gaussian used for rendering, corresponds to smoothness, can be changed interactively, e.g -sf 2.0 (default: 4.0)")
 	private double smoothnessFactor = 1.0;
+
+	@Option(names = {"--rendering"}, required = false, description = "inital rendering type (Gauss, Mean, NearestNeighbor, Linear), e.g --rendering Gauss (default: Gauss)")
+	private Rendering rendering = Rendering.Gauss;
 
 	@Option(names = {"-n", "--numGenes"}, required = false, description = "initial number of genes for alignment that have the highest entropy (default: 10)")
 	private int numGenes = 10;
@@ -221,7 +189,7 @@ public class InteractiveAlignment implements Callable<Void> {
 			System.out.println( "Rendering gene (each available as its own source): " + gene );
 
 			final AddedGene addedGene1 = AddedGene.addGene(
-					Rendering.GAUSS,
+					rendering,
 					lastSource,
 					data1,
 					gene,
@@ -231,7 +199,7 @@ public class InteractiveAlignment implements Callable<Void> {
 					brightnessMax );
 
 			final AddedGene addedGene2 = AddedGene.addGene(
-					Rendering.GAUSS,
+					rendering,
 					addedGene1.source,
 					data2,
 					gene,
@@ -301,13 +269,13 @@ public class InteractiveAlignment implements Callable<Void> {
 		lastSource.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_VIEWERMODES_CARD, false); // collapse display modes panel
 
 		// add STIMCard panel
-		final STIMCard card = new STIMCard( data1, data2, sourceData, geneToBDVSource, medianDistance, smoothnessFactor, brightnessMin, brightnessMax, lastSource.getBdvHandle());
+		final STIMCard card = new STIMCard( data1, data2, sourceData, geneToBDVSource, medianDistance, rendering, smoothnessFactor, brightnessMin, brightnessMax, lastSource.getBdvHandle());
 		lastSource.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
 
 		// add STIMAlignmentCard panel
 		final STIMAlignmentCard cardAlign =
 				new STIMAlignmentCard(
-						data1, data2, overlay, card, allGenes, sourceData, geneToBDVSource, medianDistance, medianDistance*1.5, 25, 10, numGenes, lastSource.getBdvHandle(), service );
+						data1, data2, dataset1, dataset2, overlay, card, allGenes, sourceData, geneToBDVSource, medianDistance, medianDistance*1.5, 25, 10, numGenes, lastSource.getBdvHandle(), service );
 		lastSource.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlign.getPanel(), true );
 
 		// Expands the split Panel (after waiting 2 secs for the BDV to calm down)
@@ -322,621 +290,38 @@ public class InteractiveAlignment implements Callable<Void> {
 		return null;
 	}
 
-	public class STIMAlignmentCard
-	{
-		private final JPanel panel;
-		private GeneSelectionExplorer gse = null;
-		private final SIFTOverlay siftoverlay;
-
-		final String optionsModel[] = { "Translation", "Rigid", "Similarity", "Affine" };
-		final String optionsModelReg[] = { "No Reg.", "Transl.", "Rigid", "Simil.", "Affine" };
-
-		public STIMAlignmentCard(
-				final STDataAssembly data1,
-				final STDataAssembly data2,
-				final DisplayScaleOverlay overlay,
-				final STIMCard stimcard,
-				final List< Pair< String, Double > > allGenes,
-				final HashMap< String, Pair< AddedGene, AddedGene > > sourceData,
-				final HashMap< String, SourceGroup > geneToBDVSource,
-				final double medianDistance,
-				final double errorInit,
-				final int minNumInliersInit,
-				final int minNumInliersGeneInit,
-				final int numGenesInit,
-				final BdvHandle bdvhandle,
-				final ExecutorService service )
-		{
-			this.siftoverlay = new SIFTOverlay( new ArrayList<>(), bdvhandle );
-			this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 5, fill", "[right][grow]", "center"));
-
-			final String options[] = { "Fast", "Normal", "Thorough", "Very thorough" }; // TODO: Advanced with window popping up
-			final JComboBox< String > box = new JComboBox< String > (options);
-			box.setBorder( null );
-			box.setSelectedIndex( 1 );
-			final JLabel boxLabel = new JLabel("SIFT Matching ");
-			panel.add( boxLabel, "aligny baseline" );
-			panel.add( box, "growx, wrap" );
-
-			final BoundedValuePanel maxErrorSlider = new BoundedValuePanel(new BoundedValue(0, Math.round( Math.ceil( medianDistance * 5 ) ), errorInit ));
-			maxErrorSlider.setBorder(null);
-			final JLabel maxErrorLabel = new JLabel("max. error (px)");
-			panel.add(maxErrorLabel, "aligny baseline");
-			panel.add(maxErrorSlider, "growx, wrap");
-
-			final BoundedValuePanel inliersSlider = new BoundedValuePanel(new BoundedValue(0, 50, minNumInliersInit ));
-			inliersSlider.setBorder(null);
-			final JLabel inliersLabel = new JLabel("min inliers (total)");
-			final Font font = inliersLabel.getFont().deriveFont( 10f );
-			inliersLabel.setFont( font );
-			inliersLabel.setBorder( null );
-			panel.add(inliersLabel, "aligny baseline");
-			panel.add(inliersSlider, "growx, wrap");
-
-			final BoundedValuePanel inliersPerGeneSlider = new BoundedValuePanel(new BoundedValue(0, 25, minNumInliersGeneInit ));
-			inliersPerGeneSlider.setBorder(null);
-			final JLabel inliersPerGeneLabel = new JLabel("min inliers (gene)");
-			inliersPerGeneLabel.setFont( font );
-			inliersPerGeneLabel.setBorder( null );
-			panel.add(inliersPerGeneLabel, "aligny baseline");
-			panel.add(inliersPerGeneSlider, "growx, wrap");
-
-			// Panel for RANSAC MODEL
-			final JComboBox< String > boxModelRANSAC1 = new JComboBox< String > (optionsModel);
-			boxModelRANSAC1.setSelectedIndex( 1 );
-			final JLabel boxModeRANSACLabel1 = new JLabel("RANSAC model ");
-			panel.add( boxModeRANSACLabel1, "aligny baseline, sy 2" );
-			panel.add( boxModelRANSAC1, "growx, wrap" );
-			final JPanel panRANSAC = new JPanel( new MigLayout("gap 0, ins 0 0 0 0, fill", "[right][grow]", "center") );
-			final JComboBox< String > boxModelRANSAC2 = new JComboBox< String > (optionsModelReg);
-			boxModelRANSAC2.setSelectedIndex( 0 );
-			panRANSAC.add( boxModelRANSAC2 );
-			final JLabel labelRANSACReg = new JLabel( "λ=" );
-			panRANSAC.add( labelRANSACReg, "alignx right" );
-			final JTextField tfRANSAC = new JTextField( "0.1" );
-			panRANSAC.add( tfRANSAC, "growx" );
-			panRANSAC.setBorder( BorderFactory.createEmptyBorder(0,0,5,0));
-			panel.add( panRANSAC, "growx, wrap" );
-
-			// Panel for FINAL MODEL
-			final JComboBox< String > boxModelFinal1 = new JComboBox< String > (optionsModel);
-			boxModelFinal1.setSelectedIndex( 1 );
-			final JLabel boxModeFinalLabel1 = new JLabel("Final model ");
-			panel.add( boxModeFinalLabel1, "aligny baseline, sy 2" );
-			panel.add( boxModelFinal1, "growx, wrap" );
-			final JPanel panFinal = new JPanel( new MigLayout("gap 0, ins 0 0 0 0, fill", "[right][grow]", "center") );
-			final JComboBox< String > boxModelFinal2 = new JComboBox< String > (optionsModelReg);
-			boxModelFinal2.setSelectedIndex( 0 );
-			panFinal.add( boxModelFinal2 );
-			final JLabel labelFinalReg = new JLabel( "λ=" );
-			panFinal.add( labelFinalReg, "alignx right" );
-			final JTextField tfFinal = new JTextField( "0.1" );
-			panFinal.add( tfFinal, "growx" );
-			panFinal.setBorder( BorderFactory.createEmptyBorder(0,0,5,0));
-			panel.add( panFinal, "growx, wrap" );
-
-			final JCheckBox overlayInliers = new JCheckBox( "Overlay SIFT features" );
-			panel.add(overlayInliers, "span,growx,pushy");
-			overlayInliers.setSelected( true );
-			overlayInliers.setEnabled( false );
-			overlayInliers.addChangeListener( e ->
-			{
-				if ( !overlayInliers.isSelected() )
-				{
-					bdvhandle.getViewerPanel().renderTransformListeners().remove( siftoverlay );
-					bdvhandle.getViewerPanel().getDisplay().overlays().remove( siftoverlay );
-				}
-				else
-				{
-					bdvhandle.getViewerPanel().renderTransformListeners().add( siftoverlay );
-					bdvhandle.getViewerPanel().getDisplay().overlays().add( siftoverlay );
-				}
-				bdvhandle.getViewerPanel().requestRepaint();
-			});
-
-			final JProgressBar bar = new JProgressBar(SwingConstants.HORIZONTAL, 0, 100);
-			bar.setValue( 0 );
-			bar.setStringPainted(false);
-			panel.add(bar, "span,growx,pushy");
-
-			final JButton add = new JButton("Add genes");
-			panel.add(add, "aligny baseline");
-			final JButton run = new JButton("Run SIFT");
-			panel.add(run, "growx, wrap");
-
-			//
-			// Run SIFT alignment
-			//
-			run.addActionListener( l ->
-			{
-				siftoverlay.setInliers( new ArrayList<>() );
-				bdvhandle.getViewerPanel().renderTransformListeners().remove( siftoverlay );
-				bdvhandle.getViewerPanel().getDisplay().overlays().remove( siftoverlay );
-				run.setEnabled( false );
-				add.setEnabled( false );
-				overlayInliers.setEnabled( false );
-				bar.setValue( 1 );
-
-				new Thread( () ->
-				{
-					final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
-					AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
-	
-					final int minInliers = (int)Math.round( inliersSlider.getValue().getValue() );
-					final int minInliersPerGene = (int)Math.round( inliersPerGeneSlider.getValue().getValue() );
-					final double maxError = maxErrorSlider.getValue().getValue();
-					final double scale = overlay.currentScale();
-					final double sigma = stimcard.currentSigma();
-					final double lambda1 = Double.parseDouble( tfRANSAC.getText().trim() );
-					final double lambda2 = Double.parseDouble( tfFinal.getText().trim() );
-					final SIFTParam p = new SIFTParam( SIFTMatching.values()[ box.getSelectedIndex() ] );
-
-					final Model model1 = getModelFor( boxModelRANSAC1.getSelectedIndex(), boxModelRANSAC2.getSelectedIndex(), lambda1 );
-					final Model model2 = getModelFor( boxModelFinal1.getSelectedIndex(), boxModelFinal2.getSelectedIndex(), lambda2 );
-
-					System.out.println( "Running SIFT align with the following parameters: ");
-					System.out.println( "maxError: " + maxError + ", minInliers (over all genes): " + minInliers + ", minInliers (per genes): " + minInliersPerGene );
-					System.out.println( "scale: " + scale + ", sigma: " + sigma );
-					System.out.println( "SIFT: " + SIFTMatching.values()[ box.getSelectedIndex() ] );
-					System.out.println( "RANSAC model: " + optionsModel[ boxModelRANSAC1.getSelectedIndex() ] + ", regularizer: " + optionsModelReg[ boxModelRANSAC2.getSelectedIndex() ] + ", lambda=" + lambda1 );
-					System.out.println( "FINAL model: " + optionsModel[ boxModelFinal1.getSelectedIndex() ] + ", regularizer: " + optionsModelReg[ boxModelFinal2.getSelectedIndex() ] + ", lambda=" + lambda2 );
-
-					System.out.println( model1.getClass().getSimpleName() );
-					System.out.println( model2.getClass().getSimpleName() );
-
-					final boolean visResult = false;
-					final double[] progressBarValue = new double[] { 1.0 };
-					
-					final SiftMatch match = PairwiseSIFT.pairwiseSIFT(
-							data1.data(), dataset1, data2.data(), dataset2,
-							(Affine2D & Model)model1, (Affine2D & Model)model1,
-							new ArrayList<>( geneToBDVSource.keySet() ),
-							p, scale, sigma, maxError,
-							minInliers, minInliersPerGene,
-							visResult, service, (v) -> {
-								synchronized ( this ) {
-									progressBarValue[ 0 ] += v;
-									bar.setValue( (int)Math.round( progressBarValue[ 0 ] ));
-								}
-							});
-	
-					System.out.println( match.getNumInliers() + "/" + match.getNumCandidates() );
-	
-					// TODO: print out cmd-line args
-	
-					// 
-					// apply transformations
-					//
-					if ( match.getInliers().size() > 0 )
-					{
-						try
-						{
-							//final RigidModel2D model = new RigidModel2D();
-							//final AffineModel2D model = new AffineModel2D();
-							model2.fit( match.getInliers() );
-							final AffineTransform2D m = AlignTools.modelToAffineTransform2D( (Affine2D)model2 ).inverse();
-							final AffineTransform3D m3d = new AffineTransform3D();
-							m3d.set(m.get(0, 0), 0, 0 ); // row, column
-							m3d.set(m.get(0, 1), 0, 1 ); // row, column
-							m3d.set(m.get(1, 0), 1, 0 ); // row, column
-							m3d.set(m.get(1, 1), 1, 1 ); // row, column
-							m3d.set(m.get(0, 2), 0, 3 ); // row, column
-							m3d.set(m.get(1, 2), 1, 3 ); // row, column
-	
-							System.out.println( "final model" + m );
-							//System.out.println( m3d );
-	
-							final List<TransformedSource<?>> tsources = BDVUtils.getTransformedSources(state);
-	
-							// every second source will be transformed
-							for ( int i = 1; i < tsources.size(); i = i + 2 )
-								tsources.get( i ).setFixedTransform( m3d );
-
-						} catch (Exception e)
-						{
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-
-						//
-						// Overlay detections
-						//
-						siftoverlay.setInliers( match.getInliers() );
-
-						// Very good to know!
-						//for ( final PointMatch pm : match.getInliers() )
-						//	System.out.println( ((PointST) pm.getP1()).getGene() );
-
-						overlayInliers.setSelected( true );
-						overlayInliers.setEnabled( true );
-					}
-					else
-					{
-						siftoverlay.setInliers( new ArrayList<>() );
-						overlayInliers.setEnabled( false );
-					}
-
-					bar.setValue( 100 );
-					add.setEnabled( true );
-					run.setEnabled( true );
-					bdvhandle.getViewerPanel().requestRepaint();
-				}).start();
-
-			});
-
-			//
-			// Add genes ...
-			//
-			add.addActionListener( l -> 
-			{
-				if ( gse == null || gse.frame().isVisible() == false )
-					gse = new GeneSelectionExplorer(
-						allGenes,
-						list ->
-						{
-							//
-							// first check if all groups are still present that are in the HashMap
-							//
-							final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
-							AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
-
-							//
-							// Now add the new ones (if it's not already there)
-							//
-							for ( final String gene : list )
-							{
-								if ( !geneToBDVSource.containsKey( gene ) )
-								{
-									System.out.println( "Gene " + gene + " will be added." );
-
-									final AddedGene gene1 = AddedGene.addGene( Rendering.GAUSS, bdvhandle, data1, gene, stimcard.currentSigma(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
-									final AddedGene gene2 = AddedGene.addGene( Rendering.GAUSS, bdvhandle, data2, gene, stimcard.currentSigma(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
-
-									sourceData.put( gene, new ValuePair<>( gene1, gene2 ) );
-									//stimcard.gaussFactories().add( gene1.factory );
-									//stimcard.gaussFactories().add( gene2.factory );
-
-									final SourceGroup handle = new SourceGroup();
-									state.addGroup( handle );
-									state.setGroupName( handle, gene );
-									state.setGroupActive( handle, true );
-									state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), handle );
-									state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), handle );
-
-									geneToBDVSource.put( gene, handle );
-
-									bdvhandle.getViewerPanel().setDisplayMode( DisplayMode.GROUP );
-								}
-								else
-								{
-									System.out.println( "Gene " + gene + " is already being displayed, ignoring." );
-									// TODO: remove gaussFactories? - maybe not necessary
-								}
-							}
-						} );
-			});
-
-
-			/*
-			final BoundedValuePanel sigmaSlider = new BoundedValuePanel(new BoundedValue(0, Math.max( 2.50, currentSigma * 1.5 ), currentSigma ));
-			sigmaSlider.setBorder(null);
-			final JLabel sigmaLabel = new JLabel("sigma (-sf)");
-			panel.add(sigmaLabel, "aligny baseline");
-			panel.add(sigmaSlider, "growx, wrap");
-			//panel.add
-			//final MinSigmaEditor minSigmaEditor = new MinSigmaEditor(minSigmaLabel, minSigmaSlider, editor.getModel());
-
-			sigmaSlider.changeListeners().add( () -> {
-				gaussFactory.setSigma( sigmaSlider.getValue().getValue() * medianDistance);
-				bdvhandle.getViewerPanel().requestRepaint();
-			} );
-
-			final JPopupMenu menu = new JPopupMenu();
-			menu.add(runnableItem("set bounds ...", sigmaSlider::setBoundsDialog));
-			sigmaSlider.setPopup(() -> menu);*/
-		}
-
-		protected Model<?> getModelFor( final int modelIndex, final int regIndex, final double lambda )
-		{
-			if ( regIndex == 0 )
-			{
-				if ( modelIndex == 0 )
-					return new TranslationModel2D();
-				else if ( modelIndex == 1 )
-					return new RigidModel2D();
-				else if ( modelIndex == 2 )
-					return new SimilarityModel2D();
-				else if ( modelIndex == 3 )
-					return new AffineModel2D();
-				else
-					throw new RuntimeException( "Unknown model index: "+ modelIndex );
-			}
-			else if ( regIndex == 1 )
-			{
-				if ( modelIndex == 0 )
-					return new TranslationModel2D();
-				else if ( modelIndex == 1 )
-					return new InterpolatedAffineModel2D<TranslationModel2D, RigidModel2D>( new TranslationModel2D(), new RigidModel2D(), lambda );
-				else if ( modelIndex == 2 )
-					return new InterpolatedAffineModel2D<TranslationModel2D, SimilarityModel2D>( new TranslationModel2D(), new SimilarityModel2D(), lambda );
-				else if ( modelIndex == 3 )
-					return new InterpolatedAffineModel2D<TranslationModel2D, AffineModel2D>( new TranslationModel2D(), new AffineModel2D(), lambda );
-				else
-					throw new RuntimeException( "Unknown model index: "+ modelIndex );
-			}
-			else if ( regIndex == 2 )
-			{
-				if ( modelIndex == 0 )
-					return new InterpolatedAffineModel2D<RigidModel2D, TranslationModel2D>( new RigidModel2D(), new TranslationModel2D(), lambda );
-				else if ( modelIndex == 1 )
-					return new RigidModel2D();
-				else if ( modelIndex == 2 )
-					return new InterpolatedAffineModel2D<RigidModel2D, SimilarityModel2D>( new RigidModel2D(), new SimilarityModel2D(), lambda );
-				else if ( modelIndex == 3 )
-					return new InterpolatedAffineModel2D<RigidModel2D, AffineModel2D>( new RigidModel2D(), new AffineModel2D(), lambda );
-				else
-					throw new RuntimeException( "Unknown model index: "+ modelIndex );
-			}
-			else if ( regIndex == 3 )
-			{
-				if ( modelIndex == 0 )
-					return new InterpolatedAffineModel2D<SimilarityModel2D, TranslationModel2D>( new SimilarityModel2D(), new TranslationModel2D(), lambda );
-				else if ( modelIndex == 1 )
-					return new InterpolatedAffineModel2D<SimilarityModel2D, RigidModel2D>( new SimilarityModel2D(), new RigidModel2D(), lambda );
-				else if ( modelIndex == 2 )
-					return new SimilarityModel2D();
-				else if ( modelIndex == 3 )
-					return new InterpolatedAffineModel2D<SimilarityModel2D, AffineModel2D>( new SimilarityModel2D(), new AffineModel2D(), lambda );
-				else
-					throw new RuntimeException( "Unknown model index: "+ modelIndex );
-			}
-			else if ( regIndex == 4 )
-			{
-				if ( modelIndex == 0 )
-					return new InterpolatedAffineModel2D<AffineModel2D, TranslationModel2D>( new AffineModel2D(), new TranslationModel2D(), lambda );
-				else if ( modelIndex == 1 )
-					return new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>( new AffineModel2D(), new RigidModel2D(), lambda );
-				else if ( modelIndex == 2 )
-					return new InterpolatedAffineModel2D<AffineModel2D, SimilarityModel2D>( new AffineModel2D(), new SimilarityModel2D(), lambda );
-				else if ( modelIndex == 3 )
-					return new AffineModel2D();
-				else
-					throw new RuntimeException( "Unknown model index: "+ modelIndex );
-			}
-			else
-				throw new RuntimeException( "Unknown regularizer model index: "+ modelIndex );
-		}
-
-		public JPanel getPanel() { return panel; }
-	}
-
-	public class STIMCard
-	{
-		private final JPanel panel;
-		private final HashMap< String, Pair< AddedGene, AddedGene > > sourceData;
-		private final HashMap< String, SourceGroup > geneToBDVSource;
-		private double currentSigma, currentBrightnessMin, currentBrightnessMax;
-
-		public STIMCard(
-				final STDataAssembly data1,
-				final STDataAssembly data2,
-				final HashMap< String, Pair< AddedGene, AddedGene > > sourceData,
-				final HashMap< String, SourceGroup > geneToBDVSource,
-				final double medianDistance,
-				final double initialSigma,
-				final double initialBrightnessMin,
-				final double initialBrightnessMax,
-				final BdvHandle bdvhandle )
-		{
-			this.sourceData = sourceData;
-			this.geneToBDVSource = geneToBDVSource;
-			this.currentBrightnessMin = initialBrightnessMin;
-			this.currentBrightnessMax = initialBrightnessMax;
-			this.currentSigma = initialSigma;
-
-			this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 0, fill", "[right][grow]", "center"));
-
-			// sigma slider
-			final BoundedValuePanel sigmaSlider = new BoundedValuePanel(new BoundedValue(0, Math.round( Math.ceil( Math.max( 2.5, currentSigma * 1.5 ) ) ), currentSigma ));
-			sigmaSlider.setBorder(null);
-			final JLabel sigmaLabel = new JLabel("sigma (-sf)");
-			panel.add(sigmaLabel, "aligny baseline");
-			panel.add(sigmaSlider, "growx, wrap");
-
-			// brightness slider
-			final BoundedValuePanel brightnessSliderMin = new BoundedValuePanel(new BoundedValue(0, 1, currentBrightnessMin ));
-			final JLabel brightnessLabelMin = new JLabel("brightness (-bmin)");
-			final Font font = brightnessLabelMin.getFont().deriveFont( 10f );
-			brightnessLabelMin.setFont( font );
-			brightnessLabelMin.setBorder( null );
-			brightnessSliderMin.setBorder(null);
-			panel.add(brightnessLabelMin, "aligny baseline");
-			panel.add(brightnessSliderMin, "growx, wrap");
-
-			final BoundedValuePanel brightnessSliderMax = new BoundedValuePanel(new BoundedValue(0, 1, currentBrightnessMax ));
-			final JLabel brightnessLabelMax = new JLabel("brightness (-bmax)");
-			brightnessLabelMax.setFont( font );
-			brightnessLabelMax.setBorder( null );
-			brightnessSliderMin.setBorder(null);
-			brightnessSliderMax.setBorder(null);
-			panel.add(brightnessLabelMax, "aligny baseline");
-			panel.add(brightnessSliderMax, "growx, wrap");
-
-			final JButton testButton = new JButton( "Show as NN" );
-			panel.add(testButton, "span,growx,pushy");
-			testButton.addActionListener( (e) -> {
-
-				final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
-				AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
-
-				for ( final String gene : geneToBDVSource.keySet() )
-				{
-					System.out.println( "replacing sources for '" + gene + "'");
-
-					final SourceGroup currentSourceGroup = geneToBDVSource.get( gene );
-					final ArrayList<SourceAndConverter<?>> currentSources = new ArrayList<>( state.getSourcesInGroup( currentSourceGroup ) );
-
-					// TODO: re-use KDtree!
-					AddedGene gene1 = AddedGene.addGene( Rendering.MEDIAN, bdvhandle, data1, gene, currentSigma, new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin, currentBrightnessMax );
-					AddedGene gene2 = AddedGene.addGene( Rendering.MEDIAN, bdvhandle, data2, gene, currentSigma, new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin, currentBrightnessMax );
-
-					state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), currentSourceGroup );
-					state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), currentSourceGroup );
-
-					for ( final SourceAndConverter<?> s : currentSources )
-						state.removeSourceFromGroup( s, currentSourceGroup );
-
-					sourceData.put( gene, new ValuePair<>( gene1, gene2 ) );
-				}
-
-				bdvhandle.getViewerPanel().setDisplayMode( DisplayMode.GROUP );
-			} );
-
-			// sigma listener
-			sigmaSlider.changeListeners().add( () ->
-			{
-				final double oldSigma = currentSigma;
-				currentSigma = sigmaSlider.getValue().getValue();
-
-				if ( oldSigma != currentSigma )
-				{
-					final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
-					AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
-	
-					final double actualSigma = currentSigma * medianDistance;
-					sourceData.values().forEach( p ->
-					{
-						if ( p.getA().gaussFactory != null )
-							p.getA().gaussFactory.setSigma( actualSigma );
-						else if ( p.getA().radiusFactory != null )
-							p.getA().radiusFactory.setRadius( actualSigma );
-						else
-							p.getA().params.setMaxDistance( actualSigma );
-
-						if ( p.getB().gaussFactory != null )
-							p.getB().gaussFactory.setSigma( actualSigma );
-						else if ( p.getB().radiusFactory != null )
-							p.getB().radiusFactory.setRadius( actualSigma );
-						else
-							p.getB().params.setMaxDistance( actualSigma );
-					} );
-	
-					bdvhandle.getViewerPanel().requestRepaint();
-				}
-			} );
-
-			// brightness listener
-			brightnessSliderMin.changeListeners().add( () -> {
-
-				final double oldBrightness = currentBrightnessMin;
-				currentBrightnessMin = brightnessSliderMin.getValue().getValue();
-
-				if ( currentBrightnessMin > currentBrightnessMax )
-				{
-					currentBrightnessMin = currentBrightnessMax;
-					brightnessSliderMin.setValue( new BoundedValue(brightnessSliderMin.getValue().getMinBound(), brightnessSliderMin.getValue().getMaxBound(), currentBrightnessMin) );
-				}
-
-				if ( oldBrightness != currentBrightnessMin )
-				{
-					sourceData.values().forEach( p -> {
-						final double displayMin = AddedGene.getDisplayMin( p.getA().min, p.getA().max, currentBrightnessMin );
-						final double displayMax = AddedGene.getDisplayMax( p.getA().max, currentBrightnessMax );
-	
-						p.getA().source.setDisplayRange(displayMin, displayMax);
-						p.getB().source.setDisplayRange(displayMin, displayMax);
-					} );
-	
-					final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
-					AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
-	
-					bdvhandle.getViewerPanel().requestRepaint();
-				}
-			} );
-
-			brightnessSliderMax.changeListeners().add( () -> {
-
-				final double oldBrightness = currentBrightnessMax;
-				currentBrightnessMax = brightnessSliderMax.getValue().getValue();
-
-				if ( currentBrightnessMax < currentBrightnessMin )
-				{
-					currentBrightnessMax = currentBrightnessMin;
-					brightnessSliderMax.setValue( new BoundedValue(brightnessSliderMax.getValue().getMinBound(), brightnessSliderMax.getValue().getMaxBound(), currentBrightnessMax) );
-				}
-
-				if ( oldBrightness != currentBrightnessMax )
-				{
-					sourceData.values().forEach( p -> {
-						final double displayMin = AddedGene.getDisplayMin( p.getA().min, p.getA().max, currentBrightnessMin );
-						final double displayMax = AddedGene.getDisplayMax( p.getA().max, currentBrightnessMax );
-	
-						p.getA().source.setDisplayRange(displayMin, displayMax);
-						p.getB().source.setDisplayRange(displayMin, displayMax);
-					} );
-	
-					final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
-					AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
-	
-					bdvhandle.getViewerPanel().requestRepaint();
-				}
-			} );
-
-			// popups
-			final JPopupMenu menu1 = new JPopupMenu();
-			menu1.add(runnableItem("set bounds ...", sigmaSlider::setBoundsDialog));
-			sigmaSlider.setPopup(() -> menu1);
-
-			final JPopupMenu menu2 = new JPopupMenu();
-			menu2.add(runnableItem("set bounds ...", brightnessSliderMin::setBoundsDialog));
-			brightnessSliderMin.setPopup(() -> menu2);
-
-			final JPopupMenu menu3 = new JPopupMenu();
-			menu3.add(runnableItem("set bounds ...", brightnessSliderMax::setBoundsDialog));
-			brightnessSliderMax.setPopup(() -> menu3);
-
-			System.out.println( "Done ... " );
-		}
-
-		public HashMap< String, Pair< AddedGene, AddedGene > > sourceData() { return sourceData; }
-		public HashMap< String, SourceGroup > geneToBDVSource() { return geneToBDVSource; }
-		public double currentBrightnessMin() { return currentBrightnessMin; }
-		public double currentBrightnessMax() { return currentBrightnessMax; }
-		public double currentSigma() { return currentSigma; }
-		public JPanel getPanel() { return panel; }
-
-		private JMenuItem runnableItem(final String text, final Runnable action) {
-			final JMenuItem item = new JMenuItem(text);
-			item.addActionListener(e -> action.run());
-			return item;
-		}
-	}
-
 	public static class AddedGene
 	{
-		public static enum Rendering { GAUSS, NN, MEAN, MEDIAN };
+		public static enum Rendering { Gauss, Mean, NearestNeighbor, Linear };
 
-		final GaussianFilterFactory< DoubleType, DoubleType > gaussFactory;
-		final RadiusSearchFilterFactory< DoubleType, DoubleType > radiusFactory;
-		final NNParams params;
-		final BdvStackSource<?> source;
-		final double min, max;
+		final private GaussianFilterFactory< DoubleType, DoubleType > gaussFactory;
+		final private RadiusSearchFilterFactory< DoubleType, DoubleType > radiusFactory;
+		final private MaxDistanceParam maxDistanceParam;
+		final private BdvStackSource<?> source;
+		final private double min, max;
 
 		public AddedGene(
 				final GaussianFilterFactory< DoubleType, DoubleType > gaussFactory,
 				final RadiusSearchFilterFactory< DoubleType, DoubleType > radiusFactory,
-				final NNParams params,
+				final MaxDistanceParam maxDistanceParam,
 				final BdvStackSource<?> source,
 				final double min,
 				final double max )
 		{
 			this.gaussFactory = gaussFactory;
 			this.radiusFactory = radiusFactory;
-			this.params = params;
+			this.maxDistanceParam = maxDistanceParam;
 			this.source = source;
 			this.min = min;
 			this.max = max;
 		}
+
+		public GaussianFilterFactory< DoubleType, DoubleType > gaussFactory(){ return gaussFactory; }
+		public RadiusSearchFilterFactory< DoubleType, DoubleType > radiusFactory(){ return radiusFactory; }
+		public MaxDistanceParam maxDistanceParam(){ return maxDistanceParam; }
+		public BdvStackSource<?> source(){ return source; }
+		public double min(){ return min; }
+		public double max(){ return max; }
 
 		public static synchronized void updateRemainingSources(
 				final SynchronizedViewerState state,
@@ -984,60 +369,57 @@ public class InteractiveAlignment implements Callable<Void> {
 			System.out.println( "min/max: " + min + "/" + max );
 			System.out.println( "min/max display range: " + minDisplay + "/" + maxDisplay );
 
+			// TODO: prefiltering...
 			//final List< FilterFactory< DoubleType, DoubleType > > filterFactorys = new ArrayList<>();
 			//filterFactorys.add( new MedianFilterFactory<DoubleType>( new DoubleType(), 3 * medianDistance ) );
 
 			final RealRandomAccessible< DoubleType > rra;
 			final GaussianFilterFactory< DoubleType, DoubleType > gaussFactory;
 			final RadiusSearchFilterFactory< DoubleType, DoubleType > radiusFactory;
-			final NNParams nnParams;
+			final MaxDistanceParam maxDistanceParam;
 
-			if ( renderType == Rendering.GAUSS )
+			final IterableRealInterval< DoubleType > iri = Render.getRealIterable( data, gene, null );
+			final double medianDistance = data.statistics().getMedianDistance();
+
+			if ( renderType == Rendering.Gauss )
 			{
-				final Pair< RealRandomAccessible< DoubleType >, GaussianFilterFactory< DoubleType, DoubleType > > rendered = 
-						Render.getRealRandomAccessible2( data, gene, smoothnessFactor, null );
-	
-				rra = rendered.getA();
-				gaussFactory = rendered.getB();
+				gaussFactory = new GaussianFilterFactory<>( new DoubleType( 0 ), smoothnessFactor * medianDistance, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS );
 				radiusFactory = null;
-				nnParams = null;
-			}
-			else if ( renderType == Rendering.NN )
-			{
-				final IterableRealInterval< DoubleType > iri = Render.getRealIterable( data, gene, null );
-				final double medianDistance = data.statistics().getMedianDistance();
+				maxDistanceParam = null;
 
-				nnParams = new NNParams( smoothnessFactor * medianDistance );
+				rra = Render.render( iri, gaussFactory );
+			}
+			else if ( renderType == Rendering.NearestNeighbor )
+			{
+				maxDistanceParam = new MaxDistanceParam( smoothnessFactor * medianDistance );
 				radiusFactory = null;
 				gaussFactory = null;
-				rra = Render.renderNN( iri, new DoubleType( 0 ), nnParams );
-			}
-			else if ( renderType == Rendering.MEAN )
-			{
-				final IterableRealInterval< DoubleType > iri = Render.getRealIterable( data, gene, null );
-				final double medianDistance = data.statistics().getMedianDistance();
 
+				rra = Render.renderNN( iri, new DoubleType( 0 ), maxDistanceParam );
+			}
+			else if ( renderType == Rendering.Mean )
+			{
 				radiusFactory = new MeanFilterFactory<>( new DoubleType( 0 ), smoothnessFactor * medianDistance );
-				nnParams = null;
+				maxDistanceParam = null;
 				gaussFactory = null;
-				rra = Render.render( iri, radiusFactory );
-			}
-			else if ( renderType == Rendering.MEDIAN )
-			{
-				final IterableRealInterval< DoubleType > iri = Render.getRealIterable( data, gene, null );
-				final double medianDistance = data.statistics().getMedianDistance();
 
-				radiusFactory = new MedianFilterFactory<>( new DoubleType( 0 ), smoothnessFactor * medianDistance );
-				nnParams = null;
-				gaussFactory = null;
 				rra = Render.render( iri, radiusFactory );
 			}
-			else
+			/*else if ( renderType == Rendering.MEDIAN )
 			{
-				rra = null;
+				radiusFactory = new MedianFilterFactory<>( new DoubleType( 0 ), smoothnessFactor * medianDistance );
+				maxDistanceParam = null;
+				gaussFactory = null;
+
+				rra = Render.render( iri, radiusFactory );
+			}*/
+			else // LINEAR
+			{
 				radiusFactory = null;
 				gaussFactory = null;
-				nnParams = null;
+				maxDistanceParam = new MaxDistanceParam( smoothnessFactor * medianDistance );
+
+				rra = Render.renderLinear( iri, 5, 3.0, new DoubleType( 0 ), maxDistanceParam );
 			}
 
 			final Interval interval =
@@ -1046,15 +428,14 @@ public class InteractiveAlignment implements Callable<Void> {
 										data.data(),
 										new AffineTransform2D()/*data.transform()*/ ) );
 
-			BdvOptions options = BdvOptions.options().numRenderingThreads(Math.max(2,Runtime.getRuntime().availableProcessors() / 2))
+			final BdvOptions options = BdvOptions.options().numRenderingThreads(Math.max(2,Runtime.getRuntime().availableProcessors() / 2))
 					.addTo(bdv).is2D().preferredSize(1000, 800);
 
-			BdvStackSource< ? > source = BdvFunctions.show( rra, interval, gene, options );
+			final BdvStackSource< ? > source = BdvFunctions.show( rra, interval, gene, options );
 
 			source.setDisplayRangeBounds( 0, max );
 			source.setDisplayRange( minDisplay, maxDisplay );
 			source.setColor( color );
-			//source.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
 			source.setCurrent();
 
 			/*
@@ -1068,7 +449,7 @@ public class InteractiveAlignment implements Callable<Void> {
 			t.set( 0, 2, 3 );
 			source.getBdvHandle().getViewerPanel().state().setViewerTransform( t );
 
-			return new AddedGene( gaussFactory, radiusFactory, nnParams, source, min, max );
+			return new AddedGene( gaussFactory, radiusFactory, maxDistanceParam, source, min, max );
 		}
 	}
 

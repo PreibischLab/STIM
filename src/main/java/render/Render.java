@@ -39,7 +39,6 @@ import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
-import render.NearestNeighborMaxDistanceSearchOnKDTree.NNParams;
 
 public class Render
 {
@@ -245,18 +244,18 @@ public class Render
 			final int numNeighbors,
 			final double p,
 			final T outofbounds,
-			final double maxRadius)
+			final MaxDistanceParam param )
 	{
 		return Views.interpolate(
 				new KNearestNeighborMaxDistanceSearchOnKDTree< T >(
 						createParallelizableKDTreeFrom(data),
 						numNeighbors,
 						() -> outofbounds.copy(),
-						maxRadius ),
+						param ),
 				new InverseDistanceWeightingInterpolatorFactory< T >( p ) );
 	}
 
-	public static < T extends RealType< T > > RealRandomAccessible< T > renderNN( final IterableRealInterval< T > data, final T outofbounds, final NNParams maxRadius )
+	public static < T extends RealType< T > > RealRandomAccessible< T > renderNN( final IterableRealInterval< T > data, final T outofbounds, final MaxDistanceParam maxRadius )
 	{
 		return Views.interpolate(
 				new NearestNeighborMaxDistanceSearchOnKDTree< T >(
