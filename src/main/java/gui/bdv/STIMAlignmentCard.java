@@ -35,10 +35,12 @@ import bdv.viewer.SourceGroup;
 import bdv.viewer.SynchronizedViewerState;
 import cmd.InteractiveAlignment.AddedGene;
 import cmd.InteractiveAlignment.AddedGene.Rendering;
+import data.STDataUtils;
 import gui.DisplayScaleOverlay;
 import gui.STDataAssembly;
 import gui.geneselection.GeneSelectionExplorer;
 import gui.overlay.SIFTOverlay;
+import imglib2.ImgLib2Util;
 import mpicbg.models.Affine2D;
 import mpicbg.models.AffineModel2D;
 import mpicbg.models.InterpolatedAffineModel2D;
@@ -46,9 +48,11 @@ import mpicbg.models.Model;
 import mpicbg.models.RigidModel2D;
 import mpicbg.models.SimilarityModel2D;
 import mpicbg.models.TranslationModel2D;
+import net.imglib2.Interval;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
+import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.miginfocom.swing.MigLayout;
@@ -62,7 +66,7 @@ public class STIMAlignmentCard
 	private GeneSelectionExplorer gse = null;
 	private final SIFTOverlay siftoverlay;
 
-	// TODO: Advanced with window popping up
+	final SIFTParam param;
 	final String optionsSIFT[] = { "Fast", "Normal", "Thorough", "Very thorough", "Advanced ..." };
 	private boolean advancedModeSIFT = false; // we always start with "normal" for 
 
@@ -80,29 +84,35 @@ public class STIMAlignmentCard
 			final HashMap< String, Pair< AddedGene, AddedGene > > sourceData,
 			final HashMap< String, SourceGroup > geneToBDVSource,
 			final double medianDistance,
-			final double errorInit,
-			final int minNumInliersInit,
-			final int minNumInliersGeneInit,
 			final BdvHandle bdvhandle,
 			final ExecutorService service )
 	{
+		// setup initial parameters
+		final int initSIFTPreset = 1; // NORMAL
+		this.param = new SIFTParam();
+		this.param.setIntrinsicParameters( SIFTPreset.values()[ initSIFTPreset ] );
+
+		final Interval interval = STDataUtils.getCommonInterval( data1.data(), data2.data() );
+		this.param.maxError = Math.max( interval.dimension( 0 ), interval.dimension( 1 ) ) / 20;
+		this.param.sift.maxOctaveSize = 1024; // TODO find out
+
 		this.siftoverlay = new SIFTOverlay( new ArrayList<>(), bdvhandle );
 		this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 5, fill", "[right][grow]", "center"));
 
 		final JComboBox< String > box = new JComboBox< String > (optionsSIFT);
 		box.setBorder( null );
-		box.setSelectedIndex( 1 );
+		box.setSelectedIndex( initSIFTPreset );
 		final JLabel boxLabel = new JLabel("SIFT Matching ");
 		panel.add( boxLabel, "aligny baseline" );
 		panel.add( box, "growx, wrap" );
 
-		final BoundedValuePanel maxErrorSlider = new BoundedValuePanel(new BoundedValue(0, Math.round( Math.ceil( medianDistance * 5 ) ), errorInit ));
+		final BoundedValuePanel maxErrorSlider = new BoundedValuePanel(new BoundedValue(0, Math.round( Math.ceil( param.maxError * 2 ) ), param.maxError ));
 		maxErrorSlider.setBorder(null);
 		final JLabel maxErrorLabel = new JLabel("max. error (px)");
 		panel.add(maxErrorLabel, "aligny baseline");
 		panel.add(maxErrorSlider, "growx, wrap");
 
-		final BoundedValuePanel inliersSlider = new BoundedValuePanel(new BoundedValue(0, 50, minNumInliersInit ));
+		final BoundedValuePanel inliersSlider = new BoundedValuePanel(new BoundedValue(0, param.minInliersTotal * 2, param.minInliersTotal ));
 		inliersSlider.setBorder(null);
 		final JLabel inliersLabel = new JLabel("min inliers (total)");
 		final Font font = inliersLabel.getFont().deriveFont( 10f );
@@ -111,7 +121,7 @@ public class STIMAlignmentCard
 		panel.add(inliersLabel, "aligny baseline");
 		panel.add(inliersSlider, "growx, wrap");
 
-		final BoundedValuePanel inliersPerGeneSlider = new BoundedValuePanel(new BoundedValue(0, 25, minNumInliersGeneInit ));
+		final BoundedValuePanel inliersPerGeneSlider = new BoundedValuePanel(new BoundedValue(0, param.minInliersGene * 2, param.minInliersGene ));
 		inliersPerGeneSlider.setBorder(null);
 		final JLabel inliersPerGeneLabel = new JLabel("min inliers (gene)");
 		inliersPerGeneLabel.setFont( font );
@@ -183,6 +193,12 @@ public class STIMAlignmentCard
 		formatter.setMaximum(Integer.MAX_VALUE);
 		formatter.setAllowsInvalid(true);
 
+		final NumberFormatter formatterDouble = new NumberFormatter(NumberFormat.getInstance());
+		formatterDouble.setValueClass(Double.class);
+		formatterDouble.setMinimum(0);
+		formatterDouble.setMaximum(Double.MAX_VALUE);
+		formatterDouble.setAllowsInvalid(true);
+
 		final NumberFormatter formatterDouble01 = new NumberFormatter(NumberFormat.getInstance());
 		formatterDouble01.setValueClass(Double.class);
 		formatterDouble01.setMinimum(0);
@@ -191,51 +207,45 @@ public class STIMAlignmentCard
 
 		final Font fontTF = inliersLabel.getFont().deriveFont( 9f );
 
-		int sift_minOctaveSize = 128;
-		int sift_maxOctaveSize = 1024;
-		int sift_fdSize = 4;
-		int sift_fdBins = 8;
-		int sift_steps = 3;
-		int sift_iterations = 10000;
-		double sift_rod = 0.92;
-		double sift_ilr = 0.05;
-		boolean sift_biDirectional = false;
-
 		final JFormattedTextField fdSize = new JFormattedTextField( formatter );
 		fdSize.setBorder( new TitledBorder(null, "Feature descriptor size (-fdSize)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
-		fdSize.setValue( sift_fdSize );
+		fdSize.setValue( param.sift.fdSize );
 
 		final JFormattedTextField fdBins = new JFormattedTextField( formatter );
 		fdBins.setBorder( new TitledBorder(null, "Feature descriptor orientation bins (-fdBins)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
-		fdBins.setValue( sift_fdBins );
+		fdBins.setValue( param.sift.fdBins );
 
 		final JFormattedTextField rod = new JFormattedTextField( formatterDouble01 );
 		rod.setBorder( new TitledBorder(null, "Feature descriptor closest/next closest ratio (-rod)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
-		rod.setValue( sift_rod );
+		rod.setValue( param.rod );
 
 		final JFormattedTextField steps = new JFormattedTextField( formatter );
 		steps.setBorder( new TitledBorder(null, "Steps per Scale Octave (-so)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
-		steps.setValue( sift_steps );
+		steps.setValue( param.sift.steps );
+
+		final JFormattedTextField initialSigma = new JFormattedTextField( formatterDouble );
+		initialSigma.setBorder( new TitledBorder(null, "Initial sigma of each Scale Octave (-is)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
+		initialSigma.setValue( param.sift.initialSigma );
 
 		final JFormattedTextField minOS = new JFormattedTextField( formatter );
 		minOS.setBorder( new TitledBorder(null, "Min Octave size (-minOS)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
-		minOS.setValue( sift_minOctaveSize );
+		minOS.setValue( param.sift.minOctaveSize );
 
-		// not needed, defined by the scale it is run at
+		// TODO: transform listener on BDV to compute this
 		final JFormattedTextField maxOS = new JFormattedTextField( formatter );
 		maxOS.setBorder( new TitledBorder(null, "Max Octave size (-maxOS)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
-		maxOS.setValue( sift_maxOctaveSize );
+		maxOS.setValue( param.sift.maxOctaveSize );
 
 		final JFormattedTextField ilr = new JFormattedTextField( formatterDouble01 );
 		ilr.setBorder( new TitledBorder(null, "RANSAC minimal inlier ratio (-ilr)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
-		ilr.setValue( sift_ilr );
+		ilr.setValue( param.minInlierRatio );
 
 		final JFormattedTextField it = new JFormattedTextField( formatter );
 		it.setBorder( new TitledBorder(null, "RANSAC iterations (-it)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
-		it.setValue( sift_iterations );
+		it.setValue( param.iterations );
 
 		final JCheckBox biDirectional = new JCheckBox( "Bi-directional alignment (-bidir)" );
-		biDirectional.setSelected( sift_biDirectional );
+		biDirectional.setSelected( param.biDirectional );
 		biDirectional.setEnabled( true );
 		biDirectional.setBorder( BorderFactory.createEmptyBorder( 5, 0, 0, 0 ) );
 
@@ -251,39 +261,70 @@ public class STIMAlignmentCard
 				panel.add(fdBins, "span,growx,wrap", componentCount + 2 );
 				panel.add(rod, "span,growx,wrap", componentCount + 3);
 				panel.add(minOS, "span,growx,wrap", componentCount + 4);
-				//panel.add(maxOS, "span,growx,wrap", componentCount + 5);
-				panel.add(steps, "span,growx,wrap", componentCount + 5);
-				panel.add(ilr, "span,growx,wrap", componentCount + 6);
-				panel.add(it, "span,growx,wrap", componentCount + 7);
-				panel.add(biDirectional, "span,growx,wrap", componentCount + 8);
+				panel.add(maxOS, "span,growx,wrap", componentCount + 5);
+				panel.add(steps, "span,growx,wrap", componentCount + 6);
+				panel.add(initialSigma, "span,growx,wrap", componentCount + 7);
+				panel.add(ilr, "span,growx,wrap", componentCount + 8);
+				panel.add(it, "span,growx,wrap", componentCount + 9);
+				panel.add(biDirectional, "span,growx,wrap", componentCount + 10);
 
-				panel.add(j2, "span,growx,pushy", componentCount + 9 );
+				panel.add(j2, "span,growx,pushy", componentCount + 11 );
 
-				//panel.remove(bar);
 				panel.updateUI();
 
 				advancedModeSIFT = true;
 				
 			}
-			else if ( box.getSelectedIndex() < 4 || advancedModeSIFT )
+			else if ( box.getSelectedIndex() < 4 )
 			{
-				// change to simple mode
+				if ( advancedModeSIFT )
+				{
+					// change to simple mode
+	
+					//panel.add(bar, "span,growx,pushy", 15);
+					panel.remove( j1 );
+					panel.remove( fdSize );
+					panel.remove( fdBins );
+					panel.remove( steps );
+					panel.remove( initialSigma );
+					panel.remove( minOS );
+					panel.remove( maxOS );
+					panel.remove( rod );
+					panel.remove( ilr );
+					panel.remove( biDirectional );
+					panel.remove( it );
+					panel.remove( j2 );
 
-				//panel.add(bar, "span,growx,pushy", 15);
-				panel.remove( j1 );
-				panel.remove( fdSize );
-				panel.remove( fdBins );
-				panel.remove( steps );
-				panel.remove( minOS );
-				//panel.remove( maxOS );
-				panel.remove( rod );
-				panel.remove( ilr );
-				panel.remove( biDirectional );
-				panel.remove( it );
-				panel.remove( j2 );
+					advancedModeSIFT = false;
+				}
+
+				// update all values to the specific preset
+				param.setIntrinsicParameters( SIFTPreset.values()[ box.getSelectedIndex() ] );
+
+				// update all GUI elements (except error, maxoctavesize)
+				fdSize.setValue( param.sift.fdSize );
+				fdBins.setValue( param.sift.fdBins );
+				rod.setValue( param.rod );
+				minOS.setValue( param.sift.minOctaveSize );
+				steps.setValue( param.sift.steps );
+				initialSigma.setValue( param.sift.initialSigma );
+				ilr.setValue( param.minInlierRatio );
+				it.setValue( param.iterations );
+				biDirectional.setSelected( param.biDirectional );
+
+				BoundedValue b = new BoundedValue(
+						Math.min( inliersPerGeneSlider.getValue().getMinBound(), param.minInliersGene ),
+						Math.max( inliersPerGeneSlider.getValue().getMaxBound(), param.minInliersGene ),
+						param.minInliersGene );
+				inliersPerGeneSlider.setValue( b );
+
+				b = new BoundedValue(
+						Math.min( inliersSlider.getValue().getMinBound(), param.minInliersTotal ),
+						Math.max( inliersSlider.getValue().getMaxBound(), param.minInliersTotal ),
+						param.minInliersTotal );
+				inliersSlider.setValue( b );
+
 				panel.updateUI();
-
-				advancedModeSIFT = false;
 			}
 		});
 
@@ -321,23 +362,36 @@ public class STIMAlignmentCard
 				final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
 				AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
 
-				final int minInliers = (int)Math.round( inliersSlider.getValue().getValue() );
-				final int minInliersPerGene = (int)Math.round( inliersPerGeneSlider.getValue().getValue() );
-				final double maxError = maxErrorSlider.getValue().getValue();
-				final double scale = overlay.currentScale();
-				final double sigma = stimcard.currentSigma();
 				final double lambda1 = Double.parseDouble( tfRANSAC.getText().trim() );
 				final double lambda2 = Double.parseDouble( tfFinal.getText().trim() );
+
 				final SIFTParam p = new SIFTParam();
-				p.setIntrinsicParameters(  SIFTPreset.values()[ box.getSelectedIndex() ] );
-				p.setDatasetParameters(maxError, scale, sift_maxOctaveSize, stimcard.currentRendering(), stimcard.currentSigma(), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
+
+				p.setIntrinsicParameters(
+						(int)Integer.parseInt( fdSize.getText().trim() ),
+						(int)Integer.parseInt( fdBins.getText().trim() ),
+						(int)Integer.parseInt( minOS.getText().trim() ),
+						(int)Integer.parseInt( steps.getText().trim() ),
+						(int)Double.parseDouble( initialSigma.getText().trim() ),
+						biDirectional.isSelected(),
+						(int)Double.parseDouble( rod.getText().trim() ),
+						(int)Double.parseDouble( ilr.getText().trim() ),
+						(int)Math.round( inliersPerGeneSlider.getValue().getValue() ),
+						(int)Math.round( inliersSlider.getValue().getValue() ),
+						(int)Integer.parseInt( it.getText().trim() ) );
+
+				p.setDatasetParameters(
+						maxErrorSlider.getValue().getValue(),
+						overlay.currentScale(),
+						(int)Integer.parseInt( maxOS.getText().trim() ),
+						stimcard.currentRendering(), stimcard.currentSigma(), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
 
 				final Model model1 = getModelFor( boxModelRANSAC1.getSelectedIndex(), boxModelRANSAC2.getSelectedIndex(), lambda1 );
 				final Model model2 = getModelFor( boxModelFinal1.getSelectedIndex(), boxModelFinal2.getSelectedIndex(), lambda2 );
 
 				System.out.println( "Running SIFT align with the following parameters: ");
-				System.out.println( "maxError: " + maxError + ", minInliers (over all genes): " + minInliers + ", minInliers (per genes): " + minInliersPerGene );
-				System.out.println( "scale: " + scale + ", sigma: " + sigma );
+				System.out.println( "maxError: " + param.maxError + ", minInliers (over all genes): " + param.minInliersTotal + ", minInliers (per genes): " + param.minInliersGene );
+				System.out.println( "scale: " + param.scale + ", renderingSmoothness: " + param.renderingSmoothness );
 				System.out.println( "SIFT: " + SIFTPreset.values()[ box.getSelectedIndex() ] );
 				System.out.println( "RANSAC model: " + optionsModel[ boxModelRANSAC1.getSelectedIndex() ] + ", regularizer: " + optionsModelReg[ boxModelRANSAC2.getSelectedIndex() ] + ", lambda=" + lambda1 );
 				System.out.println( "FINAL model: " + optionsModel[ boxModelFinal1.getSelectedIndex() ] + ", regularizer: " + optionsModelReg[ boxModelFinal2.getSelectedIndex() ] + ", lambda=" + lambda2 );

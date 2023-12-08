@@ -37,7 +37,6 @@ import io.SpatialDataContainer;
 import io.SpatialDataIO;
 import io.TextFileAccess;
 import net.imglib2.Interval;
-import net.imglib2.IterableInterval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.multithreading.SimpleMultiThreading;
@@ -277,7 +276,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		// add STIMAlignmentCard panel
 		final STIMAlignmentCard cardAlign =
 				new STIMAlignmentCard(
-						data1, data2, dataset1, dataset2, overlay, card, allGenes, sourceData, geneToBDVSource, medianDistance, medianDistance*1.5, 25, 10, lastSource.getBdvHandle(), service );
+						data1, data2, dataset1, dataset2, overlay, card, allGenes, sourceData, geneToBDVSource, medianDistance, lastSource.getBdvHandle(), service );
 		lastSource.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlign.getPanel(), true );
 
 		// Expands the split Panel (after waiting 2 secs for the BDV to calm down)

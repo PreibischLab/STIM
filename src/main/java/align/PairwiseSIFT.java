@@ -130,7 +130,13 @@ public class PairwiseSIFT
 		return candidatesST;
 	}
 
-	public static ArrayList< PointMatch > consensus( final List< PointMatch > candidates, final Model< ? > model, final int minNumInliers, final double maxEpsilon )
+	public static ArrayList< PointMatch > consensus(
+			final List< PointMatch > candidates,
+			final Model< ? > model,
+			final int minNumInliers,
+			final int iterations,
+			final double minInlierRatio,
+			final double maxEpsilon )
 	{
 		final ArrayList< PointMatch > inliers = new ArrayList<>();
 
@@ -141,9 +147,9 @@ public class PairwiseSIFT
 			modelFound = model.filterRansac(
 					candidates,
 					inliers,
-					10000,
+					iterations,
 					maxEpsilon,
-					0.1f, //p.minInlierRatio,
+					minInlierRatio, //0.1f
 					minNumInliers,
 					3f );
 		}
@@ -320,7 +326,7 @@ public class PairwiseSIFT
 
 					// prefilter the candidates
 					final Model<?> model = modelPairwise.copy();//new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), 0.1 );//new RigidModel2D();
-					final List< PointMatch > inliers = consensus( candidatesTmp, model, p.minInliersGene, p.maxError );
+					final List< PointMatch > inliers = consensus( candidatesTmp, model, p.minInliersGene, p.iterations, p.minInlierRatio, p.maxError );
 
 					// reset world coordinates & compute error
 					double error = Double.NaN, maxError = Double.NaN, minError = Double.NaN;
@@ -388,7 +394,7 @@ public class PairwiseSIFT
 
 		//final InterpolatedAffineModel2D<AffineModel2D, RigidModel2D> model = new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), 0.1 );//new RigidModel2D();
 		//final RigidModel2D model = new RigidModel2D();
-		final ArrayList< PointMatch > inliers = consensus( allCandidates, modelGlobal, p.minInliersTotal, p.maxError );
+		final ArrayList< PointMatch > inliers = consensus( allCandidates, modelGlobal, p.minInliersTotal, p.iterations, p.minInlierRatio, p.maxError );
 
 		// the model that maps J to I
 		System.out.println( stDataAname + "\t" + stDataBname + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + AlignTools.modelToAffineTransform2D( (Affine2D<?>)modelGlobal ).inverse() );
