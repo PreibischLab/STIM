@@ -37,12 +37,14 @@ import io.SpatialDataContainer;
 import io.SpatialDataIO;
 import io.TextFileAccess;
 import net.imglib2.Interval;
+import net.imglib2.IterableInterval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
+import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
@@ -275,7 +277,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		// add STIMAlignmentCard panel
 		final STIMAlignmentCard cardAlign =
 				new STIMAlignmentCard(
-						data1, data2, dataset1, dataset2, overlay, card, allGenes, sourceData, geneToBDVSource, medianDistance, medianDistance*1.5, 25, 10, numGenes, lastSource.getBdvHandle(), service );
+						data1, data2, dataset1, dataset2, overlay, card, allGenes, sourceData, geneToBDVSource, medianDistance, medianDistance*1.5, 25, 10, lastSource.getBdvHandle(), service );
 		lastSource.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlign.getPanel(), true );
 
 		// Expands the split Panel (after waiting 2 secs for the BDV to calm down)
@@ -344,6 +346,20 @@ public class InteractiveAlignment implements Callable<Void> {
 		public static double getDisplayMin( final double min, final double max, final double bMin ) { return min + max * bMin; }
 		public static double getDisplayMax( final double max, final double bMax ) { return max * bMax; }
 
+		public static < T extends RealType<T>> double[] minmax( final Iterable< T > data )
+		{
+			double min = Double.MAX_VALUE;
+			double max = -Double.MAX_VALUE;
+
+			for ( final T t : data )
+			{
+				min = Math.min( min, t.getRealDouble() );
+				max = Math.max( max, t.getRealDouble() );
+			}
+
+			return new double[] { min, max };
+		}
+
 		public static AddedGene addGene(
 				final Rendering renderType,
 				final Bdv bdv,
@@ -354,14 +370,10 @@ public class InteractiveAlignment implements Callable<Void> {
 				final double relativeInitialBrightnessMin,
 				final double relativeInitialBrightnessMax )
 		{
-			double min = Double.MAX_VALUE;
-			double max = -Double.MAX_VALUE;
+			final double[] minmax = minmax( data.data().getExprData( gene ) );
 
-			for ( final DoubleType t : data.data().getExprData(gene) )
-			{
-				min = Math.min( min, t.get() );
-				max = Math.max( max, t.get() );
-			}
+			final double min = minmax[ 0 ];
+			final double max = minmax[ 1 ];
 
 			final double minDisplay = getDisplayMin( min, max, relativeInitialBrightnessMin );
 			final double maxDisplay = getDisplayMax( max, relativeInitialBrightnessMax );
@@ -429,7 +441,7 @@ public class InteractiveAlignment implements Callable<Void> {
 										new AffineTransform2D()/*data.transform()*/ ) );
 
 			final BdvOptions options = BdvOptions.options().numRenderingThreads(Math.max(2,Runtime.getRuntime().availableProcessors() / 2))
-					.addTo(bdv).is2D().preferredSize(1000, 800);
+					.addTo(bdv).is2D().preferredSize(1000, 825);
 
 			final BdvStackSource< ? > source = BdvFunctions.show( rra, interval, gene, options );
 

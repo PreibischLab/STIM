@@ -30,6 +30,8 @@ import util.Threads;
 
 import javax.naming.OperationNotSupportedException;
 
+import cmd.InteractiveAlignment.AddedGene.Rendering;
+
 public class GlobalOptSIFT
 {
 	protected static SiftMatch loadMatch(final SpatialDataContainer container, final String datasetA, final String datasetB ) {
@@ -222,7 +224,7 @@ public class GlobalOptSIFT
 		if ( !skipDisplayResults )
 		{
 			new ImageJ();
-			AlignTools.visualizeList(dataTrafoPair, AlignTools.defaultScale, smoothnessFactor, displaygene, true);
+			AlignTools.visualizeList(dataTrafoPair, AlignTools.defaultScale, Rendering.Gauss, smoothnessFactor, displaygene, true);
 		}
 
 		System.out.println( "Avg error: " + tileConfig.getError() );
@@ -369,7 +371,7 @@ public class GlobalOptSIFT
 			}
 
 			if ( !skipDisplayResults )
-				AlignTools.visualizeList( dataICP, AlignTools.defaultScale, smoothnessFactor, displaygene, true ).setTitle( "ICP-reg" );
+				AlignTools.visualizeList( dataICP, AlignTools.defaultScale, Rendering.Gauss, smoothnessFactor, displaygene, true ).setTitle( "ICP-reg" );
 
 			System.out.println( "Avg error: " + tileConfigICP.getError() );
 		}

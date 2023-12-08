@@ -9,23 +9,24 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import gui.STDataAssembly;
-import io.SpatialDataContainer;
 import org.joml.Math;
 
+import align.SIFTParam.SIFTPreset;
+import cmd.InteractiveAlignment.AddedGene;
 import data.STData;
 import data.STDataStatistics;
 import data.STDataUtils;
+import gui.STDataAssembly;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.gui.PointRoi;
 import ij.process.ImageProcessor;
 import imglib2.ImgLib2Util;
 import io.Path;
+import io.SpatialDataContainer;
 import mpicbg.ij.FeatureTransform;
 import mpicbg.ij.SIFT;
 import mpicbg.ij.util.Util;
@@ -47,71 +48,6 @@ import util.Threads;
 
 public class PairwiseSIFT
 {
-	public static class SIFTParam
-	{
-		final public FloatArray2DSIFT.Param sift = new FloatArray2DSIFT.Param();
-
-		/**
-		 * Closest/next closest neighbour distance ratio (default value from 
-		 */
-		public float rod = 0.92f;
-
-		/**
-		 * Try imgA vs imgB and imgB vs imgA
-		 */
-		public boolean biDirectional = false;
-
-		public static enum SIFTMatching { FAST, NORMAL, THOROUGH, VERYTHOROUGH };
-
-		public SIFTParam( final SIFTMatching matchingStrength )
-		{
-			if ( matchingStrength == SIFTMatching.FAST )
-			{
-				// use default values from FloatArray2DSIFT.Param()
-				this.biDirectional = false;
-				this.sift.minOctaveSize = 128;
-				this.rod = 0.92f;
-			}
-			else if ( matchingStrength == SIFTMatching.NORMAL )
-			{
-				this.sift.fdSize = 8;
-				this.sift.fdBins = 8;
-				this.sift.steps = 4;
-				this.sift.minOctaveSize = 128;
-				this.biDirectional = false;
-				this.rod = 0.92f;
-			}
-			else if ( matchingStrength == SIFTMatching.THOROUGH )
-			{
-				this.sift.fdSize = 8;
-				this.sift.fdBins = 8;
-				this.sift.steps = 6;
-				this.sift.minOctaveSize = 128;
-				this.rod = 0.90f;
-				this.biDirectional = false;
-			}
-			else
-			{
-				this.sift.fdSize = 8;
-				this.sift.fdBins = 8;
-				this.sift.steps = 10;
-				this.rod = 0.90f;
-				this.sift.minOctaveSize = 128;
-				this.biDirectional = true;
-			}
-		}
-
-		public SIFTParam( final int fdSize, final int fdBins, final int steps, final float rod, final int minOctaveSize, final boolean biDirectional )
-		{
-			this.sift.fdSize = fdSize;
-			this.sift.fdBins = fdBins;
-			this.sift.steps = steps;
-			this.rod = rod;
-			this.sift.minOctaveSize = minOctaveSize;
-			this.biDirectional = biDirectional;
-		}
-	}
-
 	static public void matchFeatures(
 			final Collection< Feature > fs1,
 			final Collection< Feature > fs2,
@@ -248,21 +184,15 @@ public class PairwiseSIFT
 			final N modelGlobal,
 			final List< String > genesToTest,
 			final SIFTParam p,
-			final double scale,
-			final double smoothnessFactor,
-			final double maxEpsilon,
-			final int minNumInliers,
-			final int minNumInliersPerGene,
 			final boolean visualizeResult,
 			final int numThreads )
 	{
 		final ExecutorService service = Threads.createFixedExecutorService( numThreads );
 
-		final SiftMatch s =  pairwiseSIFT(
+		final SiftMatch s = pairwiseSIFT(
 				stDataA, stDataAname, stDataB, stDataBname,
 				modelPairwise, modelGlobal, genesToTest, p,
-				scale, smoothnessFactor, maxEpsilon, minNumInliers, minNumInliersPerGene, visualizeResult,
-				service, (v) -> {} );
+				visualizeResult,service, v -> {} );
 
 		service.shutdown();
 
@@ -278,17 +208,12 @@ public class PairwiseSIFT
 			final Model<?> modelGlobal,
 			final List< String > genesToTest,
 			final SIFTParam p,
-			final double scale,
-			final double smoothnessFactor,
-			final double maxEpsilon,
-			final int minNumInliers,
-			final int minNumInliersPerGene,
 			final boolean visualizeResult,
 			final ExecutorService service,
 			final Consumer< Double > progressBar )
 	{
 		final AffineTransform2D tS = new AffineTransform2D();
-		tS.scale( scale );
+		tS.scale( p.scale );
 
 		final Interval interval = STDataUtils.getCommonInterval( stDataA, stDataB );
 		final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tS ), 100 );
@@ -314,15 +239,23 @@ public class PairwiseSIFT
 					final String gene = genesToTest.get( g );
 					//System.out.println( "current gene: " + gene );
 
-					final RandomAccessibleInterval<DoubleType> imgA = AlignTools.display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tS, null, smoothnessFactor );
-					final RandomAccessibleInterval<DoubleType> imgB = AlignTools.display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tS, null, smoothnessFactor );
+					final double[] minmax = AddedGene.minmax( stDataA.getExprData( gene ) );
+					final double minDisplay = AddedGene.getDisplayMin( minmax[ 0 ], minmax[ 1 ], p.brightnessMin );
+					final double maxDisplay = AddedGene.getDisplayMax( minmax[ 1 ], p.brightnessMax );
+
+					final RandomAccessibleInterval<DoubleType> imgA =
+							AlignTools.display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tS, null, p.rendering, p.renderingSmoothness );
+					final RandomAccessibleInterval<DoubleType> imgB =
+							AlignTools.display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tS, null, p.rendering, p.renderingSmoothness );
 
 					final ImagePlus impA = ImageJFunctions.wrapFloat( imgA, new RealFloatConverter<>(), "A_" + gene);
 					final ImagePlus impB = ImageJFunctions.wrapFloat( imgB, new RealFloatConverter<>(), "B_" + gene );
 
 					// this massively adjusts the amount of features, but min/max seems the right choice?
-					impA.resetDisplayRange();
-					impB.resetDisplayRange();
+					//impA.resetDisplayRange();
+					//impB.resetDisplayRange();
+					impA.setDisplayRange(minDisplay, maxDisplay);
+					impB.setDisplayRange(minDisplay, maxDisplay);
 
 					progressBar.accept( progressPerGene / 4.0 );
 
@@ -380,14 +313,14 @@ public class PairwiseSIFT
 
 						for ( int d = 0; d < finalInterval.numDimensions(); ++d )
 						{
-							p1.getL()[ d ] = p1.getW()[ d ] = ( p1.getL()[ d ] + finalInterval.min( d ) ) / scale;
-							p2.getL()[ d ] = p2.getW()[ d ] = ( p2.getL()[ d ] + finalInterval.min( d ) ) / scale;
+							p1.getL()[ d ] = p1.getW()[ d ] = ( p1.getL()[ d ] + finalInterval.min( d ) ) / p.scale;
+							p2.getL()[ d ] = p2.getW()[ d ] = ( p2.getL()[ d ] + finalInterval.min( d ) ) / p.scale;
 						}
 					}
 
 					// prefilter the candidates
 					final Model<?> model = modelPairwise.copy();//new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), 0.1 );//new RigidModel2D();
-					final List< PointMatch > inliers = consensus( candidatesTmp, model, minNumInliersPerGene, maxEpsilon );
+					final List< PointMatch > inliers = consensus( candidatesTmp, model, p.minInliersGene, p.maxError );
 
 					// reset world coordinates & compute error
 					double error = Double.NaN, maxError = Double.NaN, minError = Double.NaN;
@@ -455,12 +388,12 @@ public class PairwiseSIFT
 
 		//final InterpolatedAffineModel2D<AffineModel2D, RigidModel2D> model = new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), 0.1 );//new RigidModel2D();
 		//final RigidModel2D model = new RigidModel2D();
-		final ArrayList< PointMatch > inliers = consensus( allCandidates, modelGlobal, minNumInliers, maxEpsilon );
+		final ArrayList< PointMatch > inliers = consensus( allCandidates, modelGlobal, p.minInliersTotal, p.maxError );
 
 		// the model that maps J to I
 		System.out.println( stDataAname + "\t" + stDataBname + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + AlignTools.modelToAffineTransform2D( (Affine2D<?>)modelGlobal ).inverse() );
 
-		if ( visualizeResult && inliers.size() >= minNumInliers )
+		if ( visualizeResult && inliers.size() >= p.minInliersTotal )
 		{
 			new ImageJ();
 
@@ -469,15 +402,16 @@ public class PairwiseSIFT
 					new AffineTransform2D(),
 					AlignTools.modelToAffineTransform2D( (Affine2D<?>)modelGlobal ).inverse(),
 					genesToTest.get( 0 ),
-					scale,
-					smoothnessFactor );
+					p.scale,
+					p.rendering,
+					p.renderingSmoothness );
 
 			PointRoi roi = new PointRoi();
 			for ( final PointMatch pm : inliers )
 			{
 				roi.addPoint(
-						pm.getP1().getL()[ 0 ] * scale - rendered.getCalibration().xOrigin,// finalInterval.min( 0 ),
-						pm.getP1().getL()[ 1 ] * scale - rendered.getCalibration().yOrigin ); //finalInterval.min( 1 ) );
+						pm.getP1().getL()[ 0 ] * p.scale - rendered.getCalibration().xOrigin,// finalInterval.min( 0 ),
+						pm.getP1().getL()[ 1 ] * p.scale - rendered.getCalibration().yOrigin ); //finalInterval.min( 1 ) );
 			}
 			
 			rendered.setRoi( roi );
@@ -551,14 +485,13 @@ public class PairwiseSIFT
 			container.deleteMatch(match);
 
 		// visualize using the global transform
-		final double scale = 0.1;
-		final double maxEpsilon = 300;
-		final int minNumInliers = 12;
-		final int minNumInliersPerGene = 10;
-
 		final double smoothnessFactor = 4.0;
 
-		final SIFTParam p = new SIFTParam( align.PairwiseSIFT.SIFTParam.SIFTMatching.VERYTHOROUGH );
+		final SIFTParam p = new SIFTParam();
+		p.setIntrinsicParameters( SIFTPreset.VERYTHOROUGH );
+		p.minInliersGene = 10;
+		p.minInliersTotal = 12;
+		p.setDatasetParameters( 300, 0.1, 1024, null, smoothnessFactor, 0.0, 1.0 );
 		final boolean saveResult = true;
 		final boolean visualizeResult = true;
 

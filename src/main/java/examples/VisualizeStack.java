@@ -23,6 +23,7 @@ import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
+import cmd.InteractiveAlignment.AddedGene.Rendering;
 import data.STData;
 import data.STDataUtils;
 import filter.FilterFactory;
@@ -319,7 +320,7 @@ public class VisualizeStack
 				intensityTransforms.add( stda.intensityTransform() );
 		}
 
-		return AlignTools.visualizeList( data, transforms, intensityTransforms, AlignTools.defaultScale, AlignTools.defaultSmoothnessFactor, AlignTools.defaultGene, true );
+		return AlignTools.visualizeList( data, transforms, intensityTransforms, AlignTools.defaultScale, Rendering.Gauss, AlignTools.defaultSmoothnessFactor, AlignTools.defaultGene, true );
 	}
 
 	public static void main( String[] args ) throws IOException

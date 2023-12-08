@@ -95,6 +95,7 @@ public class STIMCard
 		panel.add(sigmaLabel, "aligny baseline");
 		panel.add(sigmaSlider, "growx, wrap");
 
+		// rendering listener
 		box.addActionListener( e -> {
 
 			if ( Rendering.values()[ box.getSelectedIndex() ] != currentRendering )

@@ -10,22 +10,22 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-import gui.STDataAssembly;
-import io.SpatialDataContainer;
 import org.joml.Math;
 
 import align.AlignTools;
 import align.Pairwise;
 import align.PairwiseSIFT;
-import align.PairwiseSIFT.SIFTParam;
-import align.PairwiseSIFT.SIFTParam.SIFTMatching;
+import align.SIFTParam;
 import align.SiftMatch;
+import align.SIFTParam.SIFTPreset;
 import data.STData;
+import gui.STDataAssembly;
 import ij.ImageJ;
+import io.SpatialDataContainer;
 import mpicbg.models.RigidModel2D;
 import picocli.CommandLine;
-import picocli.CommandLine.Option;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
 import util.Threads;
 
 @Command(name = "st-align-pairs", mixinStandardHelpOptions = true, version = "0.2.0", description = "Spatial Transcriptomics as IMages project - align pairs of slices")
@@ -236,7 +236,12 @@ public class PairwiseSectionAligner implements Callable<Void> {
 				//final int minNumInliers = 30;
 				//final int minNumInliersPerGene = 5;
 		
-				final SIFTParam p = new SIFTParam( SIFTMatching.VERYTHOROUGH );
+				final SIFTParam p = new SIFTParam();
+				p.setIntrinsicParameters( SIFTPreset.VERYTHOROUGH );
+				// TODO: set all parameters
+				p.setDatasetParameters(maxEpsilon, scale, 1024, null, smoothnessFactor, 0.0, 1.0); 
+				p.minInliersGene = minNumInliersGene;
+				p.minInliersTotal = minNumInliers;
 
 				if ( visualizeResult )
 				{
@@ -264,9 +269,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 						stData1, dataset1, stData2, dataset2,
 						new RigidModel2D(), new RigidModel2D(),
 						new ArrayList<>( genesToTest ),
-						p, scale, smoothnessFactor, maxEpsilon,
-						minNumInliers, minNumInliersGene,
-						visualizeResult, Threads.numThreads() );
+						p, visualizeResult, Threads.numThreads() );
 
 				if (saveResult && match.getNumInliers() >= minNumInliers) {
 					container.savePairwiseMatch(match);
