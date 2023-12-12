@@ -116,7 +116,7 @@ public class AlignTools
 
 		if ( renderType == Rendering.Gauss )
 			renderRRA = Render.render( data, new GaussianFilterFactory<>( outofbounds, medianDistance*smoothnessFactor, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS ) );
-		else if ( renderType == Rendering.NearestNeighbor )
+		else if ( renderType == Rendering.NN )
 			renderRRA = Render.renderNN( data, outofbounds, new MaxDistanceParam( medianDistance*smoothnessFactor ) );
 		else if ( renderType == Rendering.Mean )
 			renderRRA = Render.render( data, new MeanFilterFactory<>( outofbounds, medianDistance*smoothnessFactor  ) );

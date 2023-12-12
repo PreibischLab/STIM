@@ -270,13 +270,13 @@ public class InteractiveAlignment implements Callable<Void> {
 		lastSource.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_VIEWERMODES_CARD, false); // collapse display modes panel
 
 		// add STIMCard panel
-		final STIMCard card = new STIMCard( data1, data2, sourceData, geneToBDVSource, medianDistance, rendering, smoothnessFactor, brightnessMin, brightnessMax, lastSource.getBdvHandle());
+		final STIMCard card = new STIMCard( data1, data2, allGenes, sourceData, geneToBDVSource, medianDistance, rendering, smoothnessFactor, brightnessMin, brightnessMax, lastSource.getBdvHandle());
 		lastSource.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
 
 		// add STIMAlignmentCard panel
 		final STIMCardAlignSIFT cardAlign =
 				new STIMCardAlignSIFT(
-						data1, data2, dataset1, dataset2, overlay, card, allGenes, sourceData, geneToBDVSource, medianDistance, lastSource.getBdvHandle(), service );
+						data1, data2, dataset1, dataset2, overlay, card, sourceData, geneToBDVSource, medianDistance, lastSource.getBdvHandle(), service );
 		lastSource.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlign.getPanel(), true );
 
 		// Expands the split Panel (after waiting 2 secs for the BDV to calm down)
@@ -297,7 +297,7 @@ public class InteractiveAlignment implements Callable<Void> {
 
 	public static class AddedGene
 	{
-		public static enum Rendering { Gauss, Mean, NearestNeighbor, Linear };
+		public static enum Rendering { Gauss, Mean, NN, Linear };
 
 		final private GaussianFilterFactory< DoubleType, DoubleType > gaussFactory;
 		final private RadiusSearchFilterFactory< DoubleType, DoubleType > radiusFactory;
@@ -404,7 +404,7 @@ public class InteractiveAlignment implements Callable<Void> {
 
 				rra = Render.render( iri, gaussFactory );
 			}
-			else if ( renderType == Rendering.NearestNeighbor )
+			else if ( renderType == Rendering.NN )
 			{
 				maxDistanceParam = new MaxDistanceParam( smoothnessFactor * medianDistance );
 				radiusFactory = null;

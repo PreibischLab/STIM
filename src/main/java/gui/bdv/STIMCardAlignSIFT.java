@@ -33,7 +33,6 @@ import align.SIFTParam.SIFTPreset;
 import align.SiftMatch;
 import bdv.tools.transformation.TransformedSource;
 import bdv.util.BdvHandle;
-import bdv.viewer.DisplayMode;
 import bdv.viewer.SourceGroup;
 import bdv.viewer.SynchronizedViewerState;
 import cmd.InteractiveAlignment.AddedGene;
@@ -41,7 +40,6 @@ import data.STData;
 import data.STDataUtils;
 import gui.DisplayScaleOverlay;
 import gui.STDataAssembly;
-import gui.geneselection.GeneSelectionExplorer;
 import gui.overlay.SIFTOverlay;
 import mpicbg.models.Affine2D;
 import mpicbg.models.AffineModel2D;
@@ -53,9 +51,7 @@ import mpicbg.models.TranslationModel2D;
 import net.imglib2.Interval;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.realtransform.AffineTransform3D;
-import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.util.Pair;
-import net.imglib2.util.ValuePair;
 import net.miginfocom.swing.MigLayout;
 import util.BDVUtils;
 import util.BoundedValue;
@@ -64,7 +60,6 @@ import util.BoundedValuePanel;
 public class STIMCardAlignSIFT
 {
 	private final JPanel panel;
-	private GeneSelectionExplorer gse = null;
 	private final SIFTOverlay siftoverlay;
 	private final DisplayScaleOverlay overlay;
 	private final STDataAssembly data1, data2;
@@ -84,7 +79,6 @@ public class STIMCardAlignSIFT
 			final String dataset2,
 			final DisplayScaleOverlay overlay,
 			final STIMCard stimcard,
-			final List< Pair< String, Double > > allGenes,
 			final HashMap< String, Pair< AddedGene, AddedGene > > sourceData,
 			final HashMap< String, SourceGroup > geneToBDVSource,
 			final double medianDistance,
@@ -228,8 +222,8 @@ public class STIMCardAlignSIFT
 		panel.add(bar, "span,growx,pushy");
 
 		// buttons for adding genes and running SIFT
-		final JButton add = new JButton("Add genes");
-		panel.add(add, "aligny baseline");
+		final JButton cmdLine = new JButton("Cmd-line");
+		panel.add(cmdLine, "aligny baseline");
 		final JButton run = new JButton("Run SIFT");
 		panel.add(run, "growx, wrap");
 
@@ -451,7 +445,7 @@ public class STIMCardAlignSIFT
 			bdvhandle.getViewerPanel().renderTransformListeners().remove( siftoverlay );
 			bdvhandle.getViewerPanel().getDisplay().overlays().remove( siftoverlay );
 			run.setEnabled( false );
-			add.setEnabled( false );
+			cmdLine.setEnabled( false );
 			overlayInliers.setEnabled( false );
 			bar.setValue( 1 );
 
@@ -564,7 +558,7 @@ public class STIMCardAlignSIFT
 				}
 
 				bar.setValue( 100 );
-				add.setEnabled( true );
+				cmdLine.setEnabled( true );
 				run.setEnabled( true );
 				bdvhandle.getViewerPanel().requestRepaint();
 			}).start();
@@ -574,53 +568,9 @@ public class STIMCardAlignSIFT
 		//
 		// Add genes ...
 		//
-		add.addActionListener( l -> 
+		cmdLine.addActionListener( l -> 
 		{
-			if ( gse == null || gse.frame().isVisible() == false )
-				gse = new GeneSelectionExplorer(
-					allGenes,
-					list ->
-					{
-						//
-						// first check if all groups are still present that are in the HashMap
-						//
-						final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
-						AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
-
-						//
-						// Now add the new ones (if it's not already there)
-						//
-						for ( final String gene : list )
-						{
-							if ( !geneToBDVSource.containsKey( gene ) )
-							{
-								System.out.println( "Gene " + gene + " will be added." );
-
-								final AddedGene gene1 = AddedGene.addGene( stimcard.currentRendering(), bdvhandle, data1, gene, stimcard.currentSigma(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
-								final AddedGene gene2 = AddedGene.addGene( stimcard.currentRendering(), bdvhandle, data2, gene, stimcard.currentSigma(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
-
-								sourceData.put( gene, new ValuePair<>( gene1, gene2 ) );
-								//stimcard.gaussFactories().add( gene1.factory );
-								//stimcard.gaussFactories().add( gene2.factory );
-
-								final SourceGroup handle = new SourceGroup();
-								state.addGroup( handle );
-								state.setGroupName( handle, gene );
-								state.setGroupActive( handle, true );
-								state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), handle );
-								state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), handle );
-
-								geneToBDVSource.put( gene, handle );
-
-								bdvhandle.getViewerPanel().setDisplayMode( DisplayMode.GROUP );
-							}
-							else
-							{
-								System.out.println( "Gene " + gene + " is already being displayed, ignoring." );
-								// TODO: remove gaussFactories? - maybe not necessary
-							}
-						}
-					} );
+			// TODO ...
 		});
 
 
