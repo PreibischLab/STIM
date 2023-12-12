@@ -571,7 +571,7 @@ public class STIMCardAlignSIFT
 		});
 
 		//
-		// Add genes ...
+		// Return command line paramters for the last SIFT align run ...
 		//
 		cmdLine.addActionListener( l -> 
 		{
