@@ -74,10 +74,7 @@ public class STIMCard
 		panel.add(brightnessLabelMax, "aligny baseline");
 		panel.add(brightnessSliderMax, "growx, wrap");
 
-		//final JButton testButton = new JButton( "Show as NN" );
-		//panel.add(testButton, "span,growx,pushy");
-
-		//final String options[] = { "Gauss", "Nearest Neighbor", "Linear", "Mean" }; // TODO: Advanced parameters for many of them
+		// TODO: Advanced parameters for many of them
 		final String options[] = Arrays.asList( Rendering.values() ).stream().map( r -> r.name() ).toArray(String[]::new);
 
 		final JComboBox< String > box = new JComboBox< String > (options);

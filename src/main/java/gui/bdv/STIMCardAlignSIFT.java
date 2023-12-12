@@ -1,5 +1,6 @@
 package gui.bdv;
 
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
 import java.text.DecimalFormat;
@@ -190,6 +191,7 @@ public class STIMCardAlignSIFT
 		panRANSAC.add( labelRANSACReg, "alignx right" );
 		final JTextField tfRANSAC = new JTextField( "0.1" );
 		tfRANSAC.setEnabled( false );
+		labelRANSACReg.setForeground( Color.gray );
 		panRANSAC.add( tfRANSAC, "growx" );
 		panRANSAC.setBorder( BorderFactory.createEmptyBorder(0,0,5,0));
 		panel.add( panRANSAC, "growx, wrap" );
@@ -208,6 +210,7 @@ public class STIMCardAlignSIFT
 		panFinal.add( labelFinalReg, "alignx right" );
 		final JTextField tfFinal = new JTextField( "0.1" );
 		tfFinal.setEnabled( false );
+		labelFinalReg.setForeground( Color.gray );
 		panFinal.add( tfFinal, "growx" );
 		panFinal.setBorder( BorderFactory.createEmptyBorder(0,0,5,0));
 		panel.add( panFinal, "growx, wrap" );
@@ -429,8 +432,15 @@ public class STIMCardAlignSIFT
 		} );
 
 		// disable lambdas if no regularization is selected
-		boxModelRANSAC2.addActionListener( e -> tfRANSAC.setEnabled( boxModelRANSAC2.getSelectedIndex() != 0 ) );
-		boxModelFinal2.addActionListener( e -> tfFinal.setEnabled( boxModelFinal2.getSelectedIndex() != 0 ) );
+		boxModelRANSAC2.addActionListener( e -> {
+			tfRANSAC.setEnabled( boxModelRANSAC2.getSelectedIndex() != 0 );
+			labelRANSACReg.setForeground( boxModelRANSAC2.getSelectedIndex() == 0 ? Color.gray : Color.black );
+		} );
+
+		boxModelFinal2.addActionListener( e -> {
+			tfFinal.setEnabled( boxModelFinal2.getSelectedIndex() != 0 );
+			labelFinalReg.setForeground( boxModelFinal2.getSelectedIndex() == 0 ? Color.gray : Color.black );
+		} );
 
 		//
 		// Run SIFT alignment
