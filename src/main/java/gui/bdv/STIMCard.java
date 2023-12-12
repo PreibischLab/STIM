@@ -5,6 +5,7 @@ import java.awt.Font;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.swing.BorderFactory;
@@ -22,9 +23,17 @@ import bdv.viewer.SourceGroup;
 import bdv.viewer.SynchronizedViewerState;
 import cmd.InteractiveAlignment.AddedGene;
 import cmd.InteractiveAlignment.AddedGene.Rendering;
+import filter.Filters;
+import filter.SingleSpotRemovingFilterFactory;
 import gui.STDataAssembly;
 import gui.geneselection.GeneSelectionExplorer;
+import net.imglib2.Cursor;
+import net.imglib2.IterableRealInterval;
+import net.imglib2.KDTree;
+import net.imglib2.RealCursor;
+import net.imglib2.RealPointSampleList;
 import net.imglib2.type.numeric.ARGBType;
+import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.miginfocom.swing.MigLayout;
@@ -100,13 +109,58 @@ public class STIMCard
 		extraPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 3, 10));
 		panel.add( extraPanel, "growx, wrap");
 
-
 		// sigma slider
 		final BoundedValuePanel sigmaSlider = new BoundedValuePanel(new BoundedValue(0, Math.round( Math.ceil( Math.max( 2.5, currentSigma * 1.5 ) ) ), currentSigma ));
 		sigmaSlider.setBorder(null);
 		final JLabel sigmaLabel = new JLabel( currentRendering == Rendering.Gauss ? "sigma (-sf)" : "radius (-r)" );
 		panel.add(sigmaLabel, "aligny baseline");
 		panel.add(sigmaSlider, "growx, wrap");
+
+		final JButton test = new JButton( "filters");
+		final JButton test2 = new JButton( "restore");
+		panel.add( test, "aligny baseline");
+		panel.add( test2, "wrap");
+
+		test.addActionListener( l ->
+		{
+			AddedGene.updateRemainingSources( bdvhandle.getViewerPanel().state(), geneToBDVSource, sourceData );
+
+			// replace KDtree values
+			sourceData.forEach( (gene,data) -> {
+
+				RealPointSampleList<DoubleType> filteredA =
+						Filters.filter( data1.data().getExprData( gene ), data.getA().tree().iterator(), new SingleSpotRemovingFilterFactory<>( new DoubleType( 0 ), medianDistance * 1.5 ) );
+				RealPointSampleList<DoubleType> filteredB =
+						Filters.filter( data2.data().getExprData( gene ), data.getB().tree().iterator(), new SingleSpotRemovingFilterFactory<>( new DoubleType( 0 ), medianDistance * 1.5 ) );
+
+				RealCursor<DoubleType> iAFilt = filteredA.cursor();
+				data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
+
+				RealCursor<DoubleType> iBFilt = filteredB.cursor();
+				data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );
+
+				bdvhandle.getViewerPanel().requestRepaint();
+				System.out.println( "Filtered.");
+			} );
+		});
+
+		test2.addActionListener( l ->
+		{
+			AddedGene.updateRemainingSources( bdvhandle.getViewerPanel().state(), geneToBDVSource, sourceData );
+
+			// replace KDtree values
+			sourceData.forEach( (gene,data) -> {
+
+				final Iterator<Double> iAFilt = data.getA().originalValues().iterator();
+				data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
+
+				final Iterator<Double> iBFilt = data.getB().originalValues().iterator();
+				data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );
+
+				bdvhandle.getViewerPanel().requestRepaint();
+				System.out.println( "Restored.");
+			} );
+		} );
 
 		// rendering listener
 		box.addActionListener( e -> {

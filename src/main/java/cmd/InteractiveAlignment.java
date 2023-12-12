@@ -309,6 +309,7 @@ public class InteractiveAlignment implements Callable<Void> {
 
 		final RealRandomAccessible< DoubleType > rra;
 		final KDTree< DoubleType > tree;
+		final ArrayList< Double > originalValues;
 		final private GaussianFilterFactory< DoubleType, DoubleType > gaussFactory;
 		final private RadiusSearchFilterFactory< DoubleType, DoubleType > radiusFactory;
 		final private MaxDistanceParam maxDistanceParam;
@@ -333,8 +334,12 @@ public class InteractiveAlignment implements Callable<Void> {
 			this.source = source;
 			this.min = min;
 			this.max = max;
+
+			this.originalValues = new ArrayList<>();
+			tree.forEach( t -> originalValues.add( t.get() ) );
 		}
 
+		public List< Double > originalValues() { return originalValues; }
 		public RealRandomAccessible< DoubleType > rra() { return rra; }
 		public KDTree< DoubleType > tree() { return tree; }
 		public GaussianFilterFactory< DoubleType, DoubleType > gaussFactory(){ return gaussFactory; }
@@ -430,7 +435,6 @@ public class InteractiveAlignment implements Callable<Void> {
 				gaussFactory = null;
 
 				final Pair<RealRandomAccessible<DoubleType>, KDTree<DoubleType>> r = Render.renderNN2( iri, new DoubleType( 0 ), maxDistanceParam );
-				//rra = Render.renderNN( iri, new DoubleType( 0 ), maxDistanceParam );
 				rra = r.getA();
 				tree = r.getB();
 			}

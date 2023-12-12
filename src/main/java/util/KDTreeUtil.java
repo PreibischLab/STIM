@@ -10,7 +10,8 @@ import net.imglib2.type.Type;
 
 public class KDTreeUtil
 {
-	public static <T extends Type<T>> KDTree<T> createParallelizableKDTreeFrom(IterableRealInterval<T> data) {
+	public static <T extends Type<T>> KDTree<T> createParallelizableKDTreeFrom( final IterableRealInterval<T> data )
+	{
 		final List<RealCursor<T>> positions = new ArrayList<>();
 		final List<T> values = new ArrayList<>();
 
