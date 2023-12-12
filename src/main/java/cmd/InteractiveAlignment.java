@@ -32,6 +32,7 @@ import gui.DisplayScaleOverlay;
 import gui.STDataAssembly;
 import gui.bdv.STIMCardAlignSIFT;
 import gui.bdv.STIMCard;
+import gui.bdv.STIMCardAlignICP;
 import imglib2.TransformedIterableRealInterval;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
@@ -273,11 +274,17 @@ public class InteractiveAlignment implements Callable<Void> {
 		final STIMCard card = new STIMCard( data1, data2, allGenes, sourceData, geneToBDVSource, medianDistance, rendering, smoothnessFactor, brightnessMin, brightnessMax, lastSource.getBdvHandle());
 		lastSource.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
 
-		// add STIMAlignmentCard panel
-		final STIMCardAlignSIFT cardAlign =
+		// add STIMCardAlignSIFT panel
+		final STIMCardAlignSIFT cardAlignSIFT =
 				new STIMCardAlignSIFT(
 						data1, data2, dataset1, dataset2, overlay, card, medianDistance, lastSource.getBdvHandle(), service );
-		lastSource.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlign.getPanel(), true );
+		lastSource.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlignSIFT.getPanel(), true );
+
+		// add STIMCardAlignICP panel
+		final STIMCardAlignICP cardAlignICP =
+				new STIMCardAlignICP(
+						data1, data2, dataset1, dataset2, overlay, card, cardAlignSIFT, medianDistance, lastSource.getBdvHandle(), service );
+		lastSource.getBdvHandle().getCardPanel().addCard( "ICP Alignment", "ICP Alignment", cardAlignICP.getPanel(), false );
 
 		// Expands the split Panel (after waiting 2 secs for the BDV to calm down)
 		SimpleMultiThreading.threadWait( 2000 );
@@ -285,7 +292,7 @@ public class InteractiveAlignment implements Callable<Void> {
 
 		// TODO: BDV should call the transform listener
 		SimpleMultiThreading.threadWait( 2000 );
-		cardAlign.updateMaxOctaveSize();
+		cardAlignSIFT.updateMaxOctaveSize();
 
 		System.out.println("done");
 
@@ -444,7 +451,7 @@ public class InteractiveAlignment implements Callable<Void> {
 										new AffineTransform2D()/*data.transform()*/ ) );
 
 			final BdvOptions options = BdvOptions.options().numRenderingThreads(Math.max(2,Runtime.getRuntime().availableProcessors() / 2))
-					.addTo(bdv).is2D().preferredSize(1000, 850);
+					.addTo(bdv).is2D().preferredSize(1000, 870);
 
 			final BdvStackSource< ? > source = BdvFunctions.show( rra, interval, gene, options );
 

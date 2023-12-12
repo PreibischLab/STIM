@@ -73,6 +73,7 @@ public class STIMCardAlignSIFT
 	private AffineTransform2D m2d = new AffineTransform2D();
 	private AffineTransform3D m3d = new AffineTransform3D();
 	private HashSet< String > genesWithInliers = new HashSet<>();
+	private double lastMaxError = Double.NaN;
 
 	final String optionsModel[] = { "Translation", "Rigid", "Similarity", "Affine" };
 	final String optionsModelReg[] = { "No Reg.", "Transl.", "Rigid", "Simil.", "Affine" };
@@ -553,6 +554,8 @@ public class STIMCardAlignSIFT
 					for ( final PointMatch pm : match.getInliers() )
 						genesWithInliers.add(((PointST) pm.getP1()).getGene() );
 
+					lastMaxError = param.maxError;
+
 					System.out.println( "genes with inliers: ");
 					genesWithInliers.forEach( s -> System.out.println( s ) );
 
@@ -605,6 +608,7 @@ public class STIMCardAlignSIFT
 	public AffineTransform2D currentModel2D() { return m2d; }
 	public AffineTransform3D currentModel3D() { return m3d; }
 	public HashSet< String> genesWithInliers() { return genesWithInliers; }
+	public double lastMaxError() { return lastMaxError; }
 
 	public void updateMaxOctaveSize()
 	{
