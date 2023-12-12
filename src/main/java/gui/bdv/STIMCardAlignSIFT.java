@@ -6,7 +6,6 @@ import java.awt.Font;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -33,7 +32,6 @@ import align.SIFTParam.SIFTPreset;
 import align.SiftMatch;
 import bdv.tools.transformation.TransformedSource;
 import bdv.util.BdvHandle;
-import bdv.viewer.SourceGroup;
 import bdv.viewer.SynchronizedViewerState;
 import cmd.InteractiveAlignment.AddedGene;
 import data.STData;
@@ -51,7 +49,6 @@ import mpicbg.models.TranslationModel2D;
 import net.imglib2.Interval;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.realtransform.AffineTransform3D;
-import net.imglib2.util.Pair;
 import net.miginfocom.swing.MigLayout;
 import util.BDVUtils;
 import util.BoundedValue;
@@ -83,8 +80,6 @@ public class STIMCardAlignSIFT
 			final String dataset2,
 			final DisplayScaleOverlay overlay,
 			final STIMCard stimcard,
-			final HashMap< String, Pair< AddedGene, AddedGene > > sourceData,
-			final HashMap< String, SourceGroup > geneToBDVSource,
 			final double medianDistance,
 			final BdvHandle bdvhandle,
 			final ExecutorService service )
@@ -457,7 +452,7 @@ public class STIMCardAlignSIFT
 			new Thread( () ->
 			{
 				final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
-				AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
+				AddedGene.updateRemainingSources( state, stimcard.geneToBDVSource(), stimcard.sourceData() );
 
 				final double lambda1 = Double.parseDouble( tfRANSAC.getText().trim() );
 				final double lambda2 = Double.parseDouble( tfFinal.getText().trim() );
@@ -497,7 +492,7 @@ public class STIMCardAlignSIFT
 				final SiftMatch match = PairwiseSIFT.pairwiseSIFT(
 						data1.data(), dataset1, data2.data(), dataset2,
 						(Affine2D & Model)model1, (Affine2D & Model)model1,
-						new ArrayList<>( geneToBDVSource.keySet() ),
+						new ArrayList<>( stimcard.geneToBDVSource().keySet() ),
 						param,
 						visResult, service, (v) -> {
 							synchronized ( this ) {
