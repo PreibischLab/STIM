@@ -60,7 +60,7 @@ import util.BDVUtils;
 import util.BoundedValue;
 import util.BoundedValuePanel;
 
-public class STIMAlignmentCard
+public class STIMCardAlignSIFT
 {
 	private final JPanel panel;
 	private GeneSelectionExplorer gse = null;
@@ -76,7 +76,7 @@ public class STIMAlignmentCard
 	final String optionsModel[] = { "Translation", "Rigid", "Similarity", "Affine" };
 	final String optionsModelReg[] = { "No Reg.", "Transl.", "Rigid", "Simil.", "Affine" };
 
-	public STIMAlignmentCard(
+	public STIMCardAlignSIFT(
 			final STDataAssembly data1,
 			final STDataAssembly data2,
 			final String dataset1,

@@ -30,7 +30,7 @@ import filter.MeanFilterFactory;
 import filter.RadiusSearchFilterFactory;
 import gui.DisplayScaleOverlay;
 import gui.STDataAssembly;
-import gui.bdv.STIMAlignmentCard;
+import gui.bdv.STIMCardAlignSIFT;
 import gui.bdv.STIMCard;
 import imglib2.TransformedIterableRealInterval;
 import io.SpatialDataContainer;
@@ -274,8 +274,8 @@ public class InteractiveAlignment implements Callable<Void> {
 		lastSource.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
 
 		// add STIMAlignmentCard panel
-		final STIMAlignmentCard cardAlign =
-				new STIMAlignmentCard(
+		final STIMCardAlignSIFT cardAlign =
+				new STIMCardAlignSIFT(
 						data1, data2, dataset1, dataset2, overlay, card, allGenes, sourceData, geneToBDVSource, medianDistance, lastSource.getBdvHandle(), service );
 		lastSource.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlign.getPanel(), true );
 
