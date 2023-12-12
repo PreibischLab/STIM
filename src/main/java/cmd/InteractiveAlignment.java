@@ -39,6 +39,7 @@ import io.SpatialDataIO;
 import io.TextFileAccess;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
+import net.imglib2.KDTree;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform2D;
@@ -306,6 +307,8 @@ public class InteractiveAlignment implements Callable<Void> {
 	{
 		public static enum Rendering { Gauss, Mean, NN, Linear };
 
+		final RealRandomAccessible< DoubleType > rra;
+		final KDTree< DoubleType > tree;
 		final private GaussianFilterFactory< DoubleType, DoubleType > gaussFactory;
 		final private RadiusSearchFilterFactory< DoubleType, DoubleType > radiusFactory;
 		final private MaxDistanceParam maxDistanceParam;
@@ -313,6 +316,8 @@ public class InteractiveAlignment implements Callable<Void> {
 		final private double min, max;
 
 		public AddedGene(
+				final RealRandomAccessible< DoubleType > rra,
+				final KDTree< DoubleType > tree,
 				final GaussianFilterFactory< DoubleType, DoubleType > gaussFactory,
 				final RadiusSearchFilterFactory< DoubleType, DoubleType > radiusFactory,
 				final MaxDistanceParam maxDistanceParam,
@@ -320,6 +325,8 @@ public class InteractiveAlignment implements Callable<Void> {
 				final double min,
 				final double max )
 		{
+			this.rra = rra;
+			this.tree = tree;
 			this.gaussFactory = gaussFactory;
 			this.radiusFactory = radiusFactory;
 			this.maxDistanceParam = maxDistanceParam;
@@ -328,6 +335,8 @@ public class InteractiveAlignment implements Callable<Void> {
 			this.max = max;
 		}
 
+		public RealRandomAccessible< DoubleType > rra() { return rra; }
+		public KDTree< DoubleType > tree() { return tree; }
 		public GaussianFilterFactory< DoubleType, DoubleType > gaussFactory(){ return gaussFactory; }
 		public RadiusSearchFilterFactory< DoubleType, DoubleType > radiusFactory(){ return radiusFactory; }
 		public MaxDistanceParam maxDistanceParam(){ return maxDistanceParam; }
@@ -396,6 +405,7 @@ public class InteractiveAlignment implements Callable<Void> {
 			//filterFactorys.add( new MedianFilterFactory<DoubleType>( new DoubleType(), 3 * medianDistance ) );
 
 			final RealRandomAccessible< DoubleType > rra;
+			final KDTree< DoubleType > tree;
 			final GaussianFilterFactory< DoubleType, DoubleType > gaussFactory;
 			final RadiusSearchFilterFactory< DoubleType, DoubleType > radiusFactory;
 			final MaxDistanceParam maxDistanceParam;
@@ -409,7 +419,9 @@ public class InteractiveAlignment implements Callable<Void> {
 				radiusFactory = null;
 				maxDistanceParam = null;
 
-				rra = Render.render( iri, gaussFactory );
+				final Pair<RealRandomAccessible<DoubleType>, KDTree<DoubleType>> r = Render.render2( iri, gaussFactory );
+				rra = r.getA();
+				tree = r.getB();
 			}
 			else if ( renderType == Rendering.NN )
 			{
@@ -417,7 +429,10 @@ public class InteractiveAlignment implements Callable<Void> {
 				radiusFactory = null;
 				gaussFactory = null;
 
-				rra = Render.renderNN( iri, new DoubleType( 0 ), maxDistanceParam );
+				final Pair<RealRandomAccessible<DoubleType>, KDTree<DoubleType>> r = Render.renderNN2( iri, new DoubleType( 0 ), maxDistanceParam );
+				//rra = Render.renderNN( iri, new DoubleType( 0 ), maxDistanceParam );
+				rra = r.getA();
+				tree = r.getB();
 			}
 			else if ( renderType == Rendering.Mean )
 			{
@@ -425,23 +440,19 @@ public class InteractiveAlignment implements Callable<Void> {
 				maxDistanceParam = null;
 				gaussFactory = null;
 
-				rra = Render.render( iri, radiusFactory );
+				final Pair<RealRandomAccessible<DoubleType>, KDTree<DoubleType>> r = Render.render2( iri, radiusFactory );
+				rra = r.getA();
+				tree = r.getB();
 			}
-			/*else if ( renderType == Rendering.MEDIAN )
-			{
-				radiusFactory = new MedianFilterFactory<>( new DoubleType( 0 ), smoothnessFactor * medianDistance );
-				maxDistanceParam = null;
-				gaussFactory = null;
-
-				rra = Render.render( iri, radiusFactory );
-			}*/
 			else // LINEAR
 			{
 				radiusFactory = null;
 				gaussFactory = null;
 				maxDistanceParam = new MaxDistanceParam( smoothnessFactor * medianDistance );
 
-				rra = Render.renderLinear( iri, 5, 3.0, new DoubleType( 0 ), maxDistanceParam );
+				final Pair<RealRandomAccessible<DoubleType>, KDTree<DoubleType>> r = Render.renderLinear2( iri, 5, 3.0, new DoubleType( 0 ), maxDistanceParam );
+				rra = r.getA();
+				tree = r.getB();
 			}
 
 			final Interval interval =
@@ -471,7 +482,7 @@ public class InteractiveAlignment implements Callable<Void> {
 			t.set( 0, 2, 3 );
 			source.getBdvHandle().getViewerPanel().state().setViewerTransform( t );
 
-			return new AddedGene( gaussFactory, radiusFactory, maxDistanceParam, source, min, max );
+			return new AddedGene( rra, tree, gaussFactory, radiusFactory, maxDistanceParam, source, min, max );
 		}
 	}
 

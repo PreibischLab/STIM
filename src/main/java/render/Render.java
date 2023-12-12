@@ -247,32 +247,56 @@ public class Render
 			final T outofbounds,
 			final MaxDistanceParam param )
 	{
-		return Views.interpolate(
+		return renderLinear2(data, numNeighbors, p, outofbounds, param).getA();
+	}
+
+	public static < T extends RealType< T > > Pair< RealRandomAccessible< T >, KDTree< T > > renderLinear2(
+			final IterableRealInterval< T > data,
+			final int numNeighbors,
+			final double p,
+			final T outofbounds,
+			final MaxDistanceParam param )
+	{
+		final KDTree< T > tree = KDTreeUtil.createParallelizableKDTreeFrom(data);
+
+		return new ValuePair<>( Views.interpolate(
 				new KNearestNeighborMaxDistanceSearchOnKDTree< T >(
-						KDTreeUtil.createParallelizableKDTreeFrom(data),
+						tree,
 						numNeighbors,
 						() -> outofbounds.copy(),
 						param ),
-				new InverseDistanceWeightingInterpolatorFactory< T >( p ) );
+				new InverseDistanceWeightingInterpolatorFactory< T >( p ) ), tree );
 	}
 
 	public static < T extends RealType< T > > RealRandomAccessible< T > renderNN( final IterableRealInterval< T > data, final T outofbounds, final MaxDistanceParam maxRadius )
 	{
-		return Views.interpolate(
+		return renderNN2(data, outofbounds, maxRadius).getA();
+	}
+
+	public static < T extends RealType< T > > Pair< RealRandomAccessible< T >, KDTree< T > > renderNN2( final IterableRealInterval< T > data, final T outofbounds, final MaxDistanceParam maxRadius )
+	{
+		final KDTree< T > tree = KDTreeUtil.createParallelizableKDTreeFrom(data);
+		return new ValuePair<>( Views.interpolate(
 				new NearestNeighborMaxDistanceSearchOnKDTree< T >(
-						KDTreeUtil.createParallelizableKDTreeFrom(data),
+						tree,
 						() -> outofbounds.copy(),
 						maxRadius ),
-				new NearestNeighborSearchInterpolatorFactory< T >() );
+				new NearestNeighborSearchInterpolatorFactory< T >() ), tree );
 	}
 
 	public static < S extends Type<S>, T > RealRandomAccessible< T > render( final IterableRealInterval< S > data, final RadiusSearchFilterFactory< S, T > filterFactory )
 	{
-		return Views.interpolate(
+		return render2( data, filterFactory ).getA();
+	}
+
+	public static < S extends Type<S>, T > Pair< RealRandomAccessible< T >, KDTree< S > > render2( final IterableRealInterval< S > data, final RadiusSearchFilterFactory< S, T > filterFactory )
+	{
+		final KDTree< S > tree = KDTreeUtil.createParallelizableKDTreeFrom(data);
+		return new ValuePair<>( Views.interpolate(
 				new FilteringRadiusSearchOnKDTree< S, T >( // data source (F)
-						KDTreeUtil.createParallelizableKDTreeFrom(data),
+						tree,
 						filterFactory ),
-				new IntegratingNeighborSearchInterpolatorFactory< T >() ); // interpolatorfactory (T,F)
+				new IntegratingNeighborSearchInterpolatorFactory< T >() ), tree ); // interpolatorfactory (T,F)
 	}
 
 	public static < T extends IntegerType< T > > RealRandomAccessible< ARGBType > convertToRGB( final RealRandomAccessible< T > rra, final T outofbounds, final ARGBType background, final HashMap<Long, ARGBType> lut )
