@@ -1,12 +1,15 @@
 package gui.bdv;
 
-import java.awt.Color;
+import java.awt.Component;
 import java.awt.Font;
+import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -19,7 +22,6 @@ import javax.swing.JProgressBar;
 import javax.swing.JSeparator;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
-import javax.swing.border.BevelBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.text.NumberFormatter;
 
@@ -34,13 +36,12 @@ import bdv.viewer.DisplayMode;
 import bdv.viewer.SourceGroup;
 import bdv.viewer.SynchronizedViewerState;
 import cmd.InteractiveAlignment.AddedGene;
-import cmd.InteractiveAlignment.AddedGene.Rendering;
+import data.STData;
 import data.STDataUtils;
 import gui.DisplayScaleOverlay;
 import gui.STDataAssembly;
 import gui.geneselection.GeneSelectionExplorer;
 import gui.overlay.SIFTOverlay;
-import imglib2.ImgLib2Util;
 import mpicbg.models.Affine2D;
 import mpicbg.models.AffineModel2D;
 import mpicbg.models.InterpolatedAffineModel2D;
@@ -52,7 +53,6 @@ import net.imglib2.Interval;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
-import net.imglib2.util.Intervals;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.miginfocom.swing.MigLayout;
@@ -65,10 +65,13 @@ public class STIMAlignmentCard
 	private final JPanel panel;
 	private GeneSelectionExplorer gse = null;
 	private final SIFTOverlay siftoverlay;
+	private final DisplayScaleOverlay overlay;
+	private final STDataAssembly data1, data2;
+	private final JFormattedTextField maxOS;
 
 	final SIFTParam param;
-	final String optionsSIFT[] = { "Fast", "Normal", "Thorough", "Very thorough", "Advanced ..." };
-	private boolean advancedModeSIFT = false; // we always start with "normal" for 
+	final String optionsSIFT[] = { "Fast", "Normal", "Thorough", "Very thorough", "Custom ..." };
+	private boolean customModeSIFT = false; // we always start with "normal" for 
 
 	final String optionsModel[] = { "Translation", "Rigid", "Similarity", "Affine" };
 	final String optionsModelReg[] = { "No Reg.", "Transl.", "Rigid", "Simil.", "Affine" };
@@ -97,32 +100,73 @@ public class STIMAlignmentCard
 		this.param.sift.maxOctaveSize = 1024; // TODO find out
 
 		this.siftoverlay = new SIFTOverlay( new ArrayList<>(), bdvhandle );
+		this.overlay = overlay;
+		this.data1 = data1;
+		this.data2 = data2;
 		this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 5, fill", "[right][grow]", "center"));
 
-		final JComboBox< String > box = new JComboBox< String > (optionsSIFT);
+		// lists for components
+		final List< Component > customComponents = new ArrayList<>();
+		final List< Component > advancedSIFTComponents = new ArrayList<>();
+
+		// setup formatters
+		final NumberFormatter formatter = new NumberFormatter(NumberFormat.getInstance());
+		formatter.setValueClass(Integer.class);
+		formatter.setMinimum(1);
+		formatter.setMaximum(Integer.MAX_VALUE);
+		formatter.setFormat(new DecimalFormat("#"));
+		formatter.setAllowsInvalid(true);
+
+		final NumberFormatter formatterDouble = new NumberFormatter(NumberFormat.getInstance());
+		formatterDouble.setValueClass(Double.class);
+		formatterDouble.setMinimum(0);
+		formatterDouble.setMaximum(Double.MAX_VALUE);
+		formatterDouble.setAllowsInvalid(true);
+
+		final NumberFormatter formatterDouble01 = new NumberFormatter(NumberFormat.getInstance());
+		formatterDouble01.setValueClass(Double.class);
+		formatterDouble01.setMinimum(0);
+		formatterDouble01.setMaximum(1);
+		formatterDouble01.setAllowsInvalid(true);
+
+		// SIFT presets
+		final JComboBox< String > box = new JComboBox< String > ( optionsSIFT );
 		box.setBorder( null );
 		box.setSelectedIndex( initSIFTPreset );
-		final JLabel boxLabel = new JLabel("SIFT Matching ");
+		final JLabel boxLabel = new JLabel("SIFT Matching Preset ");
+		final Font font = boxLabel.getFont().deriveFont( 10f );
+		boxLabel.setFont( font );
+		boxLabel.setBorder( null );
 		panel.add( boxLabel, "aligny baseline" );
 		panel.add( box, "growx, wrap" );
 
+		// sift advanced options
+		final JCheckBox advancedOptions = new JCheckBox( "Show advanced SIFT options" );
+		panel.add(advancedOptions, "span,growx,pushy");
+		advancedOptions.setBorder( BorderFactory.createEmptyBorder(5,0,0,0) );
+		advancedOptions.setSelected( false );
+
+		// max error
 		final BoundedValuePanel maxErrorSlider = new BoundedValuePanel(new BoundedValue(0, Math.round( Math.ceil( param.maxError * 2 ) ), param.maxError ));
 		maxErrorSlider.setBorder(null);
 		final JLabel maxErrorLabel = new JLabel("max. error (px)");
 		panel.add(maxErrorLabel, "aligny baseline");
 		panel.add(maxErrorSlider, "growx, wrap");
 
+		// inliers
 		final BoundedValuePanel inliersSlider = new BoundedValuePanel(new BoundedValue(0, param.minInliersTotal * 2, param.minInliersTotal ));
 		inliersSlider.setBorder(null);
+		customComponents.add( inliersSlider );
 		final JLabel inliersLabel = new JLabel("min inliers (total)");
-		final Font font = inliersLabel.getFont().deriveFont( 10f );
 		inliersLabel.setFont( font );
 		inliersLabel.setBorder( null );
 		panel.add(inliersLabel, "aligny baseline");
 		panel.add(inliersSlider, "growx, wrap");
 
+		// inliersPerGene
 		final BoundedValuePanel inliersPerGeneSlider = new BoundedValuePanel(new BoundedValue(0, param.minInliersGene * 2, param.minInliersGene ));
 		inliersPerGeneSlider.setBorder(null);
+		customComponents.add( inliersPerGeneSlider );
 		final JLabel inliersPerGeneLabel = new JLabel("min inliers (gene)");
 		inliersPerGeneLabel.setFont( font );
 		inliersPerGeneLabel.setBorder( null );
@@ -145,6 +189,7 @@ public class STIMAlignmentCard
 		final JLabel labelRANSACReg = new JLabel( "λ=" );
 		panRANSAC.add( labelRANSACReg, "alignx right" );
 		final JTextField tfRANSAC = new JTextField( "0.1" );
+		tfRANSAC.setEnabled( false );
 		panRANSAC.add( tfRANSAC, "growx" );
 		panRANSAC.setBorder( BorderFactory.createEmptyBorder(0,0,5,0));
 		panel.add( panRANSAC, "growx, wrap" );
@@ -162,144 +207,163 @@ public class STIMAlignmentCard
 		final JLabel labelFinalReg = new JLabel( "λ=" );
 		panFinal.add( labelFinalReg, "alignx right" );
 		final JTextField tfFinal = new JTextField( "0.1" );
+		tfFinal.setEnabled( false );
 		panFinal.add( tfFinal, "growx" );
 		panFinal.setBorder( BorderFactory.createEmptyBorder(0,0,5,0));
 		panel.add( panFinal, "growx, wrap" );
 
+		// sift overlay
 		final JCheckBox overlayInliers = new JCheckBox( "Overlay SIFT features" );
 		panel.add(overlayInliers, "span,growx,pushy");
 		overlayInliers.setSelected( true );
 		overlayInliers.setEnabled( false );
 
+		// progress bar
 		final JProgressBar bar = new JProgressBar(SwingConstants.HORIZONTAL, 0, 100);
 		bar.setValue( 0 );
 		bar.setStringPainted(false);
-		System.out.println( panel.getComponentCount() );
 		panel.add(bar, "span,growx,pushy");
-		System.out.println( panel.getComponentCount() );
 
+		// buttons for adding genes and running SIFT
 		final JButton add = new JButton("Add genes");
 		panel.add(add, "aligny baseline");
 		final JButton run = new JButton("Run SIFT");
 		panel.add(run, "growx, wrap");
 
-		// for the advanced mode (move to separate object)
+		//
+		// for the advanced mode (move to separate object?)
 		final JSeparator j1 = new JSeparator();// j1.setBackground( Color.gray );
-		final JSeparator j2 = new JSeparator();// j2.setBackground( Color.gray );
-
-		final NumberFormatter formatter = new NumberFormatter(NumberFormat.getInstance());
-		formatter.setValueClass(Integer.class);
-		formatter.setMinimum(0);
-		formatter.setMaximum(Integer.MAX_VALUE);
-		formatter.setAllowsInvalid(true);
-
-		final NumberFormatter formatterDouble = new NumberFormatter(NumberFormat.getInstance());
-		formatterDouble.setValueClass(Double.class);
-		formatterDouble.setMinimum(0);
-		formatterDouble.setMaximum(Double.MAX_VALUE);
-		formatterDouble.setAllowsInvalid(true);
-
-		final NumberFormatter formatterDouble01 = new NumberFormatter(NumberFormat.getInstance());
-		formatterDouble01.setValueClass(Double.class);
-		formatterDouble01.setMinimum(0);
-		formatterDouble01.setMaximum(1);
-		formatterDouble01.setAllowsInvalid(true);
+		advancedSIFTComponents.add( j1 );
 
 		final Font fontTF = inliersLabel.getFont().deriveFont( 9f );
 
+		// fdsize
 		final JFormattedTextField fdSize = new JFormattedTextField( formatter );
 		fdSize.setBorder( new TitledBorder(null, "Feature descriptor size (-fdSize)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
 		fdSize.setValue( param.sift.fdSize );
+		customComponents.add( fdSize );
+		advancedSIFTComponents.add( fdSize );
 
+		// fdBins
 		final JFormattedTextField fdBins = new JFormattedTextField( formatter );
 		fdBins.setBorder( new TitledBorder(null, "Feature descriptor orientation bins (-fdBins)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
 		fdBins.setValue( param.sift.fdBins );
+		customComponents.add( fdBins );
+		advancedSIFTComponents.add( fdBins );
 
+		// ratio of distance
 		final JFormattedTextField rod = new JFormattedTextField( formatterDouble01 );
 		rod.setBorder( new TitledBorder(null, "Feature descriptor closest/next closest ratio (-rod)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
 		rod.setValue( param.rod );
+		customComponents.add(rod);
+		advancedSIFTComponents.add(rod);
 
+		// octave steps
 		final JFormattedTextField steps = new JFormattedTextField( formatter );
 		steps.setBorder( new TitledBorder(null, "Steps per Scale Octave (-so)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
 		steps.setValue( param.sift.steps );
+		customComponents.add(steps);
+		advancedSIFTComponents.add(steps);
 
+		// initialSigma
 		final JFormattedTextField initialSigma = new JFormattedTextField( formatterDouble );
 		initialSigma.setBorder( new TitledBorder(null, "Initial sigma of each Scale Octave (-is)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
 		initialSigma.setValue( param.sift.initialSigma );
+		customComponents.add(initialSigma);
+		advancedSIFTComponents.add(initialSigma);
 
+		// min octave size
 		final JFormattedTextField minOS = new JFormattedTextField( formatter );
 		minOS.setBorder( new TitledBorder(null, "Min Octave size (-minOS)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
 		minOS.setValue( param.sift.minOctaveSize );
+		customComponents.add(minOS);
+		advancedSIFTComponents.add(minOS);
 
-		// TODO: transform listener on BDV to compute this
-		final JFormattedTextField maxOS = new JFormattedTextField( formatter );
+		// max octave size
+		maxOS = new JFormattedTextField( formatter );
 		maxOS.setBorder( new TitledBorder(null, "Max Octave size (-maxOS)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
 		maxOS.setValue( param.sift.maxOctaveSize );
+		advancedSIFTComponents.add(maxOS);
 
+		// min inlier ratio
 		final JFormattedTextField ilr = new JFormattedTextField( formatterDouble01 );
 		ilr.setBorder( new TitledBorder(null, "RANSAC minimal inlier ratio (-ilr)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
 		ilr.setValue( param.minInlierRatio );
+		customComponents.add(ilr);
+		advancedSIFTComponents.add(ilr);
 
+		// iterations
 		final JFormattedTextField it = new JFormattedTextField( formatter );
 		it.setBorder( new TitledBorder(null, "RANSAC iterations (-it)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
 		it.setValue( param.iterations );
+		customComponents.add(it);
+		advancedSIFTComponents.add(it);
 
+		// bi-directional matching
 		final JCheckBox biDirectional = new JCheckBox( "Bi-directional alignment (-bidir)" );
 		biDirectional.setSelected( param.biDirectional );
 		biDirectional.setEnabled( true );
 		biDirectional.setBorder( BorderFactory.createEmptyBorder( 5, 0, 0, 0 ) );
+		customComponents.add(biDirectional);
+		advancedSIFTComponents.add(biDirectional);
+
+		final JSeparator j2 = new JSeparator();// j2.setBackground( Color.gray );
+		advancedSIFTComponents.add( j2 );
+
+		//
+		// set sift preset box to custom once one of the values is manually changed
+		//
+		final AtomicBoolean triggedChange = new AtomicBoolean( false );
+
+		customComponents.forEach( c -> {
+			if ( JFormattedTextField.class.isInstance( c ))
+				((JFormattedTextField)c).addPropertyChangeListener( e -> {
+					if ( !triggedChange.get() && e.getOldValue() != null && e.getNewValue() != null && e.getOldValue() != e.getNewValue() && box.getSelectedIndex() != 4 )
+					{
+						box.setSelectedIndex( 4 );
+					}
+				} );
+			else if ( JCheckBox.class.isInstance( c ) )
+				((JCheckBox)c).addChangeListener( e -> { if ( !triggedChange.get() && box.getSelectedIndex() != 4 ) box.setSelectedIndex( 4 ); } );
+			else if ( BoundedValuePanel.class.isInstance( c ) )
+				((BoundedValuePanel)c).changeListeners().add( () -> { if ( !triggedChange.get() && box.getSelectedIndex() != 4 ) box.setSelectedIndex( 4 ); } );
+		});
+
+		// transform listener for max octave size
+		bdvhandle.getViewerPanel().transformListeners().add( l -> updateMaxOctaveSize() );
+
+		// advanced options listener (changes menu)
+		advancedOptions.addChangeListener( e ->
+		{
+			if ( !customModeSIFT )
+			{
+				// change to advanced mode
+				AtomicInteger cc = new AtomicInteger(componentCount);
+				triggedChange.set(true);
+				advancedSIFTComponents.forEach( c -> panel.add(c, "span,growx,pushy", cc.getAndIncrement() ));
+				panel.updateUI();
+
+				triggedChange.set( false );
+				customModeSIFT = true;
+			}
+			else
+			{
+				// change to simple mode
+				advancedSIFTComponents.forEach( c -> panel.remove( c ) );
+				customModeSIFT = false;
+			}
+		});
 
 		// advanced menu listener (changes menu)
 		box.addActionListener( e -> {
 
-			if ( box.getSelectedIndex() == 4 || !advancedModeSIFT )
+			if ( box.getSelectedIndex() < 4 )
 			{
-				// change to advanced mode
-				panel.add(j1, "span,growx,pushy", componentCount );
-
-				panel.add(fdSize, "span,growx,wrap", componentCount + 1 );
-				panel.add(fdBins, "span,growx,wrap", componentCount + 2 );
-				panel.add(rod, "span,growx,wrap", componentCount + 3);
-				panel.add(minOS, "span,growx,wrap", componentCount + 4);
-				panel.add(maxOS, "span,growx,wrap", componentCount + 5);
-				panel.add(steps, "span,growx,wrap", componentCount + 6);
-				panel.add(initialSigma, "span,growx,wrap", componentCount + 7);
-				panel.add(ilr, "span,growx,wrap", componentCount + 8);
-				panel.add(it, "span,growx,wrap", componentCount + 9);
-				panel.add(biDirectional, "span,growx,wrap", componentCount + 10);
-
-				panel.add(j2, "span,growx,pushy", componentCount + 11 );
-
-				panel.updateUI();
-
-				advancedModeSIFT = true;
-				
-			}
-			else if ( box.getSelectedIndex() < 4 )
-			{
-				if ( advancedModeSIFT )
-				{
-					// change to simple mode
-	
-					//panel.add(bar, "span,growx,pushy", 15);
-					panel.remove( j1 );
-					panel.remove( fdSize );
-					panel.remove( fdBins );
-					panel.remove( steps );
-					panel.remove( initialSigma );
-					panel.remove( minOS );
-					panel.remove( maxOS );
-					panel.remove( rod );
-					panel.remove( ilr );
-					panel.remove( biDirectional );
-					panel.remove( it );
-					panel.remove( j2 );
-
-					advancedModeSIFT = false;
-				}
-
 				// update all values to the specific preset
 				param.setIntrinsicParameters( SIFTPreset.values()[ box.getSelectedIndex() ] );
+
+				// make sure we do not set the box back to index=4 because of the listeners triggered by changing values below
+				triggedChange.set( true );
 
 				// update all GUI elements (except error, maxoctavesize)
 				fdSize.setValue( param.sift.fdSize );
@@ -325,6 +389,8 @@ public class STIMAlignmentCard
 				inliersSlider.setValue( b );
 
 				panel.updateUI();
+
+				triggedChange.set( false );
 			}
 		});
 
@@ -343,6 +409,28 @@ public class STIMAlignmentCard
 			}
 			bdvhandle.getViewerPanel().requestRepaint();
 		});
+
+		// make sure inliers are rounded
+		inliersSlider.changeListeners().add( () -> {
+			final int value = (int)Math.round( inliersSlider.getValue().getValue() );
+			final BoundedValue b = new BoundedValue(
+					Math.min( inliersSlider.getValue().getMinBound(), value ),
+					Math.max( inliersSlider.getValue().getMaxBound(), value ),
+					value );
+			inliersSlider.setValue( b );
+		} );
+		inliersPerGeneSlider.changeListeners().add( () -> {
+			final int value = (int)Math.round( inliersPerGeneSlider.getValue().getValue() );
+			final BoundedValue b = new BoundedValue(
+					Math.min( inliersPerGeneSlider.getValue().getMinBound(), value ),
+					Math.max( inliersPerGeneSlider.getValue().getMaxBound(), value ),
+					value );
+			inliersPerGeneSlider.setValue( b );
+		} );
+
+		// disable lambdas if no regularization is selected
+		boxModelRANSAC2.addActionListener( e -> tfRANSAC.setEnabled( boxModelRANSAC2.getSelectedIndex() != 0 ) );
+		boxModelFinal2.addActionListener( e -> tfFinal.setEnabled( boxModelFinal2.getSelectedIndex() != 0 ) );
 
 		//
 		// Run SIFT alignment
@@ -365,22 +453,20 @@ public class STIMAlignmentCard
 				final double lambda1 = Double.parseDouble( tfRANSAC.getText().trim() );
 				final double lambda2 = Double.parseDouble( tfFinal.getText().trim() );
 
-				final SIFTParam p = new SIFTParam();
-
-				p.setIntrinsicParameters(
+				param.setIntrinsicParameters(
 						(int)Integer.parseInt( fdSize.getText().trim() ),
 						(int)Integer.parseInt( fdBins.getText().trim() ),
 						(int)Integer.parseInt( minOS.getText().trim() ),
 						(int)Integer.parseInt( steps.getText().trim() ),
-						(int)Double.parseDouble( initialSigma.getText().trim() ),
+						Double.parseDouble( initialSigma.getText().trim() ),
 						biDirectional.isSelected(),
-						(int)Double.parseDouble( rod.getText().trim() ),
-						(int)Double.parseDouble( ilr.getText().trim() ),
+						Double.parseDouble( rod.getText().trim() ),
+						Double.parseDouble( ilr.getText().trim() ),
 						(int)Math.round( inliersPerGeneSlider.getValue().getValue() ),
 						(int)Math.round( inliersSlider.getValue().getValue() ),
 						(int)Integer.parseInt( it.getText().trim() ) );
 
-				p.setDatasetParameters(
+				param.setDatasetParameters(
 						maxErrorSlider.getValue().getValue(),
 						overlay.currentScale(),
 						(int)Integer.parseInt( maxOS.getText().trim() ),
@@ -389,10 +475,7 @@ public class STIMAlignmentCard
 				final Model model1 = getModelFor( boxModelRANSAC1.getSelectedIndex(), boxModelRANSAC2.getSelectedIndex(), lambda1 );
 				final Model model2 = getModelFor( boxModelFinal1.getSelectedIndex(), boxModelFinal2.getSelectedIndex(), lambda2 );
 
-				System.out.println( "Running SIFT align with the following parameters: ");
-				System.out.println( "maxError: " + param.maxError + ", minInliers (over all genes): " + param.minInliersTotal + ", minInliers (per genes): " + param.minInliersGene );
-				System.out.println( "scale: " + param.scale + ", renderingSmoothness: " + param.renderingSmoothness );
-				System.out.println( "SIFT: " + SIFTPreset.values()[ box.getSelectedIndex() ] );
+				System.out.println( "Running SIFT align with the following parameters: \n" + param.toString() );
 				System.out.println( "RANSAC model: " + optionsModel[ boxModelRANSAC1.getSelectedIndex() ] + ", regularizer: " + optionsModelReg[ boxModelRANSAC2.getSelectedIndex() ] + ", lambda=" + lambda1 );
 				System.out.println( "FINAL model: " + optionsModel[ boxModelFinal1.getSelectedIndex() ] + ", regularizer: " + optionsModelReg[ boxModelFinal2.getSelectedIndex() ] + ", lambda=" + lambda2 );
 
@@ -406,7 +489,7 @@ public class STIMAlignmentCard
 						data1.data(), dataset1, data2.data(), dataset2,
 						(Affine2D & Model)model1, (Affine2D & Model)model1,
 						new ArrayList<>( geneToBDVSource.keySet() ),
-						p,
+						param,
 						visResult, service, (v) -> {
 							synchronized ( this ) {
 								progressBarValue[ 0 ] += v;
@@ -548,6 +631,20 @@ public class STIMAlignmentCard
 		final JPopupMenu menu = new JPopupMenu();
 		menu.add(runnableItem("set bounds ...", sigmaSlider::setBoundsDialog));
 		sigmaSlider.setPopup(() -> menu);*/
+	}
+
+	public void updateMaxOctaveSize()
+	{
+		maxOS.setValue( this.param.sift.maxOctaveSize = getMaxOctaveSize( data1.data(), data2.data(), overlay.currentScale() ) );
+	}
+
+	protected int getMaxOctaveSize( final STData data1, final STData data2, final double scale )
+	{
+		final Interval finalInterval = PairwiseSIFT.intervalForAlignment( data1, data2, scale );
+		final int maxSize = (int)Math.max( finalInterval.dimension( 0 ), finalInterval.dimension( 1 ) );
+		final int po2 = (int)Math.pow( 2, (maxSize == 0 ? 0 : 32 - Integer.numberOfLeadingZeros( maxSize - 1 ) ) );
+
+		return po2;
 	}
 
 	protected Model<?> getModelFor( final int modelIndex, final int regIndex, final double lambda )

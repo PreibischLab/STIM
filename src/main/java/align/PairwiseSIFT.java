@@ -205,6 +205,17 @@ public class PairwiseSIFT
 		return s;
 	}
 
+	public static Interval intervalForAlignment( final STData stDataA, final STData stDataB, final double scale )
+	{
+		final AffineTransform2D tS = new AffineTransform2D();
+		tS.scale( scale );
+
+		final Interval interval = STDataUtils.getCommonInterval( stDataA, stDataB );
+		final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tS ), 100 );
+
+		return finalInterval;
+	}
+
 	public static SiftMatch pairwiseSIFT(
 			final STData stDataA,
 			final String stDataAname,
@@ -218,11 +229,15 @@ public class PairwiseSIFT
 			final ExecutorService service,
 			final Consumer< Double > progressBar )
 	{
+		/*
+		final Interval interval = STDataUtils.getCommonInterval( stDataA, stDataB );
+		final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tS ), 100 );
+		*/
+
 		final AffineTransform2D tS = new AffineTransform2D();
 		tS.scale( p.scale );
 
-		final Interval interval = STDataUtils.getCommonInterval( stDataA, stDataB );
-		final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tS ), 100 );
+		final Interval finalInterval = intervalForAlignment(stDataA, stDataB, p.scale );
 
 		final List< PointMatch > allCandidates = new ArrayList<>();
 
@@ -262,6 +277,9 @@ public class PairwiseSIFT
 					//impB.resetDisplayRange();
 					impA.setDisplayRange(minDisplay, maxDisplay);
 					impB.setDisplayRange(minDisplay, maxDisplay);
+
+					//impA.show();
+					//impB.show();
 
 					progressBar.accept( progressPerGene / 4.0 );
 

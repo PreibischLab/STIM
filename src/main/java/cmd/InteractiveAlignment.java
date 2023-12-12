@@ -283,6 +283,10 @@ public class InteractiveAlignment implements Callable<Void> {
 		SimpleMultiThreading.threadWait( 2000 );
 		splitPanel.setCollapsed(false);
 
+		// TODO: BDV should call the transform listener
+		SimpleMultiThreading.threadWait( 2000 );
+		cardAlign.updateMaxOctaveSize();
+
 		System.out.println("done");
 
 		// service is used in alignment
@@ -440,7 +444,7 @@ public class InteractiveAlignment implements Callable<Void> {
 										new AffineTransform2D()/*data.transform()*/ ) );
 
 			final BdvOptions options = BdvOptions.options().numRenderingThreads(Math.max(2,Runtime.getRuntime().availableProcessors() / 2))
-					.addTo(bdv).is2D().preferredSize(1000, 825);
+					.addTo(bdv).is2D().preferredSize(1000, 850);
 
 			final BdvStackSource< ? > source = BdvFunctions.show( rra, interval, gene, options );
 
