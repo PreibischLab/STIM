@@ -69,6 +69,10 @@ public class STIMCardAlignSIFT
 	final String optionsSIFT[] = { "Fast", "Normal", "Thorough", "Very thorough", "Custom ..." };
 	private boolean customModeSIFT = false; // we always start with "normal" for 
 
+	// current transforms
+	private AffineTransform2D m2d = new AffineTransform2D();
+	private AffineTransform3D m3d = new AffineTransform3D();
+
 	final String optionsModel[] = { "Translation", "Rigid", "Similarity", "Affine" };
 	final String optionsModelReg[] = { "No Reg.", "Transl.", "Rigid", "Simil.", "Affine" };
 
@@ -222,9 +226,10 @@ public class STIMCardAlignSIFT
 		panel.add(bar, "span,growx,pushy");
 
 		// buttons for adding genes and running SIFT
-		final JButton cmdLine = new JButton("Cmd-line");
+		final JButton cmdLine = new JButton("Command-line");
+		cmdLine.setFont( cmdLine.getFont().deriveFont( 10f ));
 		panel.add(cmdLine, "aligny baseline");
-		final JButton run = new JButton("Run SIFT");
+		final JButton run = new JButton("Run SIFT alignment");
 		panel.add(run, "growx, wrap");
 
 		//
@@ -515,17 +520,17 @@ public class STIMCardAlignSIFT
 						//final RigidModel2D model = new RigidModel2D();
 						//final AffineModel2D model = new AffineModel2D();
 						model2.fit( match.getInliers() );
-						final AffineTransform2D m = AlignTools.modelToAffineTransform2D( (Affine2D)model2 ).inverse();
-						final AffineTransform3D m3d = new AffineTransform3D();
-						m3d.set(m.get(0, 0), 0, 0 ); // row, column
-						m3d.set(m.get(0, 1), 0, 1 ); // row, column
-						m3d.set(m.get(1, 0), 1, 0 ); // row, column
-						m3d.set(m.get(1, 1), 1, 1 ); // row, column
-						m3d.set(m.get(0, 2), 0, 3 ); // row, column
-						m3d.set(m.get(1, 2), 1, 3 ); // row, column
+						this.m2d = AlignTools.modelToAffineTransform2D( (Affine2D)model2 ).inverse();
+						this.m3d = new AffineTransform3D();
+						m3d.set(m2d.get(0, 0), 0, 0 ); // row, column
+						m3d.set(m2d.get(0, 1), 0, 1 ); // row, column
+						m3d.set(m2d.get(1, 0), 1, 0 ); // row, column
+						m3d.set(m2d.get(1, 1), 1, 1 ); // row, column
+						m3d.set(m2d.get(0, 2), 0, 3 ); // row, column
+						m3d.set(m2d.get(1, 2), 1, 3 ); // row, column
 
-						System.out.println( "final model" + m );
-						//System.out.println( m3d );
+						System.out.println( "2D model: " + m2d );
+						System.out.println( "3D viewer transform: " + m3d );
 
 						final List<TransformedSource<?>> tsources = BDVUtils.getTransformedSources(state);
 
@@ -592,6 +597,9 @@ public class STIMCardAlignSIFT
 		menu.add(runnableItem("set bounds ...", sigmaSlider::setBoundsDialog));
 		sigmaSlider.setPopup(() -> menu);*/
 	}
+
+	public AffineTransform2D currentModel2D() { return m2d; }
+	public AffineTransform3D currentModel3D() { return m3d; }
 
 	public void updateMaxOctaveSize()
 	{
