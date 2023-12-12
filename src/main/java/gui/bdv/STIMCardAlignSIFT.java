@@ -70,6 +70,7 @@ public class STIMCardAlignSIFT
 	private boolean customModeSIFT = false; // we always start with "normal" for 
 
 	// current transforms
+	private Affine2D< ? > model = new AffineModel2D();
 	private AffineTransform2D m2d = new AffineTransform2D();
 	private AffineTransform3D m3d = new AffineTransform3D();
 	private HashSet< String > genesWithInliers = new HashSet<>();
@@ -520,6 +521,7 @@ public class STIMCardAlignSIFT
 						//final RigidModel2D model = new RigidModel2D();
 						//final AffineModel2D model = new AffineModel2D();
 						model2.fit( match.getInliers() );
+						this.model = (Affine2D)model2;
 						this.m2d = AlignTools.modelToAffineTransform2D( (Affine2D)model2 ).inverse();
 						this.m3d = new AffineTransform3D();
 						m3d.set(m2d.get(0, 0), 0, 0 ); // row, column
@@ -564,6 +566,10 @@ public class STIMCardAlignSIFT
 				}
 				else
 				{
+					this.model = new AffineModel2D();
+					this.m2d = new AffineTransform2D();
+					this.m3d = new AffineTransform3D();
+
 					siftoverlay.setInliers( new ArrayList<>() );
 					genesWithInliers.clear();
 					overlayInliers.setEnabled( false );
@@ -605,6 +611,7 @@ public class STIMCardAlignSIFT
 		sigmaSlider.setPopup(() -> menu);*/
 	}
 
+	public Affine2D<?> currentModel() { return model; }
 	public AffineTransform2D currentModel2D() { return m2d; }
 	public AffineTransform3D currentModel3D() { return m3d; }
 	public HashSet< String> genesWithInliers() { return genesWithInliers; }
@@ -624,7 +631,7 @@ public class STIMCardAlignSIFT
 		return po2;
 	}
 
-	protected Model<?> getModelFor( final int modelIndex, final int regIndex, final double lambda )
+	protected static Model<?> getModelFor( final int modelIndex, final int regIndex, final double lambda )
 	{
 		if ( regIndex == 0 )
 		{

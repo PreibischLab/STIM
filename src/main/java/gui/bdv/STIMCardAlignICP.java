@@ -2,6 +2,9 @@ package gui.bdv;
 
 import java.awt.Color;
 import java.awt.Font;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 import javax.swing.BorderFactory;
@@ -14,12 +17,36 @@ import javax.swing.JProgressBar;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 
+import align.AlignTools;
+import align.ICPAlign;
+import align.PairwiseSIFT;
+import align.PointST;
+import align.SiftMatch;
+import bdv.tools.transformation.TransformedSource;
 import bdv.util.BdvHandle;
+import bdv.viewer.SynchronizedViewerState;
+import cmd.InteractiveAlignment.AddedGene;
 import data.STDataUtils;
 import gui.DisplayScaleOverlay;
 import gui.STDataAssembly;
+import gui.overlay.SIFTOverlay;
+import mpicbg.models.Affine2D;
+import mpicbg.models.AffineModel2D;
+import mpicbg.models.CoordinateTransform;
+import mpicbg.models.IllDefinedDataPointsException;
+import mpicbg.models.InterpolatedAffineModel2D;
+import mpicbg.models.Model;
+import mpicbg.models.NotEnoughDataPointsException;
+import mpicbg.models.Point;
+import mpicbg.models.PointMatch;
+import mpicbg.models.RigidModel2D;
+import mpicbg.models.Tile;
 import net.imglib2.Interval;
+import net.imglib2.realtransform.AffineTransform2D;
+import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.util.Pair;
 import net.miginfocom.swing.MigLayout;
+import util.BDVUtils;
 import util.BoundedValue;
 import util.BoundedValuePanel;
 
@@ -29,11 +56,23 @@ public class STIMCardAlignICP
 	{
 		double maxErrorICP, maxErrorRANSAC;
 		int maxIterations = 250;
+
+		@Override
+		public String toString()
+		{
+			String s = "";
+			s += "maxErrorICP: " + this.maxErrorICP;
+			s += ", maxErrorRANSAC: " + this.maxErrorRANSAC;
+			s += ", maxIterations: " + this.maxIterations;
+
+			return s;
+		}
 	}
 
 	private final ICPParams param;
 	private final JPanel panel;
 	private final STDataAssembly data1, data2;
+	private final SIFTOverlay icpoverlay;
 
 	public STIMCardAlignICP(
 			final STDataAssembly data1,
@@ -51,6 +90,7 @@ public class STIMCardAlignICP
 		this.data2 = data2;
 
 		this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 5, fill", "[right][grow]", "center"));
+		this.icpoverlay = new SIFTOverlay( new ArrayList<>(), bdvhandle );
 		this.param = new ICPParams();
 		final Interval interval = STDataUtils.getCommonInterval( data1.data(), data2.data() );
 		this.param.maxErrorICP = Math.max( interval.dimension( 0 ), interval.dimension( 1 ) ) / 20;
@@ -140,7 +180,178 @@ public class STIMCardAlignICP
 			labelFinalReg.setForeground( boxModelFinal2.getSelectedIndex() == 0 ? Color.gray : Color.black );
 		} );
 
-}
+		// overlay listener
+		overlayInliers.addChangeListener( e ->
+		{
+			if ( !overlayInliers.isSelected() )
+			{
+				bdvhandle.getViewerPanel().renderTransformListeners().remove( icpoverlay );
+				bdvhandle.getViewerPanel().getDisplay().overlays().remove( icpoverlay );
+			}
+			else
+			{
+				bdvhandle.getViewerPanel().renderTransformListeners().add( icpoverlay );
+				bdvhandle.getViewerPanel().getDisplay().overlays().add( icpoverlay );
+			}
+			bdvhandle.getViewerPanel().requestRepaint();
+		});
 
-	public JPanel getPanel() { return panel; }
+		//
+		// Run ICP alignment
+		//
+		run.addActionListener( l ->
+		{
+			icpoverlay.setInliers( new ArrayList<>() );
+			bdvhandle.getViewerPanel().renderTransformListeners().remove( icpoverlay );
+			bdvhandle.getViewerPanel().getDisplay().overlays().remove( icpoverlay );
+			run.setEnabled( false );
+			cmdLine.setEnabled( false );
+			overlayInliers.setEnabled( false );
+			bar.setValue( 1 );
+
+			// TODO: update transforms as we go
+			// TODO: be able to stop alignment
+			new Thread( () ->
+			{
+				final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
+				AddedGene.updateRemainingSources( state, stimcard.geneToBDVSource(), stimcard.sourceData() );
+
+				final double lambda = Double.parseDouble( tfFinal.getText().trim() );
+				Model model = STIMCardAlignSIFT.getModelFor( boxModelFinal1.getSelectedIndex(), boxModelFinal2.getSelectedIndex(), lambda );
+				final HashSet< String > genes;
+
+				if ( boxGenes.getSelectedIndex() == 0 ) // all displayed genes
+					genes = new HashSet<>( stimcard.geneToBDVSource().keySet() );
+				else
+					genes = new HashSet<>( stimcardSIFT.genesWithInliers() ); // genes from SIFT
+
+				param.maxErrorICP = maxErrorICPSlider.getValue().getValue();
+				param.maxErrorRANSAC = maxErrorRANSACSlider.getValue().getValue();
+				param.maxIterations = (int)Math.round( iterationsSlider.getValue().getValue() );
+
+				System.out.println( "Running ICP align with the following parameters: \n" + param.toString() );
+				System.out.println( "FINAL model: " + STIMCardAlignSIFT.optionsModel[ boxModelFinal1.getSelectedIndex() ] + ", regularizer: " + STIMCardAlignSIFT.optionsModelReg[ boxModelFinal2.getSelectedIndex() ] + ", lambda=" + lambda );
+
+				System.out.println( model.getClass().getSimpleName() );
+
+				final boolean visResult = false;
+				final double[] progressBarValue = new double[] { 1.0 };
+
+				// set the model as much as possible to the current transform
+				final Affine2D<?> currentModel = stimcardSIFT.currentModel().createInverse();
+				fit( model, currentModel, interval.dimension( 0 ), interval.dimension( 1 ), 8 );
+
+				final Pair< Model, List< PointMatch > > icpT =
+						ICPAlign.alignICP( data1.data(), data2.data(), genes, model, param.maxErrorICP, param.maxErrorRANSAC, param.maxIterations );
+
+				// 
+				// apply transformations
+				//
+				if ( !icpT.getB().isEmpty() )
+				{
+					try
+					{
+						model = icpT.getA();
+						final AffineTransform2D m2d = AlignTools.modelToAffineTransform2D( (Affine2D)model ).inverse();
+						final AffineTransform3D m3d = new AffineTransform3D();
+						m3d.set(m2d.get(0, 0), 0, 0 ); // row, column
+						m3d.set(m2d.get(0, 1), 0, 1 ); // row, column
+						m3d.set(m2d.get(1, 0), 1, 0 ); // row, column
+						m3d.set(m2d.get(1, 1), 1, 1 ); // row, column
+						m3d.set(m2d.get(0, 2), 0, 3 ); // row, column
+						m3d.set(m2d.get(1, 2), 1, 3 ); // row, column
+
+						System.out.println( "2D model: " + m2d );
+						System.out.println( "3D viewer transform: " + m3d );
+
+						final List<TransformedSource<?>> tsources = BDVUtils.getTransformedSources(state);
+
+						// every second source will be transformed
+						for ( int i = 1; i < tsources.size(); i = i + 2 )
+							tsources.get( i ).setFixedTransform( m3d );
+
+					} catch (Exception e)
+					{
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+
+					//
+					// Overlay detections
+					//
+					icpoverlay.setInliers( icpT.getB() );
+
+
+					overlayInliers.setSelected( true );
+					overlayInliers.setEnabled( true );
+				}
+				else
+				{
+					icpoverlay.setInliers( new ArrayList<>() );
+					overlayInliers.setEnabled( false );
+				}
+
+				bar.setValue( 100 );
+				cmdLine.setEnabled( true );
+				run.setEnabled( true );
+				bdvhandle.getViewerPanel().requestRepaint();
+			}).start();
+
+		});
+
+		//
+		// Return command line paramters for the last SIFT align run ...
+		//
+		cmdLine.addActionListener( l -> 
+		{
+			// TODO ...
+		});
+
+	}
+
+	public JPanel getPanel() {
+		return panel;
+	}
+
+	/**
+	 * Fits sampled points to a model.
+	 *
+	 * Stolen from
+	 *
+	 * <a href=
+	 * "https://github.com/axtimwalde/fiji-scripts/blob/master/TrakEM2/visualize-ct-difference.bsh#L90-L106">
+	 * https://github.com/axtimwalde/fiji-scripts/blob/master/TrakEM2/visualize-ct-difference.bsh#L90-L106
+	 * </a>.
+	 *
+	 * @param model               model to fit (note: model will be changed by this
+	 *                            operation).
+	 * @param coordinateTransform transform to apply to each sampled point.
+	 * @param sampleWidth         width of each sample.
+	 * @param sampleHeight        height of each sample.
+	 * @param samplesPerDimension number of samples to take in each dimension.
+	 */
+	public static void fit(final Model<?> model, final CoordinateTransform coordinateTransform,
+			final double sampleWidth, final double sampleHeight, final int samplesPerDimension) 
+	{
+
+		final List<PointMatch> matches = new ArrayList<>();
+
+		for (int y = 0; y < samplesPerDimension; ++y) {
+			final double sampleY = y * sampleHeight;
+			for (int x = 0; x < samplesPerDimension; ++x) {
+				final double sampleX = x * sampleWidth;
+				final Point p = new Point(new double[] { sampleX, sampleY });
+				p.apply(coordinateTransform);
+				matches.add(new PointMatch(p, p));
+			}
+		}
+
+		try {
+			model.fit(matches);
+		} catch (NotEnoughDataPointsException | IllDefinedDataPointsException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
 }

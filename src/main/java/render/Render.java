@@ -39,6 +39,7 @@ import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
+import util.KDTreeUtil;
 
 public class Render
 {
@@ -225,7 +226,7 @@ public class Render
 	public static < T extends RealType< T > > RealRandomAccessible< T > renderNN( final IterableRealInterval< T > data )
 	{
 		return Views.interpolate(
-				new NearestNeighborSearchOnKDTree< T >(createParallelizableKDTreeFrom(data)),
+				new NearestNeighborSearchOnKDTree< T >(KDTreeUtil.createParallelizableKDTreeFrom(data)),
 				new NearestNeighborSearchInterpolatorFactory< T >() );
 	}
 
@@ -235,7 +236,7 @@ public class Render
 			final double p )
 	{
 		return Views.interpolate(
-				new KNearestNeighborSearchOnKDTree< T >(createParallelizableKDTreeFrom(data), numNeighbors),
+				new KNearestNeighborSearchOnKDTree< T >(KDTreeUtil.createParallelizableKDTreeFrom(data), numNeighbors),
 				new InverseDistanceWeightingInterpolatorFactory< T >( p ) );
 	}
 
@@ -248,7 +249,7 @@ public class Render
 	{
 		return Views.interpolate(
 				new KNearestNeighborMaxDistanceSearchOnKDTree< T >(
-						createParallelizableKDTreeFrom(data),
+						KDTreeUtil.createParallelizableKDTreeFrom(data),
 						numNeighbors,
 						() -> outofbounds.copy(),
 						param ),
@@ -259,7 +260,7 @@ public class Render
 	{
 		return Views.interpolate(
 				new NearestNeighborMaxDistanceSearchOnKDTree< T >(
-						createParallelizableKDTreeFrom(data),
+						KDTreeUtil.createParallelizableKDTreeFrom(data),
 						() -> outofbounds.copy(),
 						maxRadius ),
 				new NearestNeighborSearchInterpolatorFactory< T >() );
@@ -269,7 +270,7 @@ public class Render
 	{
 		return Views.interpolate(
 				new FilteringRadiusSearchOnKDTree< S, T >( // data source (F)
-						createParallelizableKDTreeFrom(data),
+						KDTreeUtil.createParallelizableKDTreeFrom(data),
 						filterFactory ),
 				new IntegratingNeighborSearchInterpolatorFactory< T >() ); // interpolatorfactory (T,F)
 	}
@@ -313,19 +314,5 @@ public class Render
 		final Color c = Color.getHSBColor(h, s, b);
 
 		return new ARGBType( ARGBType.rgba(c.getRed(), c.getGreen(), c.getBlue(), c.getAlpha()));
-	}
-
-	public static <T extends Type<T>> KDTree<T> createParallelizableKDTreeFrom(IterableRealInterval<T> data) {
-		final List<RealCursor<T>> positions = new ArrayList<>();
-		final List<T> values = new ArrayList<>();
-
-		RealCursor<T> cursor = data.localizingCursor();
-		while (cursor.hasNext()) {
-			cursor.next();
-			positions.add(cursor.copyCursor());
-			values.add(cursor.get().copy());
-		}
-
-		return new KDTree<T>(values, positions);
 	}
 }

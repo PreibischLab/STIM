@@ -61,6 +61,7 @@ import net.imglib2.util.RealSum;
 import net.imglib2.view.Views;
 import render.Render;
 import transform.TransformCoordinates;
+import util.KDTreeUtil;
 
 public class StDataPointMatchIdentification < P extends RealLocalizable > implements PointMatchIdentification< P >
 {
@@ -167,14 +168,14 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 			sumT.add( t.get() );
 
 		sumTarget = normalize( sumTarget, 0, sumT.getSum() / (double)sumTarget.size() );
-		this.searchTarget = new NearestNeighborSearchOnKDTree<>( new KDTree<>( sumTarget ) );
+		this.searchTarget = new NearestNeighborSearchOnKDTree<>( KDTreeUtil.createParallelizableKDTreeFrom( sumTarget ) );
 
 		RealSum sumR = new RealSum();
 		for ( final DoubleType t : sumReference )
 			sumR.add( t.get() );
 
 		sumReference = normalize( sumReference, 0, sumR.getSum() / (double)sumReference.size() );
-		this.searchReference = new NearestNeighborSearchOnKDTree<>( new KDTree<>( sumReference ) );
+		this.searchReference = new NearestNeighborSearchOnKDTree<>( KDTreeUtil.createParallelizableKDTreeFrom( sumReference ) );
 
 		System.out.println( "\navg target: " + sumT.getSum() / (double)sumTarget.size() + ", avg ref: " + sumR.getSum() / (double)sumReference.size() + ", maxDist: " + distanceThreshold );
 

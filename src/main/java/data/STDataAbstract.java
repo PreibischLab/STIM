@@ -85,22 +85,6 @@ public abstract class STDataAbstract implements STData
 				new FinalRealInterval( this ) );
 	}
 
-	/*
-	@Override
-	public KDTree< DoubleType > getExpValueKDTree( final String geneName )
-	{
-		// TODO: save tree
-		return new KDTree<>( getExprData( geneName ) );
-	}
-
-	@Override
-	public KDTree< RealLocalizable > getLocationKDTree()
-	{
-		// TODO: save tree
-		return new KDTree<>( this );
-	}
-	*/
-
 	@Override
 	public int numDimensions() { return numDimensions; }
 

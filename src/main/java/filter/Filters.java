@@ -21,7 +21,7 @@ import net.imglib2.RealPoint;
 import net.imglib2.RealPointSampleList;
 import net.imglib2.type.Type;
 import net.imglib2.view.Views;
-import render.Render;
+import util.KDTreeUtil;
 
 public class Filters
 {
@@ -34,7 +34,7 @@ public class Filters
 		final Supplier<TriConsumer<RealLocalizable, ? super S, ? super T>> functionSupplier = new Supplier< TriConsumer<RealLocalizable, ? super S, ? super T>>()
 		{
 			// we share a KDtree for all instances
-			final KDTree< S > tree = Render.createParallelizableKDTreeFrom( data );
+			final KDTree< S > tree = KDTreeUtil.createParallelizableKDTreeFrom( data );
 
 			// when requesting a new TriConsumer, we create a new filter
 			@Override
@@ -52,7 +52,7 @@ public class Filters
 				typeSupplier );
 	}
 
-	public static < S, T > RealPointSampleList< T > filter( final IterableRealInterval< S > data, final FilterFactory< S, T > filterFactory, ExecutorService service )
+	public static < S extends Type< S >, T > RealPointSampleList< T > filter( final IterableRealInterval< S > data, final FilterFactory< S, T > filterFactory, ExecutorService service )
 	{
 		// create full realpointsamplelist
 		final RealPointSampleList< T > filtered = new RealPointSampleList<>( data.numDimensions() );
@@ -65,7 +65,7 @@ public class Filters
 			filtered.add( new RealPoint( cursor ), filterFactory.create() );
 		}
 
-		final KDTree< S > tree = new KDTree<S>( data );
+		final KDTree< S > tree = KDTreeUtil.createParallelizableKDTreeFrom( data );
 
 		final List< Callable< Void > > tasks = new ArrayList<>();
 		final long blockSize = Math.max( 1000, data.size() / 100 );

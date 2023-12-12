@@ -50,20 +50,6 @@ public class NormalizingSTData implements STData
 		return data.getAnnotations();
 	}
 
-	/*
-	@Override
-	public KDTree< DoubleType > getExpValueKDTree( String geneName )
-	{
-		return new KDTree<>( getExprData( geneName ) );
-	}
-
-	@Override
-	public KDTree< RealLocalizable > getLocationKDTree()
-	{
-		return data.getLocationKDTree();
-	}
-	*/
-
 	@Override
 	public IterableRealInterval< DoubleType > getExprData( String geneName )
 	{

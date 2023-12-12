@@ -47,6 +47,7 @@ import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
+import util.KDTreeUtil;
 import util.Threads;
 
 public class IntensityAdjustment
@@ -134,7 +135,7 @@ public class IntensityAdjustment
 						dataI = Filters.filter( dataI, new GaussianFilterFactory<>( new DoubleType( 0 ), maxDistance * 4, WeightType.BY_SUM_OF_WEIGHTS ) );
 						dataJ = Filters.filter( dataJ, new GaussianFilterFactory<>( new DoubleType( 0 ), maxDistance * 4, WeightType.BY_SUM_OF_WEIGHTS ) );
 
-						final KDTree< DoubleType > treeJ = new KDTree<>( dataJ );
+						final KDTree< DoubleType > treeJ = KDTreeUtil.createParallelizableKDTreeFrom( dataJ );
 						final NearestNeighborSearchOnKDTree< DoubleType > searchJ = new NearestNeighborSearchOnKDTree<>( treeJ );
 	
 						final RealCursor< DoubleType > cursorI = dataI.localizingCursor();

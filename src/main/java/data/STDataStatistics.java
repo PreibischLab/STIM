@@ -2,6 +2,7 @@ package data;
 
 import data.STDataUtils.DistanceStats;
 import net.imglib2.KDTree;
+import util.KDTreeUtil;
 
 public class STDataStatistics
 {
@@ -9,6 +10,7 @@ public class STDataStatistics
 
 	public STDataStatistics( final STData data )
 	{
+		// TODO: KDTreeUtil.createParallelizableKDTreeFrom?
 		this.ds = STDataUtils.distanceStats( new KDTree<>( data ) );
 	}
 
