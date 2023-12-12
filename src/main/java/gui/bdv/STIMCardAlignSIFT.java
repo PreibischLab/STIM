@@ -66,7 +66,7 @@ public class STIMCardAlignSIFT
 	private final JFormattedTextField maxOS;
 
 	final SIFTParam param;
-	final String optionsSIFT[] = { "Fast", "Normal", "Thorough", "Very thorough", "Custom ..." };
+	final static String optionsSIFT[] = { "Fast", "Normal", "Thorough", "Very thorough", "Custom ..." };
 	private boolean customModeSIFT = false; // we always start with "normal" for 
 
 	// current transforms
@@ -75,8 +75,8 @@ public class STIMCardAlignSIFT
 	private HashSet< String > genesWithInliers = new HashSet<>();
 	private double lastMaxError = Double.NaN;
 
-	final String optionsModel[] = { "Translation", "Rigid", "Similarity", "Affine" };
-	final String optionsModelReg[] = { "No Reg.", "Transl.", "Rigid", "Simil.", "Affine" };
+	final static String optionsModel[] = { "Translation", "Rigid", "Similarity", "Affine" };
+	final static String optionsModelReg[] = { "No Reg.", "Transl.", "Rigid", "Simil.", "Affine" };
 
 	public STIMCardAlignSIFT(
 			final STDataAssembly data1,
