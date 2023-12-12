@@ -6,6 +6,7 @@ import java.awt.Font;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -27,6 +28,7 @@ import javax.swing.text.NumberFormatter;
 
 import align.AlignTools;
 import align.PairwiseSIFT;
+import align.PointST;
 import align.SIFTParam;
 import align.SIFTParam.SIFTPreset;
 import align.SiftMatch;
@@ -43,6 +45,7 @@ import mpicbg.models.Affine2D;
 import mpicbg.models.AffineModel2D;
 import mpicbg.models.InterpolatedAffineModel2D;
 import mpicbg.models.Model;
+import mpicbg.models.PointMatch;
 import mpicbg.models.RigidModel2D;
 import mpicbg.models.SimilarityModel2D;
 import mpicbg.models.TranslationModel2D;
@@ -69,6 +72,7 @@ public class STIMCardAlignSIFT
 	// current transforms
 	private AffineTransform2D m2d = new AffineTransform2D();
 	private AffineTransform3D m3d = new AffineTransform3D();
+	private HashSet< String > genesWithInliers = new HashSet<>();
 
 	final String optionsModel[] = { "Translation", "Rigid", "Similarity", "Affine" };
 	final String optionsModelReg[] = { "No Reg.", "Transl.", "Rigid", "Simil.", "Affine" };
@@ -544,9 +548,13 @@ public class STIMCardAlignSIFT
 					//
 					siftoverlay.setInliers( match.getInliers() );
 
-					// Very good to know!
-					//for ( final PointMatch pm : match.getInliers() )
-					//	System.out.println( ((PointST) pm.getP1()).getGene() );
+					// Remember all genes with inliers
+					genesWithInliers.clear();
+					for ( final PointMatch pm : match.getInliers() )
+						genesWithInliers.add(((PointST) pm.getP1()).getGene() );
+
+					System.out.println( "genes with inliers: ");
+					genesWithInliers.forEach( s -> System.out.println( s ) );
 
 					overlayInliers.setSelected( true );
 					overlayInliers.setEnabled( true );
@@ -554,6 +562,7 @@ public class STIMCardAlignSIFT
 				else
 				{
 					siftoverlay.setInliers( new ArrayList<>() );
+					genesWithInliers.clear();
 					overlayInliers.setEnabled( false );
 				}
 
@@ -595,6 +604,7 @@ public class STIMCardAlignSIFT
 
 	public AffineTransform2D currentModel2D() { return m2d; }
 	public AffineTransform3D currentModel3D() { return m3d; }
+	public HashSet< String> genesWithInliers() { return genesWithInliers; }
 
 	public void updateMaxOctaveSize()
 	{
