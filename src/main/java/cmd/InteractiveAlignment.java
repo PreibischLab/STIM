@@ -31,6 +31,7 @@ import filter.RadiusSearchFilterFactory;
 import gui.DisplayScaleOverlay;
 import gui.STDataAssembly;
 import gui.bdv.STIMCardAlignSIFT;
+import gui.bdv.STIMCardFilter;
 import gui.bdv.STIMCard;
 import gui.bdv.STIMCardAlignICP;
 import imglib2.TransformedIterableRealInterval;
@@ -272,8 +273,14 @@ public class InteractiveAlignment implements Callable<Void> {
 		lastSource.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_VIEWERMODES_CARD, false); // collapse display modes panel
 
 		// add STIMCard panel
-		final STIMCard card = new STIMCard( data1, data2, allGenes, sourceData, geneToBDVSource, medianDistance, rendering, smoothnessFactor, brightnessMin, brightnessMax, lastSource.getBdvHandle());
+		final STIMCard card =
+				new STIMCard(
+						data1, data2, allGenes, sourceData, geneToBDVSource, medianDistance, rendering, smoothnessFactor, brightnessMin, brightnessMax, lastSource.getBdvHandle());
 		lastSource.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
+
+		// add STIMCard panel
+		final STIMCardFilter cardFilter = new STIMCardFilter(card);
+		lastSource.getBdvHandle().getCardPanel().addCard( "STIM Filtering Options", "STIM Filtering Options", cardFilter.getPanel(), false );
 
 		// add STIMCardAlignSIFT panel
 		final STIMCardAlignSIFT cardAlignSIFT =
@@ -466,7 +473,7 @@ public class InteractiveAlignment implements Callable<Void> {
 										new AffineTransform2D()/*data.transform()*/ ) );
 
 			final BdvOptions options = BdvOptions.options().numRenderingThreads(Math.max(2,Runtime.getRuntime().availableProcessors() / 2))
-					.addTo(bdv).is2D().preferredSize(1000, 870);
+					.addTo(bdv).is2D().preferredSize(1000, 890);
 
 			final BdvStackSource< ? > source = BdvFunctions.show( rra, interval, gene, options );
 

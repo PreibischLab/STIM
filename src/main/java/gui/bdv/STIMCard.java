@@ -51,12 +51,13 @@ public class STIMCard
 {
 	private final JPanel panel;
 	private GeneSelectionExplorer gse = null;
-	final STDataAssembly data1, data2;
-	final BdvHandle bdvhandle;
+	private final STDataAssembly data1, data2;
+	private final BdvHandle bdvhandle;
 	private final HashMap< String, Pair< AddedGene, AddedGene > > sourceData;
 	private final HashMap< String, SourceGroup > geneToBDVSource;
 	private double currentSigma, currentBrightnessMin, currentBrightnessMax;
 	private Rendering currentRendering;
+	private double medianDistance;
 
 	public STIMCard(
 			final STDataAssembly data1,
@@ -80,6 +81,7 @@ public class STIMCard
 		this.currentBrightnessMax = initialBrightnessMax;
 		this.currentSigma = initialSigma;
 		this.currentRendering = initialRendering;
+		this.medianDistance = medianDistance;
 
 		this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 0, fill", "[right][grow]", "center"));
 
@@ -125,7 +127,7 @@ public class STIMCard
 
 		// Initializing the JTable
 		final Component tablePanel = setupTable();
-		panel.add( tablePanel, "span,growx,pushy");
+		//panel.add( tablePanel, "span,growx,pushy");
 
 		// rendering listener
 		box.addActionListener( e -> {
@@ -332,6 +334,10 @@ public class STIMCard
 	public double currentSigma() { return currentSigma; }
 	public Rendering currentRendering() { return currentRendering; }
 	public JPanel getPanel() { return panel; }
+	public BdvHandle bdvhandle() { return bdvhandle; }
+	public double medianDistance() { return medianDistance; }
+	public STDataAssembly data1() { return data1; }
+	public STDataAssembly data2() { return data2; }
 
 	private JMenuItem runnableItem(final String text, final Runnable action) {
 		final JMenuItem item = new JMenuItem(text);
