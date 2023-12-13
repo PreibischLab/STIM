@@ -279,7 +279,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		lastSource.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
 
 		// add STIMCard panel
-		final STIMCardFilter cardFilter = new STIMCardFilter(card);
+		final STIMCardFilter cardFilter = new STIMCardFilter( card, service );
 		lastSource.getBdvHandle().getCardPanel().addCard( "STIM Filtering Options", "STIM Filtering Options", cardFilter.getPanel(), false );
 
 		// add STIMCardAlignSIFT panel

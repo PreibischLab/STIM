@@ -199,7 +199,6 @@ public class STIMCardAlignICP
 			bar.setValue( 1 );
 
 			// TODO: update transforms as we go
-			// TODO: be able to stop alignment
 			new Thread( () ->
 			{
 				final SynchronizedViewerState state = stimcard.bdvhandle().getViewerPanel().state();

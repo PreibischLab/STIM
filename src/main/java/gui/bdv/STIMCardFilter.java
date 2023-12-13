@@ -5,6 +5,8 @@ import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
@@ -30,10 +32,12 @@ public class STIMCardFilter
 	private final JPanel panel;
 	private final FilterTableModel tableModel;
 	private final STIMCard stimcard;
+	final ExecutorService service;
 
-	public STIMCardFilter( final STIMCard stimcard )
+	public STIMCardFilter( final STIMCard stimcard, final ExecutorService service )
 	{
 		this.stimcard = stimcard;
+		this.service = service;
 
 		this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 0, fill", "[right][grow]", "center"));
 
@@ -154,88 +158,44 @@ public class STIMCardFilter
 					{
 						stimcard.sourceData().forEach( (gene,data) ->
 						{
+							final List< Callable< Void > > tasks = new ArrayList<>();
+
+							tasks.add( () ->
+							{
+								final RealPointSampleList<DoubleType> filteredA =
+										Filters.filter( data.getA().tree(), data.getA().tree().iterator(), filterFactory );
+
+								final RealCursor<DoubleType> iAFilt = filteredA.cursor();
+								data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
+
+								return null;
+							});
+
+							tasks.add( () -> {
+								final RealPointSampleList<DoubleType> filteredB =
+										Filters.filter( data.getB().tree(), data.getB().tree().iterator(), filterFactory );
+
+								final RealCursor<DoubleType> iBFilt = filteredB.cursor();
+								data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );
+
+								return null;
+							});
+
+							try { service.invokeAll( tasks ); } catch (InterruptedException e) { e.printStackTrace(); }
+
+							/*
 							final RealPointSampleList<DoubleType> filteredA =
 									Filters.filter( data.getA().tree(), data.getA().tree().iterator(), filterFactory );
 							final RealPointSampleList<DoubleType> filteredB =
 									Filters.filter( data.getB().tree(), data.getB().tree().iterator(), filterFactory );
-	
+
 							final RealCursor<DoubleType> iAFilt = filteredA.cursor();
 							data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
-	
 							final RealCursor<DoubleType> iBFilt = filteredB.cursor();
-							data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );
+							data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );*/
 						});
 					}
 
-					/*
-					if ( currentActiveValues[ 0 ] ) // single spot filter
-					{
-						stimcard.sourceData().forEach( (gene,data) ->
-						{
-							final RealPointSampleList<DoubleType> filteredA =
-									Filters.filter( data.getA().tree(), data.getA().tree().iterator(), new SingleSpotRemovingFilterFactory<>( new DoubleType( 0 ), stimcard.medianDistance() * currentRadiusValues[ 0 ] ) );
-							final RealPointSampleList<DoubleType> filteredB =
-									Filters.filter( data.getB().tree(), data.getB().tree().iterator(), new SingleSpotRemovingFilterFactory<>( new DoubleType( 0 ), stimcard.medianDistance() * currentRadiusValues[ 0 ] ) );
-
-							final RealCursor<DoubleType> iAFilt = filteredA.cursor();
-							data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
-
-							final RealCursor<DoubleType> iBFilt = filteredB.cursor();
-							data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );
-						} );
-					}
-
-					if ( currentActiveValues[ 1 ] ) // median filter
-					{
-						stimcard.sourceData().forEach( (gene,data) ->
-						{
-							final RealPointSampleList<DoubleType> filteredA =
-									Filters.filter( data.getA().tree(), data.getA().tree().iterator(), new MedianFilterFactory<>( new DoubleType( 0 ), stimcard.medianDistance() * currentRadiusValues[ 1 ] ) );
-							final RealPointSampleList<DoubleType> filteredB =
-									Filters.filter( data.getB().tree(), data.getB().tree().iterator(), new MedianFilterFactory<>( new DoubleType( 0 ), stimcard.medianDistance() * currentRadiusValues[ 1 ] ) );
-
-							final RealCursor<DoubleType> iAFilt = filteredA.cursor();
-							data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
-
-							final RealCursor<DoubleType> iBFilt = filteredB.cursor();
-							data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );
-						} );
-					}
-
-					if ( currentActiveValues[ 2 ] ) // Gaussian filter
-					{
-						stimcard.sourceData().forEach( (gene,data) ->
-						{
-							final RealPointSampleList<DoubleType> filteredA =
-									Filters.filter( data.getA().tree(), data.getA().tree().iterator(), new GaussianFilterFactory<>( new DoubleType( 0 ), stimcard.medianDistance() * currentRadiusValues[ 2] ) );
-							final RealPointSampleList<DoubleType> filteredB =
-									Filters.filter( data.getB().tree(), data.getB().tree().iterator(), new GaussianFilterFactory<>( new DoubleType( 0 ), stimcard.medianDistance() * currentRadiusValues[ 2 ] ) );
-
-							final RealCursor<DoubleType> iAFilt = filteredA.cursor();
-							data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
-
-							final RealCursor<DoubleType> iBFilt = filteredB.cursor();
-							data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );
-						} );
-					}
-
-					if ( currentActiveValues[ 3 ] ) // Mean filter
-					{
-						stimcard.sourceData().forEach( (gene,data) ->
-						{
-							final RealPointSampleList<DoubleType> filteredA =
-									Filters.filter( data.getA().tree(), data.getA().tree().iterator(), new MeanFilterFactory<>( new DoubleType( 0 ), stimcard.medianDistance() * currentRadiusValues[ 3 ] ) );
-							final RealPointSampleList<DoubleType> filteredB =
-									Filters.filter( data.getB().tree(), data.getB().tree().iterator(), new MeanFilterFactory<>( new DoubleType( 0 ), stimcard.medianDistance() * currentRadiusValues[ 3 ] ) );
-
-							final RealCursor<DoubleType> iAFilt = filteredA.cursor();
-							data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
-
-							final RealCursor<DoubleType> iBFilt = filteredB.cursor();
-							data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );
-						} );
-					}
-					*/
 					stimcard.bdvhandle().getViewerPanel().requestRepaint();
 
 					table.setForeground( Color.black );
