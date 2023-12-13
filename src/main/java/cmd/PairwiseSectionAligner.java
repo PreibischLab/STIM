@@ -17,12 +17,15 @@ import align.Pairwise;
 import align.PairwiseSIFT;
 import align.SIFTParam;
 import align.SiftMatch;
+import cmd.InteractiveAlignment.AddedGene.Rendering;
 import align.SIFTParam.SIFTPreset;
 import data.STData;
+import filter.FilterFactory;
 import gui.STDataAssembly;
 import ij.ImageJ;
 import io.SpatialDataContainer;
 import mpicbg.models.RigidModel2D;
+import net.imglib2.type.numeric.real.DoubleType;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -239,7 +242,8 @@ public class PairwiseSectionAligner implements Callable<Void> {
 				final SIFTParam p = new SIFTParam();
 				p.setIntrinsicParameters( SIFTPreset.VERYTHOROUGH );
 				// TODO: set all parameters
-				p.setDatasetParameters(maxEpsilon, scale, 1024, null, smoothnessFactor, 0.0, 1.0); 
+				final List< FilterFactory< DoubleType, DoubleType > > filterFactories = null;
+				p.setDatasetParameters(maxEpsilon, scale, 1024, filterFactories, Rendering.Gauss, smoothnessFactor, 0.0, 1.0); 
 				p.minInliersGene = minNumInliersGene;
 				p.minInliersTotal = minNumInliers;
 

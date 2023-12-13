@@ -1,7 +1,11 @@
 package align;
 
+import java.util.List;
+
 import cmd.InteractiveAlignment.AddedGene.Rendering;
+import filter.FilterFactory;
 import mpicbg.imagefeatures.FloatArray2DSIFT;
+import net.imglib2.type.numeric.real.DoubleType;
 
 public class SIFTParam
 {
@@ -20,6 +24,7 @@ public class SIFTParam
 
 	public double scale = Double.NaN;
 	public double maxError = Double.NaN;
+	public List< FilterFactory< DoubleType, DoubleType > > filterFactories = null;
 	public Rendering rendering = null;
 	public double renderingSmoothness = Double.NaN;
 	public double brightnessMin = Double.NaN;
@@ -49,6 +54,7 @@ public class SIFTParam
 			final double maxError,
 			final double scale,
 			final int maxOctaveSize,
+			final List< FilterFactory< DoubleType, DoubleType > > filterFactories,
 			final Rendering rendering,
 			final double renderingSmoothness,
 			final double brightnessMin,
@@ -57,6 +63,7 @@ public class SIFTParam
 		this.scale = scale;
 		this.maxError = maxError;
 		this.sift.maxOctaveSize = maxOctaveSize;
+		this.filterFactories = filterFactories;
 		this.rendering = rendering;
 		this.renderingSmoothness = renderingSmoothness;
 		this.brightnessMin = brightnessMin;

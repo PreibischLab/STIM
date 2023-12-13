@@ -284,14 +284,12 @@ public class InteractiveAlignment implements Callable<Void> {
 
 		// add STIMCardAlignSIFT panel
 		final STIMCardAlignSIFT cardAlignSIFT =
-				new STIMCardAlignSIFT(
-						data1, data2, dataset1, dataset2, overlay, card, medianDistance, lastSource.getBdvHandle(), service );
+				new STIMCardAlignSIFT( dataset1, dataset2, overlay, card, cardFilter, service );
 		lastSource.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlignSIFT.getPanel(), true );
 
 		// add STIMCardAlignICP panel
 		final STIMCardAlignICP cardAlignICP =
-				new STIMCardAlignICP(
-						data1, data2, dataset1, dataset2, overlay, card, cardAlignSIFT, medianDistance, lastSource.getBdvHandle(), service );
+				new STIMCardAlignICP( dataset1, dataset2, overlay, card, cardAlignSIFT, service );
 		lastSource.getBdvHandle().getCardPanel().addCard( "ICP Alignment", "ICP Alignment", cardAlignICP.getPanel(), false );
 
 		// Expands the split Panel (after waiting 2 secs for the BDV to calm down)

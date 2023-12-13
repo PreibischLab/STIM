@@ -33,13 +33,11 @@ import align.SIFTParam;
 import align.SIFTParam.SIFTPreset;
 import align.SiftMatch;
 import bdv.tools.transformation.TransformedSource;
-import bdv.util.BdvHandle;
 import bdv.viewer.SynchronizedViewerState;
 import cmd.InteractiveAlignment.AddedGene;
 import data.STData;
 import data.STDataUtils;
 import gui.DisplayScaleOverlay;
-import gui.STDataAssembly;
 import gui.overlay.SIFTOverlay;
 import mpicbg.models.Affine2D;
 import mpicbg.models.AffineModel2D;
@@ -62,7 +60,8 @@ public class STIMCardAlignSIFT
 	private final JPanel panel;
 	private final SIFTOverlay siftoverlay;
 	private final DisplayScaleOverlay overlay;
-	private final STDataAssembly data1, data2;
+	private final STIMCard stimcard;
+	private final STIMCardFilter stimcardFilter;
 	private final JFormattedTextField maxOS;
 
 	final SIFTParam param;
@@ -80,14 +79,11 @@ public class STIMCardAlignSIFT
 	final static String optionsModelReg[] = { "No Reg.", "Transl.", "Rigid", "Simil.", "Affine" };
 
 	public STIMCardAlignSIFT(
-			final STDataAssembly data1,
-			final STDataAssembly data2,
 			final String dataset1,
 			final String dataset2,
 			final DisplayScaleOverlay overlay,
 			final STIMCard stimcard,
-			final double medianDistance,
-			final BdvHandle bdvhandle,
+			final STIMCardFilter stimcardFilter,
 			final ExecutorService service )
 	{
 		// setup initial parameters
@@ -95,14 +91,14 @@ public class STIMCardAlignSIFT
 		this.param = new SIFTParam();
 		this.param.setIntrinsicParameters( SIFTPreset.values()[ initSIFTPreset ] );
 
-		final Interval interval = STDataUtils.getCommonInterval( data1.data(), data2.data() );
+		final Interval interval = STDataUtils.getCommonInterval( stimcard.data1().data(), stimcard.data2().data() );
 		this.param.maxError = Math.max( interval.dimension( 0 ), interval.dimension( 1 ) ) / 20;
 		this.param.sift.maxOctaveSize = 1024; // TODO find out
 
-		this.siftoverlay = new SIFTOverlay( new ArrayList<>(), bdvhandle );
+		this.siftoverlay = new SIFTOverlay( new ArrayList<>(), stimcard.bdvhandle() );
 		this.overlay = overlay;
-		this.data1 = data1;
-		this.data2 = data2;
+		this.stimcard = stimcard;
+		this.stimcardFilter = stimcardFilter;
 		this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 5, fill", "[right][grow]", "center"));
 
 		// lists for components
@@ -333,7 +329,7 @@ public class STIMCardAlignSIFT
 		});
 
 		// transform listener for max octave size
-		bdvhandle.getViewerPanel().transformListeners().add( l -> updateMaxOctaveSize() );
+		stimcard.bdvhandle().getViewerPanel().transformListeners().add( l -> updateMaxOctaveSize() );
 
 		// advanced options listener (changes menu)
 		advancedOptions.addChangeListener( e ->
@@ -402,15 +398,15 @@ public class STIMCardAlignSIFT
 		{
 			if ( !overlayInliers.isSelected() )
 			{
-				bdvhandle.getViewerPanel().renderTransformListeners().remove( siftoverlay );
-				bdvhandle.getViewerPanel().getDisplay().overlays().remove( siftoverlay );
+				stimcard.bdvhandle().getViewerPanel().renderTransformListeners().remove( siftoverlay );
+				stimcard.bdvhandle().getViewerPanel().getDisplay().overlays().remove( siftoverlay );
 			}
 			else
 			{
-				bdvhandle.getViewerPanel().renderTransformListeners().add( siftoverlay );
-				bdvhandle.getViewerPanel().getDisplay().overlays().add( siftoverlay );
+				stimcard.bdvhandle().getViewerPanel().renderTransformListeners().add( siftoverlay );
+				stimcard.bdvhandle().getViewerPanel().getDisplay().overlays().add( siftoverlay );
 			}
-			bdvhandle.getViewerPanel().requestRepaint();
+			stimcard.bdvhandle().getViewerPanel().requestRepaint();
 		});
 
 		// make sure inliers are rounded
@@ -448,8 +444,8 @@ public class STIMCardAlignSIFT
 		run.addActionListener( l ->
 		{
 			siftoverlay.setInliers( new ArrayList<>() );
-			bdvhandle.getViewerPanel().renderTransformListeners().remove( siftoverlay );
-			bdvhandle.getViewerPanel().getDisplay().overlays().remove( siftoverlay );
+			stimcard.bdvhandle().getViewerPanel().renderTransformListeners().remove( siftoverlay );
+			stimcard.bdvhandle().getViewerPanel().getDisplay().overlays().remove( siftoverlay );
 			run.setEnabled( false );
 			cmdLine.setEnabled( false );
 			overlayInliers.setEnabled( false );
@@ -457,7 +453,7 @@ public class STIMCardAlignSIFT
 
 			new Thread( () ->
 			{
-				final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
+				final SynchronizedViewerState state = stimcard.bdvhandle().getViewerPanel().state();
 				AddedGene.updateRemainingSources( state, stimcard.geneToBDVSource(), stimcard.sourceData() );
 
 				final double lambda1 = Double.parseDouble( tfRANSAC.getText().trim() );
@@ -480,6 +476,7 @@ public class STIMCardAlignSIFT
 						maxErrorSlider.getValue().getValue(),
 						overlay.currentScale(),
 						(int)Integer.parseInt( maxOS.getText().trim() ),
+						stimcardFilter.filterFactories(),
 						stimcard.currentRendering(), stimcard.currentSigma(), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
 
 				final Model model1 = getModelFor( boxModelRANSAC1.getSelectedIndex(), boxModelRANSAC2.getSelectedIndex(), lambda1 );
@@ -496,7 +493,7 @@ public class STIMCardAlignSIFT
 				final double[] progressBarValue = new double[] { 1.0 };
 				
 				final SiftMatch match = PairwiseSIFT.pairwiseSIFT(
-						data1.data(), dataset1, data2.data(), dataset2,
+						stimcard.data1().data(), dataset1, stimcard.data2().data(), dataset2,
 						(Affine2D & Model)model1, (Affine2D & Model)model1,
 						new ArrayList<>( stimcard.geneToBDVSource().keySet() ),
 						param,
@@ -578,7 +575,7 @@ public class STIMCardAlignSIFT
 				bar.setValue( 100 );
 				cmdLine.setEnabled( true );
 				run.setEnabled( true );
-				bdvhandle.getViewerPanel().requestRepaint();
+				stimcard.bdvhandle().getViewerPanel().requestRepaint();
 			}).start();
 
 		});
@@ -590,25 +587,6 @@ public class STIMCardAlignSIFT
 		{
 			// TODO ...
 		});
-
-
-		/*
-		final BoundedValuePanel sigmaSlider = new BoundedValuePanel(new BoundedValue(0, Math.max( 2.50, currentSigma * 1.5 ), currentSigma ));
-		sigmaSlider.setBorder(null);
-		final JLabel sigmaLabel = new JLabel("sigma (-sf)");
-		panel.add(sigmaLabel, "aligny baseline");
-		panel.add(sigmaSlider, "growx, wrap");
-		//panel.add
-		//final MinSigmaEditor minSigmaEditor = new MinSigmaEditor(minSigmaLabel, minSigmaSlider, editor.getModel());
-
-		sigmaSlider.changeListeners().add( () -> {
-			gaussFactory.setSigma( sigmaSlider.getValue().getValue() * medianDistance);
-			bdvhandle.getViewerPanel().requestRepaint();
-		} );
-
-		final JPopupMenu menu = new JPopupMenu();
-		menu.add(runnableItem("set bounds ...", sigmaSlider::setBoundsDialog));
-		sigmaSlider.setPopup(() -> menu);*/
 	}
 
 	public Affine2D<?> currentModel() { return model; }
@@ -619,7 +597,7 @@ public class STIMCardAlignSIFT
 
 	public void updateMaxOctaveSize()
 	{
-		maxOS.setValue( this.param.sift.maxOctaveSize = getMaxOctaveSize( data1.data(), data2.data(), overlay.currentScale() ) );
+		maxOS.setValue( this.param.sift.maxOctaveSize = getMaxOctaveSize( stimcard.data1().data(), stimcard.data2().data(), overlay.currentScale() ) );
 	}
 
 	protected int getMaxOctaveSize( final STData data1, final STData data2, final double scale )

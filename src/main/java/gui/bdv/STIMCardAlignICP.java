@@ -19,28 +19,19 @@ import javax.swing.SwingConstants;
 
 import align.AlignTools;
 import align.ICPAlign;
-import align.PairwiseSIFT;
-import align.PointST;
-import align.SiftMatch;
 import bdv.tools.transformation.TransformedSource;
-import bdv.util.BdvHandle;
 import bdv.viewer.SynchronizedViewerState;
 import cmd.InteractiveAlignment.AddedGene;
 import data.STDataUtils;
 import gui.DisplayScaleOverlay;
-import gui.STDataAssembly;
 import gui.overlay.SIFTOverlay;
 import mpicbg.models.Affine2D;
-import mpicbg.models.AffineModel2D;
 import mpicbg.models.CoordinateTransform;
 import mpicbg.models.IllDefinedDataPointsException;
-import mpicbg.models.InterpolatedAffineModel2D;
 import mpicbg.models.Model;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
-import mpicbg.models.RigidModel2D;
-import mpicbg.models.Tile;
 import net.imglib2.Interval;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.realtransform.AffineTransform3D;
@@ -71,28 +62,26 @@ public class STIMCardAlignICP
 
 	private final ICPParams param;
 	private final JPanel panel;
-	private final STDataAssembly data1, data2;
 	private final SIFTOverlay icpoverlay;
+	private final STIMCard stimcard;
+	private final STIMCardAlignSIFT stimcardSIFT;
 
 	public STIMCardAlignICP(
-			final STDataAssembly data1,
-			final STDataAssembly data2,
 			final String dataset1,
 			final String dataset2,
 			final DisplayScaleOverlay overlay,
 			final STIMCard stimcard,
 			final STIMCardAlignSIFT stimcardSIFT,
-			final double medianDistance,
-			final BdvHandle bdvhandle,
 			final ExecutorService service )
 	{
-		this.data1 = data1;
-		this.data2 = data2;
+		this.stimcard = stimcard;
+		this.stimcardSIFT = stimcardSIFT;
 
 		this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 5, fill", "[right][grow]", "center"));
-		this.icpoverlay = new SIFTOverlay( new ArrayList<>(), bdvhandle );
+		this.icpoverlay = new SIFTOverlay( new ArrayList<>(), stimcard.bdvhandle() );
 		this.param = new ICPParams();
-		final Interval interval = STDataUtils.getCommonInterval( data1.data(), data2.data() );
+
+		final Interval interval = STDataUtils.getCommonInterval( stimcard.data1().data(), stimcard.data2().data() );
 		this.param.maxErrorICP = Math.max( interval.dimension( 0 ), interval.dimension( 1 ) ) / 20;
 		this.param.maxErrorRANSAC = this.param.maxErrorICP / 2.0;
 
@@ -185,15 +174,15 @@ public class STIMCardAlignICP
 		{
 			if ( !overlayInliers.isSelected() )
 			{
-				bdvhandle.getViewerPanel().renderTransformListeners().remove( icpoverlay );
-				bdvhandle.getViewerPanel().getDisplay().overlays().remove( icpoverlay );
+				stimcard.bdvhandle().getViewerPanel().renderTransformListeners().remove( icpoverlay );
+				stimcard.bdvhandle().getViewerPanel().getDisplay().overlays().remove( icpoverlay );
 			}
 			else
 			{
-				bdvhandle.getViewerPanel().renderTransformListeners().add( icpoverlay );
-				bdvhandle.getViewerPanel().getDisplay().overlays().add( icpoverlay );
+				stimcard.bdvhandle().getViewerPanel().renderTransformListeners().add( icpoverlay );
+				stimcard.bdvhandle().getViewerPanel().getDisplay().overlays().add( icpoverlay );
 			}
-			bdvhandle.getViewerPanel().requestRepaint();
+			stimcard.bdvhandle().getViewerPanel().requestRepaint();
 		});
 
 		//
@@ -202,8 +191,8 @@ public class STIMCardAlignICP
 		run.addActionListener( l ->
 		{
 			icpoverlay.setInliers( new ArrayList<>() );
-			bdvhandle.getViewerPanel().renderTransformListeners().remove( icpoverlay );
-			bdvhandle.getViewerPanel().getDisplay().overlays().remove( icpoverlay );
+			stimcard.bdvhandle().getViewerPanel().renderTransformListeners().remove( icpoverlay );
+			stimcard.bdvhandle().getViewerPanel().getDisplay().overlays().remove( icpoverlay );
 			run.setEnabled( false );
 			cmdLine.setEnabled( false );
 			overlayInliers.setEnabled( false );
@@ -214,7 +203,7 @@ public class STIMCardAlignICP
 			// TODO: show other filters in STIMCard (needs KDTree direct update)
 			new Thread( () ->
 			{
-				final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
+				final SynchronizedViewerState state = stimcard.bdvhandle().getViewerPanel().state();
 				AddedGene.updateRemainingSources( state, stimcard.geneToBDVSource(), stimcard.sourceData() );
 
 				final double lambda = Double.parseDouble( tfFinal.getText().trim() );
@@ -243,7 +232,7 @@ public class STIMCardAlignICP
 				fit( model, currentModel, interval.dimension( 0 ), interval.dimension( 1 ), 8 );
 
 				final Pair< Model, List< PointMatch > > icpT =
-						ICPAlign.alignICP( data1.data(), data2.data(), genes, model, param.maxErrorICP, param.maxErrorRANSAC, param.maxIterations );
+						ICPAlign.alignICP( stimcard.data1().data(), stimcard.data2().data(), genes, model, param.maxErrorICP, param.maxErrorRANSAC, param.maxIterations );
 
 				// 
 				// apply transformations
@@ -295,7 +284,7 @@ public class STIMCardAlignICP
 				bar.setValue( 100 );
 				cmdLine.setEnabled( true );
 				run.setEnabled( true );
-				bdvhandle.getViewerPanel().requestRepaint();
+				stimcard.bdvhandle().getViewerPanel().requestRepaint();
 			}).start();
 
 		});

@@ -7,6 +7,7 @@ import cmd.InteractiveAlignment.AddedGene.Rendering;
 import data.STData;
 import data.STDataStatistics;
 import data.STDataUtils;
+import filter.FilterFactory;
 import filter.Filters;
 import filter.GaussianFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
@@ -53,6 +54,7 @@ public class AlignTools
 			final Interval renderInterval,
 			final AffineTransform2D transform,
 			final AffineGet intensityTransform,
+			final List< FilterFactory< DoubleType, DoubleType > > filterFactories,
 			final Rendering renderType,
 			final double smoothnessFactor )
 	{
@@ -101,10 +103,15 @@ public class AlignTools
 
 		//data = TransformCoordinates.sample( data, stStats.getMedianDistance() );
 
+		// filter the iterable
+		if ( filterFactories != null )
+			for ( final FilterFactory<DoubleType, DoubleType> filterFactory : filterFactories )
+				data = Filters.filter( data, filterFactory );
+
 		//data = Filters.filter( data, new DensityFilterFactory<>( new DoubleType(), medianDistance ) );
 		//data = Filters.filter( data, new MeanFilterFactory<>( outofbounds, medianDistance * 10 ) );
 		//data = Filters.filter( data, new GaussianFilterFactory<>( outofbounds, stStats.getMedianDistance() * 2, WeightType.BY_SUM_OF_WEIGHTS ) );
-		data = Filters.filter( data, new SingleSpotRemovingFilterFactory<>( outofbounds, stStats.getMedianDistance() * 1.5 ) );
+		//data = Filters.filter( data, new SingleSpotRemovingFilterFactory<>( outofbounds, stStats.getMedianDistance() * 1.5 ) );
 		//data = Filters.filter( data, new MedianFilterFactory<>( outofbounds, stStats.getMedianDistance() ) );
 
 		//final Pair< DoubleType, DoubleType > minmax = ImgLib2Util.minmax( data );
@@ -187,8 +194,8 @@ public class AlignTools
 
 		final ImageStack stack = new ImageStack( (int)finalInterval.dimension( 0 ), (int)finalInterval.dimension( 1 ) );
 
-		final RandomAccessibleInterval<DoubleType> visA = display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tA, null, rendering, smoothnessFactor );
-		final RandomAccessibleInterval<DoubleType> visB = display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tB, null, rendering, smoothnessFactor );
+		final RandomAccessibleInterval<DoubleType> visA = display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tA, null, null, rendering, smoothnessFactor );
+		final RandomAccessibleInterval<DoubleType> visB = display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tB, null, null, rendering, smoothnessFactor );
 
 		stack.addSlice(stDataA.toString(), ImageJFunctions.wrapFloat( visA, new RealFloatConverter<>(), stDataA.toString(), null ).getProcessor());
 		stack.addSlice(stDataB.toString(), ImageJFunctions.wrapFloat( visB, new RealFloatConverter<>(), stDataB.toString(), null ).getProcessor());
@@ -254,7 +261,7 @@ public class AlignTools
 			tA.preConcatenate( tS );
 			final AffineGet iT = ( intensityTransforms == null || intensityTransforms.size() == 0 ) ? null : intensityTransforms.get( i );
 
-			final RandomAccessibleInterval<DoubleType> vis = display( stdata, new STDataStatistics( stdata ), gene, finalInterval, tA, iT, rendering, smoothnessFactor );
+			final RandomAccessibleInterval<DoubleType> vis = display( stdata, new STDataStatistics( stdata ), gene, finalInterval, tA, iT, null, rendering, smoothnessFactor );
 
 			stack.addSlice( stdata.toString(), ImageJFunctions.wrapFloat( vis, new RealFloatConverter<>(), stdata.toString(), null ).getProcessor());
 		}

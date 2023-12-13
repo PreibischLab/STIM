@@ -439,7 +439,7 @@ public class Pairwise
 		final ArrayList< Pair< PhaseCorrelationPeak2, Double > > topPeaks = new ArrayList<>();
 
 		final RandomAccessibleInterval< DoubleType > imgA = ImgLib2Util.copyImg(
-				AlignTools.display( stdataA, statA, gene, ImgLib2Util.transformInterval( interval, scalingTransform ), scalingTransform, null, Rendering.Gauss,AlignTools.defaultSmoothnessFactor ), new ArrayImgFactory<>( new DoubleType() ), service );
+				AlignTools.display( stdataA, statA, gene, ImgLib2Util.transformInterval( interval, scalingTransform ), scalingTransform, null, null, Rendering.Gauss, AlignTools.defaultSmoothnessFactor ), new ArrayImgFactory<>( new DoubleType() ), service );
 
 		// initial scouting
 		//System.out.println( "Scouting: " + gene );
@@ -450,7 +450,7 @@ public class Pairwise
 			transformB.rotate( Math.toRadians( deg ) );
 
 			final RandomAccessibleInterval< DoubleType > imgB = ImgLib2Util.copyImg(
-					AlignTools.display( stdataB, statB, gene, ImgLib2Util.transformInterval( interval, transformB ), transformB, null, Rendering.Gauss, AlignTools.defaultSmoothnessFactor ), new ArrayImgFactory<>( new DoubleType() ), service );
+					AlignTools.display( stdataB, statB, gene, ImgLib2Util.transformInterval( interval, transformB ), transformB, null, null, Rendering.Gauss, AlignTools.defaultSmoothnessFactor ), new ArrayImgFactory<>( new DoubleType() ), service );
 
 			final PhaseCorrelationPeak2 shiftPeak = testPair( Views.zeroMin( imgA ), Views.zeroMin( imgB ), nHighest, service );
 			insertIntoList( topPeaks, topN, shiftPeak, deg );
@@ -482,7 +482,7 @@ public class Pairwise
 					transformB.rotate( Math.toRadians( deg + step ) );
 
 					PhaseCorrelationPeak2 shiftPeak = testPair( imgA, Views.zeroMin(
-							AlignTools.display( stdataB, statB, gene, ImgLib2Util.transformInterval( interval, transformB ), transformB, null, Rendering.Gauss, AlignTools.defaultSmoothnessFactor ) ), nHighest, service );
+							AlignTools.display( stdataB, statB, gene, ImgLib2Util.transformInterval( interval, transformB ), transformB, null, null, Rendering.Gauss, AlignTools.defaultSmoothnessFactor ) ), nHighest, service );
 
 					if ( shiftPeak.getCrossCorr() > bestPeak.getA().getCrossCorr() )
 					{
@@ -496,7 +496,7 @@ public class Pairwise
 					transformB.rotate( Math.toRadians( deg - step ) );
 
 					shiftPeak = testPair( imgA, Views.zeroMin(
-							AlignTools.display( stdataB, statB, gene, ImgLib2Util.transformInterval( interval, transformB ), transformB, null, Rendering.Gauss, AlignTools.defaultSmoothnessFactor ) ), nHighest, service );
+							AlignTools.display( stdataB, statB, gene, ImgLib2Util.transformInterval( interval, transformB ), transformB, null, null, Rendering.Gauss, AlignTools.defaultSmoothnessFactor ) ), nHighest, service );
 
 					if ( shiftPeak.getCrossCorr() > bestPeak.getA().getCrossCorr() )
 					{
@@ -638,9 +638,9 @@ public class Pairwise
 		
 				new ImageJ();
 		
-				ImageJFunctions.show( AlignTools.display( stDataA, new STDataStatistics( stDataA ), "Calm1", finalInterval, tA, null, Rendering.Gauss, AlignTools.defaultSmoothnessFactor ) );
-				ImageJFunctions.show( AlignTools.display( stDataB, new STDataStatistics( stDataB ), "Calm1", finalInterval, tB_PCM, null, Rendering.Gauss, AlignTools.defaultSmoothnessFactor ) ).setTitle( "Calm1-PCM" );
-				ImageJFunctions.show( AlignTools.display( stDataB, new STDataStatistics( stDataB ), "Calm1", finalInterval, tB_ICP, null, Rendering.Gauss, AlignTools.defaultSmoothnessFactor ) ).setTitle( "Calm1-ICP" );
+				ImageJFunctions.show( AlignTools.display( stDataA, new STDataStatistics( stDataA ), "Calm1", finalInterval, tA, null, null, Rendering.Gauss, AlignTools.defaultSmoothnessFactor ) );
+				ImageJFunctions.show( AlignTools.display( stDataB, new STDataStatistics( stDataB ), "Calm1", finalInterval, tB_PCM, null, null, Rendering.Gauss, AlignTools.defaultSmoothnessFactor ) ).setTitle( "Calm1-PCM" );
+				ImageJFunctions.show( AlignTools.display( stDataB, new STDataStatistics( stDataB ), "Calm1", finalInterval, tB_ICP, null, null, Rendering.Gauss, AlignTools.defaultSmoothnessFactor ) ).setTitle( "Calm1-ICP" );
 			}
 		}
 		service.shutdown();

@@ -16,6 +16,7 @@ import org.joml.Math;
 
 import align.SIFTParam.SIFTPreset;
 import cmd.InteractiveAlignment.AddedGene;
+import cmd.InteractiveAlignment.AddedGene.Rendering;
 import data.STData;
 import data.STDataStatistics;
 import data.STDataUtils;
@@ -44,6 +45,7 @@ import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Intervals;
+import render.Render;
 import util.Threads;
 
 public class PairwiseSIFT
@@ -246,6 +248,8 @@ public class PairwiseSIFT
 
 		final double progressPerGene = 90.0 / genesToTest.size();
 
+		new ImageJ();
+
 		//for ( int threadNum = 0; threadNum < numThreads; ++threadNum )
 		for ( int nextGene = 0; nextGene < genesToTest.size(); ++nextGene )
 		{
@@ -265,9 +269,9 @@ public class PairwiseSIFT
 					final double maxDisplay = AddedGene.getDisplayMax( minmax[ 1 ], p.brightnessMax );
 
 					final RandomAccessibleInterval<DoubleType> imgA =
-							AlignTools.display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tS, null, p.rendering, p.renderingSmoothness );
+							AlignTools.display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tS, null, p.filterFactories, p.rendering, p.renderingSmoothness );
 					final RandomAccessibleInterval<DoubleType> imgB =
-							AlignTools.display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tS, null, p.rendering, p.renderingSmoothness );
+							AlignTools.display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tS, null, p.filterFactories, p.rendering, p.renderingSmoothness );
 
 					final ImagePlus impA = ImageJFunctions.wrapFloat( imgA, new RealFloatConverter<>(), "A_" + gene);
 					final ImagePlus impB = ImageJFunctions.wrapFloat( imgB, new RealFloatConverter<>(), "B_" + gene );
@@ -278,8 +282,8 @@ public class PairwiseSIFT
 					impA.setDisplayRange(minDisplay, maxDisplay);
 					impB.setDisplayRange(minDisplay, maxDisplay);
 
-					//impA.show();
-					//impB.show();
+					impA.show();
+					impB.show();
 
 					progressBar.accept( progressPerGene / 4.0 );
 
@@ -515,7 +519,7 @@ public class PairwiseSIFT
 		p.setIntrinsicParameters( SIFTPreset.VERYTHOROUGH );
 		p.minInliersGene = 10;
 		p.minInliersTotal = 12;
-		p.setDatasetParameters( 300, 0.1, 1024, null, smoothnessFactor, 0.0, 1.0 );
+		p.setDatasetParameters( 300, 0.1, 1024, null, Rendering.Gauss, smoothnessFactor, 0.0, 1.0 );
 		final boolean saveResult = true;
 		final boolean visualizeResult = true;
 

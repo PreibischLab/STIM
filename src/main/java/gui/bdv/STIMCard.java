@@ -1,13 +1,10 @@
 package gui.bdv;
 
 import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
 import java.awt.Font;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 
 import javax.swing.BorderFactory;
@@ -17,10 +14,6 @@ import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.table.AbstractTableModel;
-import javax.swing.table.DefaultTableCellRenderer;
 
 import bdv.util.BdvHandle;
 import bdv.viewer.DisplayMode;
@@ -29,18 +22,9 @@ import bdv.viewer.SourceGroup;
 import bdv.viewer.SynchronizedViewerState;
 import cmd.InteractiveAlignment.AddedGene;
 import cmd.InteractiveAlignment.AddedGene.Rendering;
-import filter.Filters;
-import filter.GaussianFilterFactory;
-import filter.MeanFilterFactory;
-import filter.MedianFilterFactory;
-import filter.SingleSpotRemovingFilterFactory;
 import gui.STDataAssembly;
 import gui.geneselection.GeneSelectionExplorer;
-import net.imglib2.RealCursor;
-import net.imglib2.RealPointSampleList;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.type.numeric.ARGBType;
-import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.miginfocom.swing.MigLayout;
@@ -124,10 +108,6 @@ public class STIMCard
 		brightnessLabelMax.setFont( font );
 		panel.add(brightnessLabelMax, "aligny baseline");
 		panel.add(brightnessSliderMax, "growx, wrap");
-
-		// Initializing the JTable
-		final Component tablePanel = setupTable();
-		//panel.add( tablePanel, "span,growx,pushy");
 
 		// rendering listener
 		box.addActionListener( e -> {
@@ -343,209 +323,5 @@ public class STIMCard
 		final JMenuItem item = new JMenuItem(text);
 		item.addActionListener(e -> action.run());
 		return item;
-	}
-
-	protected Component setupTable()
-	{
-		final JTable table = new JTable();
-		table.setModel( new FilterTableModel( table ) );
-		table.setPreferredScrollableViewportSize(new Dimension(260, 65));
-		table.setBorder( BorderFactory.createEmptyBorder(0, 0, 0, 10));
-		table.getColumnModel().getColumn(0).setPreferredWidth(40);
-		table.getColumnModel().getColumn(1).setPreferredWidth(260-40-50);
-		table.getColumnModel().getColumn(2).setPreferredWidth(50);
-
-		table.setRowSelectionAllowed(false);
-
-		final DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
-		centerRenderer.setHorizontalAlignment( JLabel.CENTER );
-		table.getColumnModel().getColumn(2).setCellRenderer( centerRenderer );
-
-		table.getModel().addTableModelListener( e -> System.out.println( e ) );
-		// adding it to JScrollPane
-		final JScrollPane sp = new JScrollPane(table);
-		final JPanel extraPanel2 = new JPanel();
-		extraPanel2.setBorder( BorderFactory.createEmptyBorder(0, 0, 0, 15));
-		extraPanel2.add( sp );
-
-		return extraPanel2;
-	}
-
-	protected class FilterTableModel extends AbstractTableModel
-	{
-		private static final long serialVersionUID = -8220316170021615088L;
-
-		boolean[] currentActiveValues = { false, false, false, false };
-		double[] currentRadiusValues = { 1.5, 5.0, 5.0, 5.0 };
-
-		boolean isEditable = true;
-
-		final JTable table;
-		final double medianDistance;
-
-		final Object[][] filters = {
-				{ false, "Single Spot Removing Filter", 1.5 },
-				{ false, "Median Filter", 2.0 },
-				{ false, "Gaussian Filter", 2.0 },
-				{ false, "Mean/Avg Filter", 3.5 } };
-
-		final String[] columnNames = { "Active", "Filter type", "Radius" };
-
-		public FilterTableModel( final JTable table )
-		{
-			this.table = table;
-			this.medianDistance = (data1.statistics().getMedianDistance() + data2.statistics().getMedianDistance()) / 2.0;
-		}
-
-		@Override
-		public boolean isCellEditable( final int row, final int column )
-		{
-			return isEditable && (column == 0 || column == 2);
-		}
-
-		@Override
-		public void setValueAt( final Object value, final int row, final int column )
-		{
-			filters[row][column] = value;
-
-			boolean changed = false;
-			for ( int r = 0; r < getRowCount(); ++r )
-			{
-				if ( currentActiveValues[ r ] != (boolean)filters[ r ][ 0 ] )
-				{
-					changed = true;
-					currentActiveValues[ r ] = (boolean)filters[ r ][ 0 ];
-				}
-
-				if ( currentRadiusValues[ r ] != (double)filters[ r ][ 2 ] )
-				{
-					changed = true;
-					currentRadiusValues[ r ] = (double)filters[ r ][ 2 ];
-				}
-			}
-
-			if ( changed )
-			{
-				isEditable = false;
-
-				new Thread( () ->
-				{
-					table.setForeground( Color.lightGray );
-
-					// replace original values first
-					sourceData.forEach( (gene,data) ->
-					{
-						final Iterator<Double> iAFilt = data.getA().originalValues().iterator();
-						data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
-
-						final Iterator<Double> iBFilt = data.getB().originalValues().iterator();
-						data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );
-					} );
-
-					if ( currentActiveValues[ 0 ] ) // single spot filter
-					{
-						sourceData.forEach( (gene,data) ->
-						{
-							final RealPointSampleList<DoubleType> filteredA =
-									Filters.filter( data1.data().getExprData( gene ), data.getA().tree().iterator(), new SingleSpotRemovingFilterFactory<>( new DoubleType( 0 ), medianDistance * currentRadiusValues[ 0 ] ) );
-							final RealPointSampleList<DoubleType> filteredB =
-									Filters.filter( data2.data().getExprData( gene ), data.getB().tree().iterator(), new SingleSpotRemovingFilterFactory<>( new DoubleType( 0 ), medianDistance * currentRadiusValues[ 0 ] ) );
-
-							final RealCursor<DoubleType> iAFilt = filteredA.cursor();
-							data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
-
-							final RealCursor<DoubleType> iBFilt = filteredB.cursor();
-							data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );
-						} );
-					}
-
-					if ( currentActiveValues[ 1 ] ) // median filter
-					{
-						sourceData.forEach( (gene,data) ->
-						{
-							final RealPointSampleList<DoubleType> filteredA =
-									Filters.filter( data1.data().getExprData( gene ), data.getA().tree().iterator(), new MedianFilterFactory<>( new DoubleType( 0 ), medianDistance * currentRadiusValues[ 1 ] ) );
-							final RealPointSampleList<DoubleType> filteredB =
-									Filters.filter( data2.data().getExprData( gene ), data.getB().tree().iterator(), new MedianFilterFactory<>( new DoubleType( 0 ), medianDistance * currentRadiusValues[ 1 ] ) );
-
-							final RealCursor<DoubleType> iAFilt = filteredA.cursor();
-							data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
-
-							final RealCursor<DoubleType> iBFilt = filteredB.cursor();
-							data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );
-						} );
-					}
-
-					if ( currentActiveValues[ 2 ] ) // Gaussian filter
-					{
-						sourceData.forEach( (gene,data) ->
-						{
-							final RealPointSampleList<DoubleType> filteredA =
-									Filters.filter( data1.data().getExprData( gene ), data.getA().tree().iterator(), new GaussianFilterFactory<>( new DoubleType( 0 ), medianDistance * currentRadiusValues[ 2] ) );
-							final RealPointSampleList<DoubleType> filteredB =
-									Filters.filter( data2.data().getExprData( gene ), data.getB().tree().iterator(), new GaussianFilterFactory<>( new DoubleType( 0 ), medianDistance * currentRadiusValues[ 2 ] ) );
-
-							final RealCursor<DoubleType> iAFilt = filteredA.cursor();
-							data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
-
-							final RealCursor<DoubleType> iBFilt = filteredB.cursor();
-							data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );
-						} );
-					}
-
-					if ( currentActiveValues[ 3 ] ) // Mean filter
-					{
-						sourceData.forEach( (gene,data) ->
-						{
-							final RealPointSampleList<DoubleType> filteredA =
-									Filters.filter( data1.data().getExprData( gene ), data.getA().tree().iterator(), new MeanFilterFactory<>( new DoubleType( 0 ), medianDistance * currentRadiusValues[ 3 ] ) );
-							final RealPointSampleList<DoubleType> filteredB =
-									Filters.filter( data2.data().getExprData( gene ), data.getB().tree().iterator(), new MeanFilterFactory<>( new DoubleType( 0 ), medianDistance * currentRadiusValues[ 3 ] ) );
-
-							final RealCursor<DoubleType> iAFilt = filteredA.cursor();
-							data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
-
-							final RealCursor<DoubleType> iBFilt = filteredB.cursor();
-							data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );
-						} );
-					}
-
-					bdvhandle.getViewerPanel().requestRepaint();
-					System.out.println( "Filtered.");
-
-
-					//SimpleMultiThreading.threadWait( 2000 );
-					table.setForeground( Color.black );
-					isEditable = true;
-				}).start();
-			}
-		}
-
-		@Override
-		public Object getValueAt( final int row, final int column )
-		{
-			return filters[ row ][ column ];
-		}
-
-		@Override
-		public Class<?> getColumnClass( final int column)
-		{
-			if ( column == 0 )
-				return Boolean.class;
-			else if ( column == 2 )
-				return Double.class;
-			else
-				return String.class;
-		}
-
-		@Override
-		public String getColumnName( final int column ) { return columnNames[ column ]; }
-
-		@Override
-		public int getRowCount() { return filters.length; }
-
-		@Override
-		public int getColumnCount() { return filters[ 0 ].length; }
-		
 	}
 }
