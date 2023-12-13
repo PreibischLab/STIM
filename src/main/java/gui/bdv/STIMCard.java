@@ -379,9 +379,9 @@ public class STIMCard
 
 		final Object[][] filters = {
 				{ false, "Single Spot Removing Filter", 1.5 },
-				{ false, "Median Filter", 5.0 },
-				{ false, "Gaussian Filter", 2.5 },
-				{ false, "Mean/Avg Filter", 5.0 } };
+				{ false, "Median Filter", 2.0 },
+				{ false, "Gaussian Filter", 2.0 },
+				{ false, "Mean/Avg Filter", 3.5 } };
 
 		final String[] columnNames = { "Active", "Filter type", "Radius" };
 
