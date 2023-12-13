@@ -4,23 +4,21 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 
 import data.STData;
 import imglib2.icp.ICP;
-import imglib2.icp.LinkedPoint;
 import imglib2.icp.PointMatchIdentification;
 import imglib2.icp.StDataPointMatchIdentification;
 import mpicbg.models.Model;
 import mpicbg.models.PointMatch;
-import net.imglib2.KDTree;
 import net.imglib2.RealLocalizable;
 import net.imglib2.RealPoint;
 import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
-import net.imglib2.neighborsearch.RadiusNeighborSearchOnKDTree;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
-import util.Threads;
 
 public class ICPAlign
 {
@@ -34,7 +32,6 @@ public class ICPAlign
 		}
 		return sum;
 	}
-
 	/**
 	 * @param stdataA - data for A
 	 * @param stdataB - data for B
@@ -43,28 +40,7 @@ public class ICPAlign
 	 * @param maxDistance - max search radius for corresponding point
 	 * @param ransacDistance - distance for ransac, Double.NaN means no ransac
 	 * @param maxIterations - max num of ICP iterations
-	 */
-	public static < M extends Model< M >> Pair< M, List< PointMatch > > alignICP(
-			final STData stdataA,
-			final STData stdataB,
-			final Collection< String > genesToUse,
-			final M initialModel,
-			final double maxDistance,
-			final double ransacDistance,
-			final int maxIterations )
-	{
-		return alignICP(stdataA, stdataB, genesToUse, initialModel, maxDistance, ransacDistance, maxIterations, Threads.numThreads() );
-	}
-
-	/**
-	 * @param stdataA - data for A
-	 * @param stdataB - data for B
-	 * @param genesToUse - list of genes
-	 * @param initialModel - maps B to A
-	 * @param maxDistance - max search radius for corresponding point
-	 * @param ransacDistance - distance for ransac, Double.NaN means no ransac
-	 * @param maxIterations - max num of ICP iterations
-	 * @param numThreads - number threads to use
+	 * @param service - ExecutorService
 	 */
 	public static < M extends Model< M >> Pair< M, List< PointMatch > > alignICP(
 			final STData stdataA,
@@ -74,7 +50,34 @@ public class ICPAlign
 			final double maxDistance,
 			final double ransacDistance,
 			final int maxIterations,
-			final int numThreads )
+			final ExecutorService service )
+	{
+		return alignICP(stdataA, stdataB, genesToUse, initialModel, maxDistance, ransacDistance, maxIterations, v -> {}, m -> {}, service);
+	}
+	
+	/**
+	 * @param stdataA - data for A
+	 * @param stdataB - data for B
+	 * @param genesToUse - list of genes
+	 * @param initialModel - maps B to A
+	 * @param maxDistance - max search radius for corresponding point
+	 * @param ransacDistance - distance for ransac, Double.NaN means no ransac
+	 * @param maxIterations - max num of ICP iterations
+	 * @param progressBar - set the current progress
+	 * @param updateBDV - send over the current model so the preview can be updated
+	 * @param service - ExecutorService
+	 */
+	public static < M extends Model< M >> Pair< M, List< PointMatch > > alignICP(
+			final STData stdataA,
+			final STData stdataB,
+			final Collection< String > genesToUse,
+			final M initialModel,
+			final double maxDistance,
+			final double ransacDistance,
+			final int maxIterations,
+			final Consumer< Double > progressBar,
+			final Consumer< M > updateBDV,
+			final ExecutorService service )
 	{
 		final ArrayList< RealPoint > listA = new ArrayList<>(); // reference
 		final ArrayList< RealPoint > listB = new ArrayList<>(); // target
@@ -135,10 +138,14 @@ public class ICPAlign
 		final M model = initialModel.copy();
 
 		System.out.println( "Setting up Pointmatch identification: " );
-		final PointMatchIdentification< RealPoint > pmi = new StDataPointMatchIdentification<>( stdataB, stdataA, genesToUse, maxDistance, numThreads );
+		final PointMatchIdentification< RealPoint > pmi = new StDataPointMatchIdentification<>( stdataB, stdataA, genesToUse, maxDistance, service );
+
+		progressBar.accept( 3.0 );
 
 		System.out.println( "Setting up ICP" );
 		final ICP< RealPoint > icp = new ICP<>( listB, listA /* listAFiltered */, pmi, ransacDistance );
+
+		progressBar.accept( 2.0 );
 
 		int i = 0;
 		double lastAvgError = 0;
@@ -151,6 +158,7 @@ public class ICPAlign
 			try
 			{
 				icp.runICPIteration( model, model );
+				updateBDV.accept( model );
 			}
 			catch ( Exception e )
 			{

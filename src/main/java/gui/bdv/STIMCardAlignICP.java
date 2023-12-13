@@ -230,7 +230,7 @@ public class STIMCardAlignICP
 				fit( model, currentModel, interval.dimension( 0 ), interval.dimension( 1 ), 8 );
 
 				final Pair< Model, List< PointMatch > > icpT =
-						ICPAlign.alignICP( stimcard.data1().data(), stimcard.data2().data(), genes, model, param.maxErrorICP, param.maxErrorRANSAC, param.maxIterations );
+						ICPAlign.alignICP( stimcard.data1().data(), stimcard.data2().data(), genes, model, param.maxErrorICP, param.maxErrorRANSAC, param.maxIterations, service );
 
 				// 
 				// apply transformations

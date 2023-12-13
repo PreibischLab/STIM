@@ -302,9 +302,13 @@ public class GlobalOptSIFT
 
 							final double maxDistance = medianDistance * icpErrorFactor;
 
+							final ExecutorService service = Executors.newFixedThreadPool( Threads.numThreads() );
+
 							final Pair< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >, List< PointMatch > > icpT =
-									ICPAlign.alignICP(data.get(i).data(), data.get(j).data(), matches.genes, interpolated, maxDistance, maxDistance / 2.0, icpIterations);
-	
+									ICPAlign.alignICP(data.get(i).data(), data.get(j).data(), matches.genes, interpolated, maxDistance, maxDistance / 2.0, icpIterations, service );
+
+							service.shutdown();
+
 							if (!icpT.getB().isEmpty())
 							{
 								final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileA = dataToTileICP.get(data.get(i));

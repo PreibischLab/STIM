@@ -24,20 +24,14 @@ package imglib2.icp;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
-import align.AlignTools;
-import align.ICPAlign;
 import data.STData;
 import data.STDataStatistics;
 import filter.Filters;
 import filter.GaussianFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
-import ij.ImageJ;
-import imglib2.ImgLib2Util;
 import mpicbg.models.PointMatch;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.KDTree;
@@ -45,22 +39,12 @@ import net.imglib2.RealCursor;
 import net.imglib2.RealLocalizable;
 import net.imglib2.RealPoint;
 import net.imglib2.RealPointSampleList;
-import net.imglib2.RealRandomAccessible;
 import net.imglib2.converter.Converters;
-import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.multithreading.SimpleMultiThreading;
-import net.imglib2.neighborsearch.KNearestNeighborSearchOnKDTree;
 import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
 import net.imglib2.neighborsearch.RadiusNeighborSearchOnKDTree;
-import net.imglib2.realtransform.AffineTransform2D;
-import net.imglib2.realtransform.RealViews;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.util.Intervals;
 import net.imglib2.util.RealSum;
-import net.imglib2.view.Views;
-import render.Render;
-import transform.TransformCoordinates;
 import util.KDTreeUtil;
 
 public class StDataPointMatchIdentification < P extends RealLocalizable > implements PointMatchIdentification< P >
@@ -70,7 +54,6 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 	final STData stDataTarget;
 	final STData stDataReference;
 	final Collection< String > genes;
-	final int numThreads;
 
 	NearestNeighborSearchOnKDTree< DoubleType > searchTarget, searchReference;
 
@@ -78,13 +61,12 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 
 	double distanceThresold;
 
-	public StDataPointMatchIdentification( final STData stDataTarget, final STData stDataReference, final Collection< String > genes, final double distanceThreshold, final int numThreads )
+	public StDataPointMatchIdentification( final STData stDataTarget, final STData stDataReference, final Collection< String > genes, final double distanceThreshold, final ExecutorService service )
 	{
 		this.stDataTarget = stDataTarget;
 		this.stDataReference = stDataReference;
 		this.genes = genes;
 		this.distanceThresold = distanceThreshold;
-		this.numThreads = numThreads;
 
 		//this.searchTarget = new HashMap<>();
 		//this.searchReference = new HashMap<>();
@@ -102,20 +84,8 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 			IterableRealInterval<DoubleType> ref = stDataReference.getExprData( gene );
 			IterableRealInterval<DoubleType> target = stDataTarget.getExprData( gene );
 
-			if ( numThreads > 1 )
-			{
-				final ExecutorService service = Executors.newFixedThreadPool( numThreads );
-
-				ref = Filters.filter( ref, new GaussianFilterFactory<>( new DoubleType( 0 ), dist * 4, WeightType.BY_SUM_OF_WEIGHTS ), service );
-				target = Filters.filter( target, new GaussianFilterFactory<>( new DoubleType( 0 ), dist * 4, WeightType.BY_SUM_OF_WEIGHTS ), service );
-
-				service.shutdown();
-			}
-			else
-			{
-				ref = Filters.filter( ref, new GaussianFilterFactory<>( new DoubleType( 0 ), dist * 4, WeightType.BY_SUM_OF_WEIGHTS ) );
-				target = Filters.filter( target, new GaussianFilterFactory<>( new DoubleType( 0 ), dist * 4, WeightType.BY_SUM_OF_WEIGHTS ) );
-			}
+			ref = Filters.filter( ref, new GaussianFilterFactory<>( new DoubleType( 0 ), dist * 4, WeightType.BY_SUM_OF_WEIGHTS ), service );
+			target = Filters.filter( target, new GaussianFilterFactory<>( new DoubleType( 0 ), dist * 4, WeightType.BY_SUM_OF_WEIGHTS ), service );
 
 			if ( sumReference == null )
 			{
