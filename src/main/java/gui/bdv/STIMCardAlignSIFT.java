@@ -64,6 +64,9 @@ public class STIMCardAlignSIFT
 	private final STIMCardFilter stimcardFilter;
 	private final JFormattedTextField maxOS;
 
+	private Thread siftThread = null;
+	private List< Thread > threads = new ArrayList<>();
+
 	final SIFTParam param;
 	final static String optionsSIFT[] = { "Fast", "Normal", "Thorough", "Very thorough", "Custom ..." };
 	private boolean customModeSIFT = false; // we always start with "normal" for 
@@ -443,15 +446,37 @@ public class STIMCardAlignSIFT
 		//
 		run.addActionListener( l ->
 		{
+			if ( siftThread != null )
+			{
+				// request to cancel
+				siftThread.stop();
+				threads.forEach( t -> t.stop() );
+
+				// wait a bit
+				try { Thread.sleep( 1000 ); } catch (InterruptedException e1) {}
+
+				cmdLine.setEnabled( true );
+				run.setText( "Run SIFT alignment" );
+				run.setFont( run.getFont().deriveFont( Font.PLAIN ) );
+				run.setForeground( Color.black );
+				bar.setValue( 0 );
+				siftThread = null;
+				threads.clear();
+				return;
+			}
+
 			siftoverlay.setInliers( new ArrayList<>() );
 			stimcard.bdvhandle().getViewerPanel().renderTransformListeners().remove( siftoverlay );
 			stimcard.bdvhandle().getViewerPanel().getDisplay().overlays().remove( siftoverlay );
-			run.setEnabled( false );
+			//run.setEnabled( false );
+			run.setForeground( Color.red );
+			run.setFont( run.getFont().deriveFont( Font.BOLD ) );
+			run.setText( "Cancel SIFT run");
 			cmdLine.setEnabled( false );
 			overlayInliers.setEnabled( false );
 			bar.setValue( 1 );
 
-			new Thread( () ->
+			siftThread = new Thread( () ->
 			{
 				final SynchronizedViewerState state = stimcard.bdvhandle().getViewerPanel().state();
 				AddedGene.updateRemainingSources( state, stimcard.geneToBDVSource(), stimcard.sourceData() );
@@ -491,13 +516,15 @@ public class STIMCardAlignSIFT
 
 				final boolean visResult = false;
 				final double[] progressBarValue = new double[] { 1.0 };
-				
+
+				threads.clear();
+
 				final SiftMatch match = PairwiseSIFT.pairwiseSIFT(
 						stimcard.data1().data(), dataset1, stimcard.data2().data(), dataset2,
 						(Affine2D & Model)model1, (Affine2D & Model)model1,
 						new ArrayList<>( stimcard.geneToBDVSource().keySet() ),
 						param,
-						visResult, service, (v) -> {
+						visResult, service, threads, (v) -> {
 							synchronized ( this ) {
 								progressBarValue[ 0 ] += v;
 								bar.setValue( (int)Math.round( progressBarValue[ 0 ] ));
@@ -574,10 +601,15 @@ public class STIMCardAlignSIFT
 
 				bar.setValue( 100 );
 				cmdLine.setEnabled( true );
-				run.setEnabled( true );
+				//run.setEnabled( true );
+				run.setText( "Run SIFT alignment" );
+				run.setFont( run.getFont().deriveFont( Font.PLAIN ) );
+				run.setForeground( Color.black );
 				stimcard.bdvhandle().getViewerPanel().requestRepaint();
-			}).start();
+				siftThread = null;
+			});
 
+			siftThread.start();
 		});
 
 		//

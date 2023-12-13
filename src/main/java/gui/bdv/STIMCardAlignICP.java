@@ -200,7 +200,6 @@ public class STIMCardAlignICP
 
 			// TODO: update transforms as we go
 			// TODO: be able to stop alignment
-			// TODO: show other filters in STIMCard (needs KDTree direct update)
 			new Thread( () ->
 			{
 				final SynchronizedViewerState state = stimcard.bdvhandle().getViewerPanel().state();

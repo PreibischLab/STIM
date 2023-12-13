@@ -4,11 +4,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Vector;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -42,6 +44,7 @@ import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.RealFloatConverter;
 import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Intervals;
@@ -200,7 +203,7 @@ public class PairwiseSIFT
 		final SiftMatch s = pairwiseSIFT(
 				stDataA, stDataAname, stDataB, stDataBname,
 				modelPairwise, modelGlobal, genesToTest, p,
-				visualizeResult,service, v -> {} );
+				visualizeResult,service, new ArrayList<>(), v -> {} );
 
 		service.shutdown();
 
@@ -229,174 +232,145 @@ public class PairwiseSIFT
 			final SIFTParam p,
 			final boolean visualizeResult,
 			final ExecutorService service,
+			final List< Thread > threads,
 			final Consumer< Double > progressBar )
 	{
-		/*
-		final Interval interval = STDataUtils.getCommonInterval( stDataA, stDataB );
-		final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tS ), 100 );
-		*/
-
 		final AffineTransform2D tS = new AffineTransform2D();
 		tS.scale( p.scale );
 
 		final Interval finalInterval = intervalForAlignment(stDataA, stDataB, p.scale );
-
 		final List< PointMatch > allCandidates = new ArrayList<>();
-
 		final List< Callable< List< PointMatch > > > tasks = new ArrayList<>();
-		//final AtomicInteger nextGene = new AtomicInteger();
-
 		final double progressPerGene = 90.0 / genesToTest.size();
 
-		new ImageJ();
+		//new ImageJ();
 
-		//for ( int threadNum = 0; threadNum < numThreads; ++threadNum )
 		for ( int nextGene = 0; nextGene < genesToTest.size(); ++nextGene )
 		{
 			final int g = nextGene;
 
 			tasks.add( () ->
 			{
+				synchronized ( threads ) { threads.add( Thread.currentThread() ); }
+
 				final List< PointMatch > allPerGeneInliers = new ArrayList<>();
 
-				//for ( int g = nextGene.getAndIncrement(); g < genesToTest.size(); g = nextGene.getAndIncrement() )
+				final String gene = genesToTest.get( g );
+				//System.out.println( "current gene: " + gene );
+
+				final double[] minmax = AddedGene.minmax( stDataA.getExprData( gene ) );
+				final double minDisplay = AddedGene.getDisplayMin( minmax[ 0 ], minmax[ 1 ], p.brightnessMin );
+				final double maxDisplay = AddedGene.getDisplayMax( minmax[ 1 ], p.brightnessMax );
+
+				final RandomAccessibleInterval<DoubleType> imgA =
+						AlignTools.display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tS, null, p.filterFactories, p.rendering, p.renderingSmoothness );
+				final RandomAccessibleInterval<DoubleType> imgB =
+						AlignTools.display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tS, null, p.filterFactories, p.rendering, p.renderingSmoothness );
+
+				final ImagePlus impA = ImageJFunctions.wrapFloat( imgA, new RealFloatConverter<>(), "A_" + gene);
+				final ImagePlus impB = ImageJFunctions.wrapFloat( imgB, new RealFloatConverter<>(), "B_" + gene );
+
+				// this massively adjusts the amount of features, but min/max seems the right choice?
+				//impA.resetDisplayRange();
+				//impB.resetDisplayRange();
+				impA.setDisplayRange(minDisplay, maxDisplay);
+				impB.setDisplayRange(minDisplay, maxDisplay);
+
+				//impA.show();
+				//impB.show();
+
+				progressBar.accept( progressPerGene / 4.0 );
+
+				final List< PointMatch > matchesAB = extractCandidates(impA.getProcessor(), impB.getProcessor(), gene, p );
+				final List< PointMatch > candidatesTmp = new ArrayList<>();
+
+				if ( p.biDirectional )
 				{
-					final String gene = genesToTest.get( g );
-					//System.out.println( "current gene: " + gene );
+					final List< PointMatch > matchesBA = extractCandidates(impB.getProcessor(), impA.getProcessor(), gene, p );
 
-					final double[] minmax = AddedGene.minmax( stDataA.getExprData( gene ) );
-					final double minDisplay = AddedGene.getDisplayMin( minmax[ 0 ], minmax[ 1 ], p.brightnessMin );
-					final double maxDisplay = AddedGene.getDisplayMax( minmax[ 1 ], p.brightnessMax );
+					//System.out.println( gene + " = " + matchesAB.size() );
+					//System.out.println( gene + " = " + matchesBA.size() );
 
-					final RandomAccessibleInterval<DoubleType> imgA =
-							AlignTools.display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tS, null, p.filterFactories, p.rendering, p.renderingSmoothness );
-					final RandomAccessibleInterval<DoubleType> imgB =
-							AlignTools.display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tS, null, p.filterFactories, p.rendering, p.renderingSmoothness );
-
-					final ImagePlus impA = ImageJFunctions.wrapFloat( imgA, new RealFloatConverter<>(), "A_" + gene);
-					final ImagePlus impB = ImageJFunctions.wrapFloat( imgB, new RealFloatConverter<>(), "B_" + gene );
-
-					// this massively adjusts the amount of features, but min/max seems the right choice?
-					//impA.resetDisplayRange();
-					//impB.resetDisplayRange();
-					impA.setDisplayRange(minDisplay, maxDisplay);
-					impB.setDisplayRange(minDisplay, maxDisplay);
-
-					impA.show();
-					impB.show();
-
-					progressBar.accept( progressPerGene / 4.0 );
-
-					final List< PointMatch > matchesAB = extractCandidates(impA.getProcessor(), impB.getProcessor(), gene, p );
-					final List< PointMatch > candidatesTmp = new ArrayList<>();
-
-					if ( p.biDirectional )
-					{
-						final List< PointMatch > matchesBA = extractCandidates(impB.getProcessor(), impA.getProcessor(), gene, p );
-
-						//System.out.println( gene + " = " + matchesAB.size() );
-						//System.out.println( gene + " = " + matchesBA.size() );
+					if ( matchesAB.size() == 0 && matchesBA.size() == 0 )
+						return allPerGeneInliers;
 	
-						if ( matchesAB.size() == 0 && matchesBA.size() == 0 )
-							return allPerGeneInliers;
-		
-						if ( matchesBA.size() > matchesAB.size() )
-							PointMatch.flip( matchesBA, candidatesTmp );
-						else
-							candidatesTmp.addAll( matchesAB );
-					}
+					if ( matchesBA.size() > matchesAB.size() )
+						PointMatch.flip( matchesBA, candidatesTmp );
 					else
-					{
-						if ( matchesAB.size() == 0 )
-							return allPerGeneInliers;
-
 						candidatesTmp.addAll( matchesAB );
-					}
-
-					progressBar.accept( progressPerGene / 2.0 );
-
-					//final List< PointMatch > inliersTmp = consensus( candidatesTmp, new RigidModel2D(), minNumInliersPerGene, maxEpsilon*scale );
-					//System.out.println( "remaining points" );
-					
-					//for ( final PointMatch pm:inliersTmp )
-					//	System.out.println( pm.getWeight() );
-					/*
-					if ( gene.equals("Ckb"))
-					{
-						final List< PointMatch > inliersTmp = consensus( candidatesTmp, new RigidModel2D(), minNumInliersPerGene, maxEpsilon*scale );
-						if ( inliersTmp.size() > minNumInliersPerGene )
-						{
-							impA.show();impA.resetDisplayRange();
-							impB.show();impB.resetDisplayRange();
-							visualizeInliers( impA, impB, inliersTmp );
-						}
-					}	*/
-
-					// adjust the locations to the global coordinate system
-					// and store the gene name it came from
-					for ( final PointMatch pm : candidatesTmp )
-					{
-						final Point p1 = pm.getP1();
-						final Point p2 = pm.getP2();
-
-						for ( int d = 0; d < finalInterval.numDimensions(); ++d )
-						{
-							p1.getL()[ d ] = p1.getW()[ d ] = ( p1.getL()[ d ] + finalInterval.min( d ) ) / p.scale;
-							p2.getL()[ d ] = p2.getW()[ d ] = ( p2.getL()[ d ] + finalInterval.min( d ) ) / p.scale;
-						}
-					}
-
-					// prefilter the candidates
-					final Model<?> model = modelPairwise.copy();//new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), 0.1 );//new RigidModel2D();
-					final List< PointMatch > inliers = consensus( candidatesTmp, model, p.minInliersGene, p.iterations, p.minInlierRatio, p.maxError );
-
-					// reset world coordinates & compute error
-					double error = Double.NaN, maxError = Double.NaN, minError = Double.NaN;
-					if ( inliers.size() > 0 )
-					{
-						error = 0;
-						minError = Double.MAX_VALUE;
-						maxError = -Double.MAX_VALUE;
-
-						for ( final PointMatch pm : inliers )
-						{
-							final double dist = Point.distance(pm.getP1(), pm.getP2());
-							error += dist;
-							maxError = Math.max( maxError, dist );
-							minError = Math.min( minError, dist );
-						}
-
-						error /= (double)inliers.size();
-					}
-
-					for ( final PointMatch pm : candidatesTmp )
-					{
-						final Point p1 = pm.getP1();
-						final Point p2 = pm.getP2();
-
-						for ( int d = 0; d < finalInterval.numDimensions(); ++d )
-						{
-							p1.getW()[ d ] = p1.getL()[ d ];
-							p2.getW()[ d ] = p2.getL()[ d ];
-						}
-					}
-
-					if ( inliers.size() > 0 )
-					{
-						allPerGeneInliers.addAll( inliers );
-						System.out.println( stDataAname + "-" + stDataBname + ": " + inliers.size() + "/" + candidatesTmp.size() + ", " + minError + "/" + error + "/" + maxError + ", " + ((PointST)inliers.get( 0 ).getP1()).getGene() );
-						//System.out.println( ki + "-" + kj + ": " + inliers.size() + "/" + candidatesTmp.size() + ", " + ((PointST)inliers.get( 0 ).getP1()).getGene() + ", " );
-						//GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() ).setTitle( gene +"_" + inliers.size() );;
-					}
-
-					progressBar.accept( progressPerGene / 4.0 );
 				}
+				else
+				{
+					if ( matchesAB.size() == 0 )
+						return allPerGeneInliers;
+
+					candidatesTmp.addAll( matchesAB );
+				}
+
+				progressBar.accept( progressPerGene / 2.0 );
+
+				// adjust the locations to the global coordinate system
+				// and store the gene name it came from
+				for ( final PointMatch pm : candidatesTmp )
+				{
+					final Point p1 = pm.getP1();
+					final Point p2 = pm.getP2();
+
+					for ( int d = 0; d < finalInterval.numDimensions(); ++d )
+					{
+						p1.getL()[ d ] = p1.getW()[ d ] = ( p1.getL()[ d ] + finalInterval.min( d ) ) / p.scale;
+						p2.getL()[ d ] = p2.getW()[ d ] = ( p2.getL()[ d ] + finalInterval.min( d ) ) / p.scale;
+					}
+				}
+
+				// prefilter the candidates
+				final Model<?> model = modelPairwise.copy();
+				final List< PointMatch > inliers = consensus( candidatesTmp, model, p.minInliersGene, p.iterations, p.minInlierRatio, p.maxError );
+
+				// reset world coordinates & compute error
+				double error = Double.NaN, maxError = Double.NaN, minError = Double.NaN;
+				if ( inliers.size() > 0 )
+				{
+					error = 0;
+					minError = Double.MAX_VALUE;
+					maxError = -Double.MAX_VALUE;
+
+					for ( final PointMatch pm : inliers )
+					{
+						final double dist = Point.distance(pm.getP1(), pm.getP2());
+						error += dist;
+						maxError = Math.max( maxError, dist );
+						minError = Math.min( minError, dist );
+					}
+
+					error /= (double)inliers.size();
+				}
+
+				for ( final PointMatch pm : candidatesTmp )
+				{
+					final Point p1 = pm.getP1();
+					final Point p2 = pm.getP2();
+
+					for ( int d = 0; d < finalInterval.numDimensions(); ++d )
+					{
+						p1.getW()[ d ] = p1.getL()[ d ];
+						p2.getW()[ d ] = p2.getL()[ d ];
+					}
+				}
+
+				if ( inliers.size() > 0 )
+				{
+					allPerGeneInliers.addAll( inliers );
+					System.out.println( stDataAname + "-" + stDataBname + ": " + inliers.size() + "/" + candidatesTmp.size() + ", " + minError + "/" + error + "/" + maxError + ", " + ((PointST)inliers.get( 0 ).getP1()).getGene() );
+					//System.out.println( ki + "-" + kj + ": " + inliers.size() + "/" + candidatesTmp.size() + ", " + ((PointST)inliers.get( 0 ).getP1()).getGene() + ", " );
+					//GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() ).setTitle( gene +"_" + inliers.size() );;
+				}
+
+				progressBar.accept( progressPerGene / 4.0 );
 
 				return allPerGeneInliers;
 			});
 		}
-
-		//final ExecutorService service = Threads.createFixedExecutorService( numThreads );
 
 		try
 		{
