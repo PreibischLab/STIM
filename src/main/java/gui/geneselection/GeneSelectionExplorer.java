@@ -43,7 +43,7 @@ public class GeneSelectionExplorer
 			final List< Pair< String, Double > > genes,
 			final Consumer< List< String > > action )
 	{
-		frame = new JFrame( "Add Genes for Alignment" );
+		frame = new JFrame( "Add Genes to BDV" );
 		panel = new GeneSelectionPanel( this, genes, action );
 
 		frame.add( panel, BorderLayout.CENTER );
