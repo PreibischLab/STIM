@@ -26,13 +26,11 @@ import javax.swing.SwingConstants;
 import javax.swing.border.TitledBorder;
 import javax.swing.text.NumberFormatter;
 
-import align.AlignTools;
 import align.PairwiseSIFT;
 import align.PointST;
 import align.SIFTParam;
 import align.SIFTParam.SIFTPreset;
 import align.SiftMatch;
-import bdv.tools.transformation.TransformedSource;
 import bdv.viewer.SynchronizedViewerState;
 import cmd.InteractiveAlignment.AddedGene;
 import data.STData;
@@ -48,10 +46,7 @@ import mpicbg.models.RigidModel2D;
 import mpicbg.models.SimilarityModel2D;
 import mpicbg.models.TranslationModel2D;
 import net.imglib2.Interval;
-import net.imglib2.realtransform.AffineTransform2D;
-import net.imglib2.realtransform.AffineTransform3D;
 import net.miginfocom.swing.MigLayout;
-import util.BDVUtils;
 import util.BoundedValue;
 import util.BoundedValuePanel;
 
@@ -61,7 +56,6 @@ public class STIMCardAlignSIFT
 	private final SIFTOverlay siftoverlay;
 	private final DisplayScaleOverlay overlay;
 	private final STIMCard stimcard;
-	private final STIMCardFilter stimcardFilter;
 	private final JFormattedTextField maxOS;
 
 	private Thread siftThread = null;
@@ -71,10 +65,6 @@ public class STIMCardAlignSIFT
 	final static String optionsSIFT[] = { "Fast", "Normal", "Thorough", "Very thorough", "Custom ..." };
 	private boolean customModeSIFT = false; // we always start with "normal" for 
 
-	// current transforms
-	private Affine2D< ? > model = new AffineModel2D();
-	private AffineTransform2D m2d = new AffineTransform2D();
-	private AffineTransform3D m3d = new AffineTransform3D();
 	private HashSet< String > genesWithInliers = new HashSet<>();
 	private double lastMaxError = Double.NaN;
 
@@ -101,7 +91,6 @@ public class STIMCardAlignSIFT
 		this.siftoverlay = new SIFTOverlay( new ArrayList<>(), stimcard.bdvhandle() );
 		this.overlay = overlay;
 		this.stimcard = stimcard;
-		this.stimcardFilter = stimcardFilter;
 		this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 5, fill", "[right][grow]", "center"));
 
 		// lists for components
@@ -468,7 +457,6 @@ public class STIMCardAlignSIFT
 			siftoverlay.setInliers( new ArrayList<>() );
 			stimcard.bdvhandle().getViewerPanel().renderTransformListeners().remove( siftoverlay );
 			stimcard.bdvhandle().getViewerPanel().getDisplay().overlays().remove( siftoverlay );
-			//run.setEnabled( false );
 			run.setForeground( Color.red );
 			run.setFont( run.getFont().deriveFont( Font.BOLD ) );
 			run.setText( "Cancel SIFT run");
@@ -524,7 +512,7 @@ public class STIMCardAlignSIFT
 						(Affine2D & Model)model1, (Affine2D & Model)model1,
 						new ArrayList<>( stimcard.geneToBDVSource().keySet() ),
 						param,
-						visResult, service, threads, (v) -> {
+						visResult, service, threads, v -> {
 							synchronized ( this ) {
 								progressBarValue[ 0 ] += v;
 								bar.setValue( (int)Math.round( progressBarValue[ 0 ] ));
@@ -533,8 +521,6 @@ public class STIMCardAlignSIFT
 
 				System.out.println( match.getNumInliers() + "/" + match.getNumCandidates() );
 
-				// TODO: print out cmd-line args
-
 				// 
 				// apply transformations
 				//
@@ -542,37 +528,21 @@ public class STIMCardAlignSIFT
 				{
 					try
 					{
-						//final RigidModel2D model = new RigidModel2D();
-						//final AffineModel2D model = new AffineModel2D();
 						model2.fit( match.getInliers() );
-						this.model = (Affine2D)model2;
-						this.m2d = AlignTools.modelToAffineTransform2D( (Affine2D)model2 ).inverse();
-						this.m3d = new AffineTransform3D();
-						m3d.set(m2d.get(0, 0), 0, 0 ); // row, column
-						m3d.set(m2d.get(0, 1), 0, 1 ); // row, column
-						m3d.set(m2d.get(1, 0), 1, 0 ); // row, column
-						m3d.set(m2d.get(1, 1), 1, 1 ); // row, column
-						m3d.set(m2d.get(0, 2), 0, 3 ); // row, column
-						m3d.set(m2d.get(1, 2), 1, 3 ); // row, column
+						stimcard.setCurrentModel( (Affine2D)model2 );
 
-						System.out.println( "2D model: " + m2d );
-						System.out.println( "3D viewer transform: " + m3d );
+						System.out.println( "2D model: " + stimcard.currentModel() );
+						System.out.println( "2D transform: " + stimcard.currentModel2D() );
+						System.out.println( "3D viewer transform: " + stimcard.currentModel3D() );
 
-						final List<TransformedSource<?>> tsources = BDVUtils.getTransformedSources(state);
-
-						// every second source will be transformed
-						for ( int i = 1; i < tsources.size(); i = i + 2 )
-							tsources.get( i ).setFixedTransform( m3d );
-
-					} catch (Exception e)
+						stimcard.applyTransformationToBDV( state, false );
+					}
+					catch ( Exception e )
 					{
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
 
-					//
 					// Overlay detections
-					//
 					siftoverlay.setInliers( match.getInliers() );
 
 					// Remember all genes with inliers
@@ -590,9 +560,10 @@ public class STIMCardAlignSIFT
 				}
 				else
 				{
-					this.model = new AffineModel2D();
-					this.m2d = new AffineTransform2D();
-					this.m3d = new AffineTransform3D();
+					stimcard.setCurrentModel( new AffineModel2D() );
+					stimcard.applyTransformationToBDV( state, false );
+
+					lastMaxError = Double.NaN;
 
 					siftoverlay.setInliers( new ArrayList<>() );
 					genesWithInliers.clear();
@@ -601,10 +572,10 @@ public class STIMCardAlignSIFT
 
 				bar.setValue( 100 );
 				cmdLine.setEnabled( true );
-				//run.setEnabled( true );
 				run.setText( "Run SIFT alignment" );
 				run.setFont( run.getFont().deriveFont( Font.PLAIN ) );
 				run.setForeground( Color.black );
+
 				stimcard.bdvhandle().getViewerPanel().requestRepaint();
 				siftThread = null;
 			});
@@ -621,9 +592,6 @@ public class STIMCardAlignSIFT
 		});
 	}
 
-	public Affine2D<?> currentModel() { return model; }
-	public AffineTransform2D currentModel2D() { return m2d; }
-	public AffineTransform3D currentModel3D() { return m3d; }
 	public HashSet< String> genesWithInliers() { return genesWithInliers; }
 	public double lastMaxError() { return lastMaxError; }
 

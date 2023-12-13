@@ -38,6 +38,7 @@ import imglib2.TransformedIterableRealInterval;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
 import io.TextFileAccess;
+import mpicbg.models.AffineModel2D;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.KDTree;
@@ -196,6 +197,7 @@ public class InteractiveAlignment implements Callable<Void> {
 					rendering,
 					lastSource,
 					data1,
+					null,
 					gene,
 					smoothnessFactor,
 					new ARGBType( ARGBType.rgba(0, 255, 0, 0) ),
@@ -206,6 +208,7 @@ public class InteractiveAlignment implements Callable<Void> {
 					rendering,
 					addedGene1.source,
 					data2,
+					null,
 					gene,
 					smoothnessFactor,
 					new ARGBType( ARGBType.rgba(255, 0, 255, 0) ),
@@ -300,6 +303,12 @@ public class InteractiveAlignment implements Callable<Void> {
 		SimpleMultiThreading.threadWait( 2000 );
 		cardAlignSIFT.updateMaxOctaveSize();
 
+		// TODO: REMOVE
+		AffineModel2D model = new AffineModel2D();
+		model.set(0.323679918598243, -0.9185551542794,  1.002878826719069, 0.351176728134501, -546.6035992226643, 4231.453000084942 );
+		card.setCurrentModel( model );
+		card.applyTransformationToBDV( state, true );
+
 		System.out.println("done");
 
 		// service is used in alignment
@@ -393,6 +402,7 @@ public class InteractiveAlignment implements Callable<Void> {
 				final Rendering renderType,
 				final Bdv bdv,
 				final STDataAssembly data,
+				final AffineTransform3D sourceTransform,
 				final String gene,
 				final double smoothnessFactor,
 				final ARGBType color,
@@ -470,8 +480,11 @@ public class InteractiveAlignment implements Callable<Void> {
 										data.data(),
 										new AffineTransform2D()/*data.transform()*/ ) );
 
-			final BdvOptions options = BdvOptions.options().numRenderingThreads(Math.max(2,Runtime.getRuntime().availableProcessors() / 2))
+			BdvOptions options = BdvOptions.options().numRenderingThreads(Math.max(2,Runtime.getRuntime().availableProcessors() / 2))
 					.addTo(bdv).is2D().preferredSize(1000, 890);
+
+			if ( sourceTransform != null )
+				options = options.sourceTransform( sourceTransform );
 
 			final BdvStackSource< ? > source = BdvFunctions.show( rra, interval, gene, options );
 

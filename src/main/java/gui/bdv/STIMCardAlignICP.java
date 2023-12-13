@@ -60,8 +60,12 @@ public class STIMCardAlignICP
 		}
 	}
 
+	private Thread icpThread = null;
+	private Affine2D<?> previousModel = null;
+
 	private final ICPParams param;
 	private final JPanel panel;
+
 	private final SIFTOverlay icpoverlay;
 	private final STIMCard stimcard;
 	private final STIMCardAlignSIFT stimcardSIFT;
@@ -82,7 +86,7 @@ public class STIMCardAlignICP
 		this.param = new ICPParams();
 
 		final Interval interval = STDataUtils.getCommonInterval( stimcard.data1().data(), stimcard.data2().data() );
-		this.param.maxErrorICP = Math.max( interval.dimension( 0 ), interval.dimension( 1 ) ) / 20;
+		this.param.maxErrorICP = ( Math.max( interval.dimension( 0 ), interval.dimension( 1 ) ) / 20 ) / 5.0;
 		this.param.maxErrorRANSAC = this.param.maxErrorICP / 2.0;
 
 		// max ICP error
@@ -190,22 +194,56 @@ public class STIMCardAlignICP
 		//
 		run.addActionListener( l ->
 		{
+			if ( icpThread != null )
+			{
+				// request to cancel
+				icpThread.stop();
+
+				// wait a bit
+				try { Thread.sleep( 100 ); } catch (InterruptedException e1) {}
+
+				cmdLine.setEnabled( true );
+				run.setText( "Run ICP alignment" );
+				run.setFont( run.getFont().deriveFont( Font.PLAIN ) );
+				run.setForeground( Color.black );
+				bar.setValue( 0 );
+				icpThread = null;
+
+				stimcard.setCurrentModel( previousModel );
+				stimcard.applyTransformationToBDV( stimcard.bdvhandle().getViewerPanel().state(), true );
+
+				return;
+			}
+
+			previousModel = (Affine2D)((Model)stimcard.currentModel()).copy();
+
 			icpoverlay.setInliers( new ArrayList<>() );
 			stimcard.bdvhandle().getViewerPanel().renderTransformListeners().remove( icpoverlay );
 			stimcard.bdvhandle().getViewerPanel().getDisplay().overlays().remove( icpoverlay );
-			run.setEnabled( false );
+
+			run.setForeground( Color.red );
+			run.setFont( run.getFont().deriveFont( Font.BOLD ) );
+			run.setText( "Cancel ICP run");
 			cmdLine.setEnabled( false );
 			overlayInliers.setEnabled( false );
 			bar.setValue( 1 );
 
-			// TODO: update transforms as we go
-			new Thread( () ->
+			icpThread = new Thread( () ->
 			{
 				final SynchronizedViewerState state = stimcard.bdvhandle().getViewerPanel().state();
 				AddedGene.updateRemainingSources( state, stimcard.geneToBDVSource(), stimcard.sourceData() );
 
 				final double lambda = Double.parseDouble( tfFinal.getText().trim() );
 				Model model = STIMCardAlignSIFT.getModelFor( boxModelFinal1.getSelectedIndex(), boxModelFinal2.getSelectedIndex(), lambda );
+
+				System.out.println( model.getClass().getSimpleName() );
+				System.out.println( "current  : " + stimcard.currentModel() );
+
+				// set the model as much as possible to the current transform
+				fit( model, stimcard.currentModel(), interval.dimension( 0 ), interval.dimension( 1 ), 8 );
+
+				System.out.println( "ICP input: " + model );
+
 				final HashSet< String > genes;
 
 				if ( boxGenes.getSelectedIndex() == 0 ) // all displayed genes
@@ -220,17 +258,27 @@ public class STIMCardAlignICP
 				System.out.println( "Running ICP align with the following parameters: \n" + param.toString() );
 				System.out.println( "FINAL model: " + STIMCardAlignSIFT.optionsModel[ boxModelFinal1.getSelectedIndex() ] + ", regularizer: " + STIMCardAlignSIFT.optionsModelReg[ boxModelFinal2.getSelectedIndex() ] + ", lambda=" + lambda );
 
-				System.out.println( model.getClass().getSimpleName() );
-
 				final boolean visResult = false;
 				final double[] progressBarValue = new double[] { 1.0 };
 
-				// set the model as much as possible to the current transform
-				final Affine2D<?> currentModel = stimcardSIFT.currentModel().createInverse();
-				fit( model, currentModel, interval.dimension( 0 ), interval.dimension( 1 ), 8 );
 
-				final Pair< Model, List< PointMatch > > icpT =
-						ICPAlign.alignICP( stimcard.data1().data(), stimcard.data2().data(), genes, model, param.maxErrorICP, param.maxErrorRANSAC, param.maxIterations, service );
+				final Pair<Model, List<PointMatch>> icpT = 
+						ICPAlign.alignICP(
+								stimcard.data2().data(), stimcard.data1().data(), genes, model,
+								param.maxErrorICP, Double.NaN /*param.maxErrorRANSAC*/, param.maxIterations,
+								v -> {
+									synchronized (this)
+									{
+										progressBarValue[0] += v;
+										bar.setValue((int) Math.round(progressBarValue[0]));
+									}
+								},
+								m ->
+								{
+									stimcard.setCurrentModel( (Affine2D)m );
+									stimcard.applyTransformationToBDV( state, true );
+								},
+								service);
 
 				// 
 				// apply transformations
@@ -258,7 +306,8 @@ public class STIMCardAlignICP
 						for ( int i = 1; i < tsources.size(); i = i + 2 )
 							tsources.get( i ).setFixedTransform( m3d );
 
-					} catch (Exception e)
+					}
+					catch (Exception e)
 					{
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -281,10 +330,16 @@ public class STIMCardAlignICP
 
 				bar.setValue( 100 );
 				cmdLine.setEnabled( true );
-				run.setEnabled( true );
-				stimcard.bdvhandle().getViewerPanel().requestRepaint();
-			}).start();
+				run.setText( "Run ICP alignment" );
+				run.setFont( run.getFont().deriveFont( Font.PLAIN ) );
+				run.setForeground( Color.black );
+				bar.setValue( 0 );
 
+				stimcard.bdvhandle().getViewerPanel().requestRepaint();
+				icpThread = null;
+			});
+
+			icpThread.start();
 		});
 
 		//

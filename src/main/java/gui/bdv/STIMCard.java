@@ -15,6 +15,8 @@ import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 
+import align.AlignTools;
+import bdv.tools.transformation.TransformedSource;
 import bdv.util.BdvHandle;
 import bdv.viewer.DisplayMode;
 import bdv.viewer.SourceAndConverter;
@@ -24,10 +26,15 @@ import cmd.InteractiveAlignment.AddedGene;
 import cmd.InteractiveAlignment.AddedGene.Rendering;
 import gui.STDataAssembly;
 import gui.geneselection.GeneSelectionExplorer;
+import mpicbg.models.Affine2D;
+import mpicbg.models.AffineModel2D;
+import net.imglib2.realtransform.AffineTransform2D;
+import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.miginfocom.swing.MigLayout;
+import util.BDVUtils;
 import util.BoundedValue;
 import util.BoundedValuePanel;
 
@@ -42,6 +49,11 @@ public class STIMCard
 	private double currentSigma, currentBrightnessMin, currentBrightnessMax;
 	private Rendering currentRendering;
 	private double medianDistance;
+
+	// current transforms mapping first to second image
+	private Affine2D< ? > model = new AffineModel2D();
+	private AffineTransform2D m2d = new AffineTransform2D();
+	private AffineTransform3D m3d = new AffineTransform3D();
 
 	public STIMCard(
 			final STDataAssembly data1,
@@ -128,8 +140,8 @@ public class STIMCard
 					final ArrayList<SourceAndConverter<?>> currentSources = new ArrayList<>( state.getSourcesInGroup( currentSourceGroup ) );
 
 					// TODO: re-use KDtree!
-					AddedGene gene1 = AddedGene.addGene( currentRendering, bdvhandle, data1, gene, currentSigma, new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin, currentBrightnessMax );
-					AddedGene gene2 = AddedGene.addGene( currentRendering, bdvhandle, data2, gene, currentSigma, new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin, currentBrightnessMax );
+					AddedGene gene1 = AddedGene.addGene( currentRendering, bdvhandle, data1, currentModel3D(), gene, currentSigma, new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin, currentBrightnessMax );
+					AddedGene gene2 = AddedGene.addGene( currentRendering, bdvhandle, data2, null, gene, currentSigma, new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin, currentBrightnessMax );
 
 					state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), currentSourceGroup );
 					state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), currentSourceGroup );
@@ -264,12 +276,10 @@ public class STIMCard
 							{
 								System.out.println( "Gene " + gene + " will be added." );
 
-								final AddedGene gene1 = AddedGene.addGene( currentRendering(), bdvhandle, data1, gene, currentSigma(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin(), currentBrightnessMax() );
-								final AddedGene gene2 = AddedGene.addGene( currentRendering(), bdvhandle, data2, gene, currentSigma(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin(), currentBrightnessMax() );
+								final AddedGene gene1 = AddedGene.addGene( currentRendering(), bdvhandle, data1, currentModel3D(), gene, currentSigma(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin(), currentBrightnessMax() );
+								final AddedGene gene2 = AddedGene.addGene( currentRendering(), bdvhandle, data2, null, gene, currentSigma(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin(), currentBrightnessMax() );
 
 								sourceData.put( gene, new ValuePair<>( gene1, gene2 ) );
-								//stimcard.gaussFactories().add( gene1.factory );
-								//stimcard.gaussFactories().add( gene2.factory );
 
 								final SourceGroup handle = new SourceGroup();
 								state.addGroup( handle );
@@ -318,6 +328,36 @@ public class STIMCard
 	public double medianDistance() { return medianDistance; }
 	public STDataAssembly data1() { return data1; }
 	public STDataAssembly data2() { return data2; }
+
+	public void setCurrentModel( final Affine2D< ? > model )
+	{
+		this.model = model; // mapping A to B
+		this.m2d = AlignTools.modelToAffineTransform2D( model );
+
+		this.m3d = new AffineTransform3D();
+		m3d.set(m2d.get(0, 0), 0, 0 ); // row, column
+		m3d.set(m2d.get(0, 1), 0, 1 ); // row, column
+		m3d.set(m2d.get(1, 0), 1, 0 ); // row, column
+		m3d.set(m2d.get(1, 1), 1, 1 ); // row, column
+		m3d.set(m2d.get(0, 2), 0, 3 ); // row, column
+		m3d.set(m2d.get(1, 2), 1, 3 ); // row, column
+	}
+
+	public void applyTransformationToBDV( final SynchronizedViewerState state, final boolean requestUpdateBDV )
+	{
+		final List<TransformedSource<?>> tsources = BDVUtils.getTransformedSources(state);
+
+		// every second source will be transformed
+		for ( int i = 0; i < tsources.size(); i = i + 2 )
+			tsources.get( i ).setFixedTransform( m3d );
+
+		if ( requestUpdateBDV )
+			bdvhandle().getViewerPanel().requestRepaint();
+	}
+
+	public Affine2D<?> currentModel() { return model; }
+	public AffineTransform2D currentModel2D() { return m2d; }
+	public AffineTransform3D currentModel3D() { return m3d; }
 
 	private JMenuItem runnableItem(final String text, final Runnable action) {
 		final JMenuItem item = new JMenuItem(text);
