@@ -16,7 +16,6 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 
 import align.AlignTools;
-import bdv.tools.transformation.TransformedSource;
 import bdv.util.BdvHandle;
 import bdv.viewer.DisplayMode;
 import bdv.viewer.SourceAndConverter;
@@ -34,7 +33,6 @@ import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.miginfocom.swing.MigLayout;
-import util.BDVUtils;
 import util.BoundedValue;
 import util.BoundedValuePanel;
 
@@ -349,13 +347,20 @@ public class STIMCard
 		m3d.set(m2d.get(1, 2), 1, 3 ); // row, column
 	}
 
-	public synchronized void applyTransformationToBDV( final SynchronizedViewerState state, final boolean requestUpdateBDV )
+	public synchronized void applyTransformationToBDV( final boolean requestUpdateBDV )
 	{
+		/*
 		final List<TransformedSource<?>> tsources = BDVUtils.getTransformedSources(state);
 
 		// every second source will be transformed
 		for ( int i = 0; i < tsources.size(); i = i + 2 )
 			tsources.get( i ).setFixedTransform( m3d );
+		*/
+
+		sourceData.forEach( (gene,data) -> {
+			data.getA().transformedSource().setFixedTransform( m3d );
+			data.getB().transformedSource().setFixedTransform( new AffineTransform3D() );
+		});
 
 		if ( requestUpdateBDV )
 			bdvhandle().getViewerPanel().requestRepaint();

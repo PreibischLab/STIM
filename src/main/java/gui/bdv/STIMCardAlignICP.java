@@ -303,7 +303,7 @@ public class STIMCardAlignICP
 									synchronized (stimcard)
 									{
 										stimcard.setCurrentModel( (Affine2D)m );
-										stimcard.applyTransformationToBDV( state, true );
+										stimcard.applyTransformationToBDV( true );
 									}
 								},
 								service);

@@ -456,7 +456,7 @@ public class STIMCardAlignSIFT
 				threads.clear();
 
 				stimcard.setCurrentModel( previousModel );
-				stimcard.applyTransformationToBDV( stimcard.bdvhandle().getViewerPanel().state(), true );
+				stimcard.applyTransformationToBDV( true );
 
 				return;
 			}
@@ -538,13 +538,13 @@ public class STIMCardAlignSIFT
 					try
 					{
 						model2.fit( match.getInliers() );
+
 						stimcard.setCurrentModel( (Affine2D)model2 );
+						stimcard.applyTransformationToBDV( true );
 
 						System.out.println( "2D model: " + stimcard.currentModel() );
 						System.out.println( "2D transform: " + stimcard.currentModel2D() );
 						System.out.println( "3D viewer transform: " + stimcard.currentModel3D() );
-
-						stimcard.applyTransformationToBDV( state, false );
 					}
 					catch ( Exception e )
 					{
@@ -570,7 +570,7 @@ public class STIMCardAlignSIFT
 				else
 				{
 					stimcard.setCurrentModel( previousModel );
-					stimcard.applyTransformationToBDV( state, false );
+					stimcard.applyTransformationToBDV( true );
 
 					lastMaxError = Double.NaN;
 
