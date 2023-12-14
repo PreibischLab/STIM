@@ -60,8 +60,10 @@ public class STIMCardAlignSIFT
 
 	private Thread siftThread = null;
 	private List< Thread > threads = new ArrayList<>();
+	private STIMCardAlignICP icpCard = null; // may or may not be there
 
-	final SIFTParam param;
+	private Affine2D<?> previousModel = null;
+	private final SIFTParam param;
 	final static String optionsSIFT[] = { "Fast", "Normal", "Thorough", "Very thorough", "Custom ..." };
 	private boolean customModeSIFT = false; // we always start with "normal" for 
 
@@ -449,10 +451,17 @@ public class STIMCardAlignSIFT
 				run.setFont( run.getFont().deriveFont( Font.PLAIN ) );
 				run.setForeground( Color.black );
 				bar.setValue( 0 );
+
 				siftThread = null;
 				threads.clear();
+
+				stimcard.setCurrentModel( previousModel );
+				stimcard.applyTransformationToBDV( stimcard.bdvhandle().getViewerPanel().state(), true );
+
 				return;
 			}
+
+			previousModel = (Affine2D)((Model)stimcard.currentModel()).copy();
 
 			siftoverlay.setInliers( new ArrayList<>() );
 			stimcard.bdvhandle().getViewerPanel().renderTransformListeners().remove( siftoverlay );
@@ -560,7 +569,7 @@ public class STIMCardAlignSIFT
 				}
 				else
 				{
-					stimcard.setCurrentModel( new AffineModel2D() );
+					stimcard.setCurrentModel( previousModel );
 					stimcard.applyTransformationToBDV( state, false );
 
 					lastMaxError = Double.NaN;
@@ -568,6 +577,13 @@ public class STIMCardAlignSIFT
 					siftoverlay.setInliers( new ArrayList<>() );
 					genesWithInliers.clear();
 					overlayInliers.setEnabled( false );
+				}
+
+				if ( icpCard != null )
+				{
+					System.out.println( "Updating ICP to " + genesWithInliers.size() );
+					icpCard.siftResults().setText( STIMCardAlignICP.getSIFTResultLabelText( genesWithInliers.size() ) );
+					icpCard.getPanel().updateUI();
 				}
 
 				bar.setValue( 100 );
@@ -680,5 +696,6 @@ public class STIMCardAlignSIFT
 			throw new RuntimeException( "Unknown regularizer model index: "+ modelIndex );
 	}
 
+	public void setICPCard( final STIMCardAlignICP icpCard ) { this.icpCard = icpCard; }
 	public JPanel getPanel() { return panel; }
 }

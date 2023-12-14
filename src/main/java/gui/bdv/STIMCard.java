@@ -124,40 +124,43 @@ public class STIMCard
 		// rendering listener
 		box.addActionListener( e -> {
 
-			if ( Rendering.values()[ box.getSelectedIndex() ] != currentRendering )
+			synchronized ( this )
 			{
-				currentRendering = Rendering.values()[ box.getSelectedIndex() ];
-				System.out.println( "now rendering as: " + currentRendering );
-
-				final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
-				AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
-
-				for ( final String gene : geneToBDVSource.keySet() )
+				if ( Rendering.values()[ box.getSelectedIndex() ] != currentRendering )
 				{
-					System.out.println( "replacing sources for '" + gene + "'");
-
-					final SourceGroup currentSourceGroup = geneToBDVSource.get( gene );
-					final ArrayList<SourceAndConverter<?>> currentSources = new ArrayList<>( state.getSourcesInGroup( currentSourceGroup ) );
-
-					// TODO: re-use KDtree!
-					AddedGene gene1 = AddedGene.addGene( currentRendering, bdvhandle, data1, currentModel3D(), gene, currentSigma, new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin, currentBrightnessMax );
-					AddedGene gene2 = AddedGene.addGene( currentRendering, bdvhandle, data2, null, gene, currentSigma, new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin, currentBrightnessMax );
-
-					state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), currentSourceGroup );
-					state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), currentSourceGroup );
-
-					for ( final SourceAndConverter<?> s : currentSources )
-						state.removeSourceFromGroup( s, currentSourceGroup );
-
-					sourceData.put( gene, new ValuePair<>( gene1, gene2 ) );
+					currentRendering = Rendering.values()[ box.getSelectedIndex() ];
+					System.out.println( "now rendering as: " + currentRendering );
+	
+					final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
+					AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
+	
+					for ( final String gene : geneToBDVSource.keySet() )
+					{
+						System.out.println( "replacing sources for '" + gene + "'");
+	
+						final SourceGroup currentSourceGroup = geneToBDVSource.get( gene );
+						final ArrayList<SourceAndConverter<?>> currentSources = new ArrayList<>( state.getSourcesInGroup( currentSourceGroup ) );
+	
+						// TODO: re-use KDtree!
+						AddedGene gene1 = AddedGene.addGene( currentRendering, bdvhandle, data1, currentModel3D(), gene, currentSigma, new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin, currentBrightnessMax );
+						AddedGene gene2 = AddedGene.addGene( currentRendering, bdvhandle, data2, null, gene, currentSigma, new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin, currentBrightnessMax );
+	
+						state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), currentSourceGroup );
+						state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), currentSourceGroup );
+	
+						for ( final SourceAndConverter<?> s : currentSources )
+							state.removeSourceFromGroup( s, currentSourceGroup );
+	
+						sourceData.put( gene, new ValuePair<>( gene1, gene2 ) );
+					}
+	
+					if ( currentRendering == Rendering.Gauss )
+						sigmaLabel.setText( "sigma (-sf)" );
+					else
+						sigmaLabel.setText( "radius (-r)" );
+	
+					bdvhandle.getViewerPanel().setDisplayMode( DisplayMode.GROUP );
 				}
-
-				if ( currentRendering == Rendering.Gauss )
-					sigmaLabel.setText( "sigma (-sf)" );
-				else
-					sigmaLabel.setText( "radius (-r)" );
-
-				bdvhandle.getViewerPanel().setDisplayMode( DisplayMode.GROUP );
 			}
 		} );
 
@@ -261,41 +264,44 @@ public class STIMCard
 					allGenes,
 					list ->
 					{
-						//
-						// first check if all groups are still present that are in the HashMap
-						//
-						final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
-						AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
-
-						//
-						// Now add the new ones (if it's not already there)
-						//
-						for ( final String gene : list )
+						synchronized ( this )
 						{
-							if ( !geneToBDVSource.containsKey( gene ) )
+							//
+							// first check if all groups are still present that are in the HashMap
+							//
+							final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
+							AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
+	
+							//
+							// Now add the new ones (if it's not already there)
+							//
+							for ( final String gene : list )
 							{
-								System.out.println( "Gene " + gene + " will be added." );
-
-								final AddedGene gene1 = AddedGene.addGene( currentRendering(), bdvhandle, data1, currentModel3D(), gene, currentSigma(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin(), currentBrightnessMax() );
-								final AddedGene gene2 = AddedGene.addGene( currentRendering(), bdvhandle, data2, null, gene, currentSigma(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin(), currentBrightnessMax() );
-
-								sourceData.put( gene, new ValuePair<>( gene1, gene2 ) );
-
-								final SourceGroup handle = new SourceGroup();
-								state.addGroup( handle );
-								state.setGroupName( handle, gene );
-								state.setGroupActive( handle, true );
-								state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), handle );
-								state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), handle );
-
-								geneToBDVSource.put( gene, handle );
-
-								bdvhandle.getViewerPanel().setDisplayMode( DisplayMode.GROUP );
-							}
-							else
-							{
-								System.out.println( "Gene " + gene + " is already being displayed, ignoring." );
-								// TODO: remove gaussFactories? - maybe not necessary
+								if ( !geneToBDVSource.containsKey( gene ) )
+								{
+									System.out.println( "Gene " + gene + " will be added." );
+	
+									final AddedGene gene1 = AddedGene.addGene( currentRendering(), bdvhandle, data1, currentModel3D(), gene, currentSigma(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin(), currentBrightnessMax() );
+									final AddedGene gene2 = AddedGene.addGene( currentRendering(), bdvhandle, data2, null, gene, currentSigma(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin(), currentBrightnessMax() );
+	
+									sourceData.put( gene, new ValuePair<>( gene1, gene2 ) );
+	
+									final SourceGroup handle = new SourceGroup();
+									state.addGroup( handle );
+									state.setGroupName( handle, gene );
+									state.setGroupActive( handle, true );
+									state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), handle );
+									state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), handle );
+	
+									geneToBDVSource.put( gene, handle );
+	
+									bdvhandle.getViewerPanel().setDisplayMode( DisplayMode.GROUP );
+								}
+								else
+								{
+									System.out.println( "Gene " + gene + " is already being displayed, ignoring." );
+									// TODO: remove gaussFactories? - maybe not necessary
+								}
 							}
 						}
 					} );
@@ -329,7 +335,7 @@ public class STIMCard
 	public STDataAssembly data1() { return data1; }
 	public STDataAssembly data2() { return data2; }
 
-	public void setCurrentModel( final Affine2D< ? > model )
+	public synchronized void setCurrentModel( final Affine2D< ? > model )
 	{
 		this.model = model; // mapping A to B
 		this.m2d = AlignTools.modelToAffineTransform2D( model );
@@ -343,7 +349,7 @@ public class STIMCard
 		m3d.set(m2d.get(1, 2), 1, 3 ); // row, column
 	}
 
-	public void applyTransformationToBDV( final SynchronizedViewerState state, final boolean requestUpdateBDV )
+	public synchronized void applyTransformationToBDV( final SynchronizedViewerState state, final boolean requestUpdateBDV )
 	{
 		final List<TransformedSource<?>> tsources = BDVUtils.getTransformedSources(state);
 

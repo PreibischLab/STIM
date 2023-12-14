@@ -46,13 +46,15 @@ public class STIMCardAlignICP
 	public class ICPParams
 	{
 		double maxErrorICP, maxErrorRANSAC;
-		int maxIterations = 250;
+		int maxIterations = 100;
+		boolean useRANSAC = false;
 
 		@Override
 		public String toString()
 		{
 			String s = "";
 			s += "maxErrorICP: " + this.maxErrorICP;
+			s += ", useRANSAC: " + this.useRANSAC;
 			s += ", maxErrorRANSAC: " + this.maxErrorRANSAC;
 			s += ", maxIterations: " + this.maxIterations;
 
@@ -60,6 +62,7 @@ public class STIMCardAlignICP
 		}
 	}
 
+	private final JLabel siftResults;
 	private Thread icpThread = null;
 	private Affine2D<?> previousModel = null;
 
@@ -67,8 +70,6 @@ public class STIMCardAlignICP
 	private final JPanel panel;
 
 	private final SIFTOverlay icpoverlay;
-	private final STIMCard stimcard;
-	private final STIMCardAlignSIFT stimcardSIFT;
 
 	public STIMCardAlignICP(
 			final String dataset1,
@@ -78,9 +79,6 @@ public class STIMCardAlignICP
 			final STIMCardAlignSIFT stimcardSIFT,
 			final ExecutorService service )
 	{
-		this.stimcard = stimcard;
-		this.stimcardSIFT = stimcardSIFT;
-
 		this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 5, fill", "[right][grow]", "center"));
 		this.icpoverlay = new SIFTOverlay( new ArrayList<>(), stimcard.bdvhandle() );
 		this.param = new ICPParams();
@@ -98,11 +96,18 @@ public class STIMCardAlignICP
 		panel.add(maxErrorICPLabel, "aligny baseline");
 		panel.add(maxErrorICPSlider, "growx, wrap");
 
+		// use RANSAC checkbox
+		final JCheckBox useRANSAC = new JCheckBox( "Use RANSAC filtering of ICP inliers" );
+		panel.add(useRANSAC, "span,growx,pushy");
+		useRANSAC.setBorder( BorderFactory.createEmptyBorder(5,0,0,0) );
+		useRANSAC.setSelected( false );
+
 		// max RANSAC error
 		final BoundedValuePanel maxErrorRANSACSlider = new BoundedValuePanel(new BoundedValue(0, Math.round( Math.ceil( param.maxErrorRANSAC * 2 ) ), param.maxErrorRANSAC ));
 		maxErrorRANSACSlider.setBorder(null);
 		final JLabel maxErrorRANSACLabel = new JLabel("<html>Maximum error<br>RANSAC (px)</html>");
 		maxErrorRANSACLabel.setFont( f );
+		maxErrorRANSACSlider.setEnabled( false );
 		panel.add(maxErrorRANSACLabel, "aligny baseline");
 		panel.add(maxErrorRANSACSlider, "growx, wrap");
 
@@ -124,7 +129,7 @@ public class STIMCardAlignICP
 		panel.add( boxLabel, "aligny baseline" );
 		panel.add( boxGenes, "growx, wrap" );
 
-		final JLabel siftResults = new JLabel( "<html>Note: SIFT identified <FONT COLOR=\"#ff0000\">" + stimcardSIFT.genesWithInliers().size() + " genes</FONT> with correspondences.</html>");
+		siftResults = new JLabel( getSIFTResultLabelText( stimcardSIFT.genesWithInliers().size() ) );
 		siftResults.setFont( f.deriveFont( Font.ITALIC ));
 		siftResults.setBorder( BorderFactory.createEmptyBorder(5, 5, 5, 5) );
 		panel.add(siftResults, "span,growx,pushy");
@@ -166,6 +171,9 @@ public class STIMCardAlignICP
 		panel.add(cmdLine, "aligny baseline");
 		final JButton run = new JButton("Run ICP alignment");
 		panel.add(run, "growx, wrap");
+
+		// disable RANSAC slider if not used
+		useRANSAC.addActionListener( e -> maxErrorRANSACSlider.setEnabled( useRANSAC.isSelected() ) );
 
 		// disable lambdas if no regularization is selected
 		boxModelFinal2.addActionListener( e -> {
@@ -251,6 +259,22 @@ public class STIMCardAlignICP
 				else
 					genes = new HashSet<>( stimcardSIFT.genesWithInliers() ); // genes from SIFT
 
+				if ( genes.size() == 0 )
+				{
+					System.out.println( "no genes for ICP, please run SIFT successfully first or select 'all displayed genes'.");
+
+					cmdLine.setEnabled( true );
+					run.setText( "Run ICP alignment" );
+					run.setFont( run.getFont().deriveFont( Font.PLAIN ) );
+					run.setForeground( Color.black );
+					bar.setValue( 0 );
+
+					icpThread = null;
+
+					return;
+				}
+
+				param.useRANSAC = useRANSAC.isSelected();
 				param.maxErrorICP = maxErrorICPSlider.getValue().getValue();
 				param.maxErrorRANSAC = maxErrorRANSACSlider.getValue().getValue();
 				param.maxIterations = (int)Math.round( iterationsSlider.getValue().getValue() );
@@ -265,8 +289,9 @@ public class STIMCardAlignICP
 				final Pair<Model, List<PointMatch>> icpT = 
 						ICPAlign.alignICP(
 								stimcard.data2().data(), stimcard.data1().data(), genes, model,
-								param.maxErrorICP, Double.NaN /*param.maxErrorRANSAC*/, param.maxIterations,
-								v -> {
+								param.maxErrorICP, param.maxErrorRANSAC, param.maxIterations,
+								v ->
+								{
 									synchronized (this)
 									{
 										progressBarValue[0] += v;
@@ -275,8 +300,11 @@ public class STIMCardAlignICP
 								},
 								m ->
 								{
-									stimcard.setCurrentModel( (Affine2D)m );
-									stimcard.applyTransformationToBDV( state, true );
+									synchronized (stimcard)
+									{
+										stimcard.setCurrentModel( (Affine2D)m );
+										stimcard.applyTransformationToBDV( state, true );
+									}
 								},
 								service);
 
@@ -352,9 +380,9 @@ public class STIMCardAlignICP
 
 	}
 
-	public JPanel getPanel() {
-		return panel;
-	}
+	public static String getSIFTResultLabelText(int s) { return "<html>Note: SIFT identified <FONT COLOR=\"#ff0000\">" + s + " genes</FONT> with correspondences.</html>"; }
+	public JLabel siftResults() { return siftResults; }
+	public JPanel getPanel() { return panel; }
 
 	/**
 	 * Fits sampled points to a model.

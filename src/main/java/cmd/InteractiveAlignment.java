@@ -13,7 +13,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import align.AlignTools;
 import align.Pairwise;
+import bdv.tools.transformation.TransformedSource;
 import bdv.ui.splitpanel.SplitPanel;
 import bdv.util.Bdv;
 import bdv.util.BdvFunctions;
@@ -55,6 +57,7 @@ import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import render.MaxDistanceParam;
 import render.Render;
+import util.BDVUtils;
 import util.Threads;
 
 // -i visium.n5 -d1 slice1.h5ad -d2 slice2.n5 -n 9 -sk 14
@@ -179,8 +182,18 @@ public class InteractiveAlignment implements Callable<Void> {
 			System.exit( 0 );
 		}
 
-		// the plan is to open two BDV windows next to each other,
-		// render in parallel and overlay candidates and inliers
+		// TODO: REMOVE
+		AffineModel2D model = new AffineModel2D();
+		model.set(0.323679918598243, -0.9185551542794,  1.002878826719069, 0.351176728134501, -546.6035992226643, 4231.453000084942 );
+		AffineTransform2D m2d = AlignTools.modelToAffineTransform2D( model );
+		AffineTransform3D m3d = new AffineTransform3D();
+		m3d.set(m2d.get(0, 0), 0, 0 ); // row, column
+		m3d.set(m2d.get(0, 1), 0, 1 ); // row, column
+		m3d.set(m2d.get(1, 0), 1, 0 ); // row, column
+		m3d.set(m2d.get(1, 1), 1, 1 ); // row, column
+		m3d.set(m2d.get(0, 2), 0, 3 ); // row, column
+		m3d.set(m2d.get(1, 2), 1, 3 ); // row, column
+
 
 		BdvStackSource< ? > lastSource = null;
 		final HashMap< String, Pair< AddedGene, AddedGene > > sourceData = new HashMap<>();
@@ -197,7 +210,7 @@ public class InteractiveAlignment implements Callable<Void> {
 					rendering,
 					lastSource,
 					data1,
-					null,
+					m3d,
 					gene,
 					smoothnessFactor,
 					new ARGBType( ARGBType.rgba(0, 255, 0, 0) ),
@@ -281,6 +294,9 @@ public class InteractiveAlignment implements Callable<Void> {
 						data1, data2, allGenes, sourceData, geneToBDVSource, medianDistance, rendering, smoothnessFactor, brightnessMin, brightnessMax, lastSource.getBdvHandle());
 		lastSource.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
 
+		// TODO: REMOVE
+		card.setCurrentModel( model );
+
 		// add STIMCard panel
 		final STIMCardFilter cardFilter = new STIMCardFilter( card, service );
 		lastSource.getBdvHandle().getCardPanel().addCard( "STIM Filtering Options", "STIM Filtering Options", cardFilter.getPanel(), false );
@@ -294,6 +310,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		final STIMCardAlignICP cardAlignICP =
 				new STIMCardAlignICP( dataset1, dataset2, overlay, card, cardAlignSIFT, service );
 		lastSource.getBdvHandle().getCardPanel().addCard( "ICP Alignment", "ICP Alignment", cardAlignICP.getPanel(), false );
+		cardAlignSIFT.setICPCard( cardAlignICP );
 
 		// Expands the split Panel (after waiting 2 secs for the BDV to calm down)
 		SimpleMultiThreading.threadWait( 2000 );
@@ -302,12 +319,6 @@ public class InteractiveAlignment implements Callable<Void> {
 		// TODO: BDV should call the transform listener
 		SimpleMultiThreading.threadWait( 2000 );
 		cardAlignSIFT.updateMaxOctaveSize();
-
-		// TODO: REMOVE
-		AffineModel2D model = new AffineModel2D();
-		model.set(0.323679918598243, -0.9185551542794,  1.002878826719069, 0.351176728134501, -546.6035992226643, 4231.453000084942 );
-		card.setCurrentModel( model );
-		card.applyTransformationToBDV( state, true );
 
 		System.out.println("done");
 
@@ -328,6 +339,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		final private RadiusSearchFilterFactory< DoubleType, DoubleType > radiusFactory;
 		final private MaxDistanceParam maxDistanceParam;
 		final private BdvStackSource<?> source;
+		final TransformedSource<?> transformedSource;
 		final private double min, max;
 
 		public AddedGene(
@@ -337,6 +349,7 @@ public class InteractiveAlignment implements Callable<Void> {
 				final RadiusSearchFilterFactory< DoubleType, DoubleType > radiusFactory,
 				final MaxDistanceParam maxDistanceParam,
 				final BdvStackSource<?> source,
+				final TransformedSource<?> transformedSource,
 				final double min,
 				final double max )
 		{
@@ -346,6 +359,7 @@ public class InteractiveAlignment implements Callable<Void> {
 			this.radiusFactory = radiusFactory;
 			this.maxDistanceParam = maxDistanceParam;
 			this.source = source;
+			this.transformedSource = transformedSource;
 			this.min = min;
 			this.max = max;
 
@@ -360,6 +374,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		public RadiusSearchFilterFactory< DoubleType, DoubleType > radiusFactory(){ return radiusFactory; }
 		public MaxDistanceParam maxDistanceParam(){ return maxDistanceParam; }
 		public BdvStackSource<?> source(){ return source; }
+		public TransformedSource<?> transformedSource() { return transformedSource; }
 		public double min(){ return min; }
 		public double max(){ return max; }
 
@@ -402,7 +417,7 @@ public class InteractiveAlignment implements Callable<Void> {
 				final Rendering renderType,
 				final Bdv bdv,
 				final STDataAssembly data,
-				final AffineTransform3D sourceTransform,
+				final AffineTransform3D fixedTransform, // NOTE: options.sourceTransform != setFixedTransform
 				final String gene,
 				final double smoothnessFactor,
 				final ARGBType color,
@@ -419,10 +434,6 @@ public class InteractiveAlignment implements Callable<Void> {
 
 			System.out.println( "min/max: " + min + "/" + max );
 			System.out.println( "min/max display range: " + minDisplay + "/" + maxDisplay );
-
-			// TODO: prefiltering...
-			//final List< FilterFactory< DoubleType, DoubleType > > filterFactorys = new ArrayList<>();
-			//filterFactorys.add( new MedianFilterFactory<DoubleType>( new DoubleType(), 3 * medianDistance ) );
 
 			final RealRandomAccessible< DoubleType > rra;
 			final KDTree< DoubleType > tree;
@@ -483,10 +494,13 @@ public class InteractiveAlignment implements Callable<Void> {
 			BdvOptions options = BdvOptions.options().numRenderingThreads(Math.max(2,Runtime.getRuntime().availableProcessors() / 2))
 					.addTo(bdv).is2D().preferredSize(1000, 890);
 
-			if ( sourceTransform != null )
-				options = options.sourceTransform( sourceTransform );
-
 			final BdvStackSource< ? > source = BdvFunctions.show( rra, interval, gene, options );
+
+			// get TransformedSource (that is dynamically updated with the alignment)
+			final TransformedSource<?> transformedSource = BDVUtils.getTransformedSource( source );
+
+			if ( fixedTransform != null )
+				transformedSource.setFixedTransform( fixedTransform );
 
 			source.setDisplayRangeBounds( 0, max );
 			source.setDisplayRange( minDisplay, maxDisplay );
@@ -504,7 +518,7 @@ public class InteractiveAlignment implements Callable<Void> {
 			t.set( 0, 2, 3 );
 			source.getBdvHandle().getViewerPanel().state().setViewerTransform( t );
 
-			return new AddedGene( rra, tree, gaussFactory, radiusFactory, maxDistanceParam, source, min, max );
+			return new AddedGene( rra, tree, gaussFactory, radiusFactory, maxDistanceParam, source, transformedSource, min, max );
 		}
 	}
 
