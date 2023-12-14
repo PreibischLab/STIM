@@ -64,6 +64,7 @@ public class STIMCardAlignICP
 	}
 
 	private final JLabel siftResults;
+	protected final JButton cmdLine, run;
 	private Thread icpThread = null;
 	private Affine2D<?> previousModel = null;
 
@@ -167,10 +168,10 @@ public class STIMCardAlignICP
 		panel.add(bar, "span,growx,pushy");
 
 		// buttons for adding genes and running SIFT
-		final JButton cmdLine = new JButton("Command-line");
+		cmdLine = new JButton("Command-line");
 		cmdLine.setFont( cmdLine.getFont().deriveFont( 10f ));
 		panel.add(cmdLine, "aligny baseline");
-		final JButton run = new JButton("Run ICP alignment");
+		run = new JButton("Run ICP alignment");
 		panel.add(run, "growx, wrap");
 
 		// disable RANSAC slider if not used

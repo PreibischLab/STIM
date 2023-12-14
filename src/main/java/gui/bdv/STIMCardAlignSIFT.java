@@ -60,6 +60,8 @@ public class STIMCardAlignSIFT
 
 	private Thread siftThread = null;
 	private List< Thread > threads = new ArrayList<>();
+	protected final JButton cmdLine, run;
+	private final JProgressBar bar;
 	private STIMCardAlignICP icpCard = null; // may or may not be there
 
 	private Affine2D<?> previousModel = null;
@@ -211,16 +213,16 @@ public class STIMCardAlignSIFT
 		overlayInliers.setEnabled( false );
 
 		// progress bar
-		final JProgressBar bar = new JProgressBar(SwingConstants.HORIZONTAL, 0, 100);
+		bar = new JProgressBar(SwingConstants.HORIZONTAL, 0, 100);
 		bar.setValue( 0 );
 		bar.setStringPainted(false);
 		panel.add(bar, "span,growx,pushy");
 
 		// buttons for adding genes and running SIFT
-		final JButton cmdLine = new JButton("Command-line");
+		cmdLine = new JButton("Command-line");
 		cmdLine.setFont( cmdLine.getFont().deriveFont( 10f ));
 		panel.add(cmdLine, "aligny baseline");
-		final JButton run = new JButton("Run SIFT alignment");
+		run = new JButton("Run SIFT alignment");
 		panel.add(run, "growx, wrap");
 
 		//
@@ -446,11 +448,7 @@ public class STIMCardAlignSIFT
 				// wait a bit
 				try { Thread.sleep( 1000 ); } catch (InterruptedException e1) {}
 
-				cmdLine.setEnabled( true );
-				run.setText( "Run SIFT alignment" );
-				run.setFont( run.getFont().deriveFont( Font.PLAIN ) );
-				run.setForeground( Color.black );
-				bar.setValue( 0 );
+				reEnableControls();
 
 				siftThread = null;
 				threads.clear();
@@ -472,6 +470,11 @@ public class STIMCardAlignSIFT
 			cmdLine.setEnabled( false );
 			overlayInliers.setEnabled( false );
 			bar.setValue( 1 );
+			if ( icpCard != null )
+			{
+				icpCard.cmdLine.setEnabled( false );
+				icpCard.run.setEnabled( false );
+			}
 
 			siftThread = new Thread( () ->
 			{
@@ -586,11 +589,7 @@ public class STIMCardAlignSIFT
 					icpCard.getPanel().updateUI();
 				}
 
-				bar.setValue( 100 );
-				cmdLine.setEnabled( true );
-				run.setText( "Run SIFT alignment" );
-				run.setFont( run.getFont().deriveFont( Font.PLAIN ) );
-				run.setForeground( Color.black );
+				reEnableControls();
 
 				stimcard.bdvhandle().getViewerPanel().requestRepaint();
 				siftThread = null;
@@ -614,6 +613,21 @@ public class STIMCardAlignSIFT
 	public void updateMaxOctaveSize()
 	{
 		maxOS.setValue( this.param.sift.maxOctaveSize = getMaxOctaveSize( stimcard.data1().data(), stimcard.data2().data(), overlay.currentScale() ) );
+	}
+
+	protected void reEnableControls()
+	{
+		cmdLine.setEnabled( true );
+		run.setText( "Run SIFT alignment" );
+		run.setFont( run.getFont().deriveFont( Font.PLAIN ) );
+		run.setForeground( Color.black );
+		bar.setValue( 0 );
+
+		if ( icpCard != null )
+		{
+			icpCard.cmdLine.setEnabled( true );
+			icpCard.run.setEnabled( true );
+		}
 	}
 
 	protected int getMaxOctaveSize( final STData data1, final STData data2, final double scale )
