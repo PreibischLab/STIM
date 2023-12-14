@@ -36,6 +36,7 @@ import net.imglib2.Interval;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.util.Pair;
+import net.imglib2.util.Util;
 import net.miginfocom.swing.MigLayout;
 import util.BDVUtils;
 import util.BoundedValue;
@@ -248,7 +249,7 @@ public class STIMCardAlignICP
 				System.out.println( "current  : " + stimcard.currentModel() );
 
 				// set the model as much as possible to the current transform
-				fit( model, stimcard.currentModel(), interval.dimension( 0 ), interval.dimension( 1 ), 8 );
+				fit( model, stimcard.currentModel(), interval.dimension( 0 ) / 4.0, interval.dimension( 1 ) / 4.0, 4 );
 
 				System.out.println( "ICP input: " + model );
 
@@ -315,7 +316,7 @@ public class STIMCardAlignICP
 				{
 					try
 					{
-						model = icpT.getA();
+						model = icpT.getA();/*
 						final AffineTransform2D m2d = AlignTools.modelToAffineTransform2D( (Affine2D)model ).inverse();
 						final AffineTransform3D m3d = new AffineTransform3D();
 						m3d.set(m2d.get(0, 0), 0, 0 ); // row, column
@@ -333,7 +334,7 @@ public class STIMCardAlignICP
 						// every second source will be transformed
 						for ( int i = 1; i < tsources.size(); i = i + 2 )
 							tsources.get( i ).setFixedTransform( m3d );
-
+					*/
 					}
 					catch (Exception e)
 					{
@@ -401,28 +402,53 @@ public class STIMCardAlignICP
 	 * @param sampleHeight        height of each sample.
 	 * @param samplesPerDimension number of samples to take in each dimension.
 	 */
-	public static void fit(final Model<?> model, final CoordinateTransform coordinateTransform,
-			final double sampleWidth, final double sampleHeight, final int samplesPerDimension) 
+	public static void fit(
+			final Model<?> model,
+			final CoordinateTransform coordinateTransform,
+			final double sampleWidth,
+			final double sampleHeight,
+			final int samplesPerDimension)
 	{
-
 		final List<PointMatch> matches = new ArrayList<>();
 
-		for (int y = 0; y < samplesPerDimension; ++y) {
+		for (int y = 0; y < samplesPerDimension; ++y)
+		{
 			final double sampleY = y * sampleHeight;
-			for (int x = 0; x < samplesPerDimension; ++x) {
+			for (int x = 0; x < samplesPerDimension; ++x)
+			{
 				final double sampleX = x * sampleWidth;
+
 				final Point p = new Point(new double[] { sampleX, sampleY });
 				p.apply(coordinateTransform);
-				matches.add(new PointMatch(p, p));
+
+				//System.out.println( Util.printCoordinates( p.getL() ) + " >> " + Util.printCoordinates( p.getW() ));
+				matches.add(new PointMatch(new Point(new double[] { sampleX, sampleY }), p));
 			}
 		}
 
-		try {
+		/*
+		(0.0, 0.0) >> (-546.6035992226643, 4231.453000084942)
+		(5601.0, 0.0) >> (1266.3276248460947, -913.3744190339776)
+		(0.0, 5841.0) >> (5311.211627643417, 6282.676269118562)
+		(5601.0, 5841.0) >> (7124.142851712177, 1137.8488499996429)
+
+		(-394.67587180284, 4359.270213989155) ~~ (-394.67587180284, 4359.270213989155)
+		(1461.1680473398637, -925.3342506591734) ~~ (1461.1680473398637, -925.3342506591734)
+		(5116.371205149648, 6294.636100743758) ~~ (5116.371205149648, 6294.636100743758)
+		(6972.215124292352, 1010.0316360954293) ~~ (6972.215124292352, 1010.0316360954293)
+		*/
+
+		try
+		{
 			model.fit(matches);
-		} catch (NotEnoughDataPointsException | IllDefinedDataPointsException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+
+			for ( final PointMatch pm : matches )
+			{
+				pm.apply( model );
+				//System.out.println( Util.printCoordinates( pm.getP1().getW() ) + " ~~ " + Util.printCoordinates( pm.getP2().getW() ));
+			}
 		}
+		catch (NotEnoughDataPointsException | IllDefinedDataPointsException e) { e.printStackTrace(); }
 	}
 
 }

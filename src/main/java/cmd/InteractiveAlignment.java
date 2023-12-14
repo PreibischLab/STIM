@@ -185,6 +185,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		// TODO: REMOVE
 		AffineModel2D model = new AffineModel2D();
 		model.set(0.323679918598243, -0.9185551542794,  1.002878826719069, 0.351176728134501, -546.6035992226643, 4231.453000084942 );
+		//model.set(0.331341531716248, -0.943510884600666, 0.943510884600666, 0.331341531716248, 516.8904927161093, 5126.173497414435 );
 		AffineTransform2D m2d = AlignTools.modelToAffineTransform2D( model );
 		AffineTransform3D m3d = new AffineTransform3D();
 		m3d.set(m2d.get(0, 0), 0, 0 ); // row, column
