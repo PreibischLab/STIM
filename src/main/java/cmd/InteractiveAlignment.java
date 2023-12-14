@@ -311,7 +311,9 @@ public class InteractiveAlignment implements Callable<Void> {
 		final STIMCardAlignICP cardAlignICP =
 				new STIMCardAlignICP( dataset1, dataset2, overlay, card, cardAlignSIFT, service );
 		lastSource.getBdvHandle().getCardPanel().addCard( "ICP Alignment", "ICP Alignment", cardAlignICP.getPanel(), false );
+
 		cardAlignSIFT.setICPCard( cardAlignICP );
+		cardAlignICP.setSIFTCard( cardAlignSIFT );
 
 		// Expands the split Panel (after waiting 2 secs for the BDV to calm down)
 		SimpleMultiThreading.threadWait( 2000 );

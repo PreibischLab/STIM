@@ -17,9 +17,7 @@ import javax.swing.JProgressBar;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 
-import align.AlignTools;
 import align.ICPAlign;
-import bdv.tools.transformation.TransformedSource;
 import bdv.viewer.SynchronizedViewerState;
 import cmd.InteractiveAlignment.AddedGene;
 import data.STDataUtils;
@@ -33,12 +31,8 @@ import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
 import net.imglib2.Interval;
-import net.imglib2.realtransform.AffineTransform2D;
-import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.util.Pair;
-import net.imglib2.util.Util;
 import net.miginfocom.swing.MigLayout;
-import util.BDVUtils;
 import util.BoundedValue;
 import util.BoundedValuePanel;
 
@@ -65,11 +59,13 @@ public class STIMCardAlignICP
 
 	private final JLabel siftResults;
 	protected final JButton cmdLine, run;
+	private final JProgressBar bar;
 	private Thread icpThread = null;
 	private Affine2D<?> previousModel = null;
 
 	private final ICPParams param;
 	private final JPanel panel;
+	private STIMCardAlignSIFT siftCard = null; // may or may not be there
 
 	private final SIFTOverlay icpoverlay;
 
@@ -162,7 +158,7 @@ public class STIMCardAlignICP
 		overlayInliers.setEnabled( false );
 
 		// progress bar
-		final JProgressBar bar = new JProgressBar(SwingConstants.HORIZONTAL, 0, 100);
+		bar = new JProgressBar(SwingConstants.HORIZONTAL, 0, 100);
 		bar.setValue( 0 );
 		bar.setStringPainted(false);
 		panel.add(bar, "span,growx,pushy");
@@ -212,11 +208,8 @@ public class STIMCardAlignICP
 				// wait a bit
 				try { Thread.sleep( 100 ); } catch (InterruptedException e1) {}
 
-				cmdLine.setEnabled( true );
-				run.setText( "Run ICP alignment" );
-				run.setFont( run.getFont().deriveFont( Font.PLAIN ) );
-				run.setForeground( Color.black );
-				bar.setValue( 0 );
+				reEnableControls();
+
 				icpThread = null;
 
 				stimcard.setCurrentModel( previousModel );
@@ -237,6 +230,11 @@ public class STIMCardAlignICP
 			cmdLine.setEnabled( false );
 			overlayInliers.setEnabled( false );
 			bar.setValue( 1 );
+			if ( siftCard != null )
+			{
+				siftCard.cmdLine.setEnabled( false );
+				siftCard.run.setEnabled( false );
+			}
 
 			icpThread = new Thread( () ->
 			{
@@ -358,12 +356,7 @@ public class STIMCardAlignICP
 					overlayInliers.setEnabled( false );
 				}
 
-				bar.setValue( 100 );
-				cmdLine.setEnabled( true );
-				run.setText( "Run ICP alignment" );
-				run.setFont( run.getFont().deriveFont( Font.PLAIN ) );
-				run.setForeground( Color.black );
-				bar.setValue( 0 );
+				reEnableControls();
 
 				stimcard.bdvhandle().getViewerPanel().requestRepaint();
 				icpThread = null;
@@ -379,12 +372,28 @@ public class STIMCardAlignICP
 		{
 			// TODO ...
 		});
+	}
+
+	protected void reEnableControls()
+	{
+		cmdLine.setEnabled( true );
+		run.setText( "Run ICP alignment" );
+		run.setFont( run.getFont().deriveFont( Font.PLAIN ) );
+		run.setForeground( Color.black );
+		bar.setValue( 0 );
+
+		if ( siftCard != null )
+		{
+			siftCard.cmdLine.setEnabled( true );
+			siftCard.run.setEnabled( true );
+		}
 
 	}
 
 	public static String getSIFTResultLabelText(int s) { return "<html>Note: SIFT identified <FONT COLOR=\"#ff0000\">" + s + " genes</FONT> with correspondences.</html>"; }
 	public JLabel siftResults() { return siftResults; }
 	public JPanel getPanel() { return panel; }
+	public void setSIFTCard( final STIMCardAlignSIFT siftCard ) { this.siftCard = siftCard; }
 
 	/**
 	 * Fits sampled points to a model.
