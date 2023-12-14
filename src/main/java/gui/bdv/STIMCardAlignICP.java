@@ -218,7 +218,7 @@ public class STIMCardAlignICP
 				icpThread = null;
 
 				stimcard.setCurrentModel( previousModel );
-				stimcard.applyTransformationToBDV( stimcard.bdvhandle().getViewerPanel().state(), true );
+				stimcard.applyTransformationToBDV( true );
 
 				return;
 			}
@@ -276,7 +276,7 @@ public class STIMCardAlignICP
 
 				param.useRANSAC = useRANSAC.isSelected();
 				param.maxErrorICP = maxErrorICPSlider.getValue().getValue();
-				param.maxErrorRANSAC = maxErrorRANSACSlider.getValue().getValue();
+				param.maxErrorRANSAC = param.useRANSAC ? maxErrorRANSACSlider.getValue().getValue() : Double.NaN;
 				param.maxIterations = (int)Math.round( iterationsSlider.getValue().getValue() );
 
 				System.out.println( "Running ICP align with the following parameters: \n" + param.toString() );
