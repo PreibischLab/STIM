@@ -16,9 +16,29 @@ Some highlights are:
 
 A **great example** dataset is provided by the [SlideSeq paper](https://science.sciencemag.org/content/363/6434/1463.long) and can be downloaded [here](https://portals.broadinstitute.org/single_cell/study/slide-seq-study). 
 
-A **minimal example** of a two-slice Visium dataset is available [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view?usp=sharing). **We provide a [detailed walk-through for this dataset below to get you started](#Tutorial-on-small-example).** *Note: we highly recommend this tutorial as a starting point for using STIM. If you have any questions, feature requests or concerns please open an issue here on GitHub.*
+A **minimal example** of a two-slice Visium dataset is available [here](https://drive.google.com/file/d/1qzzu4LmRukHBvbx_hiN2FOmIladiT7xx/view?usp=sharing).
+**We provide a [detailed walk-through](https://github.com/preibischlab/stim/wiki/tutorials) for this dataset in the wiki to get you started.**
+*Note: we highly recommend this tutorial as a starting point for using STIM. If you have any questions, feature requests or concerns please open an issue here on GitHub.*
 
 **Please see the [wiki](https://github.com/PreibischLab/STIM/wiki) for additional tutorials, detailed installation instructions, and more.**
+
+## Installation
+
+We recommend using Conda to install STIM. If you don't have Conda installed, please follow the instructions [here](https://docs.conda.io/projects/conda/en/latest/user-guide/install/). Once Conda is installed, you can install STIM from conda-forge by running:
+
+```bash
+conda install -c conda-forge stim
+```
+
+You can also build STIM from source, see the [detailed instructions](https://github.com/PreibischLab/STIM/wiki/Installation) in the wiki.
+
+
+## Cite STIM
+
+If you use STIM in your research, please cite our [publication](https://www.biorxiv.org/content/10.1101/2021.12.07.471629v1):
+
+> Preibisch, S., Karaiskos, N., & Rajewsky, N. (2021). Image-based representation of massive spatial transcriptomics datasets. bioRxiv.
+
 
 ## Wrapping in Python
 
@@ -27,4 +47,6 @@ The [stimwrap package](https://github.com/rajewsky-lab/stimwrap) from the Rajews
 
 ## Java code examples
 
-There example classes in this [Java package](https://github.com/PreibischLab/STIM/tree/master/src/main/java/examples) that can help you getting started with programming in STIM, specifically `VisualizeStack.java` and `TestDisplayModes.java` could be useful. Additionally, the code for all command-line tools can be found [here](https://github.com/PreibischLab/STIM/tree/master/src/main/java/cmd), which is also a good starting place in combination with the [tutorial](#Minimal-Example-Instructions). *Note that the [install.sh](https://github.com/PreibischLab/STIM/blob/master/install) shows a link between the command-line tool name and Java class name, e.g. st-bdv-view is cmd.DisplayStackedSlides.*
+There are example classes in this [Java package](https://github.com/PreibischLab/STIM/tree/master/src/main/java/examples) that can help you getting started with programming in STIM, specifically `VisualizeStack.java` and `TestDisplayModes.java` could be useful.
+Additionally, the code for all command-line tools can be found [here](https://github.com/PreibischLab/STIM/tree/master/src/main/java/cmd), which is also a good starting place in combination with the [tutorials](https://github.com/preibischlab/stim/wiki/tutorials).
+*Note that the install scripts [install](https://github.com/PreibischLab/STIM/blob/master/install) and [install_windows.bat](https://github.com/PreibischLab/STIM/blob/master/install_windows.bat) show a link between the command-line tool name and Java class name, e.g., `st-bdv-view` is `cmd.DisplayStackedSlides`.*
