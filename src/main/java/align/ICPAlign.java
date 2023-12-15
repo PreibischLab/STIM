@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import data.STData;
@@ -49,7 +50,7 @@ public class ICPAlign
 			final M initialModel,
 			final double maxDistance,
 			final double ransacDistance,
-			final int maxIterations,
+			final AtomicInteger maxIterations,
 			final ExecutorService service )
 	{
 		return alignICP(stdataA, stdataB, genesToUse, initialModel, maxDistance, ransacDistance, maxIterations, v -> {}, m -> {}, service);
@@ -74,7 +75,7 @@ public class ICPAlign
 			final M initialModel,
 			final double maxDistance,
 			final double ransacDistance,
-			final int maxIterations,
+			final AtomicInteger maxIterations,
 			final Consumer< Double > progressBar,
 			final Consumer< M > updateBDV,
 			final ExecutorService service )
@@ -151,6 +152,8 @@ public class ICPAlign
 		double lastAvgError = 0;
 		int lastNumCorresponding = 0;
 
+		final double progressPerIteration = 98.0 / maxIterations.get();
+
 		boolean converged = false;
 
 		do
@@ -172,10 +175,12 @@ public class ICPAlign
 
 			lastNumCorresponding = icp.getNumPointMatches();
 			lastAvgError = icp.getAverageError();
-			
+
+			progressBar.accept( progressPerIteration );
+
 			System.out.println( i + ": " + icp.getNumPointMatches() + " matches, avg error [px] " + icp.getAverageError() + ", max error [px] " + icp.getMaximalError() );
 		}
-		while ( !converged && ++i < maxIterations );
+		while ( !converged && ++i < maxIterations.get() );
 
 		if ( icp.getPointMatches() == null )
 			return null;

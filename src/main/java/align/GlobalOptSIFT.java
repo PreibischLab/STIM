@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import gui.STDataAssembly;
 import io.SpatialDataContainer;
@@ -305,7 +306,7 @@ public class GlobalOptSIFT
 							final ExecutorService service = Executors.newFixedThreadPool( Threads.numThreads() );
 
 							final Pair< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >, List< PointMatch > > icpT =
-									ICPAlign.alignICP(data.get(i).data(), data.get(j).data(), matches.genes, interpolated, maxDistance, maxDistance / 2.0, icpIterations, service );
+									ICPAlign.alignICP(data.get(i).data(), data.get(j).data(), matches.genes, interpolated, maxDistance, maxDistance / 2.0, new AtomicInteger( icpIterations ), service );
 
 							service.shutdown();
 

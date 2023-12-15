@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -22,7 +23,6 @@ import bdv.viewer.SynchronizedViewerState;
 import cmd.InteractiveAlignment.AddedGene;
 import data.STDataUtils;
 import gui.DisplayScaleOverlay;
-import gui.overlay.SIFTOverlay;
 import mpicbg.models.Affine2D;
 import mpicbg.models.CoordinateTransform;
 import mpicbg.models.IllDefinedDataPointsException;
@@ -41,7 +41,7 @@ public class STIMCardAlignICP
 	public class ICPParams
 	{
 		double maxErrorICP, maxErrorRANSAC;
-		int maxIterations = 100;
+		AtomicInteger maxIterations = new AtomicInteger( 100 ); // so it can be changed
 		boolean useRANSAC = false;
 
 		@Override
@@ -67,8 +67,6 @@ public class STIMCardAlignICP
 	private final JPanel panel;
 	private STIMCardAlignSIFT siftCard = null; // may or may not be there
 
-	private final SIFTOverlay icpoverlay;
-
 	public STIMCardAlignICP(
 			final String dataset1,
 			final String dataset2,
@@ -78,7 +76,6 @@ public class STIMCardAlignICP
 			final ExecutorService service )
 	{
 		this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 5, fill", "[right][grow]", "center"));
-		this.icpoverlay = new SIFTOverlay( new ArrayList<>(), stimcard.bdvhandle() );
 		this.param = new ICPParams();
 
 		final Interval interval = STDataUtils.getCommonInterval( stimcard.data1().data(), stimcard.data2().data() );
@@ -110,7 +107,7 @@ public class STIMCardAlignICP
 		panel.add(maxErrorRANSACSlider, "growx, wrap");
 
 		// iterations
-		final BoundedValuePanel iterationsSlider = new BoundedValuePanel(new BoundedValue(50, Math.round( Math.ceil( param.maxIterations * 2 ) ), param.maxIterations ));
+		final BoundedValuePanel iterationsSlider = new BoundedValuePanel(new BoundedValue(50, Math.round( Math.ceil( param.maxIterations.get() * 2 ) ), param.maxIterations.get() ));
 		iterationsSlider.setBorder(null);
 		final JLabel iterationsLabel = new JLabel("Max. iterations");
 		//iterationsLabel.setFont( f );
@@ -151,12 +148,6 @@ public class STIMCardAlignICP
 		panFinal.setBorder( BorderFactory.createEmptyBorder(0,0,5,0));
 		panel.add( panFinal, "growx, wrap" );
 
-		// sift overlay
-		final JCheckBox overlayInliers = new JCheckBox( "Overlay ICP features" );
-		panel.add(overlayInliers, "span,growx,pushy");
-		overlayInliers.setSelected( true );
-		overlayInliers.setEnabled( false );
-
 		// progress bar
 		bar = new JProgressBar(SwingConstants.HORIZONTAL, 0, 100);
 		bar.setValue( 0 );
@@ -179,20 +170,9 @@ public class STIMCardAlignICP
 			labelFinalReg.setForeground( boxModelFinal2.getSelectedIndex() == 0 ? Color.gray : Color.black );
 		} );
 
-		// overlay listener
-		overlayInliers.addChangeListener( e ->
-		{
-			if ( !overlayInliers.isSelected() )
-			{
-				stimcard.bdvhandle().getViewerPanel().renderTransformListeners().remove( icpoverlay );
-				stimcard.bdvhandle().getViewerPanel().getDisplay().overlays().remove( icpoverlay );
-			}
-			else
-			{
-				stimcard.bdvhandle().getViewerPanel().renderTransformListeners().add( icpoverlay );
-				stimcard.bdvhandle().getViewerPanel().getDisplay().overlays().add( icpoverlay );
-			}
-			stimcard.bdvhandle().getViewerPanel().requestRepaint();
+		// be able to change number of iterations while running
+		iterationsSlider.changeListeners().add( () -> {
+			param.maxIterations.set( (int)Math.round( iterationsSlider.getValue().getValue() ) );
 		});
 
 		//
@@ -220,20 +200,16 @@ public class STIMCardAlignICP
 
 			previousModel = (Affine2D)((Model)stimcard.currentModel()).copy();
 
-			icpoverlay.setInliers( new ArrayList<>() );
-			stimcard.bdvhandle().getViewerPanel().renderTransformListeners().remove( icpoverlay );
-			stimcard.bdvhandle().getViewerPanel().getDisplay().overlays().remove( icpoverlay );
-
 			run.setForeground( Color.red );
 			run.setFont( run.getFont().deriveFont( Font.BOLD ) );
 			run.setText( "Cancel ICP run");
 			cmdLine.setEnabled( false );
-			overlayInliers.setEnabled( false );
 			bar.setValue( 1 );
 			if ( siftCard != null )
 			{
 				siftCard.cmdLine.setEnabled( false );
 				siftCard.run.setEnabled( false );
+				siftCard.overlayInliers.setSelected( false );
 			}
 
 			icpThread = new Thread( () ->
@@ -277,7 +253,7 @@ public class STIMCardAlignICP
 				param.useRANSAC = useRANSAC.isSelected();
 				param.maxErrorICP = maxErrorICPSlider.getValue().getValue();
 				param.maxErrorRANSAC = param.useRANSAC ? maxErrorRANSACSlider.getValue().getValue() : Double.NaN;
-				param.maxIterations = (int)Math.round( iterationsSlider.getValue().getValue() );
+				param.maxIterations.set( (int)Math.round( iterationsSlider.getValue().getValue() ) );
 
 				System.out.println( "Running ICP align with the following parameters: \n" + param.toString() );
 				System.out.println( "FINAL model: " + STIMCardAlignSIFT.optionsModel[ boxModelFinal1.getSelectedIndex() ] + ", regularizer: " + STIMCardAlignSIFT.optionsModelReg[ boxModelFinal2.getSelectedIndex() ] + ", lambda=" + lambda );
@@ -315,50 +291,27 @@ public class STIMCardAlignICP
 				{
 					try
 					{
-						model = icpT.getA();/*
-						final AffineTransform2D m2d = AlignTools.modelToAffineTransform2D( (Affine2D)model ).inverse();
-						final AffineTransform3D m3d = new AffineTransform3D();
-						m3d.set(m2d.get(0, 0), 0, 0 ); // row, column
-						m3d.set(m2d.get(0, 1), 0, 1 ); // row, column
-						m3d.set(m2d.get(1, 0), 1, 0 ); // row, column
-						m3d.set(m2d.get(1, 1), 1, 1 ); // row, column
-						m3d.set(m2d.get(0, 2), 0, 3 ); // row, column
-						m3d.set(m2d.get(1, 2), 1, 3 ); // row, column
+						model = icpT.getA();
 
-						System.out.println( "2D model: " + m2d );
-						System.out.println( "3D viewer transform: " + m3d );
+						stimcard.setCurrentModel( (Affine2D)model );
 
-						final List<TransformedSource<?>> tsources = BDVUtils.getTransformedSources(state);
-
-						// every second source will be transformed
-						for ( int i = 1; i < tsources.size(); i = i + 2 )
-							tsources.get( i ).setFixedTransform( m3d );
-					*/
+						System.out.println( "2D model: " + stimcard.currentModel() );
+						System.out.println( "2D transform: " + stimcard.currentModel2D() );
+						System.out.println( "3D viewer transform: " + stimcard.currentModel3D() );
 					}
 					catch (Exception e)
 					{
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-
-					//
-					// Overlay detections
-					//
-					icpoverlay.setInliers( icpT.getB() );
-
-
-					overlayInliers.setSelected( true );
-					overlayInliers.setEnabled( true );
 				}
 				else
 				{
-					icpoverlay.setInliers( new ArrayList<>() );
-					overlayInliers.setEnabled( false );
+					stimcard.setCurrentModel( previousModel );
 				}
 
 				reEnableControls();
+				stimcard.applyTransformationToBDV( true );
 
-				stimcard.bdvhandle().getViewerPanel().requestRepaint();
 				icpThread = null;
 			});
 

@@ -61,6 +61,7 @@ public class STIMCardAlignSIFT
 	private Thread siftThread = null;
 	private List< Thread > threads = new ArrayList<>();
 	protected final JButton cmdLine, run;
+	protected final JCheckBox overlayInliers;
 	private final JProgressBar bar;
 	private STIMCardAlignICP icpCard = null; // may or may not be there
 
@@ -207,7 +208,7 @@ public class STIMCardAlignSIFT
 		panel.add( panFinal, "growx, wrap" );
 
 		// sift overlay
-		final JCheckBox overlayInliers = new JCheckBox( "Overlay SIFT features" );
+		overlayInliers = new JCheckBox( "Overlay SIFT features" );
 		panel.add(overlayInliers, "span,growx,pushy");
 		overlayInliers.setSelected( true );
 		overlayInliers.setEnabled( false );
