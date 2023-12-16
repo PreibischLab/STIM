@@ -31,7 +31,6 @@ import align.PointST;
 import align.SIFTParam;
 import align.SIFTParam.SIFTPreset;
 import align.SiftMatch;
-import bdv.viewer.SynchronizedViewerState;
 import cmd.InteractiveAlignment.AddedGene;
 import data.STData;
 import data.STDataUtils;
@@ -46,6 +45,8 @@ import mpicbg.models.RigidModel2D;
 import mpicbg.models.SimilarityModel2D;
 import mpicbg.models.TranslationModel2D;
 import net.imglib2.Interval;
+import net.imglib2.util.Pair;
+import net.imglib2.util.ValuePair;
 import net.miginfocom.swing.MigLayout;
 import util.BoundedValue;
 import util.BoundedValuePanel;
@@ -56,14 +57,20 @@ public class STIMCardAlignSIFT
 	private final SIFTOverlay siftoverlay;
 	private final DisplayScaleOverlay overlay;
 	private final STIMCard stimcard;
-	private final JFormattedTextField maxOS;
+	private final STIMCardFilter stimcardFilter;
+	private STIMCardAlignICP icpCard = null; // may or may not be there
 
 	private Thread siftThread = null;
 	private List< Thread > threads = new ArrayList<>();
+
 	protected final JButton cmdLine, run;
 	protected final JCheckBox overlayInliers;
+	private final JCheckBox biDirectional;
+	private final JFormattedTextField ilr, initialSigma, minOS, maxOS, it, fdSize, fdBins, steps, rod;
 	private final JProgressBar bar;
-	private STIMCardAlignICP icpCard = null; // may or may not be there
+	private final BoundedValuePanel inliersPerGeneSlider, inliersSlider, maxErrorSlider;
+	private final JComboBox< String > boxModelFinal1, boxModelFinal2, boxModelRANSAC1, boxModelRANSAC2;
+	private final JTextField tfRANSAC, tfFinal;
 
 	private Affine2D<?> previousModel = null;
 	private final SIFTParam param;
@@ -96,6 +103,7 @@ public class STIMCardAlignSIFT
 		this.siftoverlay = new SIFTOverlay( new ArrayList<>(), stimcard.bdvhandle() );
 		this.overlay = overlay;
 		this.stimcard = stimcard;
+		this.stimcardFilter = stimcardFilter;
 		this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 5, fill", "[right][grow]", "center"));
 
 		// lists for components
@@ -140,14 +148,14 @@ public class STIMCardAlignSIFT
 		advancedOptions.setSelected( false );
 
 		// max error
-		final BoundedValuePanel maxErrorSlider = new BoundedValuePanel(new BoundedValue(0, Math.round( Math.ceil( param.maxError * 2 ) ), param.maxError ));
+		maxErrorSlider = new BoundedValuePanel(new BoundedValue(0, Math.round( Math.ceil( param.maxError * 2 ) ), param.maxError ));
 		maxErrorSlider.setBorder(null);
 		final JLabel maxErrorLabel = new JLabel("max. error (px)");
 		panel.add(maxErrorLabel, "aligny baseline");
 		panel.add(maxErrorSlider, "growx, wrap");
 
 		// inliers
-		final BoundedValuePanel inliersSlider = new BoundedValuePanel(new BoundedValue(0, param.minInliersTotal * 2, param.minInliersTotal ));
+		inliersSlider = new BoundedValuePanel(new BoundedValue(0, param.minInliersTotal * 2, param.minInliersTotal ));
 		inliersSlider.setBorder(null);
 		customComponents.add( inliersSlider );
 		final JLabel inliersLabel = new JLabel("min inliers (total)");
@@ -157,7 +165,7 @@ public class STIMCardAlignSIFT
 		panel.add(inliersSlider, "growx, wrap");
 
 		// inliersPerGene
-		final BoundedValuePanel inliersPerGeneSlider = new BoundedValuePanel(new BoundedValue(0, param.minInliersGene * 2, param.minInliersGene ));
+		inliersPerGeneSlider = new BoundedValuePanel(new BoundedValue(0, param.minInliersGene * 2, param.minInliersGene ));
 		inliersPerGeneSlider.setBorder(null);
 		customComponents.add( inliersPerGeneSlider );
 		final JLabel inliersPerGeneLabel = new JLabel("min inliers (gene)");
@@ -170,18 +178,18 @@ public class STIMCardAlignSIFT
 		final int componentCount = panel.getComponentCount();
 
 		// Panel for RANSAC MODEL
-		final JComboBox< String > boxModelRANSAC1 = new JComboBox< String > (optionsModel);
+		boxModelRANSAC1 = new JComboBox< String > (optionsModel);
 		boxModelRANSAC1.setSelectedIndex( 1 );
 		final JLabel boxModeRANSACLabel1 = new JLabel("RANSAC model ");
 		panel.add( boxModeRANSACLabel1, "aligny baseline, sy 2" );
 		panel.add( boxModelRANSAC1, "growx, wrap" );
 		final JPanel panRANSAC = new JPanel( new MigLayout("gap 0, ins 0 0 0 0, fill", "[right][grow]", "center") );
-		final JComboBox< String > boxModelRANSAC2 = new JComboBox< String > (optionsModelReg);
+		boxModelRANSAC2 = new JComboBox< String > (optionsModelReg);
 		boxModelRANSAC2.setSelectedIndex( 0 );
 		panRANSAC.add( boxModelRANSAC2 );
 		final JLabel labelRANSACReg = new JLabel( "λ=" );
 		panRANSAC.add( labelRANSACReg, "alignx right" );
-		final JTextField tfRANSAC = new JTextField( "0.1" );
+		tfRANSAC = new JTextField( "0.1" );
 		tfRANSAC.setEnabled( false );
 		labelRANSACReg.setForeground( Color.gray );
 		panRANSAC.add( tfRANSAC, "growx" );
@@ -189,18 +197,18 @@ public class STIMCardAlignSIFT
 		panel.add( panRANSAC, "growx, wrap" );
 
 		// Panel for FINAL MODEL
-		final JComboBox< String > boxModelFinal1 = new JComboBox< String > (optionsModel);
+		boxModelFinal1 = new JComboBox< String > (optionsModel);
 		boxModelFinal1.setSelectedIndex( 1 );
 		final JLabel boxModeFinalLabel1 = new JLabel("Final model ");
 		panel.add( boxModeFinalLabel1, "aligny baseline, sy 2" );
 		panel.add( boxModelFinal1, "growx, wrap" );
 		final JPanel panFinal = new JPanel( new MigLayout("gap 0, ins 0 0 0 0, fill", "[right][grow]", "center") );
-		final JComboBox< String > boxModelFinal2 = new JComboBox< String > (optionsModelReg);
+		boxModelFinal2 = new JComboBox< String > (optionsModelReg);
 		boxModelFinal2.setSelectedIndex( 0 );
 		panFinal.add( boxModelFinal2 );
 		final JLabel labelFinalReg = new JLabel( "λ=" );
 		panFinal.add( labelFinalReg, "alignx right" );
-		final JTextField tfFinal = new JTextField( "0.1" );
+		tfFinal = new JTextField( "0.1" );
 		tfFinal.setEnabled( false );
 		labelFinalReg.setForeground( Color.gray );
 		panFinal.add( tfFinal, "growx" );
@@ -234,42 +242,42 @@ public class STIMCardAlignSIFT
 		final Font fontTF = inliersLabel.getFont().deriveFont( 9f );
 
 		// fdsize
-		final JFormattedTextField fdSize = new JFormattedTextField( formatter );
+		fdSize = new JFormattedTextField( formatter );
 		fdSize.setBorder( new TitledBorder(null, "Feature descriptor size (-fdSize)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
 		fdSize.setValue( param.sift.fdSize );
 		customComponents.add( fdSize );
 		advancedSIFTComponents.add( fdSize );
 
 		// fdBins
-		final JFormattedTextField fdBins = new JFormattedTextField( formatter );
+		fdBins = new JFormattedTextField( formatter );
 		fdBins.setBorder( new TitledBorder(null, "Feature descriptor orientation bins (-fdBins)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
 		fdBins.setValue( param.sift.fdBins );
 		customComponents.add( fdBins );
 		advancedSIFTComponents.add( fdBins );
 
 		// ratio of distance
-		final JFormattedTextField rod = new JFormattedTextField( formatterDouble01 );
+		rod = new JFormattedTextField( formatterDouble01 );
 		rod.setBorder( new TitledBorder(null, "Feature descriptor closest/next closest ratio (-rod)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
 		rod.setValue( param.rod );
 		customComponents.add(rod);
 		advancedSIFTComponents.add(rod);
 
 		// octave steps
-		final JFormattedTextField steps = new JFormattedTextField( formatter );
+		steps = new JFormattedTextField( formatter );
 		steps.setBorder( new TitledBorder(null, "Steps per Scale Octave (-so)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
 		steps.setValue( param.sift.steps );
 		customComponents.add(steps);
 		advancedSIFTComponents.add(steps);
 
 		// initialSigma
-		final JFormattedTextField initialSigma = new JFormattedTextField( formatterDouble );
+		initialSigma = new JFormattedTextField( formatterDouble );
 		initialSigma.setBorder( new TitledBorder(null, "Initial sigma of each Scale Octave (-is)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
 		initialSigma.setValue( param.sift.initialSigma );
 		customComponents.add(initialSigma);
 		advancedSIFTComponents.add(initialSigma);
 
 		// min octave size
-		final JFormattedTextField minOS = new JFormattedTextField( formatter );
+		minOS = new JFormattedTextField( formatter );
 		minOS.setBorder( new TitledBorder(null, "Min Octave size (-minOS)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
 		minOS.setValue( param.sift.minOctaveSize );
 		customComponents.add(minOS);
@@ -282,21 +290,21 @@ public class STIMCardAlignSIFT
 		advancedSIFTComponents.add(maxOS);
 
 		// min inlier ratio
-		final JFormattedTextField ilr = new JFormattedTextField( formatterDouble01 );
+		ilr = new JFormattedTextField( formatterDouble01 );
 		ilr.setBorder( new TitledBorder(null, "RANSAC minimal inlier ratio (-ilr)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
 		ilr.setValue( param.minInlierRatio );
 		customComponents.add(ilr);
 		advancedSIFTComponents.add(ilr);
 
 		// iterations
-		final JFormattedTextField it = new JFormattedTextField( formatter );
+		it = new JFormattedTextField( formatter );
 		it.setBorder( new TitledBorder(null, "RANSAC iterations (-it)", TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION, fontTF, null ) );
 		it.setValue( param.iterations );
 		customComponents.add(it);
 		advancedSIFTComponents.add(it);
 
 		// bi-directional matching
-		final JCheckBox biDirectional = new JCheckBox( "Bi-directional alignment (-bidir)" );
+		biDirectional = new JCheckBox( "Bi-directional alignment (-bidir)" );
 		biDirectional.setSelected( param.biDirectional );
 		biDirectional.setEnabled( true );
 		biDirectional.setBorder( BorderFactory.createEmptyBorder( 5, 0, 0, 0 ) );
@@ -479,41 +487,16 @@ public class STIMCardAlignSIFT
 
 			siftThread = new Thread( () ->
 			{
-				final SynchronizedViewerState state = stimcard.bdvhandle().getViewerPanel().state();
-				AddedGene.updateRemainingSources( state, stimcard.geneToBDVSource(), stimcard.sourceData() );
+				AddedGene.updateRemainingSources( stimcard.bdvhandle().getViewerPanel().state(), stimcard.geneToBDVSource(), stimcard.sourceData() );
 
-				final double lambda1 = Double.parseDouble( tfRANSAC.getText().trim() );
-				final double lambda2 = Double.parseDouble( tfFinal.getText().trim() );
-
-				param.setIntrinsicParameters(
-						(int)Integer.parseInt( fdSize.getText().trim() ),
-						(int)Integer.parseInt( fdBins.getText().trim() ),
-						(int)Integer.parseInt( minOS.getText().trim() ),
-						(int)Integer.parseInt( steps.getText().trim() ),
-						Double.parseDouble( initialSigma.getText().trim() ),
-						biDirectional.isSelected(),
-						Double.parseDouble( rod.getText().trim() ),
-						Double.parseDouble( ilr.getText().trim() ),
-						(int)Math.round( inliersPerGeneSlider.getValue().getValue() ),
-						(int)Math.round( inliersSlider.getValue().getValue() ),
-						(int)Integer.parseInt( it.getText().trim() ) );
-
-				param.setDatasetParameters(
-						maxErrorSlider.getValue().getValue(),
-						overlay.currentScale(),
-						(int)Integer.parseInt( maxOS.getText().trim() ),
-						stimcardFilter.filterFactories(),
-						stimcard.currentRendering(), stimcard.currentSigma(), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
-
-				final Model model1 = getModelFor( boxModelRANSAC1.getSelectedIndex(), boxModelRANSAC2.getSelectedIndex(), lambda1 );
-				final Model model2 = getModelFor( boxModelFinal1.getSelectedIndex(), boxModelFinal2.getSelectedIndex(), lambda2 );
+				final Pair<Model<?>, Model<?>> modelPair = extractParamtersFromGUI( param );
 
 				System.out.println( "Running SIFT align with the following parameters: \n" + param.toString() );
-				System.out.println( "RANSAC model: " + optionsModel[ boxModelRANSAC1.getSelectedIndex() ] + ", regularizer: " + optionsModelReg[ boxModelRANSAC2.getSelectedIndex() ] + ", lambda=" + lambda1 );
-				System.out.println( "FINAL model: " + optionsModel[ boxModelFinal1.getSelectedIndex() ] + ", regularizer: " + optionsModelReg[ boxModelFinal2.getSelectedIndex() ] + ", lambda=" + lambda2 );
+				System.out.println( "RANSAC model: " + optionsModel[ boxModelRANSAC1.getSelectedIndex() ] + ", regularizer: " + optionsModelReg[ boxModelRANSAC2.getSelectedIndex() ] + ", lambda=" + tfRANSAC.getText() );
+				System.out.println( "FINAL model: " + optionsModel[ boxModelFinal1.getSelectedIndex() ] + ", regularizer: " + optionsModelReg[ boxModelFinal2.getSelectedIndex() ] + ", lambda=" + tfFinal.getText() );
 
-				System.out.println( model1.getClass().getSimpleName() );
-				System.out.println( model2.getClass().getSimpleName() );
+				System.out.println( modelPair.getA().getClass().getSimpleName() );
+				System.out.println( modelPair.getB().getClass().getSimpleName() );
 
 				final boolean visResult = false;
 				final double[] progressBarValue = new double[] { 1.0 };
@@ -522,7 +505,7 @@ public class STIMCardAlignSIFT
 
 				final SiftMatch match = PairwiseSIFT.pairwiseSIFT(
 						stimcard.data1().data(), dataset1, stimcard.data2().data(), dataset2,
-						(Affine2D & Model)model1, (Affine2D & Model)model1,
+						(Affine2D & Model)modelPair.getA(), (Affine2D & Model)modelPair.getB(),
 						new ArrayList<>( stimcard.geneToBDVSource().keySet() ),
 						param,
 						visResult, service, threads, v -> {
@@ -541,9 +524,9 @@ public class STIMCardAlignSIFT
 				{
 					try
 					{
-						model2.fit( match.getInliers() );
+						modelPair.getB().fit( match.getInliers() );
 
-						stimcard.setCurrentModel( (Affine2D)model2 );
+						stimcard.setCurrentModel( (Affine2D)modelPair.getB() );
 						stimcard.applyTransformationToBDV( true );
 
 						System.out.println( "2D model: " + stimcard.currentModel() );
@@ -604,6 +587,9 @@ public class STIMCardAlignSIFT
 		//
 		cmdLine.addActionListener( l -> 
 		{
+			SIFTParam paramsCmdLine = new SIFTParam();
+			final Pair<Model<?>, Model<?>> modelPair = extractParamtersFromGUI( paramsCmdLine );
+
 			// TODO ...
 		});
 	}
@@ -614,6 +600,37 @@ public class STIMCardAlignSIFT
 	public void updateMaxOctaveSize()
 	{
 		maxOS.setValue( this.param.sift.maxOctaveSize = getMaxOctaveSize( stimcard.data1().data(), stimcard.data2().data(), overlay.currentScale() ) );
+	}
+
+	protected Pair<Model<?>, Model<?>> extractParamtersFromGUI( final SIFTParam param )
+	{
+		param.setIntrinsicParameters(
+				(int)Integer.parseInt( fdSize.getText().trim() ),
+				(int)Integer.parseInt( fdBins.getText().trim() ),
+				(int)Integer.parseInt( minOS.getText().trim() ),
+				(int)Integer.parseInt( steps.getText().trim() ),
+				Double.parseDouble( initialSigma.getText().trim() ),
+				biDirectional.isSelected(),
+				Double.parseDouble( rod.getText().trim() ),
+				Double.parseDouble( ilr.getText().trim() ),
+				(int)Math.round( inliersPerGeneSlider.getValue().getValue() ),
+				(int)Math.round( inliersSlider.getValue().getValue() ),
+				(int)Integer.parseInt( it.getText().trim() ) );
+
+		param.setDatasetParameters(
+				maxErrorSlider.getValue().getValue(),
+				overlay.currentScale(),
+				(int)Integer.parseInt( maxOS.getText().trim() ),
+				stimcardFilter.filterFactories(),
+				stimcard.currentRendering(), stimcard.currentSigma(), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
+
+		final double lambda1 = Double.parseDouble( tfRANSAC.getText().trim() );
+		final double lambda2 = Double.parseDouble( tfFinal.getText().trim() );
+
+		final Model model1 = getModelFor( boxModelRANSAC1.getSelectedIndex(), boxModelRANSAC2.getSelectedIndex(), lambda1 );
+		final Model model2 = getModelFor( boxModelFinal1.getSelectedIndex(), boxModelFinal2.getSelectedIndex(), lambda2 );
+
+		return new ValuePair<>( model1, model2 );
 	}
 
 	protected void reEnableControls()
