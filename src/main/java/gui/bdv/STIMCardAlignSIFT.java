@@ -587,9 +587,10 @@ public class STIMCardAlignSIFT
 		//
 		cmdLine.addActionListener( l -> 
 		{
-			SIFTParam paramsCmdLine = new SIFTParam();
+			final SIFTParam paramsCmdLine = new SIFTParam();
 			final Pair<Model<?>, Model<?>> modelPair = extractParamtersFromGUI( paramsCmdLine );
 
+			
 			// TODO ...
 		});
 	}
@@ -622,7 +623,7 @@ public class STIMCardAlignSIFT
 				overlay.currentScale(),
 				(int)Integer.parseInt( maxOS.getText().trim() ),
 				stimcardFilter.filterFactories(),
-				stimcard.currentRendering(), stimcard.currentSigma(), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
+				stimcard.currentDisplayMode(), stimcard.currentSigma(), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
 
 		final double lambda1 = Double.parseDouble( tfRANSAC.getText().trim() );
 		final double lambda2 = Double.parseDouble( tfFinal.getText().trim() );

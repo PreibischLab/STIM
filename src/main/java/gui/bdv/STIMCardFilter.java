@@ -9,6 +9,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 
 import javax.swing.BorderFactory;
+import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -26,6 +27,7 @@ import net.imglib2.RealCursor;
 import net.imglib2.RealPointSampleList;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.miginfocom.swing.MigLayout;
+import util.Text;
 
 public class STIMCardFilter
 {
@@ -54,13 +56,21 @@ public class STIMCardFilter
 		centerRenderer.setHorizontalAlignment( JLabel.CENTER );
 		table.getColumnModel().getColumn(2).setCellRenderer( centerRenderer );
 
-		// adding it to JScrollPane
 		final JScrollPane sp = new JScrollPane(table);
-		final JPanel extraPanel2 = new JPanel();
-		extraPanel2.setBorder( BorderFactory.createEmptyBorder(0, 0, 0, 15));
-		extraPanel2.add( sp );
+		final JPanel extraPanel = new JPanel();
+		extraPanel.setBorder( BorderFactory.createEmptyBorder(0, 0, 0, 15));
+		extraPanel.add( sp );
+		panel.add( extraPanel, "span,growx,pushy");
 
-		panel.add( extraPanel2, "span,growx,pushy");
+		JButton cmdLine = new JButton("Command-line");
+		cmdLine.setFont( cmdLine.getFont().deriveFont( 10f ));
+		panel.add(cmdLine, "growx, wrap");
+
+		cmdLine.addActionListener( e -> {
+			String cmdLineArgs = createCmdLineArgs();
+			Text.copyToClipboard( cmdLineArgs );
+			System.out.println( cmdLineArgs + " copied to clipboard");
+		});
 	}
 
 	public List< FilterFactory< DoubleType, DoubleType > > filterFactories()
@@ -80,6 +90,25 @@ public class STIMCardFilter
 			f.add( new MeanFilterFactory<>( new DoubleType( 0 ), stimcard.medianDistance() * tableModel.currentRadiusValues[ 3 ] ) );
 
 		return f;
+	}
+
+	public String createCmdLineArgs()
+	{
+		String cmdLineArgs = stimcard.createCmdLineArgs() + " ";
+
+		if ( tableModel.currentActiveValues[ 0 ] ) // single spot filter
+			cmdLineArgs += "--ffSingleSpot " + tableModel.currentRadiusValues[ 0 ];
+
+		if ( tableModel.currentActiveValues[ 1 ] ) // median filter
+			cmdLineArgs += "--ffMedian " + tableModel.currentRadiusValues[ 1 ];
+
+		if ( tableModel.currentActiveValues[ 2 ] ) // Gaussian filter
+			cmdLineArgs += "--ffGauss " + tableModel.currentRadiusValues[ 2 ];
+
+		if ( tableModel.currentActiveValues[ 3 ] ) // Mean filter
+			cmdLineArgs += "--ffMean " + tableModel.currentRadiusValues[ 3 ];
+
+		return cmdLineArgs.trim();
 	}
 
 	public FilterTableModel getTableModel() { return tableModel; }

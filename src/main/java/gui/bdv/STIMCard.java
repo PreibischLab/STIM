@@ -279,8 +279,8 @@ public class STIMCard
 								{
 									System.out.println( "Gene " + gene + " will be added." );
 	
-									final AddedGene gene1 = AddedGene.addGene( currentRendering(), bdvhandle, data1, currentModel3D(), gene, currentSigma(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin(), currentBrightnessMax() );
-									final AddedGene gene2 = AddedGene.addGene( currentRendering(), bdvhandle, data2, null, gene, currentSigma(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin(), currentBrightnessMax() );
+									final AddedGene gene1 = AddedGene.addGene( currentDisplayMode(), bdvhandle, data1, currentModel3D(), gene, currentSigma(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin(), currentBrightnessMax() );
+									final AddedGene gene2 = AddedGene.addGene( currentDisplayMode(), bdvhandle, data2, null, gene, currentSigma(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin(), currentBrightnessMax() );
 	
 									sourceData.put( gene, new ValuePair<>( gene1, gene2 ) );
 	
@@ -326,12 +326,24 @@ public class STIMCard
 	public double currentBrightnessMin() { return currentBrightnessMin; }
 	public double currentBrightnessMax() { return currentBrightnessMax; }
 	public double currentSigma() { return currentSigma; }
-	public Rendering currentRendering() { return currentRendering; }
+	public Rendering currentDisplayMode() { return currentRendering; }
 	public JPanel getPanel() { return panel; }
 	public BdvHandle bdvhandle() { return bdvhandle; }
 	public double medianDistance() { return medianDistance; }
 	public STDataAssembly data1() { return data1; }
 	public STDataAssembly data2() { return data2; }
+
+	public String createCmdLineArgs()
+	{
+		String cmdLine = "-dm " + currentDisplayMode() + " -bMin " + currentBrightnessMin() + " -bMax " + currentBrightnessMax();
+
+		if ( currentDisplayMode() == Rendering.Gauss )
+			cmdLine += " -sf " + currentSigma();
+		else
+			cmdLine += " -r" + currentSigma();
+
+		return cmdLine;
+	}
 
 	public synchronized void setCurrentModel( final Affine2D< ? > model )
 	{
