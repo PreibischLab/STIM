@@ -1,7 +1,10 @@
 package gui.bdv;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Font;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -382,8 +385,40 @@ public class STIMCard
 	public AffineTransform2D currentModel2D() { return m2d; }
 	public AffineTransform3D currentModel3D() { return m3d; }
 
-	private JMenuItem runnableItem(final String text, final Runnable action) {
+	public static void addPopUp( final Component comp, final JPopupMenu menu )
+	{
+		comp.addMouseListener(
+			new MouseAdapter()
+			{
+				@Override
+				public void mousePressed( final MouseEvent e )
+				{
+					if ( e.isPopupTrigger() )
+						doPop( e );
+				}
+
+				@Override
+				public void mouseReleased( final MouseEvent e )
+				{
+					if ( e.isPopupTrigger() )
+						doPop( e );
+				}
+
+				private void doPop( final MouseEvent e )
+				{
+					menu.show( e.getComponent(), e.getX(), e.getY() );
+				}
+			});
+	}
+
+	public static JMenuItem runnableItem(final String text, final Runnable action) {
+		return runnableItem(text, null, action);
+	}
+
+	public static JMenuItem runnableItem(final String text, final Font font, final Runnable action) {
 		final JMenuItem item = new JMenuItem(text);
+		if ( font != null )
+			item.setFont( font );
 		item.addActionListener(e -> action.run());
 		return item;
 	}

@@ -1,7 +1,12 @@
 package gui.bdv;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -11,11 +16,15 @@ import java.util.concurrent.ExecutorService;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
+
+import org.stringtemplate.v4.ST;
 
 import filter.FilterFactory;
 import filter.Filters;
@@ -62,11 +71,22 @@ public class STIMCardFilter
 		extraPanel.add( sp );
 		panel.add( extraPanel, "span,growx,pushy");
 
-		JButton cmdLine = new JButton("Command-line");
-		cmdLine.setFont( cmdLine.getFont().deriveFont( 10f ));
+		JButton cmdLine = new JButton("Command-line for 'st-bdv-view'");
+		Font f = cmdLine.getFont().deriveFont( 10f );
+		cmdLine.setFont( f );
 		panel.add(cmdLine, "growx, wrap");
 
-		cmdLine.addActionListener( e -> {
+		final JPopupMenu menu = new JPopupMenu();
+
+		menu.add( STIMCard.runnableItem( "st-bdv-view", f, () -> cmdLine.setText( "Command-line for 'st-bdv-view'" ) ) );
+		menu.add( STIMCard.runnableItem( "st-explorer", f, () -> cmdLine.setText( "Command-line for 'st-explorer'" ) ) );
+		menu.add( STIMCard.runnableItem( "st-render", f, () -> cmdLine.setText( "Command-line for 'st-render'" ) ) );
+
+		STIMCard.addPopUp( cmdLine, menu );
+
+		// create command line string
+		cmdLine.addActionListener( e ->
+		{
 			String cmdLineArgs = createCmdLineArgs();
 			Text.copyToClipboard( cmdLineArgs );
 			System.out.println( cmdLineArgs + " copied to clipboard");
