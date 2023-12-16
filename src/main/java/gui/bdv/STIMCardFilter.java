@@ -45,6 +45,8 @@ public class STIMCardFilter
 	private final STIMCard stimcard;
 	final ExecutorService service;
 
+	private final JButton cmdLine;
+
 	public STIMCardFilter( final STIMCard stimcard, final ExecutorService service )
 	{
 		this.stimcard = stimcard;
@@ -71,7 +73,7 @@ public class STIMCardFilter
 		extraPanel.add( sp );
 		panel.add( extraPanel, "span,growx,pushy");
 
-		JButton cmdLine = new JButton("Command-line for 'st-bdv-view'");
+		cmdLine = new JButton("Command-line for 'st-bdv-view'");
 		Font f = cmdLine.getFont().deriveFont( 10f );
 		cmdLine.setFont( f );
 		panel.add(cmdLine, "growx, wrap");
@@ -87,7 +89,7 @@ public class STIMCardFilter
 		// create command line string
 		cmdLine.addActionListener( e ->
 		{
-			String cmdLineArgs = createCmdLineArgs();
+			String cmdLineArgs = createCmdLineArgs( false );
 			Text.copyToClipboard( cmdLineArgs );
 			System.out.println( cmdLineArgs + " copied to clipboard");
 		});
@@ -112,7 +114,7 @@ public class STIMCardFilter
 		return f;
 	}
 
-	public String createCmdLineArgs()
+	public String createCmdLineArgs( final boolean plain )
 	{
 		String cmdLineArgs = stimcard.createCmdLineArgs() + " ";
 
@@ -127,6 +129,19 @@ public class STIMCardFilter
 
 		if ( tableModel.currentActiveValues[ 3 ] ) // Mean filter
 			cmdLineArgs += "--ffMean " + tableModel.currentRadiusValues[ 3 ];
+
+		if ( !plain )
+		{
+			if ( cmdLine.getText().contains("st-bdv-view") )
+				cmdLineArgs = "st-bdv-view " + cmdLineArgs;
+			else if ( cmdLine.getText().contains("st-explorer") )
+				cmdLineArgs = "st-explorer " + cmdLineArgs;
+			else if ( cmdLine.getText().contains("st-render") )
+			{
+				cmdLineArgs = "st-render " + cmdLineArgs;
+				// TODO: needs scale
+			}
+		}
 
 		return cmdLineArgs.trim();
 	}
