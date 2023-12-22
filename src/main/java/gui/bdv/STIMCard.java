@@ -8,7 +8,10 @@ import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -26,6 +29,7 @@ import bdv.viewer.SourceGroup;
 import bdv.viewer.SynchronizedViewerState;
 import cmd.InteractiveAlignment.AddedGene;
 import cmd.InteractiveAlignment.AddedGene.Rendering;
+import gui.DisplayScaleOverlay;
 import gui.STDataAssembly;
 import gui.geneselection.GeneSelectionExplorer;
 import mpicbg.models.Affine2D;
@@ -47,6 +51,7 @@ public class STIMCard
 	private final BdvHandle bdvhandle;
 	private final HashMap< String, Pair< AddedGene, AddedGene > > sourceData;
 	private final HashMap< String, SourceGroup > geneToBDVSource;
+	private final DisplayScaleOverlay overlay;
 	private double currentSigma, currentBrightnessMin, currentBrightnessMax;
 	private Rendering currentRendering;
 	private double medianDistance;
@@ -62,6 +67,7 @@ public class STIMCard
 			final List< Pair< String, Double > > allGenes,
 			final HashMap< String, Pair< AddedGene, AddedGene > > sourceData,
 			final HashMap< String, SourceGroup > geneToBDVSource,
+			final DisplayScaleOverlay overlay,
 			final double medianDistance,
 			final Rendering initialRendering,
 			final double initialSigma,
@@ -73,6 +79,7 @@ public class STIMCard
 		this.data2 = data2;
 		this.bdvhandle = bdvhandle;
 		this.sourceData = sourceData;
+		this.overlay = overlay;
 		this.geneToBDVSource = geneToBDVSource;
 		this.currentBrightnessMin = initialBrightnessMin;
 		this.currentBrightnessMax = initialBrightnessMax;
@@ -324,8 +331,29 @@ public class STIMCard
 		System.out.println( "Done ... " );
 	}
 
+	public HashSet< String > currentlyVisibleGenes()
+	{
+		final SynchronizedViewerState state = bdvhandle().getViewerPanel().state();
+		final Set<SourceAndConverter<?>> active = state.getVisibleSources();
+
+		final HashSet< String > genes = new HashSet<>();
+
+		sourceData().entrySet().forEach( set ->
+		{
+			active.forEach( source ->
+			{
+				if ( set.getValue().getA().soc() == source || set.getValue().getB().soc() == source )
+					genes.add( set.getKey() );
+			} );
+		});
+
+		return genes;
+	}
+
 	public HashMap< String, Pair< AddedGene, AddedGene > > sourceData() { return sourceData; }
 	public HashMap< String, SourceGroup > geneToBDVSource() { return geneToBDVSource; }
+	public DisplayScaleOverlay scaleOverlay() { return overlay; }
+	public double currentScale() { return scaleOverlay().currentScale(); }
 	public double currentBrightnessMin() { return currentBrightnessMin; }
 	public double currentBrightnessMax() { return currentBrightnessMax; }
 	public double currentSigma() { return currentSigma; }
@@ -336,14 +364,30 @@ public class STIMCard
 	public STDataAssembly data1() { return data1; }
 	public STDataAssembly data2() { return data2; }
 
-	public String createCmdLineArgs()
+	public String createCmdLineArgs( final boolean addDataset, final boolean addGenes )
 	{
-		String cmdLine = "-dm " + currentDisplayMode() + " -bMin " + currentBrightnessMin() + " -bMax " + currentBrightnessMax();
+		String cmdLine = "-dm " + currentDisplayMode() + " -bMin " + currentBrightnessMin() + " -bMax " + currentBrightnessMax() + " ";
 
 		if ( currentDisplayMode() == Rendering.Gauss )
-			cmdLine += " -sf " + currentSigma();
+			cmdLine += "-sf " + currentSigma() + " ";
 		else
-			cmdLine += " -r" + currentSigma();
+			cmdLine += "-r" + currentSigma() + " ";
+
+		if ( addGenes )
+		{
+			final HashSet<String> genes = currentlyVisibleGenes();
+
+			if ( genes.size() > 0 )
+			{
+				final Iterator<String> i = genes.iterator();
+				cmdLine += "-g " + i.next();
+
+				while ( i.hasNext() )
+					cmdLine += "," + i.next();
+
+				cmdLine += " ";
+			}
+		}
 
 		return cmdLine;
 	}

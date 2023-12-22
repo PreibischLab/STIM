@@ -22,6 +22,7 @@ import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
+import bdv.viewer.SourceAndConverter;
 import bdv.viewer.SourceGroup;
 import bdv.viewer.SynchronizedViewerState;
 import cmd.InteractiveAlignment.AddedGene.Rendering;
@@ -292,7 +293,8 @@ public class InteractiveAlignment implements Callable<Void> {
 		// add STIMCard panel
 		final STIMCard card =
 				new STIMCard(
-						data1, data2, allGenes, sourceData, geneToBDVSource, medianDistance, rendering, smoothnessFactor, brightnessMin, brightnessMax, lastSource.getBdvHandle());
+						data1, data2, allGenes, sourceData, geneToBDVSource, overlay,
+						medianDistance, rendering, smoothnessFactor, brightnessMin, brightnessMax, lastSource.getBdvHandle());
 		lastSource.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
 
 		// TODO: REMOVE
@@ -304,7 +306,7 @@ public class InteractiveAlignment implements Callable<Void> {
 
 		// add STIMCardAlignSIFT panel
 		final STIMCardAlignSIFT cardAlignSIFT =
-				new STIMCardAlignSIFT( dataset1, dataset2, overlay, card, cardFilter, service );
+				new STIMCardAlignSIFT( dataset1, dataset2, card, cardFilter, service );
 		lastSource.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlignSIFT.getPanel(), true );
 
 		// add STIMCardAlignICP panel
@@ -343,6 +345,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		final private MaxDistanceParam maxDistanceParam;
 		final private BdvStackSource<?> source;
 		final TransformedSource<?> transformedSource;
+		final SourceAndConverter<?> soc;
 		final private double min, max;
 
 		public AddedGene(
@@ -352,6 +355,7 @@ public class InteractiveAlignment implements Callable<Void> {
 				final RadiusSearchFilterFactory< DoubleType, DoubleType > radiusFactory,
 				final MaxDistanceParam maxDistanceParam,
 				final BdvStackSource<?> source,
+				final SourceAndConverter<?> soc,
 				final TransformedSource<?> transformedSource,
 				final double min,
 				final double max )
@@ -362,6 +366,7 @@ public class InteractiveAlignment implements Callable<Void> {
 			this.radiusFactory = radiusFactory;
 			this.maxDistanceParam = maxDistanceParam;
 			this.source = source;
+			this.soc = soc;
 			this.transformedSource = transformedSource;
 			this.min = min;
 			this.max = max;
@@ -377,6 +382,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		public RadiusSearchFilterFactory< DoubleType, DoubleType > radiusFactory(){ return radiusFactory; }
 		public MaxDistanceParam maxDistanceParam(){ return maxDistanceParam; }
 		public BdvStackSource<?> source(){ return source; }
+		public SourceAndConverter<?> soc() { return soc; }
 		public TransformedSource<?> transformedSource() { return transformedSource; }
 		public double min(){ return min; }
 		public double max(){ return max; }
@@ -502,6 +508,8 @@ public class InteractiveAlignment implements Callable<Void> {
 			// get TransformedSource (that is dynamically updated with the alignment)
 			final TransformedSource<?> transformedSource = BDVUtils.getTransformedSource( source );
 
+			SourceAndConverter< ? > soc = source.getSources().get( 0 );
+
 			if ( fixedTransform != null )
 				transformedSource.setFixedTransform( fixedTransform );
 
@@ -521,7 +529,7 @@ public class InteractiveAlignment implements Callable<Void> {
 			t.set( 0, 2, 3 );
 			source.getBdvHandle().getViewerPanel().state().setViewerTransform( t );
 
-			return new AddedGene( rra, tree, gaussFactory, radiusFactory, maxDistanceParam, source, transformedSource, min, max );
+			return new AddedGene( rra, tree, gaussFactory, radiusFactory, maxDistanceParam, source, soc, transformedSource, min, max );
 		}
 	}
 

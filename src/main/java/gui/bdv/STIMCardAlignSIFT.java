@@ -55,7 +55,6 @@ public class STIMCardAlignSIFT
 {
 	private final JPanel panel;
 	private final SIFTOverlay siftoverlay;
-	private final DisplayScaleOverlay overlay;
 	private final STIMCard stimcard;
 	private final STIMCardFilter stimcardFilter;
 	private STIMCardAlignICP icpCard = null; // may or may not be there
@@ -86,7 +85,6 @@ public class STIMCardAlignSIFT
 	public STIMCardAlignSIFT(
 			final String dataset1,
 			final String dataset2,
-			final DisplayScaleOverlay overlay,
 			final STIMCard stimcard,
 			final STIMCardFilter stimcardFilter,
 			final ExecutorService service )
@@ -101,7 +99,6 @@ public class STIMCardAlignSIFT
 		this.param.sift.maxOctaveSize = 1024; // TODO find out
 
 		this.siftoverlay = new SIFTOverlay( new ArrayList<>(), stimcard.bdvhandle() );
-		this.overlay = overlay;
 		this.stimcard = stimcard;
 		this.stimcardFilter = stimcardFilter;
 		this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 5, fill", "[right][grow]", "center"));
@@ -600,7 +597,7 @@ public class STIMCardAlignSIFT
 
 	public void updateMaxOctaveSize()
 	{
-		maxOS.setValue( this.param.sift.maxOctaveSize = getMaxOctaveSize( stimcard.data1().data(), stimcard.data2().data(), overlay.currentScale() ) );
+		maxOS.setValue( this.param.sift.maxOctaveSize = getMaxOctaveSize( stimcard.data1().data(), stimcard.data2().data(), stimcard.currentScale() ) );
 	}
 
 	protected Pair<Model<?>, Model<?>> extractParamtersFromGUI( final SIFTParam param )
@@ -620,7 +617,7 @@ public class STIMCardAlignSIFT
 
 		param.setDatasetParameters(
 				maxErrorSlider.getValue().getValue(),
-				overlay.currentScale(),
+				stimcard.currentScale(),
 				(int)Integer.parseInt( maxOS.getText().trim() ),
 				stimcardFilter.filterFactories(),
 				stimcard.currentDisplayMode(), stimcard.currentSigma(), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );

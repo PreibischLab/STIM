@@ -1,12 +1,8 @@
 package gui.bdv;
 
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -16,15 +12,12 @@ import java.util.concurrent.ExecutorService;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
-import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
-
-import org.stringtemplate.v4.ST;
 
 import filter.FilterFactory;
 import filter.Filters;
@@ -73,26 +66,34 @@ public class STIMCardFilter
 		extraPanel.add( sp );
 		panel.add( extraPanel, "span,growx,pushy");
 
-		cmdLine = new JButton("Command-line for 'st-bdv-view'");
-		Font f = cmdLine.getFont().deriveFont( 10f );
+		// "<html>" + twoLines.replaceAll("\\n", "<br>") + "</html>"
+		cmdLine = new JButton( buttonText( "st-bdv-view") );
+		cmdLine.setToolTipText("right-click to change target app");
+
+		Font f = cmdLine.getFont().deriveFont( 10.5f );
 		cmdLine.setFont( f );
 		panel.add(cmdLine, "growx, wrap");
 
 		final JPopupMenu menu = new JPopupMenu();
 
-		menu.add( STIMCard.runnableItem( "st-bdv-view", f, () -> cmdLine.setText( "Command-line for 'st-bdv-view'" ) ) );
-		menu.add( STIMCard.runnableItem( "st-explorer", f, () -> cmdLine.setText( "Command-line for 'st-explorer'" ) ) );
-		menu.add( STIMCard.runnableItem( "st-render", f, () -> cmdLine.setText( "Command-line for 'st-render'" ) ) );
+		menu.add( STIMCard.runnableItem( "st-bdv-view", f, () -> cmdLine.setText( buttonText( "st-bdv-view" ) ) ) );
+		menu.add( STIMCard.runnableItem( "st-explorer", f, () -> cmdLine.setText( buttonText( "st-explorer") ) ) );
+		menu.add( STIMCard.runnableItem( "st-render", f, () -> cmdLine.setText( buttonText( "st-render") ) ) );
 
 		STIMCard.addPopUp( cmdLine, menu );
 
 		// create command line string
 		cmdLine.addActionListener( e ->
 		{
-			String cmdLineArgs = createCmdLineArgs( false );
+			String cmdLineArgs = createCmdLineArgs( true, true, true );
 			Text.copyToClipboard( cmdLineArgs );
 			System.out.println( cmdLineArgs + " copied to clipboard");
 		});
+	}
+
+	private String buttonText( final String cmd )
+	{
+		return "<html><center>Create command-line args for <b>" + cmd + "</b></center></html>";
 	}
 
 	public List< FilterFactory< DoubleType, DoubleType > > filterFactories()
@@ -114,33 +115,33 @@ public class STIMCardFilter
 		return f;
 	}
 
-	public String createCmdLineArgs( final boolean plain )
+	public String createCmdLineArgs( final boolean addDataset, final boolean addGenes, final boolean addExecutable )
 	{
-		String cmdLineArgs = stimcard.createCmdLineArgs() + " ";
+		String cmdLineArgs = stimcard.createCmdLineArgs( addDataset, addGenes ) + " ";
 
 		if ( tableModel.currentActiveValues[ 0 ] ) // single spot filter
-			cmdLineArgs += "--ffSingleSpot " + tableModel.currentRadiusValues[ 0 ];
+			cmdLineArgs += "--ffSingleSpot " + tableModel.currentRadiusValues[ 0 ] + " ";
 
 		if ( tableModel.currentActiveValues[ 1 ] ) // median filter
-			cmdLineArgs += "--ffMedian " + tableModel.currentRadiusValues[ 1 ];
+			cmdLineArgs += "--ffMedian " + tableModel.currentRadiusValues[ 1 ] + " ";
 
 		if ( tableModel.currentActiveValues[ 2 ] ) // Gaussian filter
-			cmdLineArgs += "--ffGauss " + tableModel.currentRadiusValues[ 2 ];
+			cmdLineArgs += "--ffGauss " + tableModel.currentRadiusValues[ 2 ] + " ";
 
 		if ( tableModel.currentActiveValues[ 3 ] ) // Mean filter
-			cmdLineArgs += "--ffMean " + tableModel.currentRadiusValues[ 3 ];
+			cmdLineArgs += "--ffMean " + tableModel.currentRadiusValues[ 3 ] + " ";
 
-		if ( !plain )
+		if ( cmdLine.getText().contains("st-render") )
+			cmdLineArgs += "--scale " + stimcard.currentScale() + " ";
+
+		if ( addExecutable )
 		{
 			if ( cmdLine.getText().contains("st-bdv-view") )
 				cmdLineArgs = "st-bdv-view " + cmdLineArgs;
 			else if ( cmdLine.getText().contains("st-explorer") )
 				cmdLineArgs = "st-explorer " + cmdLineArgs;
 			else if ( cmdLine.getText().contains("st-render") )
-			{
 				cmdLineArgs = "st-render " + cmdLineArgs;
-				// TODO: needs scale
-			}
 		}
 
 		return cmdLineArgs.trim();
