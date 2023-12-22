@@ -52,7 +52,7 @@ public class STIMCard
 	private final HashMap< String, Pair< AddedGene, AddedGene > > sourceData;
 	private final HashMap< String, SourceGroup > geneToBDVSource;
 	private final DisplayScaleOverlay overlay;
-	private double currentSigma, currentBrightnessMin, currentBrightnessMax;
+	private double currentRF, currentBrightnessMin, currentBrightnessMax;
 	private Rendering currentRendering;
 	private double medianDistance;
 
@@ -70,7 +70,7 @@ public class STIMCard
 			final DisplayScaleOverlay overlay,
 			final double medianDistance,
 			final Rendering initialRendering,
-			final double initialSigma,
+			final double initialRF,
 			final double initialBrightnessMin,
 			final double initialBrightnessMax,
 			final BdvHandle bdvhandle )
@@ -83,7 +83,7 @@ public class STIMCard
 		this.geneToBDVSource = geneToBDVSource;
 		this.currentBrightnessMin = initialBrightnessMin;
 		this.currentBrightnessMax = initialBrightnessMax;
-		this.currentSigma = initialSigma;
+		this.currentRF = initialRF;
 		this.currentRendering = initialRendering;
 		this.medianDistance = medianDistance;
 
@@ -110,11 +110,12 @@ public class STIMCard
 		panel.add( extraPanel, "growx, wrap");
 
 		// sigma/radius slider
-		final BoundedValuePanel sigmaSlider = new BoundedValuePanel(new BoundedValue(0, Math.round( Math.ceil( Math.max( 2.5, currentSigma * 1.5 ) ) ), currentSigma ));
-		sigmaSlider.setBorder(null);
-		final JLabel sigmaLabel = new JLabel( currentRendering == Rendering.Gauss ? "sigma (-sf)" : "radius (-r)" );
-		panel.add(sigmaLabel, "aligny baseline");
-		panel.add(sigmaSlider, "growx, wrap");
+		final BoundedValuePanel rfSlider = new BoundedValuePanel(new BoundedValue(0, Math.round( Math.ceil( Math.max( 2.5, currentRF * 1.5 ) ) ), currentRF ));
+		rfSlider.setBorder(null);
+		final JLabel rfLabel = new JLabel( "render factor (-rf)" );
+		rfLabel.setFont( rfLabel.getFont().deriveFont( 10f ) );
+		panel.add(rfLabel, "aligny baseline");
+		panel.add(rfSlider, "growx, wrap");
 
 		// brightness slider
 		final BoundedValuePanel brightnessSliderMin = new BoundedValuePanel(new BoundedValue(0, 1, currentBrightnessMin ));
@@ -152,8 +153,8 @@ public class STIMCard
 						final ArrayList<SourceAndConverter<?>> currentSources = new ArrayList<>( state.getSourcesInGroup( currentSourceGroup ) );
 	
 						// TODO: re-use KDtree!
-						AddedGene gene1 = AddedGene.addGene( anyPair.getA().inputPath(), anyPair.getA().dataset(), currentRendering, bdvhandle, data1, currentModel3D(), gene, currentSigma, new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin, currentBrightnessMax );
-						AddedGene gene2 = AddedGene.addGene( anyPair.getB().inputPath(), anyPair.getB().dataset(), currentRendering, bdvhandle, data2, null, gene, currentSigma, new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin, currentBrightnessMax );
+						AddedGene gene1 = AddedGene.addGene( anyPair.getA().inputPath(), anyPair.getA().dataset(), currentRendering, bdvhandle, data1, currentModel3D(), gene, currentRF, new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin, currentBrightnessMax );
+						AddedGene gene2 = AddedGene.addGene( anyPair.getB().inputPath(), anyPair.getB().dataset(), currentRendering, bdvhandle, data2, null, gene, currentRF, new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin, currentBrightnessMax );
 	
 						state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), currentSourceGroup );
 						state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), currentSourceGroup );
@@ -163,29 +164,24 @@ public class STIMCard
 	
 						sourceData.put( gene, new ValuePair<>( gene1, gene2 ) );
 					}
-	
-					if ( currentRendering == Rendering.Gauss )
-						sigmaLabel.setText( "sigma (-sf)" );
-					else
-						sigmaLabel.setText( "radius (-r)" );
-	
+
 					bdvhandle.getViewerPanel().setDisplayMode( DisplayMode.GROUP );
 				}
 			}
 		} );
 
 		// sigma listener
-		sigmaSlider.changeListeners().add( () ->
+		rfSlider.changeListeners().add( () ->
 		{
-			final double oldSigma = currentSigma;
-			currentSigma = sigmaSlider.getValue().getValue();
+			final double oldRF = currentRF;
+			currentRF = rfSlider.getValue().getValue();
 
-			if ( oldSigma != currentSigma )
+			if ( oldRF != currentRF )
 			{
 				final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
 				AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
 
-				final double actualSigma = currentSigma * medianDistance;
+				final double actualSigma = currentRF * medianDistance;
 				sourceData.values().forEach( p ->
 				{
 					if ( p.getA().gaussFactory() != null )
@@ -293,8 +289,8 @@ public class STIMCard
 								{
 									System.out.println( "Gene " + gene + " will be added." );
 	
-									final AddedGene gene1 = AddedGene.addGene( anyPair.getA().inputPath(), anyPair.getA().dataset(), currentDisplayMode(), bdvhandle, data1, currentModel3D(), gene, currentSigma(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin(), currentBrightnessMax() );
-									final AddedGene gene2 = AddedGene.addGene( anyPair.getB().inputPath(), anyPair.getB().dataset(), currentDisplayMode(), bdvhandle, data2, null, gene, currentSigma(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin(), currentBrightnessMax() );
+									final AddedGene gene1 = AddedGene.addGene( anyPair.getA().inputPath(), anyPair.getA().dataset(), currentDisplayMode(), bdvhandle, data1, currentModel3D(), gene, currentRenderingFactor(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin(), currentBrightnessMax() );
+									final AddedGene gene2 = AddedGene.addGene( anyPair.getB().inputPath(), anyPair.getB().dataset(), currentDisplayMode(), bdvhandle, data2, null, gene, currentRenderingFactor(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin(), currentBrightnessMax() );
 	
 									sourceData.put( gene, new ValuePair<>( gene1, gene2 ) );
 	
@@ -321,8 +317,8 @@ public class STIMCard
 
 		// popups
 		final JPopupMenu menu1 = new JPopupMenu();
-		menu1.add(runnableItem("set bounds ...", sigmaSlider::setBoundsDialog));
-		sigmaSlider.setPopup(() -> menu1);
+		menu1.add(runnableItem("set bounds ...", rfSlider::setBoundsDialog));
+		rfSlider.setPopup(() -> menu1);
 
 		final JPopupMenu menu2 = new JPopupMenu();
 		menu2.add(runnableItem("set bounds ...", brightnessSliderMin::setBoundsDialog));
@@ -341,7 +337,7 @@ public class STIMCard
 	public double currentScale() { return scaleOverlay().currentScale(); }
 	public double currentBrightnessMin() { return currentBrightnessMin; }
 	public double currentBrightnessMax() { return currentBrightnessMax; }
-	public double currentSigma() { return currentSigma; }
+	public double currentRenderingFactor() { return currentRF; }
 	public Rendering currentDisplayMode() { return currentRendering; }
 	public JPanel getPanel() { return panel; }
 	public BdvHandle bdvhandle() { return bdvhandle; }
@@ -388,14 +384,7 @@ public class STIMCard
 			}
 		}
 
-
-		cmdLine += "-dm " + currentDisplayMode() + " -bMin " + currentBrightnessMin() + " -bMax " + currentBrightnessMax() + " ";
-
-		if ( currentDisplayMode() == Rendering.Gauss )
-			cmdLine += "-sf " + currentSigma() + " ";
-		else
-			cmdLine += "-r" + currentSigma() + " ";
-
+		cmdLine += "-dm " + currentDisplayMode() + " -bMin " + currentBrightnessMin() + " -bMax " + currentBrightnessMax() + " " + " -rf " + currentRenderingFactor() + " ";
 
 		return cmdLine;
 	}

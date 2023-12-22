@@ -82,8 +82,8 @@ public class InteractiveAlignment implements Callable<Void> {
 	@Option(names = {"-bmax", "--brightnessMax"}, required = false, description = "max initial brightness relative to the maximal value (default: 0.5)")
 	private double brightnessMax = 0.5;
 
-	@Option(names = {"-sf", "--smoothnessFactor"}, required = false, description = "initial factor for the sigma of the gaussian used for rendering, corresponds to smoothness, can be changed interactively, e.g -sf 2.0 (default: 4.0)")
-	private double smoothnessFactor = 1.0;
+	@Option(names = {"-rf", "--renderingFactor"}, required = false, description = "factor for the amount of filtering or radius used for rendering, corresponds to smoothness for Gauss, e.g -sf 2.0 (default: 1.5)")
+	private double renderingFactor = 1.5;
 
 	@Option(names = {"--rendering"}, required = false, description = "inital rendering type (Gauss, Mean, NearestNeighbor, Linear), e.g --rendering Gauss (default: Gauss)")
 	private Rendering rendering = Rendering.Gauss;
@@ -216,7 +216,7 @@ public class InteractiveAlignment implements Callable<Void> {
 					data1,
 					m3d,
 					gene,
-					smoothnessFactor,
+					renderingFactor,
 					new ARGBType( ARGBType.rgba(0, 255, 0, 0) ),
 					brightnessMin,
 					brightnessMax );
@@ -229,7 +229,7 @@ public class InteractiveAlignment implements Callable<Void> {
 					data2,
 					null,
 					gene,
-					smoothnessFactor,
+					renderingFactor,
 					new ARGBType( ARGBType.rgba(255, 0, 255, 0) ),
 					brightnessMin,
 					brightnessMax );
@@ -298,7 +298,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		final STIMCard card =
 				new STIMCard(
 						data1, data2, allGenes, sourceData, geneToBDVSource, overlay,
-						medianDistance, rendering, smoothnessFactor, brightnessMin, brightnessMax, lastSource.getBdvHandle());
+						medianDistance, rendering, renderingFactor, brightnessMin, brightnessMax, lastSource.getBdvHandle());
 		lastSource.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
 
 		// TODO: REMOVE

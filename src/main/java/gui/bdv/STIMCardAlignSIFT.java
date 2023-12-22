@@ -620,7 +620,7 @@ public class STIMCardAlignSIFT
 				stimcard.currentScale(),
 				(int)Integer.parseInt( maxOS.getText().trim() ),
 				stimcardFilter.filterFactories(),
-				stimcard.currentDisplayMode(), stimcard.currentSigma(), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
+				stimcard.currentDisplayMode(), stimcard.currentRenderingFactor(), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
 
 		final double lambda1 = Double.parseDouble( tfRANSAC.getText().trim() );
 		final double lambda2 = Double.parseDouble( tfFinal.getText().trim() );
