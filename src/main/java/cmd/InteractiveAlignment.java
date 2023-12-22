@@ -82,8 +82,8 @@ public class InteractiveAlignment implements Callable<Void> {
 	@Option(names = {"-bmax", "--brightnessMax"}, required = false, description = "max initial brightness relative to the maximal value (default: 0.5)")
 	private double brightnessMax = 0.5;
 
-	@Option(names = {"-rf", "--renderingFactor"}, required = false, description = "factor for the amount of filtering or radius used for rendering, corresponds to smoothness for Gauss, e.g -sf 2.0 (default: 1.5)")
-	private double renderingFactor = 1.5;
+	@Option(names = {"-rf", "--renderingFactor"}, required = false, description = "factor for the amount of filtering or radius used for rendering, corresponds to smoothness for Gauss, e.g -rf 2.0 (default: 1.0)")
+	private double renderingFactor = 1.0;
 
 	@Option(names = {"--rendering"}, required = false, description = "inital rendering type (Gauss, Mean, NearestNeighbor, Linear), e.g --rendering Gauss (default: Gauss)")
 	private Rendering rendering = Rendering.Gauss;
