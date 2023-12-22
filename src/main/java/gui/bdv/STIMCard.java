@@ -138,10 +138,12 @@ public class STIMCard
 				{
 					currentRendering = Rendering.values()[ box.getSelectedIndex() ];
 					System.out.println( "now rendering as: " + currentRendering );
-	
+
 					final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
 					AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
-	
+
+					final Pair<AddedGene, AddedGene> anyPair = sourceData.values().iterator().next();
+
 					for ( final String gene : geneToBDVSource.keySet() )
 					{
 						System.out.println( "replacing sources for '" + gene + "'");
@@ -150,8 +152,8 @@ public class STIMCard
 						final ArrayList<SourceAndConverter<?>> currentSources = new ArrayList<>( state.getSourcesInGroup( currentSourceGroup ) );
 	
 						// TODO: re-use KDtree!
-						AddedGene gene1 = AddedGene.addGene( currentRendering, bdvhandle, data1, currentModel3D(), gene, currentSigma, new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin, currentBrightnessMax );
-						AddedGene gene2 = AddedGene.addGene( currentRendering, bdvhandle, data2, null, gene, currentSigma, new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin, currentBrightnessMax );
+						AddedGene gene1 = AddedGene.addGene( anyPair.getA().inputPath(), anyPair.getA().dataset(), currentRendering, bdvhandle, data1, currentModel3D(), gene, currentSigma, new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin, currentBrightnessMax );
+						AddedGene gene2 = AddedGene.addGene( anyPair.getB().inputPath(), anyPair.getB().dataset(), currentRendering, bdvhandle, data2, null, gene, currentSigma, new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin, currentBrightnessMax );
 	
 						state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), currentSourceGroup );
 						state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), currentSourceGroup );
@@ -279,7 +281,9 @@ public class STIMCard
 							//
 							final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
 							AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
-	
+
+							final Pair<AddedGene, AddedGene> anyPair = sourceData.values().iterator().next();
+
 							//
 							// Now add the new ones (if it's not already there)
 							//
@@ -289,8 +293,8 @@ public class STIMCard
 								{
 									System.out.println( "Gene " + gene + " will be added." );
 	
-									final AddedGene gene1 = AddedGene.addGene( currentDisplayMode(), bdvhandle, data1, currentModel3D(), gene, currentSigma(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin(), currentBrightnessMax() );
-									final AddedGene gene2 = AddedGene.addGene( currentDisplayMode(), bdvhandle, data2, null, gene, currentSigma(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin(), currentBrightnessMax() );
+									final AddedGene gene1 = AddedGene.addGene( anyPair.getA().inputPath(), anyPair.getA().dataset(), currentDisplayMode(), bdvhandle, data1, currentModel3D(), gene, currentSigma(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin(), currentBrightnessMax() );
+									final AddedGene gene2 = AddedGene.addGene( anyPair.getB().inputPath(), anyPair.getB().dataset(), currentDisplayMode(), bdvhandle, data2, null, gene, currentSigma(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin(), currentBrightnessMax() );
 	
 									sourceData.put( gene, new ValuePair<>( gene1, gene2 ) );
 	
@@ -331,25 +335,6 @@ public class STIMCard
 		System.out.println( "Done ... " );
 	}
 
-	public HashSet< String > currentlyVisibleGenes()
-	{
-		final SynchronizedViewerState state = bdvhandle().getViewerPanel().state();
-		final Set<SourceAndConverter<?>> active = state.getVisibleSources();
-
-		final HashSet< String > genes = new HashSet<>();
-
-		sourceData().entrySet().forEach( set ->
-		{
-			active.forEach( source ->
-			{
-				if ( set.getValue().getA().soc() == source || set.getValue().getB().soc() == source )
-					genes.add( set.getKey() );
-			} );
-		});
-
-		return genes;
-	}
-
 	public HashMap< String, Pair< AddedGene, AddedGene > > sourceData() { return sourceData; }
 	public HashMap< String, SourceGroup > geneToBDVSource() { return geneToBDVSource; }
 	public DisplayScaleOverlay scaleOverlay() { return overlay; }
@@ -363,15 +348,29 @@ public class STIMCard
 	public double medianDistance() { return medianDistance; }
 	public STDataAssembly data1() { return data1; }
 	public STDataAssembly data2() { return data2; }
+	public String inputPath() { return sourceData.values().iterator().next().getA().inputPath(); }
 
 	public String createCmdLineArgs( final boolean addDataset, final boolean addGenes )
 	{
-		String cmdLine = "-dm " + currentDisplayMode() + " -bMin " + currentBrightnessMin() + " -bMax " + currentBrightnessMax() + " ";
+		String cmdLine = "";
 
-		if ( currentDisplayMode() == Rendering.Gauss )
-			cmdLine += "-sf " + currentSigma() + " ";
-		else
-			cmdLine += "-r" + currentSigma() + " ";
+		if ( addDataset )
+		{
+			cmdLine += "-i " + inputPath() + " ";
+
+			final HashSet<String> datasets = currentlyVisibleDatasets();
+
+			if ( datasets.size() > 0 )
+			{
+				final Iterator<String> i = datasets.iterator();
+				cmdLine += "-d " + i.next();
+
+				while ( i.hasNext() )
+					cmdLine += "," + i.next();
+
+				cmdLine += " ";
+			}
+		}
 
 		if ( addGenes )
 		{
@@ -389,7 +388,58 @@ public class STIMCard
 			}
 		}
 
+
+		cmdLine += "-dm " + currentDisplayMode() + " -bMin " + currentBrightnessMin() + " -bMax " + currentBrightnessMax() + " ";
+
+		if ( currentDisplayMode() == Rendering.Gauss )
+			cmdLine += "-sf " + currentSigma() + " ";
+		else
+			cmdLine += "-r" + currentSigma() + " ";
+
+
 		return cmdLine;
+	}
+
+	public HashSet< String > currentlyVisibleGenes()
+	{
+		final SynchronizedViewerState state = bdvhandle().getViewerPanel().state();
+		final Set<SourceAndConverter<?>> active = state.getVisibleSources();
+
+		final HashSet< String > genes = new HashSet<>();
+
+		sourceData().entrySet().forEach( set ->
+		{
+			active.forEach( source ->
+			{
+				if ( set.getValue().getA().soc() == source || set.getValue().getB().soc() == source )
+					genes.add( set.getKey() );
+			} );
+		});
+
+		return genes; 
+	}
+
+	public HashSet< String > currentlyVisibleDatasets()
+	{
+		final SynchronizedViewerState state = bdvhandle().getViewerPanel().state();
+		final Set<SourceAndConverter<?>> active = state.getVisibleSources();
+
+		final HashSet< String > datasets = new HashSet<>();
+
+		sourceData().entrySet().forEach( set ->
+		{
+			active.forEach( source ->
+			{
+				if ( set.getValue().getA().soc() == source )
+					datasets.add( set.getValue().getA().dataset() );
+
+				if ( set.getValue().getB().soc() == source )
+					datasets.add( set.getValue().getB().dataset() );
+					
+			} );
+		});
+
+		return datasets;
 	}
 
 	public synchronized void setCurrentModel( final Affine2D< ? > model )

@@ -209,6 +209,8 @@ public class InteractiveAlignment implements Callable<Void> {
 			System.out.println( "Rendering gene (each available as its own source): " + gene );
 
 			final AddedGene addedGene1 = AddedGene.addGene(
+					inputPath,
+					dataset1,
 					rendering,
 					lastSource,
 					data1,
@@ -220,6 +222,8 @@ public class InteractiveAlignment implements Callable<Void> {
 					brightnessMax );
 
 			final AddedGene addedGene2 = AddedGene.addGene(
+					inputPath,
+					dataset2,
 					rendering,
 					addedGene1.source,
 					data2,
@@ -337,6 +341,8 @@ public class InteractiveAlignment implements Callable<Void> {
 	{
 		public static enum Rendering { Gauss, Mean, NN, Linear };
 
+		final String inputPath, dataset;
+		final STDataAssembly data;
 		final RealRandomAccessible< DoubleType > rra;
 		final KDTree< DoubleType > tree;
 		final ArrayList< Double > originalValues;
@@ -349,6 +355,9 @@ public class InteractiveAlignment implements Callable<Void> {
 		final private double min, max;
 
 		public AddedGene(
+				final String inputPath,
+				final String dataset,
+				final STDataAssembly data,
 				final RealRandomAccessible< DoubleType > rra,
 				final KDTree< DoubleType > tree,
 				final GaussianFilterFactory< DoubleType, DoubleType > gaussFactory,
@@ -360,6 +369,9 @@ public class InteractiveAlignment implements Callable<Void> {
 				final double min,
 				final double max )
 		{
+			this.inputPath = inputPath;
+			this.dataset = dataset;
+			this.data = data;
 			this.rra = rra;
 			this.tree = tree;
 			this.gaussFactory = gaussFactory;
@@ -376,6 +388,10 @@ public class InteractiveAlignment implements Callable<Void> {
 		}
 
 		public List< Double > originalValues() { return originalValues; }
+
+		public String inputPath() { return inputPath; }
+		public String dataset() { return dataset; }
+		public STDataAssembly data() { return data; }
 		public RealRandomAccessible< DoubleType > rra() { return rra; }
 		public KDTree< DoubleType > tree() { return tree; }
 		public GaussianFilterFactory< DoubleType, DoubleType > gaussFactory(){ return gaussFactory; }
@@ -423,6 +439,8 @@ public class InteractiveAlignment implements Callable<Void> {
 		}
 
 		public static AddedGene addGene(
+				final String inputContainer,
+				final String dataset,
 				final Rendering renderType,
 				final Bdv bdv,
 				final STDataAssembly data,
@@ -529,7 +547,9 @@ public class InteractiveAlignment implements Callable<Void> {
 			t.set( 0, 2, 3 );
 			source.getBdvHandle().getViewerPanel().state().setViewerTransform( t );
 
-			return new AddedGene( rra, tree, gaussFactory, radiusFactory, maxDistanceParam, source, soc, transformedSource, min, max );
+			return new AddedGene(
+					inputContainer, dataset, data, rra, tree, gaussFactory, radiusFactory,
+					maxDistanceParam, source, soc, transformedSource, min, max );
 		}
 	}
 
