@@ -11,15 +11,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-import io.SpatialDataContainer;
-import io.SpatialDataIO;
-
+import cmd.InteractiveAlignment.AddedGene.Rendering;
 import data.STData;
 import data.STDataStatistics;
 import data.STDataUtils;
 import filter.FilterFactory;
 import filter.GaussianFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
+import filter.MeanFilterFactory;
 import filter.MedianFilterFactory;
 import filter.SingleSpotRemovingFilterFactory;
 import gui.STDataAssembly;
@@ -28,6 +27,8 @@ import ij.ImageJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import imglib2.ImgLib2Util;
+import io.SpatialDataContainer;
+import io.SpatialDataIO;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RandomAccessibleInterval;
@@ -44,13 +45,16 @@ import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import picocli.CommandLine;
-import picocli.CommandLine.Option;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
+import render.MaxDistanceParam;
 import render.Render;
 
 @Command(name = "st-render", mixinStandardHelpOptions = true, version = "0.2.0", description = "Spatial Transcriptomics as IMages project - render ST data as images in Fiji/ImageJ")
 public class RenderImage implements Callable<Void> {
 
+	// st-render -i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d Puck_180531_22.n5,Puck_180531_23.n5 -g Malat1
+	// -dm Gauss -bMin 0.0 -bMax 0.1579 -sf 2.0922  --ffSingleSpot 1.25 --scale 0.10557775847089489
 	@Option(names = {"-i", "--input"}, required = true, description = "input file or N5 container path, e.g. -i /home/ssq.n5.")
 	private String inputPath = null;
 
@@ -66,17 +70,32 @@ public class RenderImage implements Callable<Void> {
 	@Option(names = {"-s", "--scale"}, required = false, description = "scaling of the image, e.g. -s 0.5 (default: 0.05)")
 	private double scale = 0.05;
 
+	@Option(names = {"-bmin", "--brightnessMin"}, required = false, description = "min initial brightness relative to the maximal value + overall min intensity (default: 0.0)")
+	private double brightnessMin = 0.0;
+
+	@Option(names = {"-bmax", "--brightnessMax"}, required = false, description = "max initial brightness relative to the maximal value (default: 0.5)")
+	private double brightnessMax = 0.5;
+
+	@Option(names = {"--rendering"}, required = false, description = "inital rendering type (Gauss, Mean, NearestNeighbor, Linear), e.g --rendering Gauss (default: Gauss)")
+	private Rendering rendering = Rendering.Gauss;
+
+	@Option(names = {"-rf", "--renderingFactor"}, required = false, description = "factor for the amount of filtering or radius used for rendering, corresponds to smoothness for Gauss, e.g -rf 2.0 (default: 1.5)")
+	private double renderingFactor = 1.5;
+
+	@Option(names = {"--ffSingleSpot"}, required = false, description = "filter single spots using the median distance between all spots as threshold, e.g. --ffSingleSpot 1.5 (default: no filtering)")
+	private Double ffSingleSpot = null;
+
+	@Option(names = {"--ffMedian"}, required = false, description = "median-filter all spots using a given radius, e.g --ffMedian 5.0 (default: no filtering)")
+	private Double ffMedian = null;
+
+	@Option(names = {"--ffGauss"}, required = false, description = "Gauss-filter all spots using a given radius, e.g --ffGauss 2.0 (default: no filtering)")
+	private Double ffGauss = null;
+
+	@Option(names = {"--ffMean"}, required = false, description = "mean/avg-filter all spots using a given radius, e.g --ffMean 2.5 (default: no filtering)")
+	private Double ffMean = null;
+
 	@Option(names = {"-b", "--border"}, required = false, description = "extra empty border around spatial sequencing locations, e.g. -b 100 (default: 20)")
 	private int border = 20;
-
-	@Option(names = {"-f", "--singleSpotFilter"}, required = false, description = "filter single spots using the median distance between all spots as threshold (default: false)")
-	private boolean singleSpotFilter = false;
-
-	@Option(names = {"-m", "--medianFilter"}, required = false, description = "median-filter all spots using a given radius, e.g -m 20.0 (default: no filtering)")
-	private Double median = null;
-
-	@Option(names = {"-sf", "--smoothnessFactor"}, required = false, description = "factor for the sigma of the gaussian used for rendering, corresponds to smoothness, e.g -sf 2.0 (default: 1.5)")
-	private double smoothnessFactor = 1.5;
 
 	@Option(names = {"--ignoreTransforms"}, required = false, description = "ignore the transforms stored in the metadata when rendering (default: false)")
 	private boolean ignoreTransforms = false;
@@ -138,17 +157,29 @@ public class RenderImage implements Callable<Void> {
 		final DoubleType outofbounds = new DoubleType( 0 );
 		final List<FilterFactory<DoubleType, DoubleType>> filterFactories = new ArrayList<>();
 
-		if ( singleSpotFilter )
+		if ( ffSingleSpot != null && ffSingleSpot > 0  )
 		{
 			STDataStatistics stats = new STDataStatistics( dataToVisualize.get( 0 ).getA() );
-			System.out.println( "Using single-spot filtering, radius="  + (stats.getMedianDistance() * 1.5) );
-			filterFactories.add( new SingleSpotRemovingFilterFactory<>( outofbounds,stats.getMedianDistance() * 1.5 ) );
+			System.out.println( "Using single-spot filtering, radius="  + ffSingleSpot );
+			filterFactories.add( new SingleSpotRemovingFilterFactory<>( outofbounds,stats.getMedianDistance() * ffSingleSpot ) );
 		}
 
-		if ( median != null && median > 0.0 )
+		if ( ffMedian != null && ffMedian > 0.0 )
 		{
-			System.out.println( "Using median filtering, radius=" + median );
-			filterFactories.add( new MedianFilterFactory<>( outofbounds, median ) );
+			System.out.println( "Using median filtering, radius=" + ffMedian );
+			filterFactories.add( new MedianFilterFactory<>( outofbounds, ffMedian ) );
+		}
+
+		if ( ffGauss != null && ffGauss > 0.0 )
+		{
+			System.out.println( "Using Gauss filtering, radius=" + ffGauss );
+			filterFactories.add( new GaussianFilterFactory<>( outofbounds, ffGauss ) );
+		}
+
+		if ( ffMean != null && ffMean > 0.0 )
+		{
+			System.out.println( "Using mean/avg filtering, radius=" + ffMean );
+			filterFactories.add( new MeanFilterFactory<>( outofbounds, ffMean ) );
 		}
 
 		if ( output == null )
@@ -162,7 +193,7 @@ public class RenderImage implements Callable<Void> {
 			System.out.println( "Rendering gene " + gene );
 
 			//ImagePlus imp = AlignTools.visualizeList( dataToVisualize, scale, gene, true );// filterFactories );
-			ImagePlus imp = visualizeList( dataToVisualize, scale, gene, smoothnessFactor, border, filterFactories );
+			ImagePlus imp = visualizeList( dataToVisualize, scale, gene, rendering, renderingFactor, border, filterFactories );
 			imp.setTitle( gene );
 
 			if ( output == null )
@@ -186,7 +217,8 @@ public class RenderImage implements Callable<Void> {
 			final List< Pair< STData, AffineTransform2D > > data,
 			final double scale,
 			final String gene,
-			final double smoothnessFactor,
+			final Rendering renderType,
+			final double renderingFactor,
 			final int border,
 			final List< FilterFactory< DoubleType, DoubleType > > filterFactories )
 	{
@@ -219,7 +251,8 @@ public class RenderImage implements Callable<Void> {
 							new STDataStatistics( pair.getA() ),
 							pair.getB().copy().preConcatenate( tS ),
 							null,
-							smoothnessFactor,
+							renderType,
+							renderingFactor,
 							filterFactories,
 							gene,
 							finalInterval );
@@ -239,7 +272,8 @@ public class RenderImage implements Callable<Void> {
 			final STDataStatistics stStats,
 			final AffineGet coordinateTransform,
 			final AffineGet intensityTransform,
-			final double smoothnessFactor,
+			final Rendering renderType,
+			final double renderingFactor,
 			final List< FilterFactory< DoubleType, DoubleType > > filterFactories,
 			final String gene,
 			final Interval renderInterval )
@@ -247,7 +281,24 @@ public class RenderImage implements Callable<Void> {
 		// we work at full resolution so rendering and filter parameters are independent of the scale
 		final IterableRealInterval< DoubleType > data = Render.getRealIterable( stdata, null, intensityTransform, gene, filterFactories );
 
-		final RealRandomAccessible< DoubleType > renderRRA = Render.render( data, new GaussianFilterFactory<>( new DoubleType( 0 ), stStats.getMedianDistance()*smoothnessFactor, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS ) );
+		final RealRandomAccessible< DoubleType > renderRRA;
+
+		if ( renderType == Rendering.Gauss )
+		{
+			renderRRA = Render.render( data, new GaussianFilterFactory<>( new DoubleType( 0 ), stStats.getMedianDistance()*renderingFactor, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS ) );
+		}
+		else if ( renderType == Rendering.NN )
+		{
+			renderRRA = Render.renderNN( data, new DoubleType( 0 ), new MaxDistanceParam( stStats.getMedianDistance()*renderingFactor ) );
+		}
+		else if ( renderType == Rendering.Mean )
+		{
+			renderRRA = Render.render( data, new MeanFilterFactory<>( new DoubleType( 0 ), stStats.getMedianDistance()*renderingFactor ) );
+		}
+		else // LINEAR
+		{
+			renderRRA = Render.renderLinear( data, 5, 3.0, new DoubleType( 0 ),  new MaxDistanceParam( stStats.getMedianDistance()*renderingFactor ) );
+		}
 
 		return Views.interval( RealViews.affine( renderRRA, coordinateTransform ), renderInterval );
 	}
