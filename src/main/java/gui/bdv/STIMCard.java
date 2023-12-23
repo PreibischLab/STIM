@@ -90,7 +90,7 @@ public class STIMCard
 		this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 0, fill", "[right][grow]", "center"));
 
 		// display mode, gene selection
-		final JLabel boxLabel = new JLabel("Display mode (-dm) ");
+		final JLabel boxLabel = new JLabel("Rendering ");
 		final Font font = boxLabel.getFont().deriveFont( 10f );
 		boxLabel.setFont( font );
 		panel.add( boxLabel, "aligny baseline" );
@@ -112,20 +112,20 @@ public class STIMCard
 		// sigma/radius slider
 		final BoundedValuePanel rfSlider = new BoundedValuePanel(new BoundedValue(0, Math.round( Math.ceil( Math.max( 2.5, currentRF * 1.5 ) ) ), currentRF ));
 		rfSlider.setBorder(null);
-		final JLabel rfLabel = new JLabel( "render factor (-rf)" );
+		final JLabel rfLabel = new JLabel( "Render factor (-rf)" );
 		rfLabel.setFont( rfLabel.getFont().deriveFont( 10f ) );
 		panel.add(rfLabel, "aligny baseline");
 		panel.add(rfSlider, "growx, wrap");
 
 		// brightness slider
 		final BoundedValuePanel brightnessSliderMin = new BoundedValuePanel(new BoundedValue(0, 1, currentBrightnessMin ));
-		final JLabel brightnessLabelMin = new JLabel("brightness (-bmin)");
+		final JLabel brightnessLabelMin = new JLabel("Brightness (-bmin)");
 		brightnessLabelMin.setFont( font );
 		panel.add(brightnessLabelMin, "aligny baseline");
 		panel.add(brightnessSliderMin, "growx, wrap");
 
 		final BoundedValuePanel brightnessSliderMax = new BoundedValuePanel(new BoundedValue(0, 1, currentBrightnessMax ));
-		final JLabel brightnessLabelMax = new JLabel("brightness (-bmax)");
+		final JLabel brightnessLabelMax = new JLabel("Brightness (-bmax)");
 		brightnessLabelMax.setFont( font );
 		panel.add(brightnessLabelMax, "aligny baseline");
 		panel.add(brightnessSliderMax, "growx, wrap");
@@ -384,7 +384,7 @@ public class STIMCard
 			}
 		}
 
-		cmdLine += "-dm " + currentDisplayMode() + " -bMin " + currentBrightnessMin() + " -bMax " + currentBrightnessMax() + " " + " -rf " + currentRenderingFactor() + " ";
+		cmdLine += "--rendering " + currentDisplayMode() + " -bMin " + currentBrightnessMin() + " -bMax " + currentBrightnessMax() + " " + " -rf " + currentRenderingFactor() + " ";
 
 		return cmdLine;
 	}

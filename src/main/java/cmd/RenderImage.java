@@ -94,7 +94,7 @@ public class RenderImage implements Callable<Void> {
 	@Option(names = {"--ffMean"}, required = false, description = "mean/avg-filter all spots using a given radius, e.g --ffMean 2.5 (default: no filtering)")
 	private Double ffMean = null;
 
-	@Option(names = {"-b", "--border"}, required = false, description = "extra empty border around spatial sequencing locations, e.g. -b 100 (default: 20)")
+	@Option(names = {"--border"}, required = false, description = "extra empty border around spatial sequencing locations, e.g. -b 100 (default: 20)")
 	private int border = 20;
 
 	@Option(names = {"--ignoreTransforms"}, required = false, description = "ignore the transforms stored in the metadata when rendering (default: false)")
