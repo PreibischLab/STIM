@@ -11,6 +11,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+import cmd.InteractiveAlignment.AddedGene;
 import cmd.InteractiveAlignment.AddedGene.Rendering;
 import data.STData;
 import data.STDataStatistics;
@@ -26,6 +27,7 @@ import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.ImageStack;
+import ij.process.ImageProcessor;
 import imglib2.ImgLib2Util;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
@@ -193,7 +195,7 @@ public class RenderImage implements Callable<Void> {
 			System.out.println( "Rendering gene " + gene );
 
 			//ImagePlus imp = AlignTools.visualizeList( dataToVisualize, scale, gene, true );// filterFactories );
-			ImagePlus imp = visualizeList( dataToVisualize, scale, gene, rendering, renderingFactor, border, filterFactories );
+			ImagePlus imp = visualizeList( dataToVisualize, scale, brightnessMin, brightnessMax, gene, rendering, renderingFactor, border, filterFactories );
 			imp.setTitle( gene );
 
 			if ( output == null )
@@ -216,6 +218,8 @@ public class RenderImage implements Callable<Void> {
 	public static ImagePlus visualizeList(
 			final List< Pair< STData, AffineTransform2D > > data,
 			final double scale,
+			final double brightnessMin,
+			final double brightnessMax,
 			final String gene,
 			final Rendering renderType,
 			final double renderingFactor,
@@ -240,6 +244,9 @@ public class RenderImage implements Callable<Void> {
 
 		final ImageStack stack = new ImageStack( (int)finalInterval.dimension( 0 ), (int)finalInterval.dimension( 1 ) );
 
+		double minDisplay = Double.MAX_VALUE;
+		double maxDisplay = -Double.MAX_VALUE;
+
 		for ( Pair< STData, AffineTransform2D > pair : data )
 		{
 			final AffineTransform2D tA = pair.getB().copy();
@@ -259,11 +266,19 @@ public class RenderImage implements Callable<Void> {
 
 			System.out.println( "rendering  " + pair.getA().toString() );
 
-			stack.addSlice(pair.getA().toString(), ImageJFunctions.wrapFloat( vis, new RealFloatConverter<>(), pair.getA().toString(), null ).getProcessor());
+			final double[] minmax = AddedGene.minmax( pair.getA().getExprData( gene ) );
+			minDisplay = Math.min( minDisplay, AddedGene.getDisplayMin( minmax[ 0 ], minmax[ 1 ], brightnessMin ) );
+			maxDisplay = Math.max( maxDisplay, AddedGene.getDisplayMax( minmax[ 1 ], brightnessMax ) );
+
+			final ImageProcessor ip = ImageJFunctions.wrapFloat( vis, new RealFloatConverter<>(), pair.getA().toString(), null ).getProcessor();
+			stack.addSlice(pair.getA().toString(), ip );
 		}
 
-		ImagePlus imp = new ImagePlus("all", stack );
-		imp.resetDisplayRange();
+		final ImagePlus imp = new ImagePlus("all", stack );
+		//imp.setDimensions(data.size(), 1, 1 );
+		//imp.resetDisplayRange();
+		imp.setDisplayRange(minDisplay, maxDisplay);
+
 		return imp;
 	}
 
