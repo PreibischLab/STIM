@@ -117,7 +117,7 @@ public class STIMCardFilter
 
 	public String createCmdLineArgs( final boolean addDataset, final boolean addGenes, final boolean addExecutable )
 	{
-		String cmdLineArgs = stimcard.createCmdLineArgs( addDataset, addGenes ) + " ";
+		String cmdLineArgs = stimcard.createCmdLineArgs( addDataset, addGenes ).trim() + " ";
 
 		if ( tableModel.currentActiveValues[ 0 ] ) // single spot filter
 			cmdLineArgs += "--ffSingleSpot " + tableModel.currentRadiusValues[ 0 ] + " ";

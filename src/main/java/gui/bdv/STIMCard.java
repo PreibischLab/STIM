@@ -384,7 +384,7 @@ public class STIMCard
 			}
 		}
 
-		cmdLine += "--rendering " + currentDisplayMode() + " -bmin " + currentBrightnessMin() + " -bmax " + currentBrightnessMax() + " " + " -rf " + currentRenderingFactor() + " ";
+		cmdLine += "--rendering " + currentDisplayMode() + " -bmin " + currentBrightnessMin() + " -bmax " + currentBrightnessMax() + " -rf " + currentRenderingFactor() + " ";
 
 		return cmdLine;
 	}
