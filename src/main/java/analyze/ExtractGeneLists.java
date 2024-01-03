@@ -2,7 +2,6 @@ package analyze;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -13,8 +12,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import data.STData;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
-import net.imglib2.util.RealSum;
 import net.imglib2.util.ValuePair;
+import util.CompensatedSum;
 import util.Threads;
 
 public class ExtractGeneLists
@@ -35,13 +34,13 @@ public class ExtractGeneLists
 				for ( int g = nextGene.getAndIncrement(); g < data.getGeneNames().size(); g = nextGene.getAndIncrement() )
 				{
 					final String gene = data.getGeneNames().get( g );
-					final RealSum sum = new RealSum();
+					final CompensatedSum sum = new CompensatedSum();
 					for ( final DoubleType t : data.getExprData( gene ) )
 						sum.add( t.get() );
 	
 					final double avg = sum.getSum() / data.numLocations();
 	
-					final RealSum stdev = new RealSum();
+					final CompensatedSum stdev = new CompensatedSum();
 					for ( final DoubleType t : data.getExprData( gene ) )
 						stdev.add( Math.pow( t.get() - avg , 2));
 
@@ -71,13 +70,13 @@ public class ExtractGeneLists
 		/*
 		for ( final String gene : data.getGeneNames() )
 		{
-			final RealSum sum = new RealSum();
+			final CompensatedSum sum = new CompensatedSum();
 			for ( final DoubleType t : data.getExprData( gene ) )
 				sum.add( t.get() );
 
 			final double avg = sum.getSum() / data.numLocations();
 
-			final RealSum stdev = new RealSum();
+			final CompensatedSum stdev = new CompensatedSum();
 			for ( final DoubleType t : data.getExprData( gene ) )
 				stdev.add( Math.pow( t.get() - avg , 2));
 
@@ -95,7 +94,7 @@ public class ExtractGeneLists
 
 		for ( final String gene : data.getGeneNames() )
 		{
-			final RealSum sum = new RealSum();
+			final CompensatedSum sum = new CompensatedSum();
 			for ( final DoubleType t : data.getExprData( gene ) )
 				sum.add( t.get() );
 

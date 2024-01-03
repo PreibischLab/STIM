@@ -44,7 +44,7 @@ import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
 import net.imglib2.neighborsearch.RadiusNeighborSearchOnKDTree;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.util.RealSum;
+import util.CompensatedSum;
 import util.KDTreeUtil;
 
 public class StDataPointMatchIdentification < P extends RealLocalizable > implements PointMatchIdentification< P >
@@ -133,14 +133,14 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 			//searchTarget.put( gene, new NearestNeighborSearchOnKDTree<>( new KDTree<>( TransformCoordinates.sample( stDataTarget.getExprData( gene ), sampling ) ) ) );
 		}
 
-		RealSum sumT = new RealSum();
+		CompensatedSum sumT = new CompensatedSum();
 		for ( final DoubleType t : sumTarget )
 			sumT.add( t.get() );
 
 		sumTarget = normalize( sumTarget, 0, sumT.getSum() / (double)sumTarget.size() );
 		this.searchTarget = new NearestNeighborSearchOnKDTree<>( KDTreeUtil.createParallelizableKDTreeFrom( sumTarget ) );
 
-		RealSum sumR = new RealSum();
+		CompensatedSum sumR = new CompensatedSum();
 		for ( final DoubleType t : sumReference )
 			sumR.add( t.get() );
 
@@ -215,7 +215,7 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 		final KDTree< LinkedPoint< P > > kdTreeTarget = new KDTree<>( target, target );
 		final RadiusNeighborSearchOnKDTree< LinkedPoint< P > > nnSearchTarget = new RadiusNeighborSearchOnKDTree<>( kdTreeTarget );
 
-		final RealSum sumDiff = new RealSum();
+		final CompensatedSum sumDiff = new CompensatedSum();
 		long numMatches = 0;
 
 		for ( final LinkedPoint< P > referencePoint : reference )

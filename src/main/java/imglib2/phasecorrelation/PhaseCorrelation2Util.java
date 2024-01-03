@@ -57,7 +57,6 @@ import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.interpolation.randomaccess.NLinearInterpolatorFactory;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.PolarToCartesianTransform2D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.ComplexType;
@@ -65,10 +64,9 @@ import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.complex.ComplexFloatType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
-import net.imglib2.util.RealSum;
-import net.imglib2.util.Util;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
+import util.CompensatedSum;
 import util.Threads;
 import util.Threads.ImagePortion;
 
@@ -105,7 +103,7 @@ public class PhaseCorrelation2Util {
 						destRA.setPosition(srcC);
 						destRA.get().setReal(srcC.get().getRealDouble());
 					}
-					
+
 				}
 			}));
 		}
@@ -784,8 +782,8 @@ public class PhaseCorrelation2Util {
 
 		long n = 0;
 
-		RealSum sum1 = new RealSum();
-		RealSum sum2 = new RealSum();
+		CompensatedSum sum1 = new CompensatedSum();
+		CompensatedSum sum2 = new CompensatedSum();
 
 		while ( c1.hasNext() )
 		{
