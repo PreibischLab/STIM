@@ -14,14 +14,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import gui.STDataAssembly;
-import io.SpatialDataContainer;
-
 import analyze.ExtractGeneLists;
-import cmd.InteractiveAlignment.AddedGene.Rendering;
 import data.STData;
 import data.STDataStatistics;
 import data.STDataUtils;
+import gui.STDataAssembly;
+import gui.bdv.AddedGene.Rendering;
 import ij.ImageJ;
 import imglib2.ImgLib2Util;
 import imglib2.icp.ICP;
@@ -30,6 +28,7 @@ import imglib2.icp.StDataPointMatchIdentification;
 import imglib2.phasecorrelation.PhaseCorrelation2;
 import imglib2.phasecorrelation.PhaseCorrelationPeak2;
 import io.Path;
+import io.SpatialDataContainer;
 import mpicbg.models.AffineModel2D;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;

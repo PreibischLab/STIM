@@ -9,12 +9,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import gui.STDataAssembly;
-import io.SpatialDataContainer;
-
 import data.STData;
+import gui.STDataAssembly;
+import gui.bdv.AddedGene.Rendering;
 import ij.ImageJ;
 import io.Path;
+import io.SpatialDataContainer;
 import io.SpatialDataIO;
 import mpicbg.models.AffineModel2D;
 import mpicbg.models.ErrorStatistic;
@@ -28,10 +28,6 @@ import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import util.Threads;
-
-import javax.naming.OperationNotSupportedException;
-
-import cmd.InteractiveAlignment.AddedGene.Rendering;
 
 public class GlobalOptSIFT
 {

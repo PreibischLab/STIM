@@ -2,8 +2,8 @@ package align;
 
 import java.util.List;
 
-import cmd.InteractiveAlignment.AddedGene.Rendering;
 import filter.FilterFactory;
+import gui.bdv.AddedGene.Rendering;
 import mpicbg.imagefeatures.FloatArray2DSIFT;
 import net.imglib2.type.numeric.real.DoubleType;
 

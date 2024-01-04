@@ -11,8 +11,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-import cmd.InteractiveAlignment.AddedGene;
-import cmd.InteractiveAlignment.AddedGene.Rendering;
 import data.STData;
 import data.STDataStatistics;
 import data.STDataUtils;
@@ -23,6 +21,8 @@ import filter.MeanFilterFactory;
 import filter.MedianFilterFactory;
 import filter.SingleSpotRemovingFilterFactory;
 import gui.STDataAssembly;
+import gui.bdv.AddedGene;
+import gui.bdv.AddedGene.Rendering;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;

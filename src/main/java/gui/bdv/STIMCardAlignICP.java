@@ -20,7 +20,6 @@ import javax.swing.SwingConstants;
 
 import align.ICPAlign;
 import bdv.viewer.SynchronizedViewerState;
-import cmd.InteractiveAlignment.AddedGene;
 import data.STDataUtils;
 import gui.DisplayScaleOverlay;
 import mpicbg.models.Affine2D;

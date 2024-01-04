@@ -3,7 +3,6 @@ package align;
 import java.util.ArrayList;
 import java.util.List;
 
-import cmd.InteractiveAlignment.AddedGene.Rendering;
 import data.STData;
 import data.STDataStatistics;
 import data.STDataUtils;
@@ -13,6 +12,7 @@ import filter.GaussianFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
 import filter.MeanFilterFactory;
 import filter.SingleSpotRemovingFilterFactory;
+import gui.bdv.AddedGene.Rendering;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.measure.Calibration;

@@ -4,25 +4,23 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Vector;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.joml.Math;
 
 import align.SIFTParam.SIFTPreset;
-import cmd.InteractiveAlignment.AddedGene;
-import cmd.InteractiveAlignment.AddedGene.Rendering;
 import data.STData;
 import data.STDataStatistics;
 import data.STDataUtils;
 import gui.STDataAssembly;
+import gui.bdv.AddedGene;
+import gui.bdv.AddedGene.Rendering;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.gui.PointRoi;
@@ -44,11 +42,9 @@ import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.RealFloatConverter;
 import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Intervals;
-import render.Render;
 import util.Threads;
 
 public class PairwiseSIFT
