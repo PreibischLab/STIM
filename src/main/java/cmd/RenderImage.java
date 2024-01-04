@@ -156,33 +156,10 @@ public class RenderImage implements Callable<Void> {
 			return null;
 		}
 
-		final DoubleType outofbounds = new DoubleType( 0 );
-		final List<FilterFactory<DoubleType, DoubleType>> filterFactories = new ArrayList<>();
-
-		if ( ffSingleSpot != null && ffSingleSpot > 0  )
-		{
-			STDataStatistics stats = new STDataStatistics( dataToVisualize.get( 0 ).getA() );
-			System.out.println( "Using single-spot filtering, radius="  + ffSingleSpot );
-			filterFactories.add( new SingleSpotRemovingFilterFactory<>( outofbounds,stats.getMedianDistance() * ffSingleSpot ) );
-		}
-
-		if ( ffMedian != null && ffMedian > 0.0 )
-		{
-			System.out.println( "Using median filtering, radius=" + ffMedian );
-			filterFactories.add( new MedianFilterFactory<>( outofbounds, ffMedian ) );
-		}
-
-		if ( ffGauss != null && ffGauss > 0.0 )
-		{
-			System.out.println( "Using Gauss filtering, radius=" + ffGauss );
-			filterFactories.add( new GaussianFilterFactory<>( outofbounds, ffGauss ) );
-		}
-
-		if ( ffMean != null && ffMean > 0.0 )
-		{
-			System.out.println( "Using mean/avg filtering, radius=" + ffMean );
-			filterFactories.add( new MeanFilterFactory<>( outofbounds, ffMean ) );
-		}
+		final List<FilterFactory<DoubleType, DoubleType>> filterFactories =
+				assembleFilterFactories(
+						new STDataStatistics( dataToVisualize.get( 0 ).getA() ),
+						ffSingleSpot, ffMedian, ffGauss, ffMean );
 
 		if ( output == null )
 			new ImageJ();
@@ -280,6 +257,43 @@ public class RenderImage implements Callable<Void> {
 		imp.setDisplayRange(minDisplay, maxDisplay);
 
 		return imp;
+	}
+
+	public static ArrayList<FilterFactory<DoubleType, DoubleType>> assembleFilterFactories(
+			STDataStatistics stats,
+			Double ffSingleSpot,
+			Double ffMedian,
+			Double ffGauss,
+			Double ffMean)
+	{
+		final DoubleType outofbounds = new DoubleType( 0 );
+		final ArrayList<FilterFactory<DoubleType, DoubleType>> filterFactories = new ArrayList<>();
+
+		if ( ffSingleSpot != null && ffSingleSpot > 0  )
+		{
+			System.out.println( "Using single-spot filtering, radius="  + ffSingleSpot );
+			filterFactories.add( new SingleSpotRemovingFilterFactory<>( outofbounds, stats.getMedianDistance() * ffSingleSpot ) );
+		}
+
+		if ( ffMedian != null && ffMedian > 0.0 )
+		{
+			System.out.println( "Using median filtering, radius=" + ffMedian );
+			filterFactories.add( new MedianFilterFactory<>( outofbounds, stats.getMedianDistance() * ffMedian ) );
+		}
+
+		if ( ffGauss != null && ffGauss > 0.0 )
+		{
+			System.out.println( "Using Gauss filtering, radius=" + ffGauss );
+			filterFactories.add( new GaussianFilterFactory<>( outofbounds, stats.getMedianDistance() * ffGauss ) );
+		}
+
+		if ( ffMean != null && ffMean > 0.0 )
+		{
+			System.out.println( "Using mean/avg filtering, radius=" + ffMean );
+			filterFactories.add( new MeanFilterFactory<>( outofbounds, stats.getMedianDistance() * ffMean ) );
+		}
+
+		return filterFactories;
 	}
 
 	public static RandomAccessibleInterval< DoubleType > display(
