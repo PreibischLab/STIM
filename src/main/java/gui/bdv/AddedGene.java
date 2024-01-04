@@ -143,7 +143,7 @@ public class AddedGene
 			final STDataAssembly data,
 			final AffineTransform3D fixedTransform, // NOTE: options.sourceTransform != setFixedTransform
 			final String gene,
-			final double smoothnessFactor,
+			final double renderFactor,
 			final ARGBType color,
 			final double relativeInitialBrightnessMin,
 			final double relativeInitialBrightnessMax )
@@ -170,7 +170,7 @@ public class AddedGene
 
 		if ( renderType == Rendering.Gauss )
 		{
-			gaussFactory = new GaussianFilterFactory<>( new DoubleType( 0 ), smoothnessFactor * medianDistance, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS );
+			gaussFactory = new GaussianFilterFactory<>( new DoubleType( 0 ), renderFactor * medianDistance, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS );
 			radiusFactory = null;
 			maxDistanceParam = null;
 
@@ -180,7 +180,7 @@ public class AddedGene
 		}
 		else if ( renderType == Rendering.NN )
 		{
-			maxDistanceParam = new MaxDistanceParam( smoothnessFactor * medianDistance );
+			maxDistanceParam = new MaxDistanceParam( renderFactor * medianDistance );
 			radiusFactory = null;
 			gaussFactory = null;
 
@@ -190,7 +190,7 @@ public class AddedGene
 		}
 		else if ( renderType == Rendering.Mean )
 		{
-			radiusFactory = new MeanFilterFactory<>( new DoubleType( 0 ), smoothnessFactor * medianDistance );
+			radiusFactory = new MeanFilterFactory<>( new DoubleType( 0 ), renderFactor * medianDistance );
 			maxDistanceParam = null;
 			gaussFactory = null;
 
@@ -202,7 +202,7 @@ public class AddedGene
 		{
 			radiusFactory = null;
 			gaussFactory = null;
-			maxDistanceParam = new MaxDistanceParam( smoothnessFactor * medianDistance );
+			maxDistanceParam = new MaxDistanceParam( renderFactor * medianDistance );
 
 			final Pair<RealRandomAccessible<DoubleType>, KDTree<DoubleType>> r = Render.renderLinear2( iri, 5, 3.0, new DoubleType( 0 ), maxDistanceParam );
 			rra = r.getA();

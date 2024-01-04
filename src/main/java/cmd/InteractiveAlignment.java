@@ -305,7 +305,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		// TODO: REMOVE
 		card.setCurrentModel( model );
 
-		// add STIMCard panel
+		// add STIMCardFilter panel
 		final STIMCardFilter cardFilter = new STIMCardFilter( card, service );
 		lastSource.getBdvHandle().getCardPanel().addCard( "STIM Filtering Options", "STIM Filtering Options", cardFilter.getPanel(), false );
 

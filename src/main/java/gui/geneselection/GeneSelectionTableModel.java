@@ -37,6 +37,7 @@ public class GeneSelectionTableModel extends AbstractTableModel
 	final GeneSelectionPanel panel;
 
 	final List< Pair< String, Double > > data;
+	final boolean hasStDev;
 
 	public GeneSelectionTableModel(
 			final GeneSelectionPanel panel,
@@ -44,10 +45,13 @@ public class GeneSelectionTableModel extends AbstractTableModel
 	{
 		this.panel = panel;
 		this.data = data;
+		this.hasStDev = data.get( 0 ).getB() != null;
 
 		this.columnNames = new ArrayList< String >();
 		this.columnNames.add( "Gene name" );
-		this.columnNames.add( "StDev (expression)" );
+
+		if ( hasStDev )
+			this.columnNames.add( "StDev (expression)" );
 	}
 
 	protected void update()
