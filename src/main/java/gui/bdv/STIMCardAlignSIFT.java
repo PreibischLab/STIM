@@ -92,7 +92,7 @@ public class STIMCardAlignSIFT
 		this.param = new SIFTParam();
 		this.param.setIntrinsicParameters( SIFTPreset.values()[ initSIFTPreset ] );
 
-		final Interval interval = STDataUtils.getCommonInterval( stimcard.data1().data(), stimcard.data2().data() );
+		final Interval interval = STDataUtils.getCommonInterval( stimcard.data().get( 0 ).data(), stimcard.data().get( 1 ).data() );
 		this.param.maxError = Math.max( interval.dimension( 0 ), interval.dimension( 1 ) ) / 20;
 		this.param.sift.maxOctaveSize = 1024; // TODO find out
 
@@ -457,13 +457,16 @@ public class STIMCardAlignSIFT
 				siftThread = null;
 				threads.clear();
 
-				stimcard.setCurrentModel( previousModel );
+				setModel( previousModel );
+				//stimcard.setCurrentModel( previousModel );
+
 				stimcard.applyTransformationToBDV( true );
 
 				return;
 			}
 
-			previousModel = (Affine2D)((Model)stimcard.currentModel()).copy();
+			// take the previous model simply from the first AddedGene list
+			previousModel = (Affine2D)((Model)stimcard.sourceData().values().iterator().next().get( 0 ).currentModel()).copy();
 
 			siftoverlay.setInliers( new ArrayList<>() );
 			stimcard.bdvhandle().getViewerPanel().renderTransformListeners().remove( siftoverlay );
@@ -499,7 +502,7 @@ public class STIMCardAlignSIFT
 				threads.clear();
 
 				final SiftMatch match = PairwiseSIFT.pairwiseSIFT(
-						stimcard.data1().data(), dataset1, stimcard.data2().data(), dataset2,
+						stimcard.data().get( 0 ).data(), dataset1, stimcard.data().get( 1 ).data(), dataset2,
 						(Affine2D & Model)modelPair.getA(), (Affine2D & Model)modelPair.getB(),
 						new ArrayList<>( stimcard.geneToBDVSource().keySet() ),
 						param,
@@ -521,12 +524,13 @@ public class STIMCardAlignSIFT
 					{
 						modelPair.getB().fit( match.getInliers() );
 
-						stimcard.setCurrentModel( (Affine2D)modelPair.getB() );
+						setModel( (Affine2D)modelPair.getB() );
+						//stimcard.setCurrentModel( (Affine2D)modelPair.getB() );
 						stimcard.applyTransformationToBDV( true );
 
-						System.out.println( "2D model: " + stimcard.currentModel() );
-						System.out.println( "2D transform: " + stimcard.currentModel2D() );
-						System.out.println( "3D viewer transform: " + stimcard.currentModel3D() );
+						System.out.println( "2D model: " + modelPair.getB() );
+						System.out.println( "2D transform: " + stimcard.sourceData().values().iterator().next().get( 0 ).currentModel2D() );
+						System.out.println( "3D viewer transform: " + stimcard.sourceData().values().iterator().next().get( 0 ).currentModel3D() );
 					}
 					catch ( Exception e )
 					{
@@ -551,7 +555,8 @@ public class STIMCardAlignSIFT
 				}
 				else
 				{
-					stimcard.setCurrentModel( previousModel );
+					setModel( previousModel );
+					//stimcard.setCurrentModel( previousModel );
 					stimcard.applyTransformationToBDV( true );
 
 					lastMaxError = Double.NaN;
@@ -593,9 +598,20 @@ public class STIMCardAlignSIFT
 	public HashSet< String> genesWithInliers() { return genesWithInliers; }
 	public double lastMaxError() { return lastMaxError; }
 
+	public void setModel( final Affine2D< ? > previousModel )
+	{
+		stimcard.sourceData().values().forEach( list ->
+		{
+			list.get( 0 ).setCurrentModel( previousModel );
+
+			for ( int i = 1; i < list.size(); ++i )
+				list.get( i ).setCurrentModel( new AffineModel2D() );
+		});
+	}
+
 	public void updateMaxOctaveSize()
 	{
-		maxOS.setValue( this.param.sift.maxOctaveSize = getMaxOctaveSize( stimcard.data1().data(), stimcard.data2().data(), stimcard.currentScale() ) );
+		maxOS.setValue( this.param.sift.maxOctaveSize = getMaxOctaveSize( stimcard.data().get( 0 ).data(), stimcard.data().get( 1 ).data(), stimcard.currentScale() ) );
 	}
 
 	protected Pair<Model<?>, Model<?>> extractParamtersFromGUI( final SIFTParam param )

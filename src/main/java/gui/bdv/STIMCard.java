@@ -21,7 +21,6 @@ import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 
-import align.AlignTools;
 import bdv.util.BdvHandle;
 import bdv.viewer.DisplayMode;
 import bdv.viewer.SourceAndConverter;
@@ -31,13 +30,7 @@ import gui.DisplayScaleOverlay;
 import gui.STDataAssembly;
 import gui.bdv.AddedGene.Rendering;
 import gui.geneselection.GeneSelectionExplorer;
-import mpicbg.models.Affine2D;
-import mpicbg.models.AffineModel2D;
-import net.imglib2.realtransform.AffineTransform2D;
-import net.imglib2.realtransform.AffineTransform3D;
-import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.util.Pair;
-import net.imglib2.util.ValuePair;
 import net.miginfocom.swing.MigLayout;
 import util.BoundedValue;
 import util.BoundedValuePanel;
@@ -46,25 +39,19 @@ public class STIMCard
 {
 	private final JPanel panel;
 	private GeneSelectionExplorer gse = null;
-	private final STDataAssembly data1, data2;
+	private final List<STDataAssembly> data;
 	private final BdvHandle bdvhandle;
-	private final HashMap< String, Pair< AddedGene, AddedGene > > sourceData;
+	private final HashMap< String, List< AddedGene > > sourceData;
 	private final HashMap< String, SourceGroup > geneToBDVSource;
 	private final DisplayScaleOverlay overlay;
 	private double currentRF, currentBrightnessMin, currentBrightnessMax;
 	private Rendering currentRendering;
 	private double medianDistance;
 
-	// current transforms mapping first to second image
-	private Affine2D< ? > model = new AffineModel2D();
-	private AffineTransform2D m2d = new AffineTransform2D();
-	private AffineTransform3D m3d = new AffineTransform3D();
-
 	public STIMCard(
-			final STDataAssembly data1,
-			final STDataAssembly data2,
+			final List<STDataAssembly> data,
 			final List< Pair< String, Double > > allGenes,
-			final HashMap< String, Pair< AddedGene, AddedGene > > sourceData,
+			final HashMap< String, List< AddedGene > > sourceData,
 			final HashMap< String, SourceGroup > geneToBDVSource,
 			final DisplayScaleOverlay overlay,
 			final double medianDistance,
@@ -74,8 +61,7 @@ public class STIMCard
 			final double initialBrightnessMax,
 			final BdvHandle bdvhandle )
 	{
-		this.data1 = data1;
-		this.data2 = data2;
+		this.data = data;
 		this.bdvhandle = bdvhandle;
 		this.sourceData = sourceData;
 		this.overlay = overlay;
@@ -142,7 +128,7 @@ public class STIMCard
 					final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
 					AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
 
-					final Pair<AddedGene, AddedGene> anyPair = sourceData.values().iterator().next();
+					final List<AddedGene> anyDatasets = sourceData.values().iterator().next();
 
 					for ( final String gene : geneToBDVSource.keySet() )
 					{
@@ -150,18 +136,42 @@ public class STIMCard
 	
 						final SourceGroup currentSourceGroup = geneToBDVSource.get( gene );
 						final ArrayList<SourceAndConverter<?>> currentSources = new ArrayList<>( state.getSourcesInGroup( currentSourceGroup ) );
-	
+
+						final List<AddedGene> newDatasets = new ArrayList<>();
+
+						for ( int i = 0; i < anyDatasets.size(); ++i )
+						{
+							// TODO: re-use KDtree!
+							newDatasets.add(
+									AddedGene.addGene( 
+											anyDatasets.get(i).inputPath(),
+											anyDatasets.get(i).dataset(),
+											currentRendering,
+											bdvhandle, data.get( i ),
+											anyDatasets.get(i).currentModel3D(), //TODO
+											gene,
+											currentRF,
+											anyDatasets.get(i).color(), //new ARGBType( ARGBType.rgba(0, 255, 0, 0) ),
+											currentBrightnessMin,
+											currentBrightnessMax ) );
+							
+						}
+
 						// TODO: re-use KDtree!
-						AddedGene gene1 = AddedGene.addGene( anyPair.getA().inputPath(), anyPair.getA().dataset(), currentRendering, bdvhandle, data1, currentModel3D(), gene, currentRF, new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin, currentBrightnessMax );
-						AddedGene gene2 = AddedGene.addGene( anyPair.getB().inputPath(), anyPair.getB().dataset(), currentRendering, bdvhandle, data2, null, gene, currentRF, new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin, currentBrightnessMax );
-	
-						state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), currentSourceGroup );
-						state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), currentSourceGroup );
+						//AddedGene gene1 = AddedGene.addGene( anyPair.getA().inputPath(), anyPair.getA().dataset(), currentRendering, bdvhandle, data1, currentModel3D(), gene, currentRF, new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin, currentBrightnessMax );
+						//AddedGene gene2 = AddedGene.addGene( anyPair.getB().inputPath(), anyPair.getB().dataset(), currentRendering, bdvhandle, data2, null, gene, currentRF, new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin, currentBrightnessMax );
+
+						for ( int i = anyDatasets.size(); i > 0; --i )
+							state.addSourceToGroup( state.getSources().get( state.getSources().size() - i ), currentSourceGroup );
+
+						//state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), currentSourceGroup );
+						//state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), currentSourceGroup );
 	
 						for ( final SourceAndConverter<?> s : currentSources )
 							state.removeSourceFromGroup( s, currentSourceGroup );
 	
-						sourceData.put( gene, new ValuePair<>( gene1, gene2 ) );
+						//sourceData.put( gene, new ValuePair<>( gene1, gene2 ) );
+						sourceData.put( gene, newDatasets );
 					}
 
 					bdvhandle.getViewerPanel().setDisplayMode( DisplayMode.GROUP );
@@ -181,8 +191,18 @@ public class STIMCard
 				AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
 
 				final double actualSigma = currentRF * medianDistance;
-				sourceData.values().forEach( p ->
+				sourceData.values().forEach( list ->
 				{
+					list.forEach( gene -> {
+						if ( gene.gaussFactory() != null )
+							gene.gaussFactory().setSigma( actualSigma );
+						else if ( gene.radiusFactory() != null )
+							gene.radiusFactory().setRadius( actualSigma );
+						else
+							gene.maxDistanceParam().setMaxDistance( actualSigma );
+						
+					});
+					/*
 					if ( p.getA().gaussFactory() != null )
 						p.getA().gaussFactory().setSigma( actualSigma );
 					else if ( p.getA().radiusFactory() != null )
@@ -196,6 +216,7 @@ public class STIMCard
 						p.getB().radiusFactory().setRadius( actualSigma );
 					else
 						p.getB().maxDistanceParam().setMaxDistance( actualSigma );
+					*/
 				} );
 
 				bdvhandle.getViewerPanel().requestRepaint();
@@ -216,12 +237,22 @@ public class STIMCard
 
 			if ( oldBrightness != currentBrightnessMin )
 			{
-				sourceData.values().forEach( p -> {
+				sourceData.values().forEach( list -> {
+					list.forEach( gene -> {
+
+						final double displayMin = AddedGene.getDisplayMin( gene.min(), gene.max(), currentBrightnessMin );
+						final double displayMax = AddedGene.getDisplayMax( gene.max(), currentBrightnessMax );
+
+						gene.source().setDisplayRange(displayMin, displayMax);
+						gene.source().setDisplayRange(displayMin, displayMax);
+					});
+					/*
 					final double displayMin = AddedGene.getDisplayMin( p.getA().min(), p.getA().max(), currentBrightnessMin );
 					final double displayMax = AddedGene.getDisplayMax( p.getA().max(), currentBrightnessMax );
 
 					p.getA().source().setDisplayRange(displayMin, displayMax);
 					p.getB().source().setDisplayRange(displayMin, displayMax);
+					*/
 				} );
 
 				final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
@@ -244,12 +275,22 @@ public class STIMCard
 
 			if ( oldBrightness != currentBrightnessMax )
 			{
-				sourceData.values().forEach( p -> {
+				sourceData.values().forEach( list -> {
+					list.forEach( gene -> {
+
+						final double displayMin = AddedGene.getDisplayMin( gene.min(), gene.max(), currentBrightnessMin );
+						final double displayMax = AddedGene.getDisplayMax( gene.max(), currentBrightnessMax );
+
+						gene.source().setDisplayRange(displayMin, displayMax);
+						gene.source().setDisplayRange(displayMin, displayMax);
+					});
+					/*
 					final double displayMin = AddedGene.getDisplayMin( p.getA().min(), p.getA().max(), currentBrightnessMin );
 					final double displayMax = AddedGene.getDisplayMax( p.getA().max(), currentBrightnessMax );
 
 					p.getA().source().setDisplayRange(displayMin, displayMax);
 					p.getB().source().setDisplayRange(displayMin, displayMax);
+					*/
 				} );
 
 				final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
@@ -277,7 +318,7 @@ public class STIMCard
 							final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
 							AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
 
-							final Pair<AddedGene, AddedGene> anyPair = sourceData.values().iterator().next();
+							final List<AddedGene> anyDatasets = sourceData.values().iterator().next();
 
 							//
 							// Now add the new ones (if it's not already there)
@@ -288,17 +329,42 @@ public class STIMCard
 								{
 									System.out.println( "Gene " + gene + " will be added." );
 	
-									final AddedGene gene1 = AddedGene.addGene( anyPair.getA().inputPath(), anyPair.getA().dataset(), currentDisplayMode(), bdvhandle, data1, currentModel3D(), gene, currentRenderingFactor(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin(), currentBrightnessMax() );
-									final AddedGene gene2 = AddedGene.addGene( anyPair.getB().inputPath(), anyPair.getB().dataset(), currentDisplayMode(), bdvhandle, data2, null, gene, currentRenderingFactor(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin(), currentBrightnessMax() );
-	
-									sourceData.put( gene, new ValuePair<>( gene1, gene2 ) );
+									final List<AddedGene> newDatasets = new ArrayList<>();
+
+									for ( int i = 0; i < anyDatasets.size(); ++i )
+									{
+										// TODO: re-use KDtree!
+										newDatasets.add(
+												AddedGene.addGene( 
+														anyDatasets.get(i).inputPath(),
+														anyDatasets.get(i).dataset(),
+														currentDisplayMode(),
+														bdvhandle, data.get( i ),
+														anyDatasets.get(i).currentModel3D(),
+														gene,
+														currentRenderingFactor(),
+														anyDatasets.get(i).color(), //new ARGBType( ARGBType.rgba(0, 255, 0, 0) ),
+														currentBrightnessMin(),
+														currentBrightnessMax() ) );
+										
+									}
+
+									//final AddedGene gene1 = AddedGene.addGene( anyPair.getA().inputPath(), anyPair.getA().dataset(), currentDisplayMode(), bdvhandle, data1, currentModel3D(), gene, currentRenderingFactor(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin(), currentBrightnessMax() );
+									//final AddedGene gene2 = AddedGene.addGene( anyPair.getB().inputPath(), anyPair.getB().dataset(), currentDisplayMode(), bdvhandle, data2, null, gene, currentRenderingFactor(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin(), currentBrightnessMax() );
+
+									sourceData.put( gene, newDatasets );
+									//sourceData.put( gene, new ValuePair<>( gene1, gene2 ) );
 	
 									final SourceGroup handle = new SourceGroup();
 									state.addGroup( handle );
 									state.setGroupName( handle, gene );
 									state.setGroupActive( handle, true );
-									state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), handle );
-									state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), handle );
+
+									for ( int i = anyDatasets.size(); i > 0; --i )
+										state.addSourceToGroup( state.getSources().get( state.getSources().size() - i ), handle );
+
+									//state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), handle );
+									//state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), handle );
 	
 									geneToBDVSource.put( gene, handle );
 	
@@ -330,7 +396,7 @@ public class STIMCard
 		System.out.println( "Done ... " );
 	}
 
-	public HashMap< String, Pair< AddedGene, AddedGene > > sourceData() { return sourceData; }
+	public HashMap< String, List< AddedGene > > sourceData() { return sourceData; }
 	public HashMap< String, SourceGroup > geneToBDVSource() { return geneToBDVSource; }
 	public DisplayScaleOverlay scaleOverlay() { return overlay; }
 	public double currentScale() { return scaleOverlay().currentScale(); }
@@ -341,9 +407,8 @@ public class STIMCard
 	public JPanel getPanel() { return panel; }
 	public BdvHandle bdvhandle() { return bdvhandle; }
 	public double medianDistance() { return medianDistance; }
-	public STDataAssembly data1() { return data1; }
-	public STDataAssembly data2() { return data2; }
-	public String inputPath() { return sourceData.values().iterator().next().getA().inputPath(); }
+	public List<STDataAssembly> data() { return data; }
+	public String inputPath() { return sourceData.values().iterator().next().get( 0 ).inputPath(); }
 
 	public String createCmdLineArgs( final boolean addDataset, final boolean addGenes )
 	{
@@ -399,8 +464,13 @@ public class STIMCard
 		{
 			active.forEach( source ->
 			{
-				if ( set.getValue().getA().soc() == source || set.getValue().getB().soc() == source )
-					genes.add( set.getKey() );
+				set.getValue().forEach( gene ->
+				{
+					if ( gene.soc() == source )
+						genes.add( set.getKey() );
+				});
+				//if ( set.getValue().getA().soc() == source || set.getValue().getB().soc() == source )
+				//	genes.add( set.getKey() );
 			} );
 		});
 
@@ -418,11 +488,16 @@ public class STIMCard
 		{
 			active.forEach( source ->
 			{
-				if ( set.getValue().getA().soc() == source )
-					datasets.add( set.getValue().getA().dataset() );
+				set.getValue().forEach( gene ->
+				{
+					if ( gene.soc() == source )
+						datasets.add( gene.dataset() );
+				});
+				//if ( set.getValue().getA().soc() == source )
+				//	datasets.add( set.getValue().getA().dataset() );
 
-				if ( set.getValue().getB().soc() == source )
-					datasets.add( set.getValue().getB().dataset() );
+				//if ( set.getValue().getB().soc() == source )
+				//	datasets.add( set.getValue().getB().dataset() );
 					
 			} );
 		});
@@ -430,42 +505,19 @@ public class STIMCard
 		return datasets;
 	}
 
-	public synchronized void setCurrentModel( final Affine2D< ? > model )
-	{
-		this.model = model; // mapping A to B
-		this.m2d = AlignTools.modelToAffineTransform2D( model );
-
-		this.m3d = new AffineTransform3D();
-		m3d.set(m2d.get(0, 0), 0, 0 ); // row, column
-		m3d.set(m2d.get(0, 1), 0, 1 ); // row, column
-		m3d.set(m2d.get(1, 0), 1, 0 ); // row, column
-		m3d.set(m2d.get(1, 1), 1, 1 ); // row, column
-		m3d.set(m2d.get(0, 2), 0, 3 ); // row, column
-		m3d.set(m2d.get(1, 2), 1, 3 ); // row, column
-	}
-
+	// not the class, but each AddedGene should has it's own transform
 	public synchronized void applyTransformationToBDV( final boolean requestUpdateBDV )
 	{
-		/*
-		final List<TransformedSource<?>> tsources = BDVUtils.getTransformedSources(state);
+		sourceData.forEach( (gene,data) ->
+				data.forEach( d -> d.transformedSource().setFixedTransform( d.currentModel3D() ) )
+		);
 
-		// every second source will be transformed
-		for ( int i = 0; i < tsources.size(); i = i + 2 )
-			tsources.get( i ).setFixedTransform( m3d );
-		*/
-
-		sourceData.forEach( (gene,data) -> {
-			data.getA().transformedSource().setFixedTransform( m3d );
-			data.getB().transformedSource().setFixedTransform( new AffineTransform3D() );
-		});
+		//data.getA().transformedSource().setFixedTransform( m3d );
+		//data.getB().transformedSource().setFixedTransform( new AffineTransform3D() );
 
 		if ( requestUpdateBDV )
 			bdvhandle().getViewerPanel().requestRepaint();
 	}
-
-	public Affine2D<?> currentModel() { return model; }
-	public AffineTransform2D currentModel2D() { return m2d; }
-	public AffineTransform3D currentModel3D() { return m3d; }
 
 	public static void addPopUp( final Component comp, final JPopupMenu menu )
 	{

@@ -18,6 +18,7 @@ import ij.ImageStack;
 import ij.measure.Calibration;
 import imglib2.ImgLib2Util;
 import mpicbg.models.Affine2D;
+import mpicbg.models.AffineModel2D;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RandomAccessibleInterval;
@@ -284,6 +285,19 @@ public class AlignTools
 
 		final AffineTransform2D t = new AffineTransform2D();
 		t.set( array[ 0 ], array[ 2 ], array[ 4 ], array[ 1 ], array[ 3 ], array[ 5 ] );
+
+		return t;
+	}
+
+	public static AffineModel2D affineTransformToModel( final AffineTransform2D transform )
+	{
+		//  m00, m10, m01, m11, m02, m12
+		final double[] array = new double[ 6 ];
+
+		transform.toArray( array );
+
+		final AffineModel2D t = new AffineModel2D();
+		t.set( array[ 0 ], array[ 3 ], array[ 1 ], array[ 4 ], array[ 2 ], array[ 5 ] );
 
 		return t;
 	}

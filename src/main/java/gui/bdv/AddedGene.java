@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import align.AlignTools;
 import bdv.tools.transformation.TransformedSource;
 import bdv.util.Bdv;
 import bdv.util.BdvFunctions;
@@ -20,6 +21,8 @@ import filter.RadiusSearchFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
 import gui.STDataAssembly;
 import imglib2.TransformedIterableRealInterval;
+import mpicbg.models.Affine2D;
+import mpicbg.models.AffineModel2D;
 import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.KDTree;
@@ -49,7 +52,12 @@ public class AddedGene
 	final private BdvStackSource<?> source;
 	final TransformedSource<?> transformedSource;
 	final SourceAndConverter<?> soc;
+	final private ARGBType color;
 	final private double min, max;
+
+	private Affine2D< ? > model = new AffineModel2D();
+	private AffineTransform2D m2d = new AffineTransform2D();
+	private AffineTransform3D m3d = new AffineTransform3D();
 
 	public AddedGene(
 			final String inputPath,
@@ -63,6 +71,7 @@ public class AddedGene
 			final BdvStackSource<?> source,
 			final SourceAndConverter<?> soc,
 			final TransformedSource<?> transformedSource,
+			final ARGBType color,
 			final double min,
 			final double max )
 	{
@@ -77,6 +86,7 @@ public class AddedGene
 		this.source = source;
 		this.soc = soc;
 		this.transformedSource = transformedSource;
+		this.color = color;
 		this.min = min;
 		this.max = max;
 
@@ -97,13 +107,48 @@ public class AddedGene
 	public BdvStackSource<?> source(){ return source; }
 	public SourceAndConverter<?> soc() { return soc; }
 	public TransformedSource<?> transformedSource() { return transformedSource; }
+	public ARGBType color() { return color; }
 	public double min(){ return min; }
 	public double max(){ return max; }
+	public Affine2D<?> currentModel() { return model; }
+	public AffineTransform2D currentModel2D() { return m2d; }
+	public AffineTransform3D currentModel3D() { return m3d; }
+
+	public synchronized void setCurrentModel( final Affine2D< ? > model )
+	{
+		this.model = model; // mapping A to B
+		this.m2d = AlignTools.modelToAffineTransform2D( model );
+
+		this.m3d = new AffineTransform3D();
+		m3d.set(m2d.get(0, 0), 0, 0 ); // row, column
+		m3d.set(m2d.get(0, 1), 0, 1 ); // row, column
+		m3d.set(m2d.get(1, 0), 1, 0 ); // row, column
+		m3d.set(m2d.get(1, 1), 1, 1 ); // row, column
+		m3d.set(m2d.get(0, 2), 0, 3 ); // row, column
+		m3d.set(m2d.get(1, 2), 1, 3 ); // row, column
+	}
+
+	public synchronized void setCurrentModel3D( final AffineTransform3D transform )
+	{
+		this.m3d = transform;
+
+		// TODO: generate 2d model out of it
+		this.m2d = new AffineTransform2D();
+
+		m2d.set(m3d.get(0, 0), 0, 0 ); // row, column
+		m2d.set(m3d.get(0, 1), 0, 1 ); // row, column
+		m2d.set(m3d.get(1, 0), 1, 0 ); // row, column
+		m2d.set(m3d.get(1, 1), 1, 1 ); // row, column
+		m2d.set(m3d.get(0, 3), 0, 2 ); // row, column
+		m2d.set(m3d.get(1, 3), 1, 2 ); // row, column
+
+		this.model = AlignTools.affineTransformToModel( m2d );
+	}
 
 	public static synchronized void updateRemainingSources(
 			final SynchronizedViewerState state,
 			final Map< String, SourceGroup > geneToBDVSource,
-			final Map< String, Pair< AddedGene, AddedGene > > sourceData )
+			final Map< String, List< AddedGene > > sourceData )
 	{
 		final ArrayList< SourceGroup > currentGroups = new ArrayList<>( state.getGroups() );
 
@@ -244,8 +289,13 @@ public class AddedGene
 		t.set( 0, 2, 3 );
 		source.getBdvHandle().getViewerPanel().state().setViewerTransform( t );
 
-		return new AddedGene(
+		final AddedGene g = new AddedGene(
 				inputContainer, dataset, data, rra, tree, gaussFactory, radiusFactory,
-				maxDistanceParam, source, soc, transformedSource, min, max );
+				maxDistanceParam, source, soc, transformedSource, color, min, max );
+
+		if ( fixedTransform != null )
+			g.setCurrentModel3D( fixedTransform );
+
+		return g;
 	}
 }

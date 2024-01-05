@@ -5,61 +5,40 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import align.AlignTools;
 import align.Pairwise;
-import bdv.tools.transformation.TransformedSource;
 import bdv.ui.splitpanel.SplitPanel;
-import bdv.util.Bdv;
-import bdv.util.BdvFunctions;
-import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
-import bdv.viewer.SourceAndConverter;
 import bdv.viewer.SourceGroup;
 import bdv.viewer.SynchronizedViewerState;
-import data.STDataUtils;
-import filter.GaussianFilterFactory;
-import filter.GaussianFilterFactory.WeightType;
-import filter.MeanFilterFactory;
-import filter.RadiusSearchFilterFactory;
 import gui.DisplayScaleOverlay;
 import gui.STDataAssembly;
-import gui.bdv.STIMCardAlignSIFT;
-import gui.bdv.STIMCardFilter;
 import gui.bdv.AddedGene;
 import gui.bdv.AddedGene.Rendering;
 import gui.bdv.STIMCard;
 import gui.bdv.STIMCardAlignICP;
-import imglib2.TransformedIterableRealInterval;
+import gui.bdv.STIMCardAlignSIFT;
+import gui.bdv.STIMCardFilter;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
 import io.TextFileAccess;
 import mpicbg.models.AffineModel2D;
-import net.imglib2.Interval;
-import net.imglib2.IterableRealInterval;
-import net.imglib2.KDTree;
-import net.imglib2.RealRandomAccessible;
 import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
-import net.imglib2.type.numeric.RealType;
-import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
-import render.MaxDistanceParam;
-import render.Render;
-import util.BDVUtils;
 import util.Threads;
 
 // -i visium.n5 -d1 slice1.h5ad -d2 slice2.n5 -n 9 -sk 14
@@ -199,7 +178,7 @@ public class InteractiveAlignment implements Callable<Void> {
 
 
 		BdvStackSource< ? > lastSource = null;
-		final HashMap< String, Pair< AddedGene, AddedGene > > sourceData = new HashMap<>();
+		final HashMap< String, List< AddedGene > > sourceData = new HashMap<>();
 
 		System.out.println( "Starting BDV ... " );
 		System.out.println( "Starting with the top " + numGenes + " genes after skipping the first " + skipFirstNGenes +" genes (you find them in the 'groups' panel, you can add/remove genes in the GUI." );
@@ -235,7 +214,7 @@ public class InteractiveAlignment implements Callable<Void> {
 					brightnessMin,
 					brightnessMax );
 
-			sourceData.put(gene, new ValuePair<>(addedGene1, addedGene2 ) );
+			sourceData.put(gene, new ArrayList<>(Arrays.asList( addedGene1, addedGene2 ) ) );
 			lastSource = addedGene2.source();
 		}
 
@@ -298,12 +277,9 @@ public class InteractiveAlignment implements Callable<Void> {
 		// add STIMCard panel
 		final STIMCard card =
 				new STIMCard(
-						data1, data2, allGenes, sourceData, geneToBDVSource, overlay,
+						new ArrayList<>(Arrays.asList( data1, data2 ) ), allGenes, sourceData, geneToBDVSource, overlay,
 						medianDistance, rendering, renderingFactor, brightnessMin, brightnessMax, lastSource.getBdvHandle());
 		lastSource.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
-
-		// TODO: REMOVE
-		card.setCurrentModel( model );
 
 		// add STIMCardFilter panel
 		final STIMCardFilter cardFilter = new STIMCardFilter( card, service );
@@ -313,6 +289,9 @@ public class InteractiveAlignment implements Callable<Void> {
 		final STIMCardAlignSIFT cardAlignSIFT =
 				new STIMCardAlignSIFT( dataset1, dataset2, card, cardFilter, service );
 		lastSource.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlignSIFT.getPanel(), true );
+
+		// TODO: REMOVE
+		cardAlignSIFT.setModel( model );
 
 		// add STIMCardAlignICP panel
 		final STIMCardAlignICP cardAlignICP =

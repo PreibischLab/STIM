@@ -77,7 +77,7 @@ public class STIMCardAlignICP
 		this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 5, fill", "[right][grow]", "center"));
 		this.param = new ICPParams();
 
-		final Interval interval = STDataUtils.getCommonInterval( stimcard.data1().data(), stimcard.data2().data() );
+		final Interval interval = STDataUtils.getCommonInterval( stimcard.data().get( 0 ).data(), stimcard.data().get( 1 ).data() );
 		this.param.maxErrorICP = ( Math.max( interval.dimension( 0 ), interval.dimension( 1 ) ) / 20 ) / 5.0;
 		this.param.maxErrorRANSAC = this.param.maxErrorICP / 2.0;
 
@@ -191,13 +191,14 @@ public class STIMCardAlignICP
 
 				icpThread = null;
 
-				stimcard.setCurrentModel( previousModel );
+				stimcardSIFT.setModel( previousModel );
+				//stimcard.setCurrentModel( previousModel );
 				stimcard.applyTransformationToBDV( true );
 
 				return;
 			}
 
-			previousModel = (Affine2D)((Model)stimcard.currentModel()).copy();
+			previousModel = (Affine2D)((Model)stimcard.sourceData().values().iterator().next().get( 0 ).currentModel()).copy();
 
 			run.setForeground( Color.red );
 			run.setFont( run.getFont().deriveFont( Font.BOLD ) );
@@ -220,10 +221,10 @@ public class STIMCardAlignICP
 				Model model = STIMCardAlignSIFT.getModelFor( boxModelFinal1.getSelectedIndex(), boxModelFinal2.getSelectedIndex(), lambda );
 
 				System.out.println( model.getClass().getSimpleName() );
-				System.out.println( "current  : " + stimcard.currentModel() );
+				System.out.println( "current  : " + stimcard.sourceData().values().iterator().next().get( 0 ).currentModel() );
 
 				// set the model as much as possible to the current transform
-				fit( model, stimcard.currentModel(), interval.dimension( 0 ) / 4.0, interval.dimension( 1 ) / 4.0, 4 );
+				fit( model, stimcard.sourceData().values().iterator().next().get( 0 ).currentModel(), interval.dimension( 0 ) / 4.0, interval.dimension( 1 ) / 4.0, 4 );
 
 				System.out.println( "ICP input: " + model );
 
@@ -263,7 +264,7 @@ public class STIMCardAlignICP
 
 				final Pair<Model, List<PointMatch>> icpT = 
 						ICPAlign.alignICP(
-								stimcard.data2().data(), stimcard.data1().data(), genes, model,
+								stimcard.data().get( 1 ).data(), stimcard.data().get( 0 ).data(), genes, model,
 								param.maxErrorICP, param.maxErrorRANSAC, param.maxIterations,
 								v ->
 								{
@@ -277,7 +278,8 @@ public class STIMCardAlignICP
 								{
 									synchronized (stimcard)
 									{
-										stimcard.setCurrentModel( (Affine2D)m );
+										stimcardSIFT.setModel( (Affine2D)m );
+										//stimcard.setCurrentModel( (Affine2D)m );
 										stimcard.applyTransformationToBDV( true );
 									}
 								},
@@ -292,11 +294,12 @@ public class STIMCardAlignICP
 					{
 						model = icpT.getA();
 
-						stimcard.setCurrentModel( (Affine2D)model );
+						stimcardSIFT.setModel( (Affine2D)model );
+						//stimcard.setCurrentModel( (Affine2D)model );
 
-						System.out.println( "2D model: " + stimcard.currentModel() );
-						System.out.println( "2D transform: " + stimcard.currentModel2D() );
-						System.out.println( "3D viewer transform: " + stimcard.currentModel3D() );
+						System.out.println( "2D model: " + model );
+						System.out.println( "2D transform: " + stimcard.sourceData().values().iterator().next().get( 0 ).currentModel2D() );
+						System.out.println( "3D viewer transform: " + stimcard.sourceData().values().iterator().next().get( 0 ).currentModel3D() );
 					}
 					catch (Exception e)
 					{
@@ -305,7 +308,8 @@ public class STIMCardAlignICP
 				}
 				else
 				{
-					stimcard.setCurrentModel( previousModel );
+					stimcardSIFT.setModel( previousModel );
+					//stimcard.setCurrentModel( previousModel );
 				}
 
 				reEnableControls();

@@ -212,11 +212,16 @@ public class STIMCardFilter
 					// replace original values first
 					stimcard.sourceData().forEach( (gene,data) ->
 					{
-						final Iterator<Double> iAFilt = data.getA().originalValues().iterator();
-						data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
+						data.forEach( d ->
+						{
+							final Iterator<Double> iFilt = d.originalValues().iterator();
+							d.tree().forEach( t -> t.set( iFilt.next() ) );	
+						});
+						//final Iterator<Double> iAFilt = data.getA().originalValues().iterator();
+						//data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
 
-						final Iterator<Double> iBFilt = data.getB().originalValues().iterator();
-						data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );
+						//final Iterator<Double> iBFilt = data.getB().originalValues().iterator();
+						//data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );
 					} );
 
 					for ( final FilterFactory<DoubleType, DoubleType> filterFactory : filterFactories() )
@@ -225,6 +230,20 @@ public class STIMCardFilter
 						{
 							final List< Callable< Void > > tasks = new ArrayList<>();
 
+							data.forEach( d ->
+							{
+								tasks.add( () ->
+								{
+									final RealPointSampleList<DoubleType> filteredA =
+											Filters.filter( d.tree(), d.tree().iterator(), filterFactory );
+
+									final RealCursor<DoubleType> iAFilt = filteredA.cursor();
+									d.tree().forEach( t -> t.set( iAFilt.next() ) );
+
+									return null;
+								});
+							});
+							/*
 							tasks.add( () ->
 							{
 								final RealPointSampleList<DoubleType> filteredA =
@@ -245,7 +264,7 @@ public class STIMCardFilter
 
 								return null;
 							});
-
+							*/
 							try { service.invokeAll( tasks ); } catch (InterruptedException e) { e.printStackTrace(); }
 
 							/*
