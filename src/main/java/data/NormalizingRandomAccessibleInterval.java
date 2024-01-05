@@ -16,8 +16,8 @@ import net.imglib2.RealPositionable;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.util.RealSum;
 import net.imglib2.view.Views;
+import util.CompensatedSum;
 import util.Threads;
 
 public class NormalizingRandomAccessibleInterval implements RandomAccessibleInterval< DoubleType >
@@ -57,7 +57,7 @@ public class NormalizingRandomAccessibleInterval implements RandomAccessibleInte
 		// for each location do
 		for ( long i = 0; i < numLocations; ++i )
 		{
-			final RealSum realSum = new RealSum( (int)numGenes );
+			final CompensatedSum realSum = new CompensatedSum( (int)numGenes );
 
 			// iterate and sum all gene expression values of that location
 			for ( final DoubleType t : Views.iterable( Views.hyperSlice( input, 1, i ) ) )
@@ -81,7 +81,7 @@ public class NormalizingRandomAccessibleInterval implements RandomAccessibleInte
 				// for each location do
 				for ( long i = nextLocation.getAndIncrement(); i < numLocations; i = nextLocation.getAndIncrement() )
 				{
-					final RealSum realSum = new RealSum( (int)numGenes );
+					final CompensatedSum realSum = new CompensatedSum();
 
 					// iterate and sum all gene expression values of that location
 					for ( final DoubleType t : Views.iterable( Views.hyperSlice( input, 1, i ) ) )

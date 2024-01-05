@@ -74,7 +74,6 @@ goto :EOF
 		echo.
 		echo java^^
 		echo  -Xmx%MEM%g^^
-		echo  -XX:+UseConcMarkSweepGC^^
 		echo  -cp %USERPROFILE%\.m2\repository\net\preibisch\imglib2-st\%VERSION%\imglib2-st-%VERSION%.jar;^^
 		type cp.txt
 		echo ^^
