@@ -118,22 +118,40 @@ public class AddedGene
 	{
 		this.model = model; // mapping A to B
 		this.m2d = AlignTools.modelToAffineTransform2D( model );
+		this.m3d = convert2Dto3D( this.m2d );
+	}
 
-		this.m3d = new AffineTransform3D();
+	public synchronized void setCurrentModel3D( final AffineTransform3D transform )
+	{
+		this.m3d = transform;
+		this.m2d = convert3Dto2D( transform );
+		this.model = AlignTools.affineTransformToModel( m2d );
+	}
+
+	public synchronized void setCurrentModel2D( final AffineTransform2D transform )
+	{
+		this.m2d = transform;
+		this.m3d = convert2Dto3D( this.m2d );
+		this.model = AlignTools.affineTransformToModel( m2d );
+	}
+
+	public static AffineTransform3D convert2Dto3D( final AffineTransform2D m2d )
+	{
+		final AffineTransform3D m3d = new AffineTransform3D();
+
 		m3d.set(m2d.get(0, 0), 0, 0 ); // row, column
 		m3d.set(m2d.get(0, 1), 0, 1 ); // row, column
 		m3d.set(m2d.get(1, 0), 1, 0 ); // row, column
 		m3d.set(m2d.get(1, 1), 1, 1 ); // row, column
 		m3d.set(m2d.get(0, 2), 0, 3 ); // row, column
 		m3d.set(m2d.get(1, 2), 1, 3 ); // row, column
+
+		return m3d;
 	}
 
-	public synchronized void setCurrentModel3D( final AffineTransform3D transform )
+	public static AffineTransform2D convert3Dto2D( final AffineTransform3D m3d )
 	{
-		this.m3d = transform;
-
-		// TODO: generate 2d model out of it
-		this.m2d = new AffineTransform2D();
+		final AffineTransform2D m2d = new AffineTransform2D();
 
 		m2d.set(m3d.get(0, 0), 0, 0 ); // row, column
 		m2d.set(m3d.get(0, 1), 0, 1 ); // row, column
@@ -142,7 +160,7 @@ public class AddedGene
 		m2d.set(m3d.get(0, 3), 0, 2 ); // row, column
 		m2d.set(m3d.get(1, 3), 1, 2 ); // row, column
 
-		this.model = AlignTools.affineTransformToModel( m2d );
+		return m2d;
 	}
 
 	public static synchronized void updateRemainingSources(
