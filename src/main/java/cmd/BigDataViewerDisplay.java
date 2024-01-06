@@ -206,7 +206,7 @@ public class BigDataViewerDisplay implements Callable<Void>
 		//
 
 		// random gene coloring
-		Random rnd = new Random( 343 );
+		Random rnd = new Random( 43 );
 
 		final HashMap< String, List< AddedGene > > sourceData = new HashMap<>();
 
@@ -217,15 +217,19 @@ public class BigDataViewerDisplay implements Callable<Void>
 
 			final ARGBType col;
 
-			if ( genesToShow.size() == 1 )
+			if ( genesToShow.size() == 1 ) // one gene
 				col = new ARGBType( ARGBType.rgba(255, 255, 255, 0) );
-			else if ( i == 0 )
-				col = new ARGBType( ARGBType.rgba(255, 255, 0, 0) );
-			else if ( i == 1 )
-				col = new ARGBType( ARGBType.rgba(0, 255, 255, 0) );
-			else if ( i == 2 )
+			else if ( i == 0 && genesToShow.size() == 2 ) // two genes
+				col = new ARGBType( ARGBType.rgba(0, 255, 0, 0) );
+			else if ( i == 1 && genesToShow.size() == 2 )
 				col = new ARGBType( ARGBType.rgba(255, 0, 255, 0) );
-			else
+			else if ( i == 0 && genesToShow.size() == 3 ) // three genes
+				col = new ARGBType( ARGBType.rgba(255, 255, 0, 0) );
+			else if ( i == 1 && genesToShow.size() == 3 )
+				col = new ARGBType( ARGBType.rgba(0, 255, 255, 0) );
+			else if ( i == 2 && genesToShow.size() == 3 )
+				col = new ARGBType( ARGBType.rgba(255, 0, 255, 0) );
+			else // many genes
 				col = Render.randomColor( rnd );
 
 			final AddedGene addedGene = AddedGene.addGene(
