@@ -89,9 +89,6 @@ public class InteractiveAlignment implements Callable<Void> {
 	@Override
 	public Void call() throws Exception
 	{
-		final boolean useIntensityTransform = false;
-		final boolean useTransform = true;
-
 		final ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
 		if ( !SpatialDataContainer.isCompatibleContainer(inputPath) )
@@ -107,18 +104,8 @@ public class InteractiveAlignment implements Callable<Void> {
 		final SpatialDataIO io1 = container.openDatasetReadOnly( dataset1 );
 		final STDataAssembly data1 = io1.readData();
 
-		if (!useTransform)
-			data1.transform().set(new AffineTransform2D());
-		if (!useIntensityTransform)
-			data1.intensityTransform().set(1, 0);
-
 		final SpatialDataIO io2 = container.openDatasetReadOnly( dataset2 );
 		final STDataAssembly data2 = io2.readData();
-
-		if (!useTransform)
-			data2.transform().set(new AffineTransform2D());
-		if (!useIntensityTransform)
-			data2.intensityTransform().set(1, 0);
 
 		//
 		// assemble genes to test

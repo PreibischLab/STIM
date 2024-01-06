@@ -77,7 +77,6 @@ public class DisplayStackedSlides implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 
-		final boolean useIntensityTransform = false;
 		final boolean useTransform = true;
 
 		if (!(new File(inputPath)).exists()) {
@@ -124,8 +123,6 @@ public class DisplayStackedSlides implements Callable<Void> {
 
 			if (!useTransform)
 				data.transform().set(new AffineTransform2D());
-			if (!useIntensityTransform)
-				data.intensityTransform().set(1, 0);
 		}
 
 		if (dataToVisualize.size() == 0) {

@@ -1,7 +1,6 @@
 package render;
 
 import java.awt.Color;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
@@ -21,7 +20,6 @@ import net.imglib2.Interval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.KDTree;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.RealCursor;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.converter.Converters;
 import net.imglib2.interpolation.neighborsearch.InverseDistanceWeightingInterpolatorFactory;
@@ -99,18 +97,18 @@ public class Render
 			final String gene,
 			final List< FilterFactory< DoubleType, DoubleType > > filterFactories )
 	{
-		return getRealIterable(stdata.data(), stdata.transform(), stdata.intensityTransform(), gene, filterFactories);
+		return getRealIterable(stdata.data(), stdata.transform(), gene, filterFactories);
 	}
 
 	public static IterableRealInterval< DoubleType > getRealIterable(
 			final STData stdata,
 			final AffineGet coordinateTransform,
-			final AffineGet intensityTransform,
 			final String gene,
 			final List< FilterFactory< DoubleType, DoubleType > > filterFactories )
 	{
-		IterableRealInterval< DoubleType > data;
+		IterableRealInterval< DoubleType > data = stdata.getExprData( gene ); 
 
+		/*
 		if ( intensityTransform == null || intensityTransform.isIdentity())
 		{
 			data = stdata.getExprData( gene ); 
@@ -125,6 +123,7 @@ public class Render
 						(a,b) -> b.set( a.get() * m00 + m01 ),
 						new DoubleType() );
 		}
+		*/
 
 		if ( coordinateTransform != null && !coordinateTransform.isIdentity() )
 			data = new TransformedIterableRealInterval<>(

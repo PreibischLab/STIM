@@ -50,6 +50,7 @@ import net.imglib2.util.ValuePair;
 import util.KDTreeUtil;
 import util.Threads;
 
+@Deprecated
 public class IntensityAdjustment
 {
 	public static HashMap< Integer, AffineModel1D > adjustIntensities(

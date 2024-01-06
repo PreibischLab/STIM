@@ -259,9 +259,9 @@ public class PairwiseSIFT
 				final double maxDisplay = AddedGene.getDisplayMax( minmax[ 1 ], p.brightnessMax );
 
 				final RandomAccessibleInterval<DoubleType> imgA =
-						AlignTools.display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tS, null, p.filterFactories, p.rendering, p.renderingSmoothness );
+						AlignTools.display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tS, p.filterFactories, p.rendering, p.renderingSmoothness );
 				final RandomAccessibleInterval<DoubleType> imgB =
-						AlignTools.display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tS, null, p.filterFactories, p.rendering, p.renderingSmoothness );
+						AlignTools.display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tS, p.filterFactories, p.rendering, p.renderingSmoothness );
 
 				final ImagePlus impA = ImageJFunctions.wrapFloat( imgA, new RealFloatConverter<>(), "A_" + gene);
 				final ImagePlus impB = ImageJFunctions.wrapFloat( imgB, new RealFloatConverter<>(), "B_" + gene );

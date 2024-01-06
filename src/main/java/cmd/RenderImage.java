@@ -234,7 +234,6 @@ public class RenderImage implements Callable<Void> {
 							pair.getA(),
 							new STDataStatistics( pair.getA() ),
 							pair.getB().copy().preConcatenate( tS ),
-							null,
 							renderType,
 							renderingFactor,
 							filterFactories,
@@ -300,7 +299,6 @@ public class RenderImage implements Callable<Void> {
 			final STData stdata,
 			final STDataStatistics stStats,
 			final AffineGet coordinateTransform,
-			final AffineGet intensityTransform,
 			final Rendering renderType,
 			final double renderingFactor,
 			final List< FilterFactory< DoubleType, DoubleType > > filterFactories,
@@ -308,7 +306,7 @@ public class RenderImage implements Callable<Void> {
 			final Interval renderInterval )
 	{
 		// we work at full resolution so rendering and filter parameters are independent of the scale
-		final IterableRealInterval< DoubleType > data = Render.getRealIterable( stdata, null, intensityTransform, gene, filterFactories );
+		final IterableRealInterval< DoubleType > data = Render.getRealIterable( stdata, null, gene, filterFactories );
 
 		final RealRandomAccessible< DoubleType > renderRRA;
 

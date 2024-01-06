@@ -305,22 +305,18 @@ public class VisualizeStack
 		bdvSource.getBdvHandle().getKeybindings().addInputMap("persistence", ksInputMap);
 	}
 
-	public static ImagePlus visualizeIJ(final List<STDataAssembly> puckData, final boolean useTransform, final boolean useIntensityTransform)
+	public static ImagePlus visualizeIJ(final List<STDataAssembly> puckData, final boolean useTransform )
 	{
 		final List< STData > data = new ArrayList<>();
 		final List< AffineTransform2D > transforms = new ArrayList<>();
-		final List< AffineGet > intensityTransforms = useIntensityTransform ? new ArrayList<>() : null;
 
 		for ( final STDataAssembly stda : puckData )
 		{
 			data.add( stda.data() );
 			transforms.add( useTransform ? stda.transform() : new AffineTransform2D() );
-
-			if ( useIntensityTransform )
-				intensityTransforms.add( stda.intensityTransform() );
 		}
 
-		return AlignTools.visualizeList( data, transforms, intensityTransforms, AlignTools.defaultScale, Rendering.Gauss, AlignTools.defaultSmoothnessFactor, AlignTools.defaultGene, true );
+		return AlignTools.visualizeList( data, transforms, AlignTools.defaultScale, Rendering.Gauss, AlignTools.defaultSmoothnessFactor, AlignTools.defaultGene, true );
 	}
 
 	public static void main( String[] args ) throws IOException
@@ -332,12 +328,6 @@ public class VisualizeStack
 							 {try {return sdio.readData();} catch (IOException e) {throw new RuntimeException(e);}})
 						.collect(Collectors.toList());
 
-		for ( final STDataAssembly p : puckData )
-		{
-			System.out.println( p.intensityTransform().get(0, 0 ) + ", " + p.intensityTransform().get(0, 1 ));
-			p.intensityTransform().set( 1.0, 0.0 );
-		}
-
 		new ImageJ();
 
 		// Display as full 3D ImageJ image
@@ -348,7 +338,7 @@ public class VisualizeStack
 		AlignTools.defaultGene = "Ptgds";//"Calm2";//"Mbp";//;
 		AlignTools.defaultScale = 0.1;
 		AlignTools.defaultSmoothnessFactor = 2.0;
-		ImagePlus imp = visualizeIJ( puckData, true, false );
+		ImagePlus imp = visualizeIJ( puckData, true );
 		imp.show();
 
 		// Display interactively with BDV

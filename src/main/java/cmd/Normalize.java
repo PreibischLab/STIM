@@ -77,8 +77,7 @@ public class Normalize implements Callable<Void> {
 
 				STDataAssembly normalizedData = new STDataAssembly(new NormalizingSTData(stData.data()),
 																   stData.statistics(),
-																   stData.transform(),
-																   stData.intensityTransform());
+																   stData.transform() );
 
 				SpatialDataIO sdout = SpatialDataIO.open(outputPath, service);
 				sdout.writeData(normalizedData);

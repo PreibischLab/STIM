@@ -1,18 +1,16 @@
 package io;
 
-import data.STData;
-import data.STDataImgLib2;
-import data.STDataStatistics;
-import gui.STDataAssembly;
-import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.realtransform.AffineGet;
-import net.imglib2.realtransform.AffineSet;
-import net.imglib2.realtransform.AffineTransform;
-import net.imglib2.realtransform.AffineTransform2D;
-import net.imglib2.type.NativeType;
-import net.imglib2.type.numeric.RealType;
-import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.util.Util;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.ExecutorService;
+import java.util.function.Supplier;
+
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5FSReader;
@@ -24,16 +22,18 @@ import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrReader;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.ExecutorService;
-import java.util.function.Supplier;
+import data.STData;
+import data.STDataImgLib2;
+import data.STDataStatistics;
+import gui.STDataAssembly;
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.realtransform.AffineGet;
+import net.imglib2.realtransform.AffineSet;
+import net.imglib2.realtransform.AffineTransform2D;
+import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.RealType;
+import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.util.Util;
 
 
 public abstract class SpatialDataIO {
@@ -211,8 +211,8 @@ public abstract class SpatialDataIO {
 
 		STData stData = new STDataImgLib2(locations, exprValues, geneNames, barcodes, geneLookup);
 
-		AffineTransform intensityTransform = new AffineTransform(1);
-		readAndSetTransformation(reader, intensityTransform, "intensity_transform");
+		//AffineTransform intensityTransform = new AffineTransform(1);
+		//readAndSetTransformation(reader, intensityTransform, "intensity_transform");
 		AffineTransform2D transform = new AffineTransform2D();
 		readAndSetTransformation(reader, transform, "transform");
 
@@ -227,7 +227,7 @@ public abstract class SpatialDataIO {
 				", size(locations)=" + Util.printCoordinates(locationDims) +
 				", size(exprValues)=" + Util.printCoordinates(exprDims));
 
-		return new STDataAssembly(stData, new STDataStatistics(stData), transform, intensityTransform);
+		return new STDataAssembly(stData, new STDataStatistics(stData), transform);
 	}
 
 	protected RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader) throws IOException {
@@ -283,7 +283,7 @@ public abstract class SpatialDataIO {
 		writeExpressionValues(writer, stData.getAllExprValues());
 		writeLocations(writer, stData.getLocations());
 		writeTransformation(writer, data.transform(), "transform");
-		writeTransformation(writer, data.intensityTransform(), "intensity_transform");
+		//writeTransformation(writer, data.intensityTransform(), "intensity_transform");
 
 		updateStoredAnnotations(stData.getAnnotations());
 

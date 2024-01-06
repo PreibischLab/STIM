@@ -93,7 +93,6 @@ public class BigDataViewerDisplay implements Callable<Void>
 	@Override
 	public Void call() throws Exception {
 
-		final boolean useIntensityTransform = false;
 		final boolean useTransform = true;
 
 		if (!(new File(inputPath)).exists()) {
@@ -141,8 +140,6 @@ public class BigDataViewerDisplay implements Callable<Void>
 
 		if (!useTransform)
 			dataToVisualize.transform().set(new AffineTransform2D());
-		if (!useIntensityTransform)
-			dataToVisualize.intensityTransform().set(1, 0);
 
 		List< String > annotationList;
 		if ( annotations != null && annotations.length() > 0 )

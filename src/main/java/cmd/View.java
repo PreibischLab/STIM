@@ -76,10 +76,6 @@ public class View implements Callable<Void> {
 			}
 		}
 
-		// ignore potentially saved intensity adjustments
-		for ( final STDataAssembly d : dataToVisualize )
-			d.intensityTransform().set( 1.0, 0.0 );
-
 		new STDataExplorer( dataToVisualize );
 
 		service.shutdown();

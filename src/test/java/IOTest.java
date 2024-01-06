@@ -59,11 +59,9 @@ public class IOTest extends AbstractIOTest {
 	public void io_works_for_transformations(String path) {
 		STData data = TestUtils.createTestDataSet();
 		STDataStatistics stats = new STDataStatistics(data);
-		final AffineTransform intensityTransform = new AffineTransform(1);
-		intensityTransform.set(2, 1);
 		final AffineTransform2D transform = new AffineTransform2D();
 		transform.rotate(3.14159 / 4);
-		STDataAssembly expected = new STDataAssembly(data, stats, transform, intensityTransform);
+		STDataAssembly expected = new STDataAssembly(data, stats, transform);
 
 		try {
 			SpatialDataIO sdio = SpatialDataIO.open(getPlaygroundPath(path), executorService);

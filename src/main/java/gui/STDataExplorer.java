@@ -97,10 +97,6 @@ public class STDataExplorer
 							 {try {return sdio.readData();} catch (IOException e) {throw new RuntimeException(e);}})
 						.collect(Collectors.toList());
 
-		// ignore intensity adjustments
-		for ( final STDataAssembly s : slides )
-			s.intensityTransform().set( 1, 0 );
-
 		new STDataExplorer( slides );
 		service.shutdown();
 	}

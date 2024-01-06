@@ -62,7 +62,6 @@ public class TestUtils {
 		assertLinesMatch(actual.data().getBarcodes(), expected.data().getBarcodes(), "Barcodes not equal.");
 
 		assertArrayEquals(actual.transform().getRowPackedCopy(), expected.transform().getRowPackedCopy(), "2D transforms not equal.");
-		assertArrayEquals(actual.intensityTransform().getRowPackedCopy(), expected.intensityTransform().getRowPackedCopy(), "Intensity transforms not equal.");
 
 		assertTrue(expected.data().getAnnotations().keySet().containsAll(actual.data().getAnnotations().keySet()), "Expected meta data correct");
 		assertTrue(actual.data().getAnnotations().keySet().containsAll(expected.data().getAnnotations().keySet()), "Actual meta data correct");
