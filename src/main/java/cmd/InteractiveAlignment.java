@@ -12,7 +12,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import align.AlignTools;
 import align.Pairwise;
 import bdv.ui.splitpanel.SplitPanel;
 import bdv.util.BdvStackSource;
@@ -32,8 +31,6 @@ import io.SpatialDataIO;
 import io.TextFileAccess;
 import mpicbg.models.AffineModel2D;
 import net.imglib2.multithreading.SimpleMultiThreading;
-import net.imglib2.realtransform.AffineTransform2D;
-import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
