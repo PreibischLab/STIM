@@ -238,7 +238,7 @@ public class BigDataViewerDisplay implements Callable<Void>
 					rendering,
 					source,
 					dataToVisualize,
-					null, //m3d,
+					AddedGene.convert2Dto3D( dataToVisualize.transform() ), //m3d,
 					gene,
 					renderingFactor,
 					col, //new ARGBType( ARGBType.rgba(0, 255, 0, 0) ),
