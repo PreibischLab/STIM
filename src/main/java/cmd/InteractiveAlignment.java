@@ -175,20 +175,6 @@ public class InteractiveAlignment implements Callable<Void> {
 			System.exit( 0 );
 		}
 
-		// TODO: REMOVE
-		AffineModel2D model = new AffineModel2D();
-		model.set(0.323679918598243, -0.9185551542794,  1.002878826719069, 0.351176728134501, -546.6035992226643, 4231.453000084942 );
-		//model.set(0.331341531716248, -0.943510884600666, 0.943510884600666, 0.331341531716248, 516.8904927161093, 5126.173497414435 );
-		AffineTransform2D m2d = AlignTools.modelToAffineTransform2D( model );
-		AffineTransform3D m3d = new AffineTransform3D();
-		m3d.set(m2d.get(0, 0), 0, 0 ); // row, column
-		m3d.set(m2d.get(0, 1), 0, 1 ); // row, column
-		m3d.set(m2d.get(1, 0), 1, 0 ); // row, column
-		m3d.set(m2d.get(1, 1), 1, 1 ); // row, column
-		m3d.set(m2d.get(0, 2), 0, 3 ); // row, column
-		m3d.set(m2d.get(1, 2), 1, 3 ); // row, column
-
-
 		BdvStackSource< ? > lastSource = null;
 		final HashMap< String, List< AddedGene > > sourceData = new HashMap<>();
 
@@ -206,7 +192,7 @@ public class InteractiveAlignment implements Callable<Void> {
 					rendering,
 					lastSource,
 					data1,
-					m3d,
+					null,
 					gene,
 					renderingFactor,
 					new ARGBType( ARGBType.rgba(0, 255, 0, 0) ),
@@ -303,7 +289,11 @@ public class InteractiveAlignment implements Callable<Void> {
 		lastSource.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlignSIFT.getPanel(), true );
 
 		// TODO: REMOVE
+		AffineModel2D model = new AffineModel2D();
+		model.set(0.323679918598243, -0.9185551542794,  1.002878826719069, 0.351176728134501, -546.6035992226643, 4231.453000084942 );
 		cardAlignSIFT.setModel( model );
+		card.applyTransformationToBDV( true );
+		// TODO: REMOVE
 
 		// add STIMCardAlignICP panel
 		final STIMCardAlignICP cardAlignICP =
