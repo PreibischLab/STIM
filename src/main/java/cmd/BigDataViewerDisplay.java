@@ -210,9 +210,23 @@ public class BigDataViewerDisplay implements Callable<Void>
 
 		final HashMap< String, List< AddedGene > > sourceData = new HashMap<>();
 
-		for ( final String gene : genesToShow )
+		for ( int i = 0; i < genesToShow.size(); ++i )
 		{
+			final String gene = genesToShow.get( i );
 			System.out.println( "Rendering gene: " + gene );
+
+			final ARGBType col;
+
+			if ( genesToShow.size() == 1 )
+				col = new ARGBType( ARGBType.rgba(255, 255, 255, 0) );
+			else if ( i == 0 )
+				col = new ARGBType( ARGBType.rgba(255, 255, 0, 0) );
+			else if ( i == 1 )
+				col = new ARGBType( ARGBType.rgba(0, 255, 255, 0) );
+			else if ( i == 2 )
+				col = new ARGBType( ARGBType.rgba(255, 0, 255, 0) );
+			else
+				col = Render.randomColor( rnd );
 
 			final AddedGene addedGene = AddedGene.addGene(
 					inputPath,
@@ -223,7 +237,7 @@ public class BigDataViewerDisplay implements Callable<Void>
 					null, //m3d,
 					gene,
 					renderingFactor,
-					Render.randomColor( rnd ), //new ARGBType( ARGBType.rgba(0, 255, 0, 0) ),
+					col, //new ARGBType( ARGBType.rgba(0, 255, 0, 0) ),
 					brightnessMin,
 					brightnessMax );
 
