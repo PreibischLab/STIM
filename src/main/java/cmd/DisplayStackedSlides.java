@@ -136,7 +136,7 @@ public class DisplayStackedSlides implements Callable<Void> {
 		else
 			annotationList = new ArrayList<>();
 
-		final double[] minmax = parseContrastString(contrastString, RenderThread.min, RenderThread.max );
+		final double[] minmax = parseContrastString(contrastString, 0, 5 );
 
 		final DoubleType outofbounds = new DoubleType( 0 );
 

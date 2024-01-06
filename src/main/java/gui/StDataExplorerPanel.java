@@ -26,8 +26,6 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
@@ -39,7 +37,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
@@ -48,8 +45,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 
 import data.STData;
@@ -70,14 +65,11 @@ public class StDataExplorerPanel extends JPanel
 	protected STDataTableModel tableModel;
 	protected JLabel label;
 	protected JTextField text;
-	protected JCheckBox visualization;
-
-	protected VisualizationOptionsFrame visFrame = null;
 
 	protected final RenderThread renderThread;
 	protected final Thread thread;
 
-	public StDataExplorerPanel( final List< STDataAssembly > slides )
+	public StDataExplorerPanel( final List< STDataAssembly > slides, final String inputContainer, final List< String > datasets )
 	{
 		this.slides = slides;
 		this.genesPresentPerCol = new ArrayList<>();
@@ -106,7 +98,7 @@ public class StDataExplorerPanel extends JPanel
 
 		initComponent( slides, allGenes );
 
-		this.renderThread = new RenderThread( slides );
+		this.renderThread = new RenderThread( slides, inputContainer, datasets );
 		this.thread = new Thread( this.renderThread );
 		this.thread.start();
 	}
@@ -244,6 +236,7 @@ public class StDataExplorerPanel extends JPanel
 			public void keyPressed( KeyEvent e ) {}
 		} );
 
+		/*
 		this.visualization = new JCheckBox( "Visualization Options" );
 		this.visualization.addActionListener(
 				e ->
@@ -257,11 +250,12 @@ public class StDataExplorerPanel extends JPanel
 						this.visFrame.dispose();
 					}
 				} );
+		*/
 
 		this.add( label, BorderLayout.WEST );
 		this.add( text, BorderLayout.CENTER );
 
-		this.add( visualization, BorderLayout.EAST );
+		//this.add( visualization, BorderLayout.EAST );
 
 		this.add( new JScrollPane( table ), BorderLayout.SOUTH );
 

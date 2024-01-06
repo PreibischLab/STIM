@@ -43,10 +43,10 @@ public class STDataExplorer
 	final JFrame frame;
 	final StDataExplorerPanel panel;
 
-	public STDataExplorer( final List< STDataAssembly > slides )
+	public STDataExplorer( final List< STDataAssembly > slides, final String inputContainer, final List< String > datasets )
 	{
 		frame = new JFrame( "Spatial Transcriptomics Explorer" );
-		panel = new StDataExplorerPanel( slides );
+		panel = new StDataExplorerPanel( slides, inputContainer, datasets );
 		frame.add( panel, BorderLayout.CENTER );
 
 		frame.setSize( panel.getPreferredSize() );
@@ -91,13 +91,16 @@ public class STDataExplorer
 	public static void main( String[] args ) throws IOException
 	{
 		final ExecutorService service = Executors.newFixedThreadPool(8);
+		final String inputPath = Path.getPath() + "visium.n5";
+		final List< String > datasets = SpatialDataContainer.openExisting(inputPath, service).getDatasets();
+
 		final List<STDataAssembly> slides =
-				SpatialDataContainer.openExisting(Path.getPath() + "visium.n5", service).openAllDatasets().stream()
+				SpatialDataContainer.openExisting(inputPath, service).openAllDatasets().stream()
 						.map(sdio ->
 							 {try {return sdio.readData();} catch (IOException e) {throw new RuntimeException(e);}})
 						.collect(Collectors.toList());
 
-		new STDataExplorer( slides );
+		new STDataExplorer( slides, inputPath, datasets );
 		service.shutdown();
 	}
 }

@@ -2,21 +2,18 @@ package cmd;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import io.SpatialDataContainer;
-import io.SpatialDataIO;
-
-import gui.RenderThread;
 import gui.STDataAssembly;
 import gui.STDataExplorer;
+import io.SpatialDataContainer;
+import io.SpatialDataIO;
 import picocli.CommandLine;
-import picocli.CommandLine.Option;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
 
 @Command(name = "st-explorer", mixinStandardHelpOptions = true, version = "0.2.0", description = "Spatial Transcriptomics as IMages project - interactive viewer for ST data")
 public class View implements Callable<Void> {
@@ -26,9 +23,6 @@ public class View implements Callable<Void> {
 
 	@Option(names = {"-d", "--datasets"}, required = false, description = "if input is a container: comma separated list of datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: open all datasets)")
 	private String datasets = null;
-
-	@Option(names = {"-c", "--contrast"}, description = "comma separated contrast range for BigDataViewer display, e.g. -c '0,255' (default 0.1,5)" )
-	private String contrastString = null;
 
 	@Override
 	public Void call() throws Exception {
@@ -59,24 +53,7 @@ public class View implements Callable<Void> {
 			dataToVisualize.add(SpatialDataIO.openReadOnly(inputPath, service).readData());
 		}
 
-		if ( contrastString != null && contrastString.length() > 0 )
-		{
-			String[] contrastStrings = contrastString.trim().split( "," );
-
-			if ( contrastStrings.length != 2 )
-			{
-				System.out.println( "contrast string could not parsed " + Arrays.asList( contrastStrings ) + ", ignoring - setting default range (" + RenderThread.min + "," + RenderThread.max + ")" );
-			}
-			else
-			{
-			RenderThread.min = Double.parseDouble( contrastStrings[ 0 ] );
-			RenderThread.max = Double.parseDouble( contrastStrings[ 1 ] );
-
-			System.out.println( "contrast range set to (" + RenderThread.min + "," + RenderThread.max + ")" );
-			}
-		}
-
-		new STDataExplorer( dataToVisualize );
+		new STDataExplorer( dataToVisualize, inputPath, SpatialDataContainer.openExisting(inputPath, service).getDatasets() );
 
 		service.shutdown();
 		return null;

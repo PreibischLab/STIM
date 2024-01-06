@@ -8,40 +8,35 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
+import org.janelia.saalfeldlab.n5.Compression;
+import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
+
 import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
 import data.STData;
 import filter.FilterFactory;
+import gui.STDataAssembly;
 import gui.STDataExplorer;
+import io.AnnDataDetails.AnnDataFieldType;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
+import net.imglib2.converter.Converters;
+import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineSet;
 import net.imglib2.type.NativeType;
-import org.janelia.saalfeldlab.n5.Compression;
-import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.N5Writer;
-import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
-
-import gui.STDataAssembly;
-import net.imglib2.converter.Converters;
-import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 import render.Render;
-
-import static gui.RenderThread.max;
-import static gui.RenderThread.maxRange;
-import static gui.RenderThread.min;
-import static gui.RenderThread.minRange;
-import static io.AnnDataDetails.AnnDataFieldType;
 
 
 public class AnnDataIO extends SpatialDataIO {
@@ -94,10 +89,10 @@ public class AnnDataIO extends SpatialDataIO {
 //		RandomAccessibleInterval<DoubleType> exprValues = data.data().getAllExprValues();
 //		BdvStackSource<DoubleType> bdv = BdvFunctions.show(exprValues, "", options);
 		bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
-		bdv.setDisplayRangeBounds( minRange, maxRange );
-		bdv.setDisplayRange( min, max );
+		bdv.setDisplayRangeBounds( 0, 200 );
+		bdv.setDisplayRange( 0, 5 );
 
-		new STDataExplorer(Arrays.asList(data));
+		new STDataExplorer(Arrays.asList(data), path, new ArrayList<>( Arrays.asList( "" ) ) );
 	}
 
 	@Override
