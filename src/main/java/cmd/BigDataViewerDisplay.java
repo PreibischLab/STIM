@@ -255,6 +255,8 @@ public class BigDataViewerDisplay implements Callable<Void>
 
 		final HashMap< String, SourceGroup > geneToBDVSource = new HashMap<>();
 
+		// TODO: ADD ANNOTATIONS AS GROUP
+
 		for ( int i = 0; i < genesToShow.size(); ++i )
 		{
 			final String gene = genesToShow.get( i );
