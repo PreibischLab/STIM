@@ -153,7 +153,7 @@ public class BigDataViewerDisplay implements Callable<Void>
 
 		BdvStackSource< ? > source = null;
 
-		//
+		// TODO: TEST
 		// Display annotations
 		//
 		for ( final String annotation : annotationList )
@@ -279,7 +279,7 @@ public class BigDataViewerDisplay implements Callable<Void>
 		source.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
 
 		// add STIMCardFilter panel
-		final STIMCardFilter cardFilter = new STIMCardFilter( card, service );
+		final STIMCardFilter cardFilter = new STIMCardFilter( card, ffSingleSpot, ffMedian, ffGauss, ffMean, service );
 		source.getBdvHandle().getCardPanel().addCard( "STIM Filtering Options", "STIM Filtering Options", cardFilter.getPanel(), true );
 
 		// the side panel

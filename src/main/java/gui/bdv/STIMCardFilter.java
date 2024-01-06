@@ -40,7 +40,13 @@ public class STIMCardFilter
 
 	private final JButton cmdLine;
 
-	public STIMCardFilter( final STIMCard stimcard, final ExecutorService service )
+	public STIMCardFilter(
+			final STIMCard stimcard,
+			final Double ffSingleSpot,
+			final Double ffMedian,
+			final Double ffGauss,
+			final Double ffMean,
+			final ExecutorService service )
 	{
 		this.stimcard = stimcard;
 		this.service = service;
@@ -48,7 +54,7 @@ public class STIMCardFilter
 		this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 0, fill", "[right][grow]", "center"));
 
 		final JTable table = new JTable();
-		table.setModel( this.tableModel = new FilterTableModel( table ) );
+		table.setModel( this.tableModel = new FilterTableModel( table, ffSingleSpot, ffMedian, ffGauss, ffMean ) );
 		table.setPreferredScrollableViewportSize(new Dimension(260, 65));
 		table.setBorder( BorderFactory.createEmptyBorder(0, 0, 0, 10));
 		table.getColumnModel().getColumn(0).setPreferredWidth(40);
@@ -169,9 +175,51 @@ public class STIMCardFilter
 
 		final String[] columnNames = { "Active", "Filter type", "Radius" };
 
-		public FilterTableModel( final JTable table )
+		public FilterTableModel(
+				final JTable table,
+				final Double ffSingleSpot,
+				final Double ffMedian,
+				final Double ffGauss,
+				final Double ffMean )
 		{
 			this.table = table;
+
+			boolean update = false;
+
+			if ( ffSingleSpot != null )
+			{
+				currentActiveValues[ 0 ] = true;
+				filters[ 0 ][ 0 ] = true;
+				filters[ 0 ][ 2 ] = ffSingleSpot;
+				update = true;
+			}
+
+			if ( ffMedian != null )
+			{
+				currentActiveValues[ 1 ] = true;
+				filters[ 1 ][ 0 ] = true;
+				filters[ 1 ][ 2 ] = ffMedian;
+				update = true;
+			}
+
+			if ( ffGauss != null )
+			{
+				currentActiveValues[ 2 ] = true;
+				filters[ 2 ][ 0 ] = true;
+				filters[ 2 ][ 2 ] = ffGauss;
+				update = true;
+			}
+
+			if ( ffMean != null )
+			{
+				currentActiveValues[ 3 ] = true;
+				filters[ 3 ][ 0 ] = true;
+				filters[ 3 ][ 2 ] = ffMean;
+				update = true;
+			}
+
+			if ( update )
+				updateFilters();
 		}
 
 		@Override
@@ -202,90 +250,7 @@ public class STIMCardFilter
 			}
 
 			if ( changed )
-			{
-				isEditable = false;
-
-				new Thread( () ->
-				{
-					table.setForeground( Color.lightGray );
-
-					// replace original values first
-					stimcard.sourceData().forEach( (gene,data) ->
-					{
-						data.forEach( d ->
-						{
-							final Iterator<Double> iFilt = d.originalValues().iterator();
-							d.tree().forEach( t -> t.set( iFilt.next() ) );	
-						});
-						//final Iterator<Double> iAFilt = data.getA().originalValues().iterator();
-						//data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
-
-						//final Iterator<Double> iBFilt = data.getB().originalValues().iterator();
-						//data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );
-					} );
-
-					for ( final FilterFactory<DoubleType, DoubleType> filterFactory : filterFactories() )
-					{
-						stimcard.sourceData().forEach( (gene,data) ->
-						{
-							final List< Callable< Void > > tasks = new ArrayList<>();
-
-							data.forEach( d ->
-							{
-								tasks.add( () ->
-								{
-									final RealPointSampleList<DoubleType> filteredA =
-											Filters.filter( d.tree(), d.tree().iterator(), filterFactory );
-
-									final RealCursor<DoubleType> iAFilt = filteredA.cursor();
-									d.tree().forEach( t -> t.set( iAFilt.next() ) );
-
-									return null;
-								});
-							});
-							/*
-							tasks.add( () ->
-							{
-								final RealPointSampleList<DoubleType> filteredA =
-										Filters.filter( data.getA().tree(), data.getA().tree().iterator(), filterFactory );
-
-								final RealCursor<DoubleType> iAFilt = filteredA.cursor();
-								data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
-
-								return null;
-							});
-
-							tasks.add( () -> {
-								final RealPointSampleList<DoubleType> filteredB =
-										Filters.filter( data.getB().tree(), data.getB().tree().iterator(), filterFactory );
-
-								final RealCursor<DoubleType> iBFilt = filteredB.cursor();
-								data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );
-
-								return null;
-							});
-							*/
-							try { service.invokeAll( tasks ); } catch (InterruptedException e) { e.printStackTrace(); }
-
-							/*
-							final RealPointSampleList<DoubleType> filteredA =
-									Filters.filter( data.getA().tree(), data.getA().tree().iterator(), filterFactory );
-							final RealPointSampleList<DoubleType> filteredB =
-									Filters.filter( data.getB().tree(), data.getB().tree().iterator(), filterFactory );
-
-							final RealCursor<DoubleType> iAFilt = filteredA.cursor();
-							data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
-							final RealCursor<DoubleType> iBFilt = filteredB.cursor();
-							data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );*/
-						});
-					}
-
-					stimcard.bdvhandle().getViewerPanel().requestRepaint();
-
-					table.setForeground( Color.black );
-					isEditable = true;
-				}).start();
-			}
+				updateFilters();
 		}
 
 		@Override
@@ -313,5 +278,91 @@ public class STIMCardFilter
 
 		@Override
 		public int getColumnCount() { return filters[ 0 ].length; }
+
+		public void updateFilters()
+		{
+			isEditable = false;
+
+			new Thread( () ->
+			{
+				table.setForeground( Color.lightGray );
+	
+				// replace original values first
+				stimcard.sourceData().forEach( (gene,data) ->
+				{
+					data.forEach( d ->
+					{
+						final Iterator<Double> iFilt = d.originalValues().iterator();
+						d.tree().forEach( t -> t.set( iFilt.next() ) );	
+					});
+					//final Iterator<Double> iAFilt = data.getA().originalValues().iterator();
+					//data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
+	
+					//final Iterator<Double> iBFilt = data.getB().originalValues().iterator();
+					//data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );
+				} );
+	
+				for ( final FilterFactory<DoubleType, DoubleType> filterFactory : filterFactories() )
+				{
+					stimcard.sourceData().forEach( (gene,data) ->
+					{
+						final List< Callable< Void > > tasks = new ArrayList<>();
+	
+						data.forEach( d ->
+						{
+							tasks.add( () ->
+							{
+								final RealPointSampleList<DoubleType> filteredA =
+										Filters.filter( d.tree(), d.tree().iterator(), filterFactory );
+	
+								final RealCursor<DoubleType> iAFilt = filteredA.cursor();
+								d.tree().forEach( t -> t.set( iAFilt.next() ) );
+	
+								return null;
+							});
+						});
+						/*
+						tasks.add( () ->
+						{
+							final RealPointSampleList<DoubleType> filteredA =
+									Filters.filter( data.getA().tree(), data.getA().tree().iterator(), filterFactory );
+	
+							final RealCursor<DoubleType> iAFilt = filteredA.cursor();
+							data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
+	
+							return null;
+						});
+	
+						tasks.add( () -> {
+							final RealPointSampleList<DoubleType> filteredB =
+									Filters.filter( data.getB().tree(), data.getB().tree().iterator(), filterFactory );
+	
+							final RealCursor<DoubleType> iBFilt = filteredB.cursor();
+							data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );
+	
+							return null;
+						});
+						*/
+						try { service.invokeAll( tasks ); } catch (InterruptedException e) { e.printStackTrace(); }
+	
+						/*
+						final RealPointSampleList<DoubleType> filteredA =
+								Filters.filter( data.getA().tree(), data.getA().tree().iterator(), filterFactory );
+						final RealPointSampleList<DoubleType> filteredB =
+								Filters.filter( data.getB().tree(), data.getB().tree().iterator(), filterFactory );
+	
+						final RealCursor<DoubleType> iAFilt = filteredA.cursor();
+						data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
+						final RealCursor<DoubleType> iBFilt = filteredB.cursor();
+						data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );*/
+					});
+				}
+	
+				stimcard.bdvhandle().getViewerPanel().requestRepaint();
+	
+				table.setForeground( Color.black );
+				isEditable = true;
+			}).start();
+		}
 	}
 }

@@ -74,6 +74,18 @@ public class InteractiveAlignment implements Callable<Void> {
 	@Option(names = {"-sk", "--skip"}, required = false, description = "skips the first N genes when selecting by highest entropy, as they can be outliers (default: 10)")
 	private int skipFirstNGenes = 10;
 
+	@Option(names = {"--ffSingleSpot"}, required = false, description = "filter single spots using the median distance between all spots as threshold, e.g. --ffSingleSpot 1.5 (default: no filtering)")
+	private Double ffSingleSpot = null;
+
+	@Option(names = {"--ffMedian"}, required = false, description = "median-filter all spots using a given radius, e.g --ffMedian 5.0 (default: no filtering)")
+	private Double ffMedian = null;
+
+	@Option(names = {"--ffGauss"}, required = false, description = "Gauss-filter all spots using a given radius, e.g --ffGauss 2.0 (default: no filtering)")
+	private Double ffGauss = null;
+
+	@Option(names = {"--ffMean"}, required = false, description = "mean/avg-filter all spots using a given radius, e.g --ffMean 2.5 (default: no filtering)")
+	private Double ffMean = null;
+
 	@Override
 	public Void call() throws Exception
 	{
@@ -282,7 +294,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		lastSource.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
 
 		// add STIMCardFilter panel
-		final STIMCardFilter cardFilter = new STIMCardFilter( card, service );
+		final STIMCardFilter cardFilter = new STIMCardFilter( card, ffSingleSpot, ffMedian, ffGauss, ffMean, service );
 		lastSource.getBdvHandle().getCardPanel().addCard( "STIM Filtering Options", "STIM Filtering Options", cardFilter.getPanel(), false );
 
 		// add STIMCardAlignSIFT panel
