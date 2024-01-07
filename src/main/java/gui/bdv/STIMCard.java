@@ -30,6 +30,8 @@ import gui.DisplayScaleOverlay;
 import gui.STDataAssembly;
 import gui.bdv.AddedGene.Rendering;
 import gui.geneselection.GeneSelectionExplorer;
+import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.util.Pair;
 import net.miginfocom.swing.MigLayout;
 import util.BoundedValue;
@@ -312,70 +314,22 @@ public class STIMCard
 					{
 						synchronized ( this )
 						{
-							//
-							// first check if all groups are still present that are in the HashMap
-							//
-							final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
-							AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
-
 							final List<AddedGene> anyDatasets = sourceData.values().iterator().next();
 
-							//
-							// Now add the new ones (if it's not already there)
-							//
-							for ( final String gene : list )
+							final List< String > inputPaths = new ArrayList<>();
+							final List< String > datasets = new ArrayList<>();
+							final List< AffineTransform3D > transforms = new ArrayList<>();
+							final List< ARGBType > colors = new ArrayList<>();
+
+							for ( int i = 0; i < anyDatasets.size(); ++i )
 							{
-								if ( !geneToBDVSource.containsKey( gene ) )
-								{
-									System.out.println( "Gene " + gene + " will be added." );
-	
-									final List<AddedGene> newDatasets = new ArrayList<>();
-
-									for ( int i = 0; i < anyDatasets.size(); ++i )
-									{
-										// TODO: re-use KDtree!
-										newDatasets.add(
-												AddedGene.addGene( 
-														anyDatasets.get(i).inputPath(),
-														anyDatasets.get(i).dataset(),
-														currentDisplayMode(),
-														bdvhandle, data.get( i ),
-														anyDatasets.get(i).currentModel3D(),
-														gene,
-														currentRenderingFactor(),
-														anyDatasets.get(i).color(), //new ARGBType( ARGBType.rgba(0, 255, 0, 0) ),
-														currentBrightnessMin(),
-														currentBrightnessMax() ) );
-										
-									}
-
-									//final AddedGene gene1 = AddedGene.addGene( anyPair.getA().inputPath(), anyPair.getA().dataset(), currentDisplayMode(), bdvhandle, data1, currentModel3D(), gene, currentRenderingFactor(), new ARGBType( ARGBType.rgba(0, 255, 0, 0) ), currentBrightnessMin(), currentBrightnessMax() );
-									//final AddedGene gene2 = AddedGene.addGene( anyPair.getB().inputPath(), anyPair.getB().dataset(), currentDisplayMode(), bdvhandle, data2, null, gene, currentRenderingFactor(), new ARGBType( ARGBType.rgba(255, 0, 255, 0) ), currentBrightnessMin(), currentBrightnessMax() );
-
-									sourceData.put( gene, newDatasets );
-									//sourceData.put( gene, new ValuePair<>( gene1, gene2 ) );
-	
-									final SourceGroup handle = new SourceGroup();
-									state.addGroup( handle );
-									state.setGroupName( handle, gene );
-									state.setGroupActive( handle, true );
-
-									for ( int i = anyDatasets.size(); i > 0; --i )
-										state.addSourceToGroup( state.getSources().get( state.getSources().size() - i ), handle );
-
-									//state.addSourceToGroup( state.getSources().get( state.getSources().size() - 2 ), handle );
-									//state.addSourceToGroup( state.getSources().get( state.getSources().size() - 1 ), handle );
-	
-									geneToBDVSource.put( gene, handle );
-	
-									bdvhandle.getViewerPanel().setDisplayMode( DisplayMode.GROUP );
-								}
-								else
-								{
-									System.out.println( "Gene " + gene + " is already being displayed, ignoring." );
-									// TODO: remove gaussFactories? - maybe not necessary
-								}
+								inputPaths.add( anyDatasets.get(i).inputPath() );
+								datasets.add( anyDatasets.get(i).dataset() );
+								transforms.add( anyDatasets.get(i).currentModel3D() );
+								colors.add( anyDatasets.get(i).color() );
 							}
+
+							addGenes( list, inputPaths, datasets, transforms, colors );
 						}
 					} );
 		});
@@ -409,6 +363,76 @@ public class STIMCard
 	public double medianDistance() { return medianDistance; }
 	public List<STDataAssembly> data() { return data; }
 	public String inputPath() { return sourceData.values().iterator().next().get( 0 ).inputPath(); }
+
+	public synchronized HashMap<String, List<AddedGene> > addGenes(
+			final List< String > geneList,
+			final List< String > inputPaths,
+			final List< String > datasets,
+			final List< AffineTransform3D > transforms,
+			final List< ARGBType > colors )
+	{
+		//
+		// first check if all groups are still present that are in the HashMap
+		//
+		final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
+		AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
+
+		final HashMap<String, List<AddedGene> > allAddedGenes = new HashMap<>();
+
+		//
+		// Now add the new ones (if it's not already there)
+		//
+		for ( final String gene : geneList )
+		{
+			if ( !geneToBDVSource.containsKey( gene ) )
+			{
+				System.out.println( "Gene " + gene + " will be added." );
+
+				final List<AddedGene> newDatasets = new ArrayList<>();
+
+				for ( int i = 0; i < datasets.size(); ++i )
+				{
+					// TODO: re-use KDtree!
+					newDatasets.add(
+							AddedGene.addGene( 
+									inputPaths.get(i),
+									datasets.get(i),
+									currentDisplayMode(),
+									bdvhandle,
+									data.get( i ),
+									transforms.get(i),
+									gene,
+									currentRenderingFactor(),
+									colors.get(i), //new ARGBType( ARGBType.rgba(0, 255, 0, 0) ),
+									currentBrightnessMin(),
+									currentBrightnessMax() ) );
+					
+				}
+
+				sourceData.put( gene, newDatasets );
+				allAddedGenes.put( gene, newDatasets );
+
+				final SourceGroup handle = new SourceGroup();
+				state.addGroup( handle );
+				state.setGroupName( handle, gene );
+				state.setGroupActive( handle, true );
+
+				for ( int i = datasets.size(); i > 0; --i )
+					state.addSourceToGroup( state.getSources().get( state.getSources().size() - i ), handle );
+
+				geneToBDVSource.put( gene, handle );
+
+				bdvhandle.getViewerPanel().setDisplayMode( DisplayMode.GROUP );
+			}
+			else
+			{
+				System.out.println( "Gene " + gene + " is already being displayed, ignoring." );
+				// TODO: remove gaussFactories? - maybe not necessary
+			}
+		}
+
+		return allAddedGenes;
+	}
 
 	public String createCmdLineArgs( final boolean addDataset, final boolean addGenes )
 	{

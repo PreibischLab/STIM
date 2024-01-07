@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -31,6 +33,7 @@ import net.imglib2.Interval;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.multithreading.SimpleMultiThreading;
+import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
@@ -58,6 +61,8 @@ public class RenderThread implements Runnable
 	final String inputContainer;
 	final List< String > datasets;
 	final DisplayScaleOverlay overlay;
+	final HashMap< String, List< AddedGene > > sourceData = new HashMap<>();
+	final HashMap< String, SourceGroup > geneToBDVSource = new HashMap<>();
 	protected final List< STDataAssembly > slides;
 
 	protected STIMCard card = null;
@@ -141,35 +146,32 @@ public class RenderThread implements Runnable
 
 				System.out.println( "rendering gene: " + gene + " of slide: " + slide.data().toString() );
 
-				final BdvStackSource<?> old = bdv;
-
-				final AddedGene addedGene = AddedGene.addGene(
-						inputContainer,
-						datasets.get( lastElement.getB() ),
-						Rendering.Gauss,
-						bdv,
-						slide,
-						AddedGene.convert2Dto3D( slide.transform() ), //m3d,
-						gene,
-						1.5,
-						new ARGBType( ARGBType.rgba(255, 255, 255, 0) ),
-						0,
-						0.5 );
-
-				bdv = addedGene.source();
-				bdv.setCurrent();
-				old.removeFromBdv();
-
 				// not initalized
 				if ( card == null )
 				{
-					final HashMap< String, List< AddedGene > > sourceData = new HashMap<>();
+					final BdvStackSource<?> old = bdv;
+
+					final AddedGene addedGene = AddedGene.addGene(
+							inputContainer,
+							datasets.get( lastElement.getB() ),
+							Rendering.Gauss,
+							bdv,
+							slide,
+							AddedGene.convert2Dto3D( slide.transform() ), //m3d,
+							gene,
+							1.5,
+							new ARGBType( ARGBType.rgba(255, 255, 255, 0) ),
+							0,
+							0.5 );
+
+					bdv = addedGene.source();
+					bdv.setCurrent();
+					old.removeFromBdv();
+
 					sourceData.put( gene, new ArrayList<>( Arrays.asList( addedGene ) ) );
 
 					final SynchronizedViewerState state = bdv.getBdvHandle().getViewerPanel().state();
 					final ArrayList< SourceGroup > oldGroups = new ArrayList<>( state.getGroups() );
-
-					final HashMap< String, SourceGroup > geneToBDVSource = new HashMap<>();
 
 					final SourceGroup handle = new SourceGroup();
 					state.addGroup( handle );
@@ -194,11 +196,9 @@ public class RenderThread implements Runnable
 
 					bdv.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
 
-					/*
 					// add STIMCardFilter panel
-					final STIMCardFilter cardFilter = new STIMCardFilter( card, ffSingleSpot, ffMedian, ffGauss, ffMean, service );
-					source.getBdvHandle().getCardPanel().addCard( "STIM Filtering Options", "STIM Filtering Options", cardFilter.getPanel(), true );
-					*/
+					final STIMCardFilter cardFilter = new STIMCardFilter( card, null, null, null, null, Executors.newFixedThreadPool( 1 ));
+					bdv.getBdvHandle().getCardPanel().addCard( "STIM Filtering Options", "STIM Filtering Options", cardFilter.getPanel(), true );
 
 					// the side panel
 					final SplitPanel splitPanel = bdv.getBdvHandle().getSplitPanel();
@@ -206,6 +206,26 @@ public class RenderThread implements Runnable
 					// Expands the split Panel (after waiting 1 secs for the BDV to calm down)
 					SimpleMultiThreading.threadWait( 1000 );
 					splitPanel.setCollapsed(false);
+				}
+				else
+				{
+					final List< String > geneList = new ArrayList<>( Arrays.asList( gene ) );
+					final List< String > inputPaths = new ArrayList<>( Arrays.asList( inputContainer ) );
+					final List< String > datasets = new ArrayList<>( Arrays.asList( this.datasets.get( lastElement.getB() ) ) );
+					final List< AffineTransform3D > transforms = new ArrayList<>( Arrays.asList( AddedGene.convert2Dto3D( slide.transform() ) ) );
+					final List< ARGBType > colors = new ArrayList<>( Arrays.asList( new ARGBType( ARGBType.rgba(255, 255, 255, 0) ) ) );
+
+					final BdvStackSource<?> old = bdv;
+					final SynchronizedViewerState state = bdv.getBdvHandle().getViewerPanel().state();
+					final ArrayList< SourceGroup > oldGroups = new ArrayList<>( state.getGroups() );
+
+					// could be same gene, different dataset - that is then not added
+					card.geneToBDVSource().clear();
+					card.data().set( 0, slide );
+					final HashMap<String, List<AddedGene> > added = card.addGenes( geneList, inputPaths, datasets, transforms, colors);
+
+					bdv = added.values().iterator().next().get( 0 ).source();
+					state.removeGroups( oldGroups );
 				}
 				
 				//final List< FilterFactory< DoubleType, DoubleType > > filterFactories = new ArrayList<>();
