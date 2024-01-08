@@ -324,7 +324,7 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 	public static < T extends RealType< T > > IterableRealInterval< T > normalize( final IterableRealInterval<T> ref, final double min, final double max )
 	{
 		final double diff = max-min;
-		return Converters.convert( ref, (i,o) -> o.setReal( (i.getRealDouble() - min)/(diff) ), ref.firstElement() );
+		return Converters.convert( ref, (i,o) -> o.setReal( Math.max(0,(i.getRealDouble() - min))/(diff) ), ref.firstElement() );
 	}
 
 }
