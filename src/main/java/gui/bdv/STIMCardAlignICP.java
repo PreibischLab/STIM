@@ -21,10 +21,6 @@ import javax.swing.SwingConstants;
 import align.ICPAlign;
 import bdv.viewer.SynchronizedViewerState;
 import data.STDataUtils;
-import filter.GaussianFilterFactory;
-import filter.MeanFilterFactory;
-import filter.MedianFilterFactory;
-import filter.SingleSpotRemovingFilterFactory;
 import gui.DisplayScaleOverlay;
 import mpicbg.models.Affine2D;
 import mpicbg.models.CoordinateTransform;
@@ -34,7 +30,6 @@ import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
 import net.imglib2.Interval;
-import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.miginfocom.swing.MigLayout;
 import util.BoundedValue;
@@ -42,7 +37,6 @@ import util.BoundedValuePanel;
 
 public class STIMCardAlignICP
 {
-	// TODO: apply filters as selected in GUI
 	public class ICPParams
 	{
 		double maxErrorICP, maxErrorRANSAC;
@@ -62,6 +56,10 @@ public class STIMCardAlignICP
 			s += ", useRANSAC: " + this.useRANSAC;
 			s += ", maxErrorRANSAC: " + this.maxErrorRANSAC;
 			s += ", maxIterations: " + this.maxIterations;
+			s += ", ffSingleSpot: " + this.ffSingleSpot;
+			s += ", ffMedian: " + this.ffMedian;
+			s += ", ffGauss: " + this.ffGauss;
+			s += ", ffMean: " + this.ffMean;
 
 			return s;
 		}
