@@ -122,7 +122,7 @@ public class Pairwise
 
 		final ExecutorService service = Executors.newFixedThreadPool( Threads.numThreads() );
 
-		final PointMatchIdentification< RealPoint > pmi = new StDataPointMatchIdentification<>( stdataB, stdataA, genesToUse, maxDistance, service );
+		final PointMatchIdentification< RealPoint > pmi = new StDataPointMatchIdentification<>( stdataB, stdataA, genesToUse, maxDistance, null, null, null, null, service );
 		final ICP< RealPoint > icp = new ICP<>( listB, listA, pmi, Double.NaN );
 
 		service.shutdown();

@@ -51,9 +51,13 @@ public class ICPAlign
 			final double maxDistance,
 			final double ransacDistance,
 			final AtomicInteger maxIterations,
+			final Double ffSingleSpot,
+			final Double ffMedian,
+			final Double ffGauss,
+			final Double ffMean,
 			final ExecutorService service )
 	{
-		return alignICP(stdataA, stdataB, genesToUse, initialModel, maxDistance, ransacDistance, maxIterations, v -> {}, m -> {}, service);
+		return alignICP(stdataA, stdataB, genesToUse, initialModel, maxDistance, ransacDistance, maxIterations, ffSingleSpot, ffMedian, ffGauss, ffMean, v -> {}, m -> {}, service);
 	}
 	
 	/**
@@ -76,6 +80,10 @@ public class ICPAlign
 			final double maxDistance,
 			final double ransacDistance,
 			final AtomicInteger maxIterations,
+			final Double ffSingleSpot,
+			final Double ffMedian,
+			final Double ffGauss,
+			final Double ffMean,
 			final Consumer< Double > progressBar,
 			final Consumer< M > updateBDV,
 			final ExecutorService service )
@@ -139,7 +147,7 @@ public class ICPAlign
 		final M model = initialModel.copy();
 
 		System.out.println( "Setting up Pointmatch identification: " );
-		final PointMatchIdentification< RealPoint > pmi = new StDataPointMatchIdentification<>( stdataB, stdataA, genesToUse, maxDistance, service );
+		final PointMatchIdentification< RealPoint > pmi = new StDataPointMatchIdentification<>( stdataB, stdataA, genesToUse, maxDistance, ffSingleSpot, ffMedian, ffGauss, ffMean, service );
 
 		progressBar.accept( 3.0 );
 

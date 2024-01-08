@@ -31,7 +31,10 @@ import data.STData;
 import data.STDataStatistics;
 import filter.Filters;
 import filter.GaussianFilterFactory;
+import filter.SingleSpotRemovingFilterFactory;
 import filter.GaussianFilterFactory.WeightType;
+import filter.MeanFilterFactory;
+import filter.MedianFilterFactory;
 import mpicbg.models.PointMatch;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.KDTree;
@@ -61,7 +64,16 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 
 	double distanceThresold;
 
-	public StDataPointMatchIdentification( final STData stDataTarget, final STData stDataReference, final Collection< String > genes, final double distanceThreshold, final ExecutorService service )
+	public StDataPointMatchIdentification(
+			final STData stDataTarget,
+			final STData stDataReference,
+			final Collection< String > genes,
+			final double distanceThreshold,
+			final Double ffSingleSpot,
+			final Double ffMedian,
+			final Double ffGauss,
+			final Double ffMean,
+			final ExecutorService service )
 	{
 		this.stDataTarget = stDataTarget;
 		this.stDataReference = stDataReference;
@@ -70,8 +82,6 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 
 		//this.searchTarget = new HashMap<>();
 		//this.searchReference = new HashMap<>();
-
-		final double dist = Math.max( new STDataStatistics( stDataTarget ).getMedianDistance(), new STDataStatistics( stDataReference ).getMedianDistance() );
 
 		IterableRealInterval< DoubleType > sumReference = null;
 		IterableRealInterval< DoubleType > sumTarget = null;
@@ -84,8 +94,29 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 			IterableRealInterval<DoubleType> ref = stDataReference.getExprData( gene );
 			IterableRealInterval<DoubleType> target = stDataTarget.getExprData( gene );
 
-			ref = Filters.filter( ref, new GaussianFilterFactory<>( new DoubleType( 0 ), dist * 4, WeightType.BY_SUM_OF_WEIGHTS ), service );
-			target = Filters.filter( target, new GaussianFilterFactory<>( new DoubleType( 0 ), dist * 4, WeightType.BY_SUM_OF_WEIGHTS ), service );
+			if ( ffSingleSpot != null )
+			{
+				ref = Filters.filter( ref, new SingleSpotRemovingFilterFactory<>( new DoubleType( 0 ), ffSingleSpot ), service );
+				target = Filters.filter( target, new SingleSpotRemovingFilterFactory<>( new DoubleType( 0 ), ffSingleSpot ), service );
+			}
+
+			if ( ffMedian != null )
+			{
+				ref = Filters.filter( ref, new MedianFilterFactory<>( new DoubleType( 0 ), ffMedian ), service );
+				target = Filters.filter( target, new MedianFilterFactory<>( new DoubleType( 0 ), ffMedian ), service );
+			}
+
+			if ( ffGauss != null )
+			{
+				ref = Filters.filter( ref, new GaussianFilterFactory<>( new DoubleType( 0 ), ffGauss, WeightType.BY_SUM_OF_WEIGHTS ), service );
+				target = Filters.filter( target, new GaussianFilterFactory<>( new DoubleType( 0 ), ffGauss, WeightType.BY_SUM_OF_WEIGHTS ), service );
+			}
+
+			if ( ffMean != null )
+			{
+				ref = Filters.filter( ref, new MeanFilterFactory<>( new DoubleType( 0 ), ffMean ), service );
+				target = Filters.filter( target, new MeanFilterFactory<>( new DoubleType( 0 ), ffMean ), service );
+			}
 
 			if ( sumReference == null )
 			{

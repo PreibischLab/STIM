@@ -281,7 +281,7 @@ public class InteractiveAlignment implements Callable<Void> {
 
 		// add STIMCardAlignICP panel
 		final STIMCardAlignICP cardAlignICP =
-				new STIMCardAlignICP( dataset1, dataset2, overlay, card, cardAlignSIFT, service );
+				new STIMCardAlignICP( dataset1, dataset2, overlay, card, cardFilter, cardAlignSIFT, service );
 		lastSource.getBdvHandle().getCardPanel().addCard( "ICP Alignment", "ICP Alignment", cardAlignICP.getPanel(), false );
 
 		cardAlignSIFT.setICPCard( cardAlignICP );

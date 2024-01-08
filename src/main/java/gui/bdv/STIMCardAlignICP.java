@@ -21,6 +21,10 @@ import javax.swing.SwingConstants;
 import align.ICPAlign;
 import bdv.viewer.SynchronizedViewerState;
 import data.STDataUtils;
+import filter.GaussianFilterFactory;
+import filter.MeanFilterFactory;
+import filter.MedianFilterFactory;
+import filter.SingleSpotRemovingFilterFactory;
 import gui.DisplayScaleOverlay;
 import mpicbg.models.Affine2D;
 import mpicbg.models.CoordinateTransform;
@@ -30,6 +34,7 @@ import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
 import net.imglib2.Interval;
+import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.miginfocom.swing.MigLayout;
 import util.BoundedValue;
@@ -37,11 +42,17 @@ import util.BoundedValuePanel;
 
 public class STIMCardAlignICP
 {
+	// TODO: apply filters as selected in GUI
 	public class ICPParams
 	{
 		double maxErrorICP, maxErrorRANSAC;
 		AtomicInteger maxIterations = new AtomicInteger( 100 ); // so it can be changed
 		boolean useRANSAC = false;
+
+		Double ffSingleSpot = null;
+		Double ffMedian = null;
+		Double ffGauss = null;
+		Double ffMean = null;
 
 		@Override
 		public String toString()
@@ -64,6 +75,7 @@ public class STIMCardAlignICP
 
 	private final ICPParams param;
 	private final JPanel panel;
+	private final STIMCardFilter cardFilter;
 	private STIMCardAlignSIFT siftCard = null; // may or may not be there
 
 	public STIMCardAlignICP(
@@ -71,11 +83,13 @@ public class STIMCardAlignICP
 			final String dataset2,
 			final DisplayScaleOverlay overlay,
 			final STIMCard stimcard,
+			final STIMCardFilter cardFilter,
 			final STIMCardAlignSIFT stimcardSIFT,
 			final ExecutorService service )
 	{
 		this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 5, fill", "[right][grow]", "center"));
 		this.param = new ICPParams();
+		this.cardFilter = cardFilter;
 
 		final Interval interval = STDataUtils.getCommonInterval( stimcard.data().get( 0 ).data(), stimcard.data().get( 1 ).data() );
 		this.param.maxErrorICP = ( Math.max( interval.dimension( 0 ), interval.dimension( 1 ) ) / 20 ) / 5.0;
@@ -255,6 +269,26 @@ public class STIMCardAlignICP
 				param.maxErrorRANSAC = param.useRANSAC ? maxErrorRANSACSlider.getValue().getValue() : Double.NaN;
 				param.maxIterations.set( (int)Math.round( iterationsSlider.getValue().getValue() ) );
 
+				if ( this.cardFilter.getTableModel().currentActiveValues[ 0 ] )
+					param.ffSingleSpot = stimcard.medianDistance() * this.cardFilter.getTableModel().currentRadiusValues[ 0 ];
+				else
+					param.ffSingleSpot = null;
+
+				if ( this.cardFilter.getTableModel().currentActiveValues[ 1 ] )
+					param.ffMedian = stimcard.medianDistance() * this.cardFilter.getTableModel().currentRadiusValues[ 1 ];
+				else
+					param.ffMedian = null;
+
+				if ( this.cardFilter.getTableModel().currentActiveValues[ 2 ] )
+					param.ffGauss = stimcard.medianDistance() * this.cardFilter.getTableModel().currentRadiusValues[ 2 ];
+				else
+					param.ffGauss = null;
+
+				if ( this.cardFilter.getTableModel().currentActiveValues[ 3 ] )
+					param.ffMean = stimcard.medianDistance() * this.cardFilter.getTableModel().currentRadiusValues[ 3 ];
+				else
+					param.ffMean = null;
+
 				System.out.println( "Running ICP align with the following parameters: \n" + param.toString() );
 				System.out.println( "FINAL model: " + STIMCardAlignSIFT.optionsModel[ boxModelFinal1.getSelectedIndex() ] + ", regularizer: " + STIMCardAlignSIFT.optionsModelReg[ boxModelFinal2.getSelectedIndex() ] + ", lambda=" + lambda );
 
@@ -265,7 +299,7 @@ public class STIMCardAlignICP
 				final Pair<Model, List<PointMatch>> icpT = 
 						ICPAlign.alignICP(
 								stimcard.data().get( 1 ).data(), stimcard.data().get( 0 ).data(), genes, model,
-								param.maxErrorICP, param.maxErrorRANSAC, param.maxIterations,
+								param.maxErrorICP, param.maxErrorRANSAC, param.maxIterations, param.ffSingleSpot, param.ffMedian, param.ffGauss, param.ffMean,
 								v ->
 								{
 									synchronized (this)

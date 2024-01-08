@@ -215,7 +215,6 @@ public class RenderThread implements Runnable
 					final List< AffineTransform3D > transforms = new ArrayList<>( Arrays.asList( AddedGene.convert2Dto3D( slide.transform() ) ) );
 					final List< ARGBType > colors = new ArrayList<>( Arrays.asList( new ARGBType( ARGBType.rgba(255, 255, 255, 0) ) ) );
 
-					final BdvStackSource<?> old = bdv;
 					final SynchronizedViewerState state = bdv.getBdvHandle().getViewerPanel().state();
 					final ArrayList< SourceGroup > oldGroups = new ArrayList<>( state.getGroups() );
 
@@ -227,40 +226,6 @@ public class RenderThread implements Runnable
 					bdv = added.values().iterator().next().get( 0 ).source();
 					state.removeGroups( oldGroups );
 				}
-				
-				//final List< FilterFactory< DoubleType, DoubleType > > filterFactories = new ArrayList<>();
-
-				//if ( medianFilter > 0 )
-				//	filterFactories.add( new MedianFilterFactory<>( new DoubleType( 0 ), medianFilter ) );
-
-				//final RealRandomAccessible< DoubleType > renderRRA = Render.getRealRandomAccessible( slide, gene, gaussFactor, filterFactories );
-
-				//BdvStackSource< ? > old = bdv;
-
-				/*
-				final double oldMin = getMinDisplayRange( old );
-				final double oldMax = getMaxDisplayRange( old );
-				final double oldBoundsMin = getMinDisplayRangeBounds( old );
-				final double oldBoundsMax = getMaxDisplayRangeBounds( old );
-
-				if ( oldMin != -1 )
-					min = oldMin;
-				if ( oldMax != -1 )
-					max = oldMax;
-
-				if ( oldBoundsMin != -1 )
-					minRange = oldBoundsMin;
-				if ( oldBoundsMax != -1 )
-					maxRange = oldBoundsMax;
-				*/
-				//System.out.println( oldMax + "," + oldMax + " / " + oldBoundsMin + "," + oldBoundsMax );
-
-				//bdv = BdvFunctions.show( renderRRA, interval, gene, options.addTo( old ) );
-
-				//bdv.setDisplayRange( min, max );
-				//bdv.setDisplayRangeBounds( minRange, maxRange );
-				//bdv.setCurrent();
-				//old.removeFromBdv();
 			}
 			else
 			{
