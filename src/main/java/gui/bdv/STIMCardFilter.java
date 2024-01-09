@@ -295,11 +295,6 @@ public class STIMCardFilter
 						final Iterator<Double> iFilt = d.originalValues().iterator();
 						d.tree().forEach( t -> t.set( iFilt.next() ) );	
 					});
-					//final Iterator<Double> iAFilt = data.getA().originalValues().iterator();
-					//data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
-	
-					//final Iterator<Double> iBFilt = data.getB().originalValues().iterator();
-					//data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );
 				} );
 	
 				for ( final FilterFactory<DoubleType, DoubleType> filterFactory : filterFactories() )
@@ -321,40 +316,8 @@ public class STIMCardFilter
 								return null;
 							});
 						});
-						/*
-						tasks.add( () ->
-						{
-							final RealPointSampleList<DoubleType> filteredA =
-									Filters.filter( data.getA().tree(), data.getA().tree().iterator(), filterFactory );
-	
-							final RealCursor<DoubleType> iAFilt = filteredA.cursor();
-							data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
-	
-							return null;
-						});
-	
-						tasks.add( () -> {
-							final RealPointSampleList<DoubleType> filteredB =
-									Filters.filter( data.getB().tree(), data.getB().tree().iterator(), filterFactory );
-	
-							final RealCursor<DoubleType> iBFilt = filteredB.cursor();
-							data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );
-	
-							return null;
-						});
-						*/
+
 						try { service.invokeAll( tasks ); } catch (InterruptedException e) { e.printStackTrace(); }
-	
-						/*
-						final RealPointSampleList<DoubleType> filteredA =
-								Filters.filter( data.getA().tree(), data.getA().tree().iterator(), filterFactory );
-						final RealPointSampleList<DoubleType> filteredB =
-								Filters.filter( data.getB().tree(), data.getB().tree().iterator(), filterFactory );
-	
-						final RealCursor<DoubleType> iAFilt = filteredA.cursor();
-						data.getA().tree().forEach( t -> t.set( iAFilt.next() ) );
-						final RealCursor<DoubleType> iBFilt = filteredB.cursor();
-						data.getB().tree().forEach( t -> t.set( iBFilt.next() ) );*/
 					});
 				}
 	

@@ -32,6 +32,7 @@ import mpicbg.models.Model;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
+import net.imglib2.KDTree;
 import net.imglib2.RealLocalizable;
 
 /**

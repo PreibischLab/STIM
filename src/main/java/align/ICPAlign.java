@@ -9,18 +9,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import data.STData;
-import ij.ImageJ;
 import imglib2.icp.ICP;
 import imglib2.icp.PointMatchIdentification;
-import imglib2.icp.StDataPointMatchIdentification;
 import imglib2.icp.StDataRelativePointMatchIdentification;
 import mpicbg.models.Model;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.PointMatch;
-import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealLocalizable;
 import net.imglib2.RealPoint;
-import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
@@ -161,7 +157,7 @@ public class ICPAlign
 
 			progressBar.accept( progressPerIteration );
 
-			System.out.println( i + ": " + icp.getNumPointMatches() + " matches, avg error [px] " + icp.getAverageError() + ", max error [px] " + icp.getMaximalError() );
+			System.out.print( i + ": " + icp.getNumPointMatches() + " matches found by ICP." );
 		}
 		while ( !converged && ++i < maxIterations.get() );
 
