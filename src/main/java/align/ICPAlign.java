@@ -9,13 +9,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import data.STData;
+import ij.ImageJ;
 import imglib2.icp.ICP;
 import imglib2.icp.PointMatchIdentification;
 import imglib2.icp.StDataPointMatchIdentification;
+import imglib2.icp.StDataRelativePointMatchIdentification;
 import mpicbg.models.Model;
+import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.PointMatch;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealLocalizable;
 import net.imglib2.RealPoint;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
@@ -88,71 +93,41 @@ public class ICPAlign
 			final Consumer< M > updateBDV,
 			final ExecutorService service )
 	{
+		System.out.println( "Setting up Pointmatch identification: " );
+
+		final PointMatchIdentification<RealPoint> pmi;
+		try
+		{
+			pmi = new StDataRelativePointMatchIdentification<>( stdataB, stdataA, genesToUse, maxDistance, 0.25, ffSingleSpot, ffMedian, ffGauss, ffMean, service );
+
+			/*
+			new ImageJ();
+			Pair<RandomAccessibleInterval<DoubleType>, RandomAccessibleInterval<DoubleType>> imgs = ((StDataRelativePointMatchIdentification<RealPoint>)pmi).renderRankImages();
+			ImageJFunctions.show( imgs.getA() );
+			ImageJFunctions.show( imgs.getB() );
+			*/
+		}
+		catch (NotEnoughDataPointsException e)
+		{
+			System.out.println( e.getMessage() );
+			return null;
+		}
+
+		progressBar.accept( 3.0 );
+
 		final ArrayList< RealPoint > listA = new ArrayList<>(); // reference
 		final ArrayList< RealPoint > listB = new ArrayList<>(); // target
 
 		for ( final RealLocalizable p : stdataA )
-			listA.add( new RealPoint( p ) );
+			listA.add( new RealPoint( p ) ); // copies the location array
 
 		for ( final RealLocalizable p : stdataB )
-			listB.add( new RealPoint( p ) );
+			listB.add( new RealPoint( p ) ); // copies the location array
 
-		//
-		// filter only the brightest local points
-		// this way we make sure it is a relative measure, map brightest point in the local neighborhood to the brightest point in the corresponding area
-		//
-		//final ArrayList< RealPoint > listAFiltered = new ArrayList<>(); // reference filtered
-
-		//final HashMap< String, NearestNeighborSearchOnKDTree< DoubleType > > searchReference = new HashMap<>();
-		
-		//for ( final String gene : genesToUse )
-		//	searchReference.put( gene, new NearestNeighborSearchOnKDTree<>( new KDTree<>( stdataA.getExprData( gene ) ) ) );
-
-		//final KDTree< RealPoint > kdTreeRef = new KDTree< RealPoint >( listA, listA );
-		//final RadiusNeighborSearchOnKDTree< RealPoint > radiusSearchRef = new RadiusNeighborSearchOnKDTree<>( kdTreeRef );
-
-		// TODO: Gaussian blur first?? and/or relative brightness of each spot or gradient instead of selecting them? -- checkout 0<>2
-
-		/*
-		for ( final RealPoint p : listA )
-		{
-			radiusSearchRef.search( p, maxDistance, true );
-
-			// we ignore isolated points
-			if ( radiusSearchRef.numNeighbors() == 1 )
-				continue;
-
-			// sum across all genes
-			final double myBrightness = computeSum( radiusSearchRef.getSampler( 0 ).get(), searchReference );
-			boolean isBrightest = true;
-
-			for ( int i = 1; i < radiusSearchRef.numNeighbors(); ++i )
-			{
-				// sum across all genes
-				final double otherBrightness = computeSum( radiusSearchRef.getSampler( i ).get(), searchReference );
-
-				if ( otherBrightness > myBrightness )
-				{
-					isBrightest = false;
-					break;
-				}
-			}
-
-			if ( isBrightest && myBrightness > 0 )
-				listAFiltered.add( p );
-		}
-
-		System.out.println( "Remaining: " + listAFiltered.size()+ "/" + listA.size() + ", maxdist=" + maxDistance );
-		*/
 		final M model = initialModel.copy();
 
-		System.out.println( "Setting up Pointmatch identification: " );
-		final PointMatchIdentification< RealPoint > pmi = new StDataPointMatchIdentification<>( stdataB, stdataA, genesToUse, maxDistance, ffSingleSpot, ffMedian, ffGauss, ffMean, service );
-
-		progressBar.accept( 3.0 );
-
 		System.out.println( "Setting up ICP" );
-		final ICP< RealPoint > icp = new ICP<>( listB, listA /* listAFiltered */, pmi, ransacDistance );
+		final ICP< RealPoint > icp = new ICP<>( listB, listA, pmi, ransacDistance );
 
 		progressBar.accept( 2.0 );
 

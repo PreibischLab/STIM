@@ -90,7 +90,7 @@ public class STIMCardAlignICP
 		this.cardFilter = cardFilter;
 
 		final Interval interval = STDataUtils.getCommonInterval( stimcard.data().get( 0 ).data(), stimcard.data().get( 1 ).data() );
-		this.param.maxErrorICP = ( Math.max( interval.dimension( 0 ), interval.dimension( 1 ) ) / 20 ) / 5.0;
+		this.param.maxErrorICP = Math.max( stimcard.medianDistance(), ( Math.max( interval.dimension( 0 ), interval.dimension( 1 ) ) / 20 ) / 5.0 );
 		this.param.maxErrorRANSAC = this.param.maxErrorICP / 2.0;
 
 		// max ICP error
@@ -320,7 +320,7 @@ public class STIMCardAlignICP
 				// 
 				// apply transformations
 				//
-				if ( !icpT.getB().isEmpty() )
+				if ( icpT != null && !icpT.getB().isEmpty() )
 				{
 					try
 					{

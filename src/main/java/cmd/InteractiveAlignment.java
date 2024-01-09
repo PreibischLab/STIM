@@ -38,6 +38,8 @@ import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import util.Threads;
 
+// -i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d1 Puck_180531_22.n5 -d2 Puck_180531_23.n5 -n 4 -sk 2
+// -i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d1 Puck_180602_15.n5 -d2 Puck_180602_16.n5 -n 4 -sk 2
 // -i visium.n5 -d1 slice1.h5ad -d2 slice2.n5 -n 9 -sk 14
 public class InteractiveAlignment implements Callable<Void> {
 
@@ -274,7 +276,9 @@ public class InteractiveAlignment implements Callable<Void> {
 
 		// TODO: REMOVE
 		AffineModel2D model = new AffineModel2D();
-		model.set(0.323679918598243, -0.9185551542794,  1.002878826719069, 0.351176728134501, -546.6035992226643, 4231.453000084942 );
+		//model.set(0.323679918598243, -0.9185551542794,  1.002878826719069, 0.351176728134501, -546.6035992226643, 4231.453000084942 );
+		model.set( 0.9998829279367252, -0.015301320880288342, 0.015301320880288342, 0.9998829279367252, -33.029768630348656, 902.5019182873548 );
+
 		cardAlignSIFT.setModel( model );
 		card.applyTransformationToBDV( true );
 		// TODO: REMOVE
