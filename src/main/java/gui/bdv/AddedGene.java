@@ -228,6 +228,7 @@ public class AddedGene
 		final RadiusSearchFilterFactory< DoubleType, DoubleType > radiusFactory;
 		final MaxDistanceParam maxDistanceParam;
 
+		// loads the transformed data
 		final IterableRealInterval< DoubleType > iri = Render.getRealIterable( data, gene, null );
 		final double medianDistance = data.statistics().getMedianDistance();
 
