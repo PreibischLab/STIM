@@ -2,6 +2,7 @@ package align;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -184,8 +185,10 @@ public class PairwiseSIFT
 
 	public static <M extends Affine2D<M> & Model<M>, N extends Affine2D<N> & Model<N>> SiftMatch pairwiseSIFT(
 			final STData stDataA,
+			final AffineTransform2D transformA,
 			final String stDataAname,
 			final STData stDataB,
+			final AffineTransform2D transformB,
 			final String stDataBname,
 			final M modelPairwise,
 			final N modelGlobal,
@@ -197,7 +200,7 @@ public class PairwiseSIFT
 		final ExecutorService service = Threads.createFixedExecutorService( numThreads );
 
 		final SiftMatch s = pairwiseSIFT(
-				stDataA, stDataAname, stDataB, stDataBname,
+				stDataA, transformA, stDataAname, stDataB, transformB, stDataBname,
 				modelPairwise, modelGlobal, genesToTest, p,
 				visualizeResult,service, new ArrayList<>(), v -> {} );
 
@@ -206,21 +209,33 @@ public class PairwiseSIFT
 		return s;
 	}
 
-	public static Interval intervalForAlignment( final STData stDataA, final STData stDataB, final double scale )
+	public static Interval intervalForAlignment(
+			final STData stDataA,
+			final AffineTransform2D tA,
+			final STData stDataB,
+			final AffineTransform2D tB )
 	{
-		final AffineTransform2D tS = new AffineTransform2D();
-		tS.scale( scale );
+		final Interval iA = ImgLib2Util.transformInterval(stDataA.getRenderInterval(), tA);
+		final Interval iB = ImgLib2Util.transformInterval(stDataB.getRenderInterval(), tB);
 
+		final Interval interval = STDataUtils.getCommonIterableInterval( new ArrayList<>( Arrays.asList( iA, iB )) );
+		final Interval finalInterval = Intervals.expand( interval, 100 );
+
+		return finalInterval;
+		/*
 		final Interval interval = STDataUtils.getCommonInterval( stDataA, stDataB );
 		final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tS ), 100 );
 
 		return finalInterval;
+		*/
 	}
 
 	public static SiftMatch pairwiseSIFT(
 			final STData stDataA,
+			final AffineTransform2D transformA,
 			final String stDataAname,
 			final STData stDataB,
+			final AffineTransform2D transformB,
 			final String stDataBname,
 			final Model<?> modelPairwise,
 			final Model<?> modelGlobal,
@@ -231,10 +246,13 @@ public class PairwiseSIFT
 			final List< Thread > threads,
 			final Consumer< Double > progressBar )
 	{
-		final AffineTransform2D tS = new AffineTransform2D();
-		tS.scale( p.scale );
+		final AffineTransform2D tScale = new AffineTransform2D();
+		tScale.scale( p.scale );
 
-		final Interval finalInterval = intervalForAlignment(stDataA, stDataB, p.scale );
+		final AffineTransform2D tA = transformA.copy().preConcatenate( tScale );
+		final AffineTransform2D tB = transformB.copy().preConcatenate( tScale );
+
+		final Interval finalInterval = intervalForAlignment( stDataA, tA, stDataB, tB );
 		final List< PointMatch > allCandidates = new ArrayList<>();
 		final List< Callable< List< PointMatch > > > tasks = new ArrayList<>();
 		final double progressPerGene = 90.0 / genesToTest.size();
@@ -259,9 +277,9 @@ public class PairwiseSIFT
 				final double maxDisplay = AddedGene.getDisplayMax( minmax[ 1 ], p.brightnessMax );
 
 				final RandomAccessibleInterval<DoubleType> imgA =
-						AlignTools.display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tS, p.filterFactories, p.rendering, p.renderingSmoothness );
+						AlignTools.display( stDataA, new STDataStatistics( stDataA ), gene, finalInterval, tA, p.filterFactories, p.rendering, p.renderingSmoothness );
 				final RandomAccessibleInterval<DoubleType> imgB =
-						AlignTools.display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tS, p.filterFactories, p.rendering, p.renderingSmoothness );
+						AlignTools.display( stDataB, new STDataStatistics( stDataB ), gene, finalInterval, tB, p.filterFactories, p.rendering, p.renderingSmoothness );
 
 				final ImagePlus impA = ImageJFunctions.wrapFloat( imgA, new RealFloatConverter<>(), "A_" + gene);
 				final ImagePlus impB = ImageJFunctions.wrapFloat( imgB, new RealFloatConverter<>(), "B_" + gene );
@@ -274,6 +292,7 @@ public class PairwiseSIFT
 
 				//impA.show();
 				//impB.show();
+				//SimpleMultiThreading.threadHaltUnClean();
 
 				progressBar.accept( progressPerGene / 4.0 );
 

@@ -38,6 +38,7 @@ import align.SiftMatch;
 import data.STData;
 import data.STDataUtils;
 import gui.overlay.SIFTOverlay;
+import imglib2.TransformedIterableRealInterval;
 import io.SpatialDataIO;
 import mpicbg.models.Affine2D;
 import mpicbg.models.AffineModel2D;
@@ -522,8 +523,10 @@ public class STIMCardAlignSIFT
 
 				final SiftMatch match = PairwiseSIFT.pairwiseSIFT(
 						stimcard.data().get( 0 ).data(),
+						stimcard.data().get( 0 ).transform(),
 						dataset1,
 						stimcard.data().get( 1 ).data(),
+						stimcard.data().get( 1 ).transform(),
 						dataset2,
 						(Affine2D & Model)modelPair.getA(), (Affine2D & Model)modelPair.getB(),
 						new ArrayList<>( stimcard.geneToBDVSource().keySet() ),
@@ -570,7 +573,8 @@ public class STIMCardAlignSIFT
 					lastMaxError = param.maxError;
 
 					System.out.println( "genes with inliers: ");
-					genesWithInliers.forEach( s -> System.out.println( s ) );
+					genesWithInliers.forEach( s -> System.out.print( s + " " ) );
+					System.out.println();
 
 					overlayInliers.setSelected( true );
 					overlayInliers.setEnabled( true );
@@ -590,7 +594,7 @@ public class STIMCardAlignSIFT
 
 				if ( icpCard != null )
 				{
-					System.out.println( "Updating ICP to " + genesWithInliers.size() );
+					//System.out.println( "Updating ICP to " + genesWithInliers.size() );
 					icpCard.siftResults().setText( STIMCardAlignICP.getSIFTResultLabelText( genesWithInliers.size() ) );
 					icpCard.getPanel().updateUI();
 				}
@@ -609,16 +613,25 @@ public class STIMCardAlignSIFT
 			// the model and datasets for all genes are the same, we can just pick one
 			final AffineTransform2D currentTransform = stimcard.sourceData().values().iterator().next().get( 0 ).currentModel2D();
 			final String dataset = stimcard.sourceData().values().iterator().next().get( 0 ).dataset();
+			final AffineTransform2D initialTransform = stimcard.data().get( 0 ).transform();
+
+			final AffineTransform2D finalTransform = initialTransform.copy().preConcatenate( currentTransform );
+
+			System.out.println( "Initial transformation: " + initialTransform );
+			System.out.println( "SIFT transformation: " + currentTransform );
+			System.out.println( "Final transformation: " + finalTransform );
 
 			// the input path is the same for all AddedGene objects, we can just pick one
 			final String path = new File( stimcard.inputPath(), dataset).getAbsolutePath();
+
 			try
 			{
 				final SpatialDataIO sdout = SpatialDataIO.open( path, service);
 				final N5Writer writer = (N5Writer) sdout.ioSupplier().get();
-				sdout.writeTransformation( writer, currentTransform, SpatialDataIO.transformFieldName );
+				
+				sdout.writeTransformation( writer, finalTransform, SpatialDataIO.transformFieldName );
 
-				System.out.println( "Written transformation " + currentTransform + " to: '" + path + "'");
+				System.out.println( "Written final transformation to: '" + path + "'");
 			}
 			catch (IOException e1)
 			{
@@ -656,7 +669,12 @@ public class STIMCardAlignSIFT
 
 	public void updateMaxOctaveSize()
 	{
-		maxOS.setValue( this.param.sift.maxOctaveSize = getMaxOctaveSize( stimcard.data().get( 0 ).data(), stimcard.data().get( 1 ).data(), stimcard.currentScale() ) );
+		maxOS.setValue( this.param.sift.maxOctaveSize = getMaxOctaveSize(
+				stimcard.data().get( 0 ).data(),
+				stimcard.data().get( 0 ).transform(),
+				stimcard.data().get( 1 ).data(),
+				stimcard.data().get( 1 ).transform(),
+				stimcard.currentScale() ) );
 	}
 
 	protected Pair<Model<?>, Model<?>> extractParamtersFromGUI( final SIFTParam param )
@@ -705,9 +723,15 @@ public class STIMCardAlignSIFT
 		}
 	}
 
-	protected int getMaxOctaveSize( final STData data1, final STData data2, final double scale )
+	protected int getMaxOctaveSize( final STData data1, final AffineTransform2D transform1, final STData data2, final AffineTransform2D transform2, final double scale )
 	{
-		final Interval finalInterval = PairwiseSIFT.intervalForAlignment( data1, data2, scale );
+		final AffineTransform2D tScale = new AffineTransform2D();
+		tScale.scale( scale );
+
+		final AffineTransform2D t1 = transform1.copy().preConcatenate( tScale );
+		final AffineTransform2D t2 = transform2.copy().preConcatenate( tScale );
+
+		final Interval finalInterval = PairwiseSIFT.intervalForAlignment( data1, t1, data2, t2 );
 		final int maxSize = (int)Math.max( finalInterval.dimension( 0 ), finalInterval.dimension( 1 ) );
 		final int po2 = (int)Math.pow( 2, (maxSize == 0 ? 0 : 32 - Integer.numberOfLeadingZeros( maxSize - 1 ) ) );
 

@@ -25,6 +25,7 @@ import gui.bdv.AddedGene.Rendering;
 import ij.ImageJ;
 import io.SpatialDataContainer;
 import mpicbg.models.RigidModel2D;
+import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.real.DoubleType;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -270,7 +271,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 				// hard case: -i /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d1 Puck_180602_15 -d2 Puck_180602_16 -n 30
 				// even harder: -i /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d1 Puck_180602_20 -d2 Puck_180602_18 -n 100 --overwrite
 				SiftMatch match = PairwiseSIFT.pairwiseSIFT(
-						stData1, dataset1, stData2, dataset2,
+						stData1, new AffineTransform2D(), dataset1, stData2, new AffineTransform2D(), dataset2,
 						new RigidModel2D(), new RigidModel2D(),
 						new ArrayList<>( genesToTest ),
 						p, visualizeResult, Threads.numThreads() );
