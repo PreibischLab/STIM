@@ -3,6 +3,7 @@ package gui.bdv;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.text.DecimalFormat;
@@ -14,7 +15,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -34,6 +37,7 @@ import align.PairwiseSIFT;
 import align.PointST;
 import align.SIFTParam;
 import align.SIFTParam.SIFTPreset;
+import cmd.InteractiveAlignment;
 import align.SiftMatch;
 import data.STData;
 import data.STDataUtils;
@@ -67,7 +71,7 @@ public class STIMCardAlignSIFT
 	private Thread siftThread = null;
 	private List< Thread > threads = new ArrayList<>();
 
-	protected final JButton cmdLine, saveTransform, run;
+	protected final JButton cmdLine, saveTransform, run, reset;
 	protected final JCheckBox overlayInliers;
 	private final JCheckBox biDirectional;
 	private final JFormattedTextField ilr, initialSigma, minOS, maxOS, it, fdSize, fdBins, steps, rod;
@@ -229,23 +233,42 @@ public class STIMCardAlignSIFT
 		bar.setStringPainted(false);
 		panel.add(bar, "span,growx,pushy");
 
-		// buttons for adding genes and running SIFT
-		//cmdLine = new JButton("Command-line");
-		//cmdLine.setFont( cmdLine.getFont().deriveFont( 10f ));
-		//panel.add(cmdLine, "aligny baseline");
-		//run = new JButton("Run SIFT alignment");
-		//panel.add(run, "growx, wrap");
-
+		// buttons for saveTransform, cmd-line, reset transforms and running SIFT
 		final JPanel panelbuttons = new JPanel( new MigLayout("gap 0, ins 0 0 0 0, fill", "[right][grow]", "center") );
-		cmdLine = new JButton("Cmd-line");
-		cmdLine.setFont( cmdLine.getFont().deriveFont( 10.5f ));
-		saveTransform = new JButton("Save transform");
-		saveTransform.setFont( cmdLine.getFont().deriveFont( 10.5f ));
-		run = new JButton("Run SIFT");
-		run.setFont( cmdLine.getFont().deriveFont( 12f ).deriveFont(Font.BOLD));
-		panelbuttons.add(cmdLine, "growx");
-		panelbuttons.add(saveTransform, "growx");
-		panelbuttons.add(run, "growx");
+		run = new JButton("Run SIFT Alignment");
+		run.setFont( run.getFont().deriveFont(Font.BOLD));
+
+		cmdLine = new JButton();
+		saveTransform = new JButton();
+		reset = new JButton();
+
+		try
+		{
+			cmdLine.setIcon(new ImageIcon(ImageIO.read( InteractiveAlignment.class.getResource("../cmdline.png") )));
+			saveTransform.setIcon(new ImageIcon(ImageIO.read( InteractiveAlignment.class.getResource("../save.png") )));
+			reset.setIcon(new ImageIcon(ImageIO.read( InteractiveAlignment.class.getResource("../reset.png") )));
+		}
+		catch (IOException e)
+		{
+			cmdLine.setText("Cmd-line");
+			cmdLine.setFont( cmdLine.getFont().deriveFont( 10.5f ));
+			saveTransform.setText("Save transform");
+			saveTransform.setFont( saveTransform.getFont().deriveFont( 10.5f ));
+			reset.setText("Reset");
+			reset.setFont( reset.getFont().deriveFont( 10.5f ));
+		}
+
+		cmdLine.setToolTipText( "Create command-line arguments" );
+		saveTransform.setToolTipText( "Save transformation to container" );
+		reset.setToolTipText( "Reset transformation" );
+
+		panelbuttons.add(cmdLine);
+		panelbuttons.add(saveTransform);
+		panelbuttons.add(reset);
+		JPanel j = new JPanel();
+		j.setBorder( BorderFactory.createEmptyBorder(0,1,0,0));
+		panelbuttons.add( j );
+		panelbuttons.add(run, "span, pushy, growx");
 		panelbuttons.setBorder( BorderFactory.createEmptyBorder(0,0,1,0));
 		panel.add(panelbuttons, "span,growx,pushy");
 
@@ -493,7 +516,7 @@ public class STIMCardAlignSIFT
 			stimcard.bdvhandle().getViewerPanel().getDisplay().overlays().remove( siftoverlay );
 			run.setForeground( Color.red );
 			run.setFont( run.getFont().deriveFont( Font.BOLD ) );
-			run.setText( "Cancel" );
+			run.setText( "  Cancel SIFT Align  " );
 			cmdLine.setEnabled( false );
 			overlayInliers.setEnabled( false );
 			bar.setValue( 1 );
@@ -608,6 +631,9 @@ public class STIMCardAlignSIFT
 			siftThread.start();
 		});
 
+		//
+		// Save transform
+		//
 		saveTransform.addActionListener( l ->
 		{
 			// the model and datasets for all genes are the same, we can just pick one
@@ -639,6 +665,30 @@ public class STIMCardAlignSIFT
 				e1.printStackTrace();
 			}
 		} );
+
+		//
+		// Reset transform
+		//
+		reset.addActionListener( l ->
+		{
+			setModel( new AffineModel2D() );
+			stimcard.applyTransformationToBDV( true );
+
+			lastMaxError = Double.NaN;
+
+			siftoverlay.setInliers( new ArrayList<>() );
+			genesWithInliers.clear();
+			overlayInliers.setEnabled( false );
+
+			if ( icpCard != null )
+			{
+				//System.out.println( "Updating ICP to " + genesWithInliers.size() );
+				icpCard.siftResults().setText( STIMCardAlignICP.getSIFTResultLabelText( genesWithInliers.size() ) );
+				icpCard.getPanel().updateUI();
+			}
+
+			System.out.println( "reset transformations.");
+		});
 
 		//
 		// Return command line paramters for the last SIFT align run ...
@@ -711,7 +761,7 @@ public class STIMCardAlignSIFT
 	protected void reEnableControls()
 	{
 		cmdLine.setEnabled( true );
-		run.setText( "Run SIFT" );
+		run.setText( "Run SIFT Alignment" );
 		run.setFont( run.getFont().deriveFont( Font.BOLD ) );
 		run.setForeground( Color.black );
 		bar.setValue( 0 );
