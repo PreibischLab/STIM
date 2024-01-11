@@ -3,6 +3,8 @@ package gui.bdv;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
+import java.io.File;
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -26,6 +28,8 @@ import javax.swing.SwingConstants;
 import javax.swing.border.TitledBorder;
 import javax.swing.text.NumberFormatter;
 
+import org.janelia.saalfeldlab.n5.N5Writer;
+
 import align.PairwiseSIFT;
 import align.PointST;
 import align.SIFTParam;
@@ -34,6 +38,7 @@ import align.SiftMatch;
 import data.STData;
 import data.STDataUtils;
 import gui.overlay.SIFTOverlay;
+import io.SpatialDataIO;
 import mpicbg.models.Affine2D;
 import mpicbg.models.AffineModel2D;
 import mpicbg.models.InterpolatedAffineModel2D;
@@ -43,6 +48,7 @@ import mpicbg.models.RigidModel2D;
 import mpicbg.models.SimilarityModel2D;
 import mpicbg.models.TranslationModel2D;
 import net.imglib2.Interval;
+import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.miginfocom.swing.MigLayout;
@@ -60,7 +66,7 @@ public class STIMCardAlignSIFT
 	private Thread siftThread = null;
 	private List< Thread > threads = new ArrayList<>();
 
-	protected final JButton cmdLine, run;
+	protected final JButton cmdLine, saveTransform, run;
 	protected final JCheckBox overlayInliers;
 	private final JCheckBox biDirectional;
 	private final JFormattedTextField ilr, initialSigma, minOS, maxOS, it, fdSize, fdBins, steps, rod;
@@ -223,11 +229,24 @@ public class STIMCardAlignSIFT
 		panel.add(bar, "span,growx,pushy");
 
 		// buttons for adding genes and running SIFT
-		cmdLine = new JButton("Command-line");
-		cmdLine.setFont( cmdLine.getFont().deriveFont( 10f ));
-		panel.add(cmdLine, "aligny baseline");
-		run = new JButton("Run SIFT alignment");
-		panel.add(run, "growx, wrap");
+		//cmdLine = new JButton("Command-line");
+		//cmdLine.setFont( cmdLine.getFont().deriveFont( 10f ));
+		//panel.add(cmdLine, "aligny baseline");
+		//run = new JButton("Run SIFT alignment");
+		//panel.add(run, "growx, wrap");
+
+		final JPanel panelbuttons = new JPanel( new MigLayout("gap 0, ins 0 0 0 0, fill", "[right][grow]", "center") );
+		cmdLine = new JButton("Cmd-line");
+		cmdLine.setFont( cmdLine.getFont().deriveFont( 10.5f ));
+		saveTransform = new JButton("Save transform");
+		saveTransform.setFont( cmdLine.getFont().deriveFont( 10.5f ));
+		run = new JButton("Run SIFT");
+		run.setFont( cmdLine.getFont().deriveFont( 12f ).deriveFont(Font.BOLD));
+		panelbuttons.add(cmdLine, "growx");
+		panelbuttons.add(saveTransform, "growx");
+		panelbuttons.add(run, "growx");
+		panelbuttons.setBorder( BorderFactory.createEmptyBorder(0,0,1,0));
+		panel.add(panelbuttons, "span,growx,pushy");
 
 		//
 		// for the advanced mode (move to separate object?)
@@ -473,7 +492,7 @@ public class STIMCardAlignSIFT
 			stimcard.bdvhandle().getViewerPanel().getDisplay().overlays().remove( siftoverlay );
 			run.setForeground( Color.red );
 			run.setFont( run.getFont().deriveFont( Font.BOLD ) );
-			run.setText( "Cancel SIFT run");
+			run.setText( "Cancel" );
 			cmdLine.setEnabled( false );
 			overlayInliers.setEnabled( false );
 			bar.setValue( 1 );
@@ -502,7 +521,10 @@ public class STIMCardAlignSIFT
 				threads.clear();
 
 				final SiftMatch match = PairwiseSIFT.pairwiseSIFT(
-						stimcard.data().get( 0 ).data(), dataset1, stimcard.data().get( 1 ).data(), dataset2,
+						stimcard.data().get( 0 ).data(),
+						dataset1,
+						stimcard.data().get( 1 ).data(),
+						dataset2,
 						(Affine2D & Model)modelPair.getA(), (Affine2D & Model)modelPair.getB(),
 						new ArrayList<>( stimcard.geneToBDVSource().keySet() ),
 						param,
@@ -582,6 +604,29 @@ public class STIMCardAlignSIFT
 			siftThread.start();
 		});
 
+		saveTransform.addActionListener( l ->
+		{
+			// the model and datasets for all genes are the same, we can just pick one
+			final AffineTransform2D currentTransform = stimcard.sourceData().values().iterator().next().get( 0 ).currentModel2D();
+			final String dataset = stimcard.sourceData().values().iterator().next().get( 0 ).dataset();
+
+			// the input path is the same for all AddedGene objects, we can just pick one
+			final String path = new File( stimcard.inputPath(), dataset).getAbsolutePath();
+			try
+			{
+				final SpatialDataIO sdout = SpatialDataIO.open( path, service);
+				final N5Writer writer = (N5Writer) sdout.ioSupplier().get();
+				sdout.writeTransformation( writer, currentTransform, SpatialDataIO.transformFieldName );
+
+				System.out.println( "Written transformation " + currentTransform + " to: '" + path + "'");
+			}
+			catch (IOException e1)
+			{
+				System.out.println( "ERROR writing transformation to: '" + path + "': "+ e1);
+				e1.printStackTrace();
+			}
+		} );
+
 		//
 		// Return command line paramters for the last SIFT align run ...
 		//
@@ -648,8 +693,8 @@ public class STIMCardAlignSIFT
 	protected void reEnableControls()
 	{
 		cmdLine.setEnabled( true );
-		run.setText( "Run SIFT alignment" );
-		run.setFont( run.getFont().deriveFont( Font.PLAIN ) );
+		run.setText( "Run SIFT" );
+		run.setFont( run.getFont().deriveFont( Font.BOLD ) );
 		run.setForeground( Color.black );
 		bar.setValue( 0 );
 
