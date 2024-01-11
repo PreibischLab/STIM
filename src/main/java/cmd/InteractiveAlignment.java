@@ -103,8 +103,14 @@ public class InteractiveAlignment implements Callable<Void> {
 		final SpatialDataIO io1 = container.openDatasetReadOnly( dataset1 );
 		final STDataAssembly data1 = io1.readData();
 
+		System.out.println( "Current transform: " + data1.transform() );
+
+		System.out.println("Opening dataset '" + dataset2 + "' in '" + inputPath + "' ...");
+
 		final SpatialDataIO io2 = container.openDatasetReadOnly( dataset2 );
 		final STDataAssembly data2 = io2.readData();
+
+		System.out.println( "Current transform: " + data2.transform() );
 
 		//
 		// assemble genes to test
@@ -275,12 +281,11 @@ public class InteractiveAlignment implements Callable<Void> {
 		lastSource.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlignSIFT.getPanel(), true );
 
 		// TODO: REMOVE
-		AffineModel2D model = new AffineModel2D();
+		//AffineModel2D model = new AffineModel2D();
 		//model.set(0.323679918598243, -0.9185551542794,  1.002878826719069, 0.351176728134501, -546.6035992226643, 4231.453000084942 );
-		model.set( 0.9998829279367252, -0.015301320880288342, 0.015301320880288342, 0.9998829279367252, -33.029768630348656, 902.5019182873548 );
-
-		cardAlignSIFT.setModel( model );
-		card.applyTransformationToBDV( true );
+		//model.set( 0.9998829279367252, -0.015301320880288342, 0.015301320880288342, 0.9998829279367252, -33.029768630348656, 902.5019182873548 );
+		//cardAlignSIFT.setModel( model );
+		//card.applyTransformationToBDV( true );
 		// TODO: REMOVE
 
 		// add STIMCardAlignICP panel
