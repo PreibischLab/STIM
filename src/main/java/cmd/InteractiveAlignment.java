@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.security.AccessController;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -36,6 +37,7 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
+import sun.security.action.GetPropertyAction;
 import util.Threads;
 
 // -i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d1 Puck_180531_22.n5 -d2 Puck_180531_23.n5 -n 4 -sk 2
@@ -118,8 +120,11 @@ public class InteractiveAlignment implements Callable<Void> {
 		//
 		System.out.println( "Assembling inital genes for alignment (" + numGenes + " genes)... ");
 
-		// TODO: right temp directory
-		final File tmp = new File( "/tmp/" + inputPath.hashCode() + "_" + dataset1.hashCode() + "_" + dataset2.hashCode() );
+		final File tmpdir = new File(AccessController.doPrivileged(new GetPropertyAction("java.io.tmpdir")));
+		final File tmp =
+				new File(
+						tmpdir.getAbsolutePath(),
+						inputPath.hashCode() + "_" + dataset1.hashCode() + "_" + dataset2.hashCode() + ".stim.tmp" );
 		final List< Pair< String, Double > > allGenes = new ArrayList<>();
 
 		if ( tmp.exists() )
