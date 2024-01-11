@@ -362,7 +362,7 @@ public class STIMCard
 	public BdvHandle bdvhandle() { return bdvhandle; }
 	public double medianDistance() { return medianDistance; }
 	public List<STDataAssembly> data() { return data; }
-	public String inputPath() { return sourceData.values().iterator().next().get( 0 ).inputPath(); }
+	public String inputPath() { return sourceData.values().iterator().next().get( 0 ).inputPath(); } // the input path is the same for all AddedGene objects, we can just pick one
 
 	public synchronized HashMap<String, List<AddedGene> > addGenes(
 			final List< String > geneList,
