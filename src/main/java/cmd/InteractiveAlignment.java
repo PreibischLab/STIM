@@ -96,18 +96,19 @@ public class InteractiveAlignment implements Callable<Void> {
 			return null;
 		}
 
-		final SpatialDataContainer container = SpatialDataContainer.openForReading(inputPath, service);
+		// we might save the transformation, so open for writing
+		final SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath, service);
 
 		System.out.println("Opening dataset '" + dataset1 + "' in '" + inputPath + "' ...");
 
-		final SpatialDataIO io1 = container.openDatasetReadOnly( dataset1 );
+		final SpatialDataIO io1 = container.openDataset( dataset1 );
 		final STDataAssembly data1 = io1.readData();
 
 		System.out.println( "Current transform: " + data1.transform() );
 
 		System.out.println("Opening dataset '" + dataset2 + "' in '" + inputPath + "' ...");
 
-		final SpatialDataIO io2 = container.openDatasetReadOnly( dataset2 );
+		final SpatialDataIO io2 = container.openDataset( dataset2 );
 		final STDataAssembly data2 = io2.readData();
 
 		System.out.println( "Current transform: " + data2.transform() );
