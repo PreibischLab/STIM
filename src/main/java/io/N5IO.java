@@ -125,7 +125,7 @@ public class N5IO extends SpatialDataIO {
 	}
 
 	@Override
-	protected void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException {
+	public void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException {
 		writer.setAttribute("/", name, transform.getRowPackedCopy());
 	}
 

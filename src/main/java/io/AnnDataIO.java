@@ -158,7 +158,7 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	@Override
-	protected void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException {
+	public void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException {
 		double[] trafoValues = transform.getRowPackedCopy();
 		AnnDataDetails.writeArray(writer, "/uns/" + name, ArrayImgs.doubles(trafoValues, trafoValues.length), options1d);
 	}

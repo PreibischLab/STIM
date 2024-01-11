@@ -38,6 +38,8 @@ import net.imglib2.util.Util;
 
 public abstract class SpatialDataIO {
 
+	public static String transformFieldName = "transform";
+
 	// expose internal methods
 	public static class InternalMethods
 	{
@@ -113,6 +115,12 @@ public abstract class SpatialDataIO {
 	public InternalMethods internalMethods() { return new InternalMethods( this ); }
 
 	protected final Supplier<? extends N5Reader> ioSupplier;
+
+	/**
+	 * @return the ioSupplier to be able to for example only write the transformation to a dataset
+	 */
+	public Supplier<? extends N5Reader> ioSupplier() { return ioSupplier; }
+
 	protected boolean readOnly;
 	protected N5Options options;
 	protected N5Options options1d;
@@ -214,7 +222,7 @@ public abstract class SpatialDataIO {
 		//AffineTransform intensityTransform = new AffineTransform(1);
 		//readAndSetTransformation(reader, intensityTransform, "intensity_transform");
 		AffineTransform2D transform = new AffineTransform2D();
-		readAndSetTransformation(reader, transform, "transform");
+		readAndSetTransformation(reader, transform, transformFieldName);
 
 		for (final String annotationLabel : detectAnnotations(reader))
 			stData.getAnnotations().put(annotationLabel, readAnnotations(reader, annotationLabel));
@@ -282,7 +290,7 @@ public abstract class SpatialDataIO {
 
 		writeExpressionValues(writer, stData.getAllExprValues());
 		writeLocations(writer, stData.getLocations());
-		writeTransformation(writer, data.transform(), "transform");
+		writeTransformation(writer, data.transform(), transformFieldName);
 		//writeTransformation(writer, data.intensityTransform(), "intensity_transform");
 
 		updateStoredAnnotations(stData.getAnnotations());
@@ -329,7 +337,8 @@ public abstract class SpatialDataIO {
 
 	protected abstract void writeGeneNames(N5Writer writer, List<String> geneNames) throws IOException;
 
-	protected abstract void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException;
+	// public to be able to only write the transformation to a dataset
+	public abstract void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException;
 
 	protected void writeAnnotations(N5Writer writer, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
 		writeAnnotations(writer, annotationPath, label, data);
