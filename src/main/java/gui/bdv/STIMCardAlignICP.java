@@ -2,13 +2,16 @@ package gui.bdv;
 
 import java.awt.Color;
 import java.awt.Font;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -20,9 +23,11 @@ import javax.swing.SwingConstants;
 
 import align.ICPAlign;
 import bdv.viewer.SynchronizedViewerState;
+import cmd.InteractiveAlignment;
 import data.STDataUtils;
 import gui.DisplayScaleOverlay;
 import mpicbg.models.Affine2D;
+import mpicbg.models.AffineModel2D;
 import mpicbg.models.CoordinateTransform;
 import mpicbg.models.IllDefinedDataPointsException;
 import mpicbg.models.Model;
@@ -66,7 +71,7 @@ public class STIMCardAlignICP
 	}
 
 	private final JLabel siftResults;
-	protected final JButton cmdLine, run;
+	protected final JButton cmdLine, run, reset, saveTransform;
 	private final JProgressBar bar;
 	private Thread icpThread = null;
 	private Affine2D<?> previousModel = null;
@@ -166,11 +171,50 @@ public class STIMCardAlignICP
 		panel.add(bar, "span,growx,pushy");
 
 		// buttons for adding genes and running SIFT
-		cmdLine = new JButton("Command-line");
-		cmdLine.setFont( cmdLine.getFont().deriveFont( 10f ));
-		panel.add(cmdLine, "aligny baseline");
-		run = new JButton("Run ICP alignment");
-		panel.add(run, "growx, wrap");
+		//cmdLine = new JButton("Command-line");
+		//cmdLine.setFont( cmdLine.getFont().deriveFont( 10f ));
+		//panel.add(cmdLine, "aligny baseline");
+		//run = new JButton("Run ICP alignment");
+		//panel.add(run, "growx, wrap");
+
+		// buttons for saveTransform, cmd-line, reset transforms and running SIFT
+		final JPanel panelbuttons = new JPanel( new MigLayout("gap 0, ins 0 0 0 0, fill", "[right][grow]", "center") );
+		run = new JButton("Run ICP Alignment");
+		run.setFont( run.getFont().deriveFont(Font.BOLD));
+
+		cmdLine = new JButton();
+		saveTransform = new JButton();
+		reset = new JButton();
+
+		try
+		{
+			cmdLine.setIcon(new ImageIcon(ImageIO.read( InteractiveAlignment.class.getResource("../cmdline.png") )));
+			saveTransform.setIcon(new ImageIcon(ImageIO.read( InteractiveAlignment.class.getResource("../save.png") )));
+			reset.setIcon(new ImageIcon(ImageIO.read( InteractiveAlignment.class.getResource("../reset.png") )));
+		}
+		catch (IOException e)
+		{
+			cmdLine.setText("Cmd-line");
+			cmdLine.setFont( cmdLine.getFont().deriveFont( 10.5f ));
+			saveTransform.setText("Save transform");
+			saveTransform.setFont( saveTransform.getFont().deriveFont( 10.5f ));
+			reset.setText("Reset");
+			reset.setFont( reset.getFont().deriveFont( 10.5f ));
+		}
+
+		cmdLine.setToolTipText( "Create command-line arguments" );
+		saveTransform.setToolTipText( "Save transformation to container" );
+		reset.setToolTipText( "Reset transformation" );
+
+		panelbuttons.add(cmdLine);
+		panelbuttons.add(saveTransform);
+		panelbuttons.add(reset);
+		JPanel j = new JPanel();
+		j.setBorder( BorderFactory.createEmptyBorder(0,1,0,0));
+		panelbuttons.add( j );
+		panelbuttons.add(run, "span, pushy, growx");
+		panelbuttons.setBorder( BorderFactory.createEmptyBorder(0,0,1,0));
+		panel.add(panelbuttons, "span,growx,pushy");
 
 		// disable RANSAC slider if not used
 		useRANSAC.addActionListener( e -> maxErrorRANSACSlider.setEnabled( useRANSAC.isSelected() ) );
@@ -203,19 +247,25 @@ public class STIMCardAlignICP
 
 				icpThread = null;
 
-				stimcardSIFT.setModel( previousModel );
-				//stimcard.setCurrentModel( previousModel );
-				stimcard.applyTransformationToBDV( true );
+				// we're just stopping ...
+				System.out.println( "Stopping ICP with the following models (hit reset to restore previous transformation): " );
+				System.out.println( "2D model: " + stimcard.sourceData().values().iterator().next().get( 0 ).currentModel() );
+				System.out.println( "2D transform: " + stimcard.sourceData().values().iterator().next().get( 0 ).currentModel2D() );
+				System.out.println( "3D viewer transform: " + stimcard.sourceData().values().iterator().next().get( 0 ).currentModel3D() );
 
 				return;
 			}
 
-			previousModel = (Affine2D)((Model)stimcard.sourceData().values().iterator().next().get( 0 ).currentModel()).copy();
+			// we remember the state before first time calling ICP
+			if ( previousModel == null )
+				previousModel = (Affine2D)((Model)stimcard.sourceData().values().iterator().next().get( 0 ).currentModel()).copy();
 
 			run.setForeground( Color.red );
 			run.setFont( run.getFont().deriveFont( Font.BOLD ) );
-			run.setText( "Cancel ICP run");
+			run.setText( "     STOP ICP run     ");
 			cmdLine.setEnabled( false );
+			reset.setEnabled( false );
+			saveTransform.setEnabled( false );
 			bar.setValue( 1 );
 			if ( siftCard != null )
 			{
@@ -224,6 +274,7 @@ public class STIMCardAlignICP
 				siftCard.overlayInliers.setSelected( false );
 			}
 
+			// TODO: make sure current model is taken into account (seems to be somehow, weird)
 			icpThread = new Thread( () ->
 			{
 				final SynchronizedViewerState state = stimcard.bdvhandle().getViewerPanel().state();
@@ -251,12 +302,7 @@ public class STIMCardAlignICP
 				{
 					System.out.println( "no genes for ICP, please run SIFT successfully first or select 'all displayed genes'.");
 
-					cmdLine.setEnabled( true );
-					run.setText( "Run ICP alignment" );
-					run.setFont( run.getFont().deriveFont( Font.PLAIN ) );
-					run.setForeground( Color.black );
-					bar.setValue( 0 );
-
+					reEnableControls();
 					icpThread = null;
 
 					return;
@@ -296,7 +342,11 @@ public class STIMCardAlignICP
 
 				final Pair<Model, List<PointMatch>> icpT = 
 						ICPAlign.alignICP(
-								stimcard.data().get( 1 ).data(), stimcard.data().get( 0 ).data(), genes, model,
+								stimcard.data().get( 1 ).data(),
+								stimcard.data().get( 1 ).transform(),
+								stimcard.data().get( 0 ).data(),
+								stimcard.data().get( 0 ).transform(),
+								genes, model,
 								param.maxErrorICP, param.maxErrorRANSAC, param.maxIterations, param.ffSingleSpot, param.ffMedian, param.ffGauss, param.ffMean,
 								v ->
 								{
@@ -354,6 +404,22 @@ public class STIMCardAlignICP
 		});
 
 		//
+		// Reset transform
+		//
+		reset.addActionListener( l ->
+		{
+			stimcardSIFT.setModel( previousModel );
+			stimcard.applyTransformationToBDV( true );
+
+			System.out.println( "reset ICP transformations.");
+		});
+
+		//
+		// Save transform
+		//
+		saveTransform.addActionListener( l -> siftCard.saveTransforms() );
+
+		//
 		// Return command line paramters for the last SIFT align run ...
 		//
 		cmdLine.addActionListener( l -> 
@@ -365,8 +431,10 @@ public class STIMCardAlignICP
 	protected void reEnableControls()
 	{
 		cmdLine.setEnabled( true );
+		reset.setEnabled( true );
+		saveTransform.setEnabled( true );
 		run.setText( "Run ICP alignment" );
-		run.setFont( run.getFont().deriveFont( Font.PLAIN ) );
+		run.setFont( run.getFont().deriveFont( Font.BOLD ) );
 		run.setForeground( Color.black );
 		bar.setValue( 0 );
 
@@ -374,8 +442,9 @@ public class STIMCardAlignICP
 		{
 			siftCard.cmdLine.setEnabled( true );
 			siftCard.run.setEnabled( true );
+			siftCard.reset.setEnabled( true );
+			siftCard.saveTransform.setEnabled( true );
 		}
-
 	}
 
 	public static String getSIFTResultLabelText(int s) { return "<html>Note: SIFT identified <FONT COLOR=\"#ff0000\">" + s + " genes</FONT> with correspondences.</html>"; }
