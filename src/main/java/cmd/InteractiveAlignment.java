@@ -281,6 +281,10 @@ public class InteractiveAlignment implements Callable<Void> {
 		final STIMCardFilter cardFilter = new STIMCardFilter( card, ffSingleSpot, ffMedian, ffGauss, ffMean, service );
 		lastSource.getBdvHandle().getCardPanel().addCard( "STIM Filtering Options", "STIM Filtering Options", cardFilter.getPanel(), false );
 
+		// TODO: Manual alignment
+		// 
+		// show current transform
+
 		// add STIMCardAlignSIFT panel
 		final STIMCardAlignSIFT cardAlignSIFT =
 				new STIMCardAlignSIFT( dataset1, dataset2, card, cardFilter, service );
@@ -300,7 +304,6 @@ public class InteractiveAlignment implements Callable<Void> {
 		lastSource.getBdvHandle().getCardPanel().addCard( "ICP Alignment", "ICP Alignment", cardAlignICP.getPanel(), false );
 
 		cardAlignSIFT.setICPCard( cardAlignICP );
-		cardAlignICP.setSIFTCard( cardAlignSIFT );
 
 		// Expands the split Panel (after waiting 2 secs for the BDV to calm down)
 		SimpleMultiThreading.threadWait( 2000 );

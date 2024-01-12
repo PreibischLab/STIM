@@ -79,7 +79,7 @@ public class STIMCardAlignICP
 	private final ICPParams param;
 	private final JPanel panel;
 	private final STIMCardFilter cardFilter;
-	private STIMCardAlignSIFT siftCard = null; // may or may not be there
+	private STIMCardAlignSIFT stimcardSIFT;
 
 	public STIMCardAlignICP(
 			final String dataset1,
@@ -93,6 +93,7 @@ public class STIMCardAlignICP
 		this.panel = new JPanel(new MigLayout("gap 0, ins 5 5 5 5, fill", "[right][grow]", "center"));
 		this.param = new ICPParams();
 		this.cardFilter = cardFilter;
+		this.stimcardSIFT = stimcardSIFT;
 
 		final Interval interval = STDataUtils.getCommonInterval( stimcard.data().get( 0 ).data(), stimcard.data().get( 1 ).data() );
 		this.param.maxErrorICP = Math.max( stimcard.medianDistance(), ( Math.max( interval.dimension( 0 ), interval.dimension( 1 ) ) / 20 ) / 5.0 );
@@ -267,12 +268,9 @@ public class STIMCardAlignICP
 			reset.setEnabled( false );
 			saveTransform.setEnabled( false );
 			bar.setValue( 1 );
-			if ( siftCard != null )
-			{
-				siftCard.cmdLine.setEnabled( false );
-				siftCard.run.setEnabled( false );
-				siftCard.overlayInliers.setSelected( false );
-			}
+			stimcardSIFT.cmdLine.setEnabled( false );
+			stimcardSIFT.run.setEnabled( false );
+			stimcardSIFT.overlayInliers.setSelected( false );
 
 			// TODO: make sure current model is taken into account (seems to be somehow, weird)
 			icpThread = new Thread( () ->
@@ -417,7 +415,7 @@ public class STIMCardAlignICP
 		//
 		// Save transform
 		//
-		saveTransform.addActionListener( l -> siftCard.saveTransforms() );
+		saveTransform.addActionListener( l -> stimcardSIFT.saveTransforms() );
 
 		//
 		// Return command line paramters for the last SIFT align run ...
@@ -438,19 +436,15 @@ public class STIMCardAlignICP
 		run.setForeground( Color.black );
 		bar.setValue( 0 );
 
-		if ( siftCard != null )
-		{
-			siftCard.cmdLine.setEnabled( true );
-			siftCard.run.setEnabled( true );
-			siftCard.reset.setEnabled( true );
-			siftCard.saveTransform.setEnabled( true );
-		}
+		stimcardSIFT.cmdLine.setEnabled( true );
+		stimcardSIFT.run.setEnabled( true );
+		stimcardSIFT.reset.setEnabled( true );
+		stimcardSIFT.saveTransform.setEnabled( true );
 	}
 
 	public static String getSIFTResultLabelText(int s) { return "<html>Note: SIFT identified <FONT COLOR=\"#ff0000\">" + s + " genes</FONT> with correspondences.</html>"; }
 	public JLabel siftResults() { return siftResults; }
 	public JPanel getPanel() { return panel; }
-	public void setSIFTCard( final STIMCardAlignSIFT siftCard ) { this.siftCard = siftCard; }
 
 	/**
 	 * Fits sampled points to a model.
