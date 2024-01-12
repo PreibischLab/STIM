@@ -37,16 +37,16 @@ public class STIMCardManualAlign
 	private Affine2D<?> previousModel = null;
 
 	private final STIMCard stimcard;
-	private final STIMCardFilter filterCard;
+	private final STIMCardAlignICP icpCard;
 	private final STIMCardAlignSIFT siftCard;
 
 	public STIMCardManualAlign(
 			final STIMCard stimcard,
-			final STIMCardFilter filterCard,
-			final STIMCardAlignSIFT siftCard )
+			final STIMCardAlignSIFT siftCard,
+			final STIMCardAlignICP icpCard )
 	{
 		this.stimcard = stimcard;
-		this.filterCard = filterCard;
+		this.icpCard = icpCard;
 		this.siftCard = siftCard;
 
 		this.panel = new JPanel( new MigLayout("gap 0, ins 5 5 5 5, fill", "[sizegroup main, grow][sizegroup main,grow][sizegroup main, grow]") );//new GridBagLayout() );
@@ -227,17 +227,17 @@ public class STIMCardManualAlign
 		{
 			isRunning.set( false );
 
-			resetTransform();
+			final AffineTransform2D transform = new AffineTransform2D();
+
+			siftCard.setTransform( transform );
+			stimcard.applyTransformationToBDV( true ); // should be identical
+
+			setTransformGUI( transform );
 		});
 	}
 
-	public void resetTransform()
+	public void setTransformGUI( final AffineTransform2D t )
 	{
-		siftCard.setModel( new AffineModel2D() );
-		stimcard.applyTransformationToBDV( true ); // should be identical
-
-		final AffineTransform2D t = stimcard.sourceData().values().iterator().next().get( 0 ).currentModel2D().copy();
-
 		m00.setValue( t.get( 0, 0 ) );
 		m01.setValue( t.get( 0, 1 ) );
 		m02.setValue( t.get( 0, 2 ) );

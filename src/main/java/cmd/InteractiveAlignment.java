@@ -304,7 +304,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		cardAlignSIFT.setICPCard( cardAlignICP );
 
 		// TODO: Manual alignment
-		final STIMCardManualAlign cardAlignManual = new STIMCardManualAlign(card, cardFilter, cardAlignSIFT);
+		final STIMCardManualAlign cardAlignManual = new STIMCardManualAlign(card, cardAlignSIFT, cardAlignICP);
 		
 		cardAlignSIFT.setManualAlignCard( cardAlignManual );
 		cardAlignICP.setManualAlignCard( cardAlignManual );
