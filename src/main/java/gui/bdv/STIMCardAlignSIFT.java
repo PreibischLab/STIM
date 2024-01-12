@@ -85,6 +85,7 @@ public class STIMCardAlignSIFT
 	final static String optionsSIFT[] = { "Fast", "Normal", "Thorough", "Very thorough", "Custom ..." };
 	private boolean customModeSIFT = false; // we always start with "normal" for 
 
+	private final ExecutorService service;
 	private HashSet< String > genesWithInliers = new HashSet<>();
 	private double lastMaxError = Double.NaN;
 
@@ -102,6 +103,7 @@ public class STIMCardAlignSIFT
 		final int initSIFTPreset = 1; // NORMAL
 		this.param = new SIFTParam();
 		this.param.setIntrinsicParameters( SIFTPreset.values()[ initSIFTPreset ] );
+		this.service = service;
 
 		final Interval interval = STDataUtils.getCommonInterval( stimcard.data().get( 0 ).data(), stimcard.data().get( 1 ).data() );
 		this.param.maxError = Math.max( interval.dimension( 0 ), interval.dimension( 1 ) ) / 20;
@@ -518,6 +520,8 @@ public class STIMCardAlignSIFT
 			run.setFont( run.getFont().deriveFont( Font.BOLD ) );
 			run.setText( "  Cancel SIFT Align  " );
 			cmdLine.setEnabled( false );
+			reset.setEnabled( false );
+			saveTransform.setEnabled( false );
 			overlayInliers.setEnabled( false );
 			bar.setValue( 1 );
 			if ( icpCard != null )
@@ -634,37 +638,7 @@ public class STIMCardAlignSIFT
 		//
 		// Save transform
 		//
-		saveTransform.addActionListener( l ->
-		{
-			// the model and datasets for all genes are the same, we can just pick one
-			final AffineTransform2D currentTransform = stimcard.sourceData().values().iterator().next().get( 0 ).currentModel2D();
-			final String dataset = stimcard.sourceData().values().iterator().next().get( 0 ).dataset();
-			final AffineTransform2D initialTransform = stimcard.data().get( 0 ).transform();
-
-			final AffineTransform2D finalTransform = initialTransform.copy().preConcatenate( currentTransform );
-
-			System.out.println( "Initial transformation: " + initialTransform );
-			System.out.println( "SIFT transformation: " + currentTransform );
-			System.out.println( "Final transformation: " + finalTransform );
-
-			// the input path is the same for all AddedGene objects, we can just pick one
-			final String path = new File( stimcard.inputPath(), dataset).getAbsolutePath();
-
-			try
-			{
-				final SpatialDataIO sdout = SpatialDataIO.open( path, service);
-				final N5Writer writer = (N5Writer) sdout.ioSupplier().get();
-				
-				sdout.writeTransformation( writer, finalTransform, SpatialDataIO.transformFieldName );
-
-				System.out.println( "Written final transformation to: '" + path + "'");
-			}
-			catch (IOException e1)
-			{
-				System.out.println( "ERROR writing transformation to: '" + path + "': "+ e1);
-				e1.printStackTrace();
-			}
-		} );
+		saveTransform.addActionListener( l -> saveTransforms() );
 
 		//
 		// Reset transform
@@ -705,6 +679,38 @@ public class STIMCardAlignSIFT
 
 	public HashSet< String> genesWithInliers() { return genesWithInliers; }
 	public double lastMaxError() { return lastMaxError; }
+
+	public void saveTransforms()
+	{
+		// the model and datasets for all genes are the same, we can just pick one
+		final AffineTransform2D currentTransform = stimcard.sourceData().values().iterator().next().get( 0 ).currentModel2D();
+		final String dataset = stimcard.sourceData().values().iterator().next().get( 0 ).dataset();
+		final AffineTransform2D initialTransform = stimcard.data().get( 0 ).transform();
+
+		final AffineTransform2D finalTransform = initialTransform.copy().preConcatenate( currentTransform );
+
+		System.out.println( "Initial transformation: " + initialTransform );
+		System.out.println( "SIFT transformation: " + currentTransform );
+		System.out.println( "Final transformation: " + finalTransform );
+
+		// the input path is the same for all AddedGene objects, we can just pick one
+		final String path = new File( stimcard.inputPath(), dataset).getAbsolutePath();
+
+		try
+		{
+			final SpatialDataIO sdout = SpatialDataIO.open( path, service);
+			final N5Writer writer = (N5Writer) sdout.ioSupplier().get();
+			
+			sdout.writeTransformation( writer, finalTransform, SpatialDataIO.transformFieldName );
+
+			System.out.println( "Written final transformation to: '" + path + "'");
+		}
+		catch (IOException e1)
+		{
+			System.out.println( "ERROR writing transformation to: '" + path + "': "+ e1);
+			e1.printStackTrace();
+		}
+	}
 
 	public void setModel( final Affine2D< ? > previousModel )
 	{
@@ -761,6 +767,8 @@ public class STIMCardAlignSIFT
 	protected void reEnableControls()
 	{
 		cmdLine.setEnabled( true );
+		reset.setEnabled( true );
+		saveTransform.setEnabled( true );
 		run.setText( "Run SIFT Alignment" );
 		run.setFont( run.getFont().deriveFont( Font.BOLD ) );
 		run.setForeground( Color.black );
