@@ -119,24 +119,9 @@ public class STIMCardAlignSIFT
 		final List< Component > advancedSIFTComponents = new ArrayList<>();
 
 		// setup formatters
-		final NumberFormatter formatter = new NumberFormatter(NumberFormat.getInstance());
-		formatter.setValueClass(Integer.class);
-		formatter.setMinimum(1);
-		formatter.setMaximum(Integer.MAX_VALUE);
-		formatter.setFormat(new DecimalFormat("#"));
-		formatter.setAllowsInvalid(true);
-
-		final NumberFormatter formatterDouble = new NumberFormatter(NumberFormat.getInstance());
-		formatterDouble.setValueClass(Double.class);
-		formatterDouble.setMinimum(0);
-		formatterDouble.setMaximum(Double.MAX_VALUE);
-		formatterDouble.setAllowsInvalid(true);
-
-		final NumberFormatter formatterDouble01 = new NumberFormatter(NumberFormat.getInstance());
-		formatterDouble01.setValueClass(Double.class);
-		formatterDouble01.setMinimum(0);
-		formatterDouble01.setMaximum(1);
-		formatterDouble01.setAllowsInvalid(true);
+		final NumberFormatter formatter = formatterInt();
+		final NumberFormatter formatterDouble = formatterDouble();
+		final NumberFormatter formatterDouble01 = formatterDouble01();
 
 		// SIFT presets
 		final JComboBox< String > box = new JComboBox< String > ( optionsSIFT );
@@ -794,6 +779,40 @@ public class STIMCardAlignSIFT
 		final int po2 = (int)Math.pow( 2, (maxSize == 0 ? 0 : 32 - Integer.numberOfLeadingZeros( maxSize - 1 ) ) );
 
 		return po2;
+	}
+
+	public static NumberFormatter formatterInt()
+	{
+		final NumberFormatter formatter = new NumberFormatter(NumberFormat.getInstance());
+		formatter.setValueClass(Integer.class);
+		formatter.setMinimum(1);
+		formatter.setMaximum(Integer.MAX_VALUE);
+		formatter.setFormat(new DecimalFormat("#"));
+		formatter.setAllowsInvalid(true);
+
+		return formatter;
+	}
+
+	public static NumberFormatter formatterDouble()
+	{
+		final NumberFormatter formatterDouble = new NumberFormatter(NumberFormat.getInstance());
+		formatterDouble.setValueClass(Double.class);
+		formatterDouble.setMinimum(0);
+		formatterDouble.setMaximum(Double.MAX_VALUE);
+		formatterDouble.setAllowsInvalid(true);
+
+		return formatterDouble;
+	}
+
+	public static NumberFormatter formatterDouble01()
+	{
+		final NumberFormatter formatterDouble01 = new NumberFormatter(NumberFormat.getInstance());
+		formatterDouble01.setValueClass(Double.class);
+		formatterDouble01.setMinimum(0);
+		formatterDouble01.setMaximum(1);
+		formatterDouble01.setAllowsInvalid(true);
+
+		return formatterDouble01;
 	}
 
 	protected static Model<?> getModelFor( final int modelIndex, final int regIndex, final double lambda )
