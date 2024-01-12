@@ -68,6 +68,7 @@ public class STIMCardAlignSIFT
 	private final STIMCard stimcard;
 	private final STIMCardFilter stimcardFilter;
 	private STIMCardAlignICP icpCard = null; // may or may not be there
+	private STIMCardManualAlign manualCard = null; // may or may not be there
 
 	private Thread siftThread = null;
 	private List< Thread > threads = new ArrayList<>();
@@ -910,5 +911,6 @@ public class STIMCardAlignSIFT
 	}
 
 	public void setICPCard( final STIMCardAlignICP icpCard ) { this.icpCard = icpCard; }
+	public void setManualAlignCard( final STIMCardManualAlign manualCard ) { this.manualCard = manualCard; }
 	public JPanel getPanel() { return panel; }
 }

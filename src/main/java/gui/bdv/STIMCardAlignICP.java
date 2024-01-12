@@ -80,6 +80,7 @@ public class STIMCardAlignICP
 	private final JPanel panel;
 	private final STIMCardFilter cardFilter;
 	private STIMCardAlignSIFT stimcardSIFT;
+	private STIMCardManualAlign manualCard = null; // may or may not be there
 
 	public STIMCardAlignICP(
 			final String dataset1,
@@ -443,6 +444,7 @@ public class STIMCardAlignICP
 	}
 
 	public static String getSIFTResultLabelText(int s) { return "<html>Note: SIFT identified <FONT COLOR=\"#ff0000\">" + s + " genes</FONT> with correspondences.</html>"; }
+	public void setManualAlignCard( final STIMCardManualAlign manualCard ) { this.manualCard = manualCard; }
 	public JLabel siftResults() { return siftResults; }
 	public JPanel getPanel() { return panel; }
 
