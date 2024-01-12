@@ -33,6 +33,7 @@ import io.SpatialDataIO;
 import io.TextFileAccess;
 import mpicbg.models.AffineModel2D;
 import net.imglib2.multithreading.SimpleMultiThreading;
+import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
@@ -107,6 +108,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		final SpatialDataIO io1 = container.openDataset( dataset1 );
 		final STDataAssembly data1 = io1.readData();
 
+		//data1.transform().set( new AffineTransform2D() );
 		System.out.println( "Current transform: " + data1.transform() );
 
 		System.out.println("Opening dataset '" + dataset2 + "' in '" + inputPath + "' ...");
@@ -114,6 +116,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		final SpatialDataIO io2 = container.openDataset( dataset2 );
 		final STDataAssembly data2 = io2.readData();
 
+		//data2.transform().set( new AffineTransform2D() );
 		System.out.println( "Current transform: " + data2.transform() );
 
 		//

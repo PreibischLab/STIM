@@ -54,6 +54,7 @@ import mpicbg.models.SimilarityModel2D;
 import mpicbg.models.TranslationModel2D;
 import net.imglib2.Interval;
 import net.imglib2.realtransform.AffineTransform2D;
+import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.miginfocom.swing.MigLayout;
@@ -705,6 +706,28 @@ public class STIMCardAlignSIFT
 
 			for ( int i = 1; i < list.size(); ++i )
 				list.get( i ).setCurrentModel( new AffineModel2D() );
+		});
+	}
+
+	public void setTransform( final AffineTransform2D previousModel )
+	{
+		stimcard.sourceData().values().forEach( list ->
+		{
+			list.get( 0 ).setCurrentModel2D( previousModel );
+
+			for ( int i = 1; i < list.size(); ++i )
+				list.get( i ).setCurrentModel2D( new AffineTransform2D() );
+		});
+	}
+
+	public void setTransform3D( final AffineTransform3D previousModel )
+	{
+		stimcard.sourceData().values().forEach( list ->
+		{
+			list.get( 0 ).setCurrentModel3D( previousModel );
+
+			for ( int i = 1; i < list.size(); ++i )
+				list.get( i ).setCurrentModel3D( new AffineTransform3D() );
 		});
 	}
 
