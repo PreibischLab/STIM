@@ -27,6 +27,7 @@ import gui.bdv.STIMCard;
 import gui.bdv.STIMCardAlignICP;
 import gui.bdv.STIMCardAlignSIFT;
 import gui.bdv.STIMCardFilter;
+import gui.bdv.STIMCardManualAlign;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
 import io.TextFileAccess;
@@ -281,14 +282,9 @@ public class InteractiveAlignment implements Callable<Void> {
 		final STIMCardFilter cardFilter = new STIMCardFilter( card, ffSingleSpot, ffMedian, ffGauss, ffMean, service );
 		lastSource.getBdvHandle().getCardPanel().addCard( "STIM Filtering Options", "STIM Filtering Options", cardFilter.getPanel(), false );
 
-		// TODO: Manual alignment
-		// 
-		// show current transform
-
 		// add STIMCardAlignSIFT panel
 		final STIMCardAlignSIFT cardAlignSIFT =
 				new STIMCardAlignSIFT( dataset1, dataset2, card, cardFilter, service );
-		lastSource.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlignSIFT.getPanel(), true );
 
 		// TODO: REMOVE
 		//AffineModel2D model = new AffineModel2D();
@@ -301,9 +297,15 @@ public class InteractiveAlignment implements Callable<Void> {
 		// add STIMCardAlignICP panel
 		final STIMCardAlignICP cardAlignICP =
 				new STIMCardAlignICP( dataset1, dataset2, overlay, card, cardFilter, cardAlignSIFT, service );
-		lastSource.getBdvHandle().getCardPanel().addCard( "ICP Alignment", "ICP Alignment", cardAlignICP.getPanel(), false );
 
 		cardAlignSIFT.setICPCard( cardAlignICP );
+
+		// TODO: Manual alignment
+		final STIMCardManualAlign cardAlignManual = new STIMCardManualAlign(card, cardFilter, cardAlignSIFT);
+
+		lastSource.getBdvHandle().getCardPanel().addCard( "Manual Alignment", "Manual Alignment", cardAlignManual.getPanel(), true );
+		lastSource.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlignSIFT.getPanel(), true );
+		lastSource.getBdvHandle().getCardPanel().addCard( "ICP Alignment", "ICP Alignment", cardAlignICP.getPanel(), false );
 
 		// Expands the split Panel (after waiting 2 secs for the BDV to calm down)
 		SimpleMultiThreading.threadWait( 2000 );
