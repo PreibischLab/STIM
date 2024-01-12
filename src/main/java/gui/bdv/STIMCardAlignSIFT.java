@@ -33,6 +33,7 @@ import javax.swing.text.NumberFormatter;
 
 import org.janelia.saalfeldlab.n5.N5Writer;
 
+import align.AlignTools;
 import align.PairwiseSIFT;
 import align.PointST;
 import align.SIFTParam;
@@ -490,7 +491,8 @@ public class STIMCardAlignSIFT
 				threads.clear();
 
 				setModel( previousModel );
-				//stimcard.setCurrentModel( previousModel );
+				if ( manualCard != null )
+					manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( previousModel ) );
 
 				stimcard.applyTransformationToBDV( true );
 
@@ -564,12 +566,14 @@ public class STIMCardAlignSIFT
 						modelPair.getB().fit( match.getInliers() );
 
 						setModel( (Affine2D)modelPair.getB() );
-						//stimcard.setCurrentModel( (Affine2D)modelPair.getB() );
 						stimcard.applyTransformationToBDV( true );
 
 						System.out.println( "2D model: " + modelPair.getB() );
 						System.out.println( "2D transform: " + stimcard.sourceData().values().iterator().next().get( 0 ).currentModel2D() );
 						System.out.println( "3D viewer transform: " + stimcard.sourceData().values().iterator().next().get( 0 ).currentModel3D() );
+
+						if ( manualCard != null )
+							manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( (Affine2D)modelPair.getB() ) );
 					}
 					catch ( Exception e )
 					{
@@ -600,6 +604,9 @@ public class STIMCardAlignSIFT
 					stimcard.applyTransformationToBDV( true );
 
 					lastMaxError = Double.NaN;
+
+					if ( manualCard != null )
+						manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( previousModel ) );
 
 					siftoverlay.setInliers( new ArrayList<>() );
 					genesWithInliers.clear();
@@ -647,6 +654,9 @@ public class STIMCardAlignSIFT
 				icpCard.siftResults().setText( STIMCardAlignICP.getSIFTResultLabelText( genesWithInliers.size() ) );
 				icpCard.getPanel().updateUI();
 			}
+
+			if ( manualCard != null )
+				manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( new AffineModel2D() ) );
 
 			System.out.println( "reset transformations.");
 		});

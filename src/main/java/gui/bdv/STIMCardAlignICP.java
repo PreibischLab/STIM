@@ -21,6 +21,7 @@ import javax.swing.JProgressBar;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 
+import align.AlignTools;
 import align.ICPAlign;
 import bdv.viewer.SynchronizedViewerState;
 import cmd.InteractiveAlignment;
@@ -255,6 +256,9 @@ public class STIMCardAlignICP
 				System.out.println( "2D transform: " + stimcard.sourceData().values().iterator().next().get( 0 ).currentModel2D() );
 				System.out.println( "3D viewer transform: " + stimcard.sourceData().values().iterator().next().get( 0 ).currentModel3D() );
 
+				if ( manualCard != null )
+					manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( stimcard.sourceData().values().iterator().next().get( 0 ).currentModel() ) );
+
 				return;
 			}
 
@@ -360,8 +364,10 @@ public class STIMCardAlignICP
 									synchronized (stimcard)
 									{
 										stimcardSIFT.setModel( (Affine2D)m );
-										//stimcard.setCurrentModel( (Affine2D)m );
 										stimcard.applyTransformationToBDV( true );
+
+										if ( manualCard != null )
+											manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( (Affine2D)m ) );
 									}
 								},
 								service);
@@ -376,7 +382,9 @@ public class STIMCardAlignICP
 						model = icpT.getA();
 
 						stimcardSIFT.setModel( (Affine2D)model );
-						//stimcard.setCurrentModel( (Affine2D)model );
+
+						if ( manualCard != null )
+							manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( (Affine2D)model ) );
 
 						System.out.println( "2D model: " + model );
 						System.out.println( "2D transform: " + stimcard.sourceData().values().iterator().next().get( 0 ).currentModel2D() );
@@ -390,7 +398,9 @@ public class STIMCardAlignICP
 				else
 				{
 					stimcardSIFT.setModel( previousModel );
-					//stimcard.setCurrentModel( previousModel );
+
+					if ( manualCard != null )
+						manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( previousModel ) );
 				}
 
 				reEnableControls();
@@ -409,6 +419,9 @@ public class STIMCardAlignICP
 		{
 			stimcardSIFT.setModel( previousModel );
 			stimcard.applyTransformationToBDV( true );
+
+			if ( manualCard != null )
+				manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( previousModel ) );
 
 			System.out.println( "reset ICP transformations.");
 		});

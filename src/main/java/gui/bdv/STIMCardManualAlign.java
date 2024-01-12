@@ -143,6 +143,7 @@ public class STIMCardManualAlign
 			{
 				previousModel = (Affine2D)((Model)stimcard.sourceData().values().iterator().next().get( 0 ).currentModel()).copy();
 
+				// TODO: disable SIFT, ICP controls
 				isRunning.set( true );
 				reset.setEnabled( false );
 				cancel.setEnabled( true );
@@ -248,6 +249,8 @@ public class STIMCardManualAlign
 
 	protected void reEnableControls()
 	{
+		// TODO: enable SIFT, ICP controls
+
 		run.setText( "Start" );
 		run.setForeground( Color.black );
 		cancel.setEnabled( false );
