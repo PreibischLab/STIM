@@ -18,6 +18,7 @@ import mpicbg.models.PointMatch;
 import net.imglib2.RealLocalizable;
 import net.imglib2.RealPoint;
 import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
+import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
@@ -36,7 +37,9 @@ public class ICPAlign
 	}
 	/**
 	 * @param stdataA - data for A
+	 * @param transformA - loaded transform for A
 	 * @param stdataB - data for B
+	 * @param transformB - loaded transform for B
 	 * @param genesToUse - list of genes
 	 * @param initialModel - maps B to A
 	 * @param maxDistance - max search radius for corresponding point
@@ -46,7 +49,9 @@ public class ICPAlign
 	 */
 	public static < M extends Model< M >> Pair< M, List< PointMatch > > alignICP(
 			final STData stdataA,
+			final AffineTransform2D transformA,
 			final STData stdataB,
+			final AffineTransform2D transformB,
 			final Collection< String > genesToUse,
 			final M initialModel,
 			final double maxDistance,
@@ -58,12 +63,14 @@ public class ICPAlign
 			final Double ffMean,
 			final ExecutorService service )
 	{
-		return alignICP(stdataA, stdataB, genesToUse, initialModel, maxDistance, ransacDistance, maxIterations, ffSingleSpot, ffMedian, ffGauss, ffMean, v -> {}, m -> {}, service);
+		return alignICP(stdataA, transformA, stdataB, transformB, genesToUse, initialModel, maxDistance, ransacDistance, maxIterations, ffSingleSpot, ffMedian, ffGauss, ffMean, v -> {}, m -> {}, service);
 	}
 	
 	/**
 	 * @param stdataA - data for A
+	 * @param transformA - loaded transform for A
 	 * @param stdataB - data for B
+	 * @param transformB - loaded transform for B
 	 * @param genesToUse - list of genes
 	 * @param initialModel - maps B to A
 	 * @param maxDistance - max search radius for corresponding point
@@ -75,7 +82,9 @@ public class ICPAlign
 	 */
 	public static < M extends Model< M >> Pair< M, List< PointMatch > > alignICP(
 			final STData stdataA,
+			final AffineTransform2D transformA,
 			final STData stdataB,
+			final AffineTransform2D transformB,
 			final Collection< String > genesToUse,
 			final M initialModel,
 			final double maxDistance,
@@ -94,7 +103,7 @@ public class ICPAlign
 		final PointMatchIdentification<RealPoint> pmi;
 		try
 		{
-			pmi = new StDataRelativePointMatchIdentification<>( stdataB, stdataA, genesToUse, maxDistance, 0.25, ffSingleSpot, ffMedian, ffGauss, ffMean, service );
+			pmi = new StDataRelativePointMatchIdentification<>( stdataB, transformB, stdataA, transformA, genesToUse, maxDistance, 0.25, ffSingleSpot, ffMedian, ffGauss, ffMean, service );
 
 			/*
 			new ImageJ();
@@ -114,11 +123,22 @@ public class ICPAlign
 		final ArrayList< RealPoint > listA = new ArrayList<>(); // reference
 		final ArrayList< RealPoint > listB = new ArrayList<>(); // target
 
+		final int n = stdataA.numDimensions();
+		final double[] l = new double[ n ];
+
 		for ( final RealLocalizable p : stdataA )
-			listA.add( new RealPoint( p ) ); // copies the location array
+		{
+			p.localize( l );
+			transformA.apply(l, l);
+			listA.add( new RealPoint( l ) ); // copies the location array
+		}
 
 		for ( final RealLocalizable p : stdataB )
-			listB.add( new RealPoint( p ) ); // copies the location array
+		{
+			p.localize( l );
+			transformB.apply(l, l);
+			listB.add( new RealPoint( l ) ); // copies the location array
+		}
 
 		final M model = initialModel.copy();
 

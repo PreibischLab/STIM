@@ -38,6 +38,7 @@ import filter.MedianFilterFactory;
 import filter.SingleSpotRemovingFilterFactory;
 import ij.ImageJ;
 import imglib2.ImgLib2Util;
+import imglib2.TransformedIterableRealInterval;
 import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.PointMatch;
 import net.imglib2.IterableRealInterval;
@@ -78,7 +79,9 @@ public class StDataRelativePointMatchIdentification < P extends RealLocalizable 
 
 	public StDataRelativePointMatchIdentification(
 			final STData stDataTarget,
+			final AffineTransform2D transformTarget,
 			final STData stDataReference,
+			final AffineTransform2D transformReference,
 			final Collection< String > genes,
 			final double distanceThreshold,
 			final double rankThreshold,
@@ -104,6 +107,9 @@ public class StDataRelativePointMatchIdentification < P extends RealLocalizable 
 
 			IterableRealInterval<DoubleType> ref = stDataReference.getExprData( gene );
 			IterableRealInterval<DoubleType> target = stDataTarget.getExprData( gene );
+
+			ref = new TransformedIterableRealInterval<>( ref, transformReference );
+			target = new TransformedIterableRealInterval<>( target, transformTarget );
 
 			if ( ffSingleSpot != null )
 			{
