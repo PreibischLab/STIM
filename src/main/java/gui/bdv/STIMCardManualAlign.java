@@ -132,12 +132,7 @@ public class STIMCardManualAlign
 
 				final AffineTransform2D t = sources.get( 0 ).currentModel2D().copy();
 
-				m00.setValue( t.get( 0, 0 ) );
-				m01.setValue( t.get( 0, 1 ) );
-				m02.setValue( t.get( 0, 2 ) );
-				m10.setValue( t.get( 1, 0 ) );
-				m11.setValue( t.get( 1, 1 ) );
-				m12.setValue( t.get( 1, 2 ) );
+				setTransformGUI( t );
 			}
 			else
 			{
@@ -184,14 +179,14 @@ public class STIMCardManualAlign
 						list.get( 1 ).source().setActive( false );
 					}
 				});
-	
+
 				currentSources.get( 0 ).source().setCurrent();
-	
+
 				sources.clear();
 				sources.addAll( currentSources ); // for stopping
-	
+
 				stimcard.bdvhandle().getViewerPanel().setDisplayMode( DisplayMode.FUSED );
-	
+
 				m00.setEnabled( false );
 				m01.setEnabled( false );
 				m02.setEnabled( false );
@@ -216,12 +211,7 @@ public class STIMCardManualAlign
 
 			final AffineTransform2D t = sources.get( 0 ).currentModel2D().copy();
 
-			m00.setValue( t.get( 0, 0 ) );
-			m01.setValue( t.get( 0, 1 ) );
-			m02.setValue( t.get( 0, 2 ) );
-			m10.setValue( t.get( 1, 0 ) );
-			m11.setValue( t.get( 1, 1 ) );
-			m12.setValue( t.get( 1, 2 ) );
+			setTransformGUI( t );
 		});
 
 		reset.addActionListener( l -> 
@@ -263,6 +253,13 @@ public class STIMCardManualAlign
 		m10.setEnabled( true );
 		m11.setEnabled( true );
 		m12.setEnabled( true );
+
+		stimcard.sourceData().values().forEach( list -> {
+			list.get( 0 ).source().setActive( true );
+			list.get( 1 ).source().setActive( true );
+		});
+
+		stimcard.bdvhandle().getViewerPanel().setDisplayMode( DisplayMode.GROUP );
 	}
 
 	protected void removeKey( final ActionMap map, final Object key )
