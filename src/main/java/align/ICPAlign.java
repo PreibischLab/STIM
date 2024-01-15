@@ -157,10 +157,14 @@ public class ICPAlign
 
 		do
 		{
+			System.out.println( i );
 			try
 			{
+				System.out.println( "Running iteration ");
 				icp.runICPIteration( model, model );
+				System.out.print( "Updating BDV ... ");
 				updateBDV.accept( model );
+				System.out.println( "done");
 			}
 			catch ( Exception e )
 			{
@@ -177,7 +181,7 @@ public class ICPAlign
 
 			progressBar.accept( progressPerIteration );
 
-			System.out.print( i + ": " + icp.getNumPointMatches() + " matches found by ICP." );
+			System.out.println( i + ": " + icp.getNumPointMatches() + " matches found by ICP." );
 		}
 		while ( !converged && ++i < maxIterations.get() );
 

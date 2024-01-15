@@ -362,24 +362,17 @@ public class STIMCardAlignICP
 								param.maxErrorICP, param.maxErrorRANSAC, param.maxIterations, param.ffSingleSpot, param.ffMedian, param.ffGauss, param.ffMean,
 								v ->
 								{
-									synchronized (this)
-									{
-										progressBarValue[0] += v;
-										bar.setValue((int) Math.round(progressBarValue[0]));
-									}
+									progressBarValue[0] += v;
+									bar.setValue((int) Math.round(progressBarValue[0]));
 								},
 								m ->
 								{
-									synchronized (this)
-									{
-										
-										stimcardSIFT.setModel( (Affine2D)m );
-										stimcard.applyTransformationToBDV( true );
+									stimcardSIFT.setModel( (Affine2D)m );
+									stimcard.applyTransformationToBDV( true );
 
-										if ( manualCard != null )
-											SwingUtilities.invokeLater( () -> manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( (Affine2D)m ) ) );
-										SimpleMultiThreading.threadWait( 100 );
-									}
+									if ( manualCard != null )
+										SwingUtilities.invokeLater( () -> manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( (Affine2D)m ) ) );
+									SimpleMultiThreading.threadWait( 100 );
 								},
 								service);
 
@@ -388,6 +381,7 @@ public class STIMCardAlignICP
 				//
 				if ( icpT != null && !icpT.getB().isEmpty() )
 				{
+					System.out.println( "ICP finished successfully.");
 					try
 					{
 						model = icpT.getA();
@@ -408,6 +402,8 @@ public class STIMCardAlignICP
 				}
 				else
 				{
+					System.out.println( "ICP did not converge.");
+
 					stimcardSIFT.setModel( previousModel );
 
 					if ( manualCard != null )
