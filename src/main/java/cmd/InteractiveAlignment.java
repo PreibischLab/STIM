@@ -13,6 +13,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import javax.swing.SwingUtilities;
+
 import align.Pairwise;
 import bdv.ui.splitpanel.SplitPanel;
 import bdv.util.BdvStackSource;
@@ -309,17 +311,22 @@ public class InteractiveAlignment implements Callable<Void> {
 		cardAlignSIFT.setManualAlignCard( cardAlignManual );
 		cardAlignICP.setManualAlignCard( cardAlignManual );
 
-		lastSource.getBdvHandle().getCardPanel().addCard( "Manual Alignment", "Manual Alignment", cardAlignManual.getPanel(), true );
-		lastSource.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlignSIFT.getPanel(), true );
-		lastSource.getBdvHandle().getCardPanel().addCard( "ICP Alignment", "ICP Alignment", cardAlignICP.getPanel(), false );
+		final BdvStackSource<?> source = lastSource;
+
+		SwingUtilities.invokeLater( () ->
+		{
+			source.getBdvHandle().getCardPanel().addCard( "Manual Alignment", "Manual Alignment", cardAlignManual.getPanel(), true );
+			source.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlignSIFT.getPanel(), true );
+			source.getBdvHandle().getCardPanel().addCard( "ICP Alignment", "ICP Alignment", cardAlignICP.getPanel(), false );
+		});
 
 		// Expands the split Panel (after waiting 2 secs for the BDV to calm down)
-		SimpleMultiThreading.threadWait( 2000 );
-		splitPanel.setCollapsed(false);
+		//SimpleMultiThreading.threadWait( 2000 );
+		SwingUtilities.invokeLater( () -> splitPanel.setCollapsed(false) );
 
 		// TODO: BDV should call the transform listener
-		SimpleMultiThreading.threadWait( 2000 );
-		cardAlignSIFT.updateMaxOctaveSize();
+		//SimpleMultiThreading.threadWait( 2000 );
+		SwingUtilities.invokeLater( () -> cardAlignSIFT.updateMaxOctaveSize() );
 
 		System.out.println("done");
 
