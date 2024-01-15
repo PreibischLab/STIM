@@ -28,6 +28,7 @@ import javax.swing.JProgressBar;
 import javax.swing.JSeparator;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.border.TitledBorder;
 import javax.swing.text.NumberFormatter;
 
@@ -362,28 +363,31 @@ public class STIMCardAlignSIFT
 		});
 
 		// transform listener for max octave size
-		stimcard.bdvhandle().getViewerPanel().transformListeners().add( l -> updateMaxOctaveSize() );
+		stimcard.bdvhandle().getViewerPanel().transformListeners().add( l -> SwingUtilities.invokeLater( () -> updateMaxOctaveSize() ) );
 
 		// advanced options listener (changes menu)
 		advancedOptions.addChangeListener( e ->
 		{
-			if ( !customModeSIFT )
+			SwingUtilities.invokeLater( () ->
 			{
-				// change to advanced mode
-				AtomicInteger cc = new AtomicInteger(componentCount);
-				triggedChange.set(true);
-				advancedSIFTComponents.forEach( c -> panel.add(c, "span,growx,pushy", cc.getAndIncrement() ));
-				panel.updateUI();
-
-				triggedChange.set( false );
-				customModeSIFT = true;
-			}
-			else
-			{
-				// change to simple mode
-				advancedSIFTComponents.forEach( c -> panel.remove( c ) );
-				customModeSIFT = false;
-			}
+				if ( !customModeSIFT )
+				{
+					// change to advanced mode
+					AtomicInteger cc = new AtomicInteger(componentCount);
+					triggedChange.set(true);
+					advancedSIFTComponents.forEach( c -> panel.add(c, "span,growx,pushy", cc.getAndIncrement() ));
+					panel.updateUI();
+	
+					triggedChange.set( false );
+					customModeSIFT = true;
+				}
+				else
+				{
+					// change to simple mode
+					advancedSIFTComponents.forEach( c -> panel.remove( c ) );
+					customModeSIFT = false;
+				}
+			});
 		});
 
 		// advanced menu listener (changes menu)
@@ -391,38 +395,41 @@ public class STIMCardAlignSIFT
 
 			if ( box.getSelectedIndex() < 4 )
 			{
-				// update all values to the specific preset
-				param.setIntrinsicParameters( SIFTPreset.values()[ box.getSelectedIndex() ] );
-
-				// make sure we do not set the box back to index=4 because of the listeners triggered by changing values below
-				triggedChange.set( true );
-
-				// update all GUI elements (except error, maxoctavesize)
-				fdSize.setValue( param.sift.fdSize );
-				fdBins.setValue( param.sift.fdBins );
-				rod.setValue( param.rod );
-				minOS.setValue( param.sift.minOctaveSize );
-				steps.setValue( param.sift.steps );
-				initialSigma.setValue( param.sift.initialSigma );
-				ilr.setValue( param.minInlierRatio );
-				it.setValue( param.iterations );
-				biDirectional.setSelected( param.biDirectional );
-
-				BoundedValue b = new BoundedValue(
-						Math.min( inliersPerGeneSlider.getValue().getMinBound(), param.minInliersGene ),
-						Math.max( inliersPerGeneSlider.getValue().getMaxBound(), param.minInliersGene ),
-						param.minInliersGene );
-				inliersPerGeneSlider.setValue( b );
-
-				b = new BoundedValue(
-						Math.min( inliersSlider.getValue().getMinBound(), param.minInliersTotal ),
-						Math.max( inliersSlider.getValue().getMaxBound(), param.minInliersTotal ),
-						param.minInliersTotal );
-				inliersSlider.setValue( b );
-
-				panel.updateUI();
-
-				triggedChange.set( false );
+				SwingUtilities.invokeLater( () ->
+				{
+					// update all values to the specific preset
+					param.setIntrinsicParameters( SIFTPreset.values()[ box.getSelectedIndex() ] );
+	
+					// make sure we do not set the box back to index=4 because of the listeners triggered by changing values below
+					triggedChange.set( true );
+	
+					// update all GUI elements (except error, maxoctavesize)
+					fdSize.setValue( param.sift.fdSize );
+					fdBins.setValue( param.sift.fdBins );
+					rod.setValue( param.rod );
+					minOS.setValue( param.sift.minOctaveSize );
+					steps.setValue( param.sift.steps );
+					initialSigma.setValue( param.sift.initialSigma );
+					ilr.setValue( param.minInlierRatio );
+					it.setValue( param.iterations );
+					biDirectional.setSelected( param.biDirectional );
+	
+					BoundedValue b = new BoundedValue(
+							Math.min( inliersPerGeneSlider.getValue().getMinBound(), param.minInliersGene ),
+							Math.max( inliersPerGeneSlider.getValue().getMaxBound(), param.minInliersGene ),
+							param.minInliersGene );
+					inliersPerGeneSlider.setValue( b );
+	
+					b = new BoundedValue(
+							Math.min( inliersSlider.getValue().getMinBound(), param.minInliersTotal ),
+							Math.max( inliersSlider.getValue().getMaxBound(), param.minInliersTotal ),
+							param.minInliersTotal );
+					inliersSlider.setValue( b );
+	
+					panel.updateUI();
+	
+					triggedChange.set( false );
+				});
 			}
 		});
 
@@ -449,7 +456,7 @@ public class STIMCardAlignSIFT
 					Math.min( inliersSlider.getValue().getMinBound(), value ),
 					Math.max( inliersSlider.getValue().getMaxBound(), value ),
 					value );
-			inliersSlider.setValue( b );
+			SwingUtilities.invokeLater( () -> inliersSlider.setValue( b ) );
 		} );
 		inliersPerGeneSlider.changeListeners().add( () -> {
 			final int value = (int)Math.round( inliersPerGeneSlider.getValue().getValue() );
@@ -457,19 +464,24 @@ public class STIMCardAlignSIFT
 					Math.min( inliersPerGeneSlider.getValue().getMinBound(), value ),
 					Math.max( inliersPerGeneSlider.getValue().getMaxBound(), value ),
 					value );
-			inliersPerGeneSlider.setValue( b );
+			SwingUtilities.invokeLater( () -> inliersPerGeneSlider.setValue( b ) );
 		} );
 
 		// disable lambdas if no regularization is selected
-		boxModelRANSAC2.addActionListener( e -> {
-			tfRANSAC.setEnabled( boxModelRANSAC2.getSelectedIndex() != 0 );
-			labelRANSACReg.setForeground( boxModelRANSAC2.getSelectedIndex() == 0 ? Color.gray : Color.black );
-		} );
+		boxModelRANSAC2.addActionListener( e ->
+			SwingUtilities.invokeLater( () -> {
+				tfRANSAC.setEnabled( boxModelRANSAC2.getSelectedIndex() != 0 );
+				labelRANSACReg.setForeground( boxModelRANSAC2.getSelectedIndex() == 0 ? Color.gray : Color.black );
+			})
+		);
 
-		boxModelFinal2.addActionListener( e -> {
-			tfFinal.setEnabled( boxModelFinal2.getSelectedIndex() != 0 );
-			labelFinalReg.setForeground( boxModelFinal2.getSelectedIndex() == 0 ? Color.gray : Color.black );
-		} );
+		boxModelFinal2.addActionListener( e -> 
+			SwingUtilities.invokeLater( () ->
+			{
+				tfFinal.setEnabled( boxModelFinal2.getSelectedIndex() != 0 );
+				labelFinalReg.setForeground( boxModelFinal2.getSelectedIndex() == 0 ? Color.gray : Color.black );
+			})
+		);
 
 		//
 		// Run SIFT alignment
@@ -483,21 +495,23 @@ public class STIMCardAlignSIFT
 				new ArrayList<>( threads ).forEach( t -> t.stop() );
 
 				// wait a bit
-				try { Thread.sleep( 1000 ); } catch (InterruptedException e1) {}
-
-				reEnableControls();
+				try { Thread.sleep( 500 ); } catch (InterruptedException e1) {}
 
 				siftThread = null;
 				threads.clear();
 
-				setModel( previousModel );
-
-				if ( manualCard != null )
+				SwingUtilities.invokeLater( () ->
 				{
-					manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( previousModel ) );
-					manualCard.reEnableControlsExternal();
-				}
+					reEnableControls();
 
+					if ( manualCard != null )
+					{
+						manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( previousModel ) );
+						manualCard.reEnableControlsExternal();
+					}
+				});
+
+				setModel( previousModel );
 				stimcard.applyTransformationToBDV( true );
 
 				return;
@@ -506,26 +520,29 @@ public class STIMCardAlignSIFT
 			// take the previous model simply from the first AddedGene list
 			previousModel = (Affine2D)((Model)stimcard.sourceData().values().iterator().next().get( 0 ).currentModel()).copy();
 
-			siftoverlay.setInliers( new ArrayList<>() );
-			stimcard.bdvhandle().getViewerPanel().renderTransformListeners().remove( siftoverlay );
-			stimcard.bdvhandle().getViewerPanel().getDisplay().overlays().remove( siftoverlay );
-			run.setForeground( Color.red );
-			run.setFont( run.getFont().deriveFont( Font.BOLD ) );
-			run.setText( "  Cancel SIFT Align  " );
-			cmdLine.setEnabled( false );
-			reset.setEnabled( false );
-			saveTransform.setEnabled( false );
-			overlayInliers.setEnabled( false );
-			bar.setValue( 1 );
-			if ( icpCard != null )
+			SwingUtilities.invokeLater( () ->
 			{
-				icpCard.cmdLine.setEnabled( false );
-				icpCard.run.setEnabled( false );
-				icpCard.reset.setEnabled( false );
-				icpCard.saveTransform.setEnabled( false );
-			}
-			if ( manualCard != null )
-				manualCard.disableControlsExternal();
+				siftoverlay.setInliers( new ArrayList<>() );
+				stimcard.bdvhandle().getViewerPanel().renderTransformListeners().remove( siftoverlay );
+				stimcard.bdvhandle().getViewerPanel().getDisplay().overlays().remove( siftoverlay );
+				run.setForeground( Color.red );
+				run.setFont( run.getFont().deriveFont( Font.BOLD ) );
+				run.setText( "  Cancel SIFT Align  " );
+				cmdLine.setEnabled( false );
+				reset.setEnabled( false );
+				saveTransform.setEnabled( false );
+				overlayInliers.setEnabled( false );
+				bar.setValue( 1 );
+				if ( icpCard != null )
+				{
+					icpCard.cmdLine.setEnabled( false );
+					icpCard.run.setEnabled( false );
+					icpCard.reset.setEnabled( false );
+					icpCard.saveTransform.setEnabled( false );
+				}
+				if ( manualCard != null )
+					manualCard.disableControlsExternal();
+			});
 
 			siftThread = new Thread( () ->
 			{
@@ -580,8 +597,11 @@ public class STIMCardAlignSIFT
 						System.out.println( "2D transform: " + stimcard.sourceData().values().iterator().next().get( 0 ).currentModel2D() );
 						System.out.println( "3D viewer transform: " + stimcard.sourceData().values().iterator().next().get( 0 ).currentModel3D() );
 
-						if ( manualCard != null )
-							manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( (Affine2D)modelPair.getB() ) );
+						SwingUtilities.invokeLater( () ->
+						{
+							if ( manualCard != null )
+								manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( (Affine2D)modelPair.getB() ) );
+						} );
 					}
 					catch ( Exception e )
 					{
@@ -602,8 +622,11 @@ public class STIMCardAlignSIFT
 					genesWithInliers.forEach( s -> System.out.print( s + " " ) );
 					System.out.println();
 
-					overlayInliers.setSelected( true );
-					overlayInliers.setEnabled( true );
+					SwingUtilities.invokeLater( () ->
+					{
+						overlayInliers.setSelected( true );
+						overlayInliers.setEnabled( true );
+					});
 				}
 				else
 				{
@@ -613,25 +636,31 @@ public class STIMCardAlignSIFT
 
 					lastMaxError = Double.NaN;
 
-					if ( manualCard != null )
-						manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( previousModel ) );
-
-					siftoverlay.setInliers( new ArrayList<>() );
-					genesWithInliers.clear();
-					overlayInliers.setEnabled( false );
+					SwingUtilities.invokeLater( () ->
+					{
+						if ( manualCard != null )
+							manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( previousModel ) );
+	
+						siftoverlay.setInliers( new ArrayList<>() );
+						genesWithInliers.clear();
+						overlayInliers.setEnabled( false );
+					});
 				}
 
-				if ( icpCard != null )
+				SwingUtilities.invokeLater( () ->
 				{
-					//System.out.println( "Updating ICP to " + genesWithInliers.size() );
-					icpCard.siftResults().setText( STIMCardAlignICP.getSIFTResultLabelText( genesWithInliers.size() ) );
-					icpCard.getPanel().updateUI();
-				}
-
-				reEnableControls();
-
-				if ( manualCard != null )
-					manualCard.reEnableControlsExternal();
+					if ( icpCard != null )
+					{
+						//System.out.println( "Updating ICP to " + genesWithInliers.size() );
+						icpCard.siftResults().setText( STIMCardAlignICP.getSIFTResultLabelText( genesWithInliers.size() ) );
+						icpCard.getPanel().updateUI();
+					}
+	
+					reEnableControls();
+	
+					if ( manualCard != null )
+						manualCard.reEnableControlsExternal();
+				});
 
 				stimcard.bdvhandle().getViewerPanel().requestRepaint();
 				siftThread = null;

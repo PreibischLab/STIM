@@ -20,6 +20,7 @@ import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.SwingUtilities;
 
 import bdv.util.BdvHandle;
 import bdv.viewer.DisplayMode;
@@ -234,7 +235,12 @@ public class STIMCard
 			if ( currentBrightnessMin > currentBrightnessMax )
 			{
 				currentBrightnessMin = currentBrightnessMax;
-				brightnessSliderMin.setValue( new BoundedValue(brightnessSliderMin.getValue().getMinBound(), brightnessSliderMin.getValue().getMaxBound(), currentBrightnessMin) );
+				SwingUtilities.invokeLater( () ->
+				brightnessSliderMin.setValue(
+						new BoundedValue(
+								brightnessSliderMin.getValue().getMinBound(),
+								brightnessSliderMin.getValue().getMaxBound(),
+								currentBrightnessMin) ) );
 			}
 
 			if ( oldBrightness != currentBrightnessMin )
@@ -272,7 +278,12 @@ public class STIMCard
 			if ( currentBrightnessMax < currentBrightnessMin )
 			{
 				currentBrightnessMax = currentBrightnessMin;
-				brightnessSliderMax.setValue( new BoundedValue(brightnessSliderMax.getValue().getMinBound(), brightnessSliderMax.getValue().getMaxBound(), currentBrightnessMax) );
+				SwingUtilities.invokeLater( () ->
+					brightnessSliderMax.setValue(
+							new BoundedValue(
+									brightnessSliderMax.getValue().getMinBound(),
+									brightnessSliderMax.getValue().getMaxBound(),
+									currentBrightnessMax) ) );
 			}
 
 			if ( oldBrightness != currentBrightnessMax )

@@ -16,6 +16,7 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.SwingUtilities;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 
@@ -322,8 +323,7 @@ public class STIMCardFilter
 				}
 	
 				stimcard.bdvhandle().getViewerPanel().requestRepaint();
-	
-				table.setForeground( Color.black );
+				SwingUtilities.invokeLater( () -> table.setForeground( Color.black ) );
 				isEditable = true;
 			}).start();
 		}

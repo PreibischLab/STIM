@@ -13,6 +13,7 @@ import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFormattedTextField;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import javax.swing.border.TitledBorder;
 import javax.swing.text.NumberFormatter;
 
@@ -22,7 +23,6 @@ import bdv.BigDataViewerActions;
 import bdv.tools.transformation.ManualTransformationEditor;
 import bdv.viewer.DisplayMode;
 import mpicbg.models.Affine2D;
-import mpicbg.models.AffineModel2D;
 import mpicbg.models.Model;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.realtransform.AffineTransform3D;
@@ -122,8 +122,6 @@ public class STIMCardManualAlign
 				isRunning.set( false );
 				m.setActive( false );
 
-				reEnableControls();
-
 				// overwrites the fixedTransform, we need to apply it to all other sources
 				final AffineTransform3D t3 = new AffineTransform3D();
 				sources.get( 0 ).transformedSource().getFixedTransform(t3);
@@ -132,33 +130,40 @@ public class STIMCardManualAlign
 
 				final AffineTransform2D t = sources.get( 0 ).currentModel2D().copy();
 
-				setTransformGUI( t );
+				SwingUtilities.invokeLater( () ->
+				{
+					reEnableControls();
+					setTransformGUI( t );
+				});
 			}
 			else
 			{
 				previousModel = (Affine2D)((Model)stimcard.sourceData().values().iterator().next().get( 0 ).currentModel()).copy();
 
-				// disable local controls
-				isRunning.set( true );
-				reset.setEnabled( false );
-				cancel.setEnabled( true );
-				cancel.setForeground( Color.red );
-				run.setText( "Finish" );
-				run.setForeground( new Color( 50, 150, 50 ) );
-
-				// disable SIFT, ICP controls
-				siftCard.run.setEnabled( false );
-				siftCard.cmdLine.setEnabled( false );
-				siftCard.reset.setEnabled( false );
-				siftCard.overlayInliers.setSelected( false );
-				siftCard.saveTransform.setEnabled( false );
-				if ( icpCard != null )
+				SwingUtilities.invokeLater( () ->
 				{
-					icpCard.run.setEnabled( false );
-					icpCard.cmdLine.setEnabled( false );
-					icpCard.reset.setEnabled( false );
-					icpCard.saveTransform.setEnabled( false );
-				}
+					// disable local controls
+					isRunning.set( true );
+					reset.setEnabled( false );
+					cancel.setEnabled( true );
+					cancel.setForeground( Color.red );
+					run.setText( "Finish" );
+					run.setForeground( new Color( 50, 150, 50 ) );
+	
+					// disable SIFT, ICP controls
+					siftCard.run.setEnabled( false );
+					siftCard.cmdLine.setEnabled( false );
+					siftCard.reset.setEnabled( false );
+					siftCard.overlayInliers.setSelected( false );
+					siftCard.saveTransform.setEnabled( false );
+					if ( icpCard != null )
+					{
+						icpCard.run.setEnabled( false );
+						icpCard.cmdLine.setEnabled( false );
+						icpCard.reset.setEnabled( false );
+						icpCard.saveTransform.setEnabled( false );
+					}
+				});
 
 				// we need to switch to single-source, fused mode showing only the current gene
 				// and activate the first source to transform it
@@ -200,13 +205,16 @@ public class STIMCardManualAlign
 
 				stimcard.bdvhandle().getViewerPanel().setDisplayMode( DisplayMode.FUSED );
 
-				m00.setEnabled( false );
-				m01.setEnabled( false );
-				m02.setEnabled( false );
-				m10.setEnabled( false );
-				m11.setEnabled( false );
-				m12.setEnabled( false );
-	
+				SwingUtilities.invokeLater( () ->
+				{
+					m00.setEnabled( false );
+					m01.setEnabled( false );
+					m02.setEnabled( false );
+					m10.setEnabled( false );
+					m11.setEnabled( false );
+					m12.setEnabled( false );
+				});
+
 				m.setActive( true );
 			}
 		});
@@ -217,14 +225,16 @@ public class STIMCardManualAlign
 			isRunning.set( false );
 			m.setActive( false );
 
-			reEnableControls();
-
 			siftCard.setModel( previousModel );
 			stimcard.applyTransformationToBDV( true ); // should be identical
 
 			final AffineTransform2D t = sources.get( 0 ).currentModel2D().copy();
 
-			setTransformGUI( t );
+			SwingUtilities.invokeLater( () ->
+			{
+				reEnableControls();
+				setTransformGUI( t );
+			});
 		});
 
 		reset.addActionListener( l -> 
@@ -236,11 +246,11 @@ public class STIMCardManualAlign
 			siftCard.setTransform( transform );
 			stimcard.applyTransformationToBDV( true ); // should be identical
 
-			setTransformGUI( transform );
+			SwingUtilities.invokeLater( () -> setTransformGUI( transform ) );
 		});
 	}
 
-	public synchronized void setTransformGUI( final AffineTransform2D t )
+	public void setTransformGUI( final AffineTransform2D t )
 	{
 		m00.setValue( t.get( 0, 0 ) );
 		m01.setValue( t.get( 0, 1 ) );
@@ -251,7 +261,7 @@ public class STIMCardManualAlign
 	}
 
 	// called by ICP, SIFT
-	public synchronized void disableControlsExternal()
+	public void disableControlsExternal()
 	{
 		reset.setEnabled( false );
 		cancel.setEnabled( false );
@@ -266,7 +276,7 @@ public class STIMCardManualAlign
 	}
 
 	// called by ICP, SIFT
-	public synchronized void reEnableControlsExternal()
+	public void reEnableControlsExternal()
 	{
 		reset.setEnabled( true );
 		cancel.setEnabled( false );
@@ -281,7 +291,7 @@ public class STIMCardManualAlign
 	}
 
 	// called locally
-	private synchronized void reEnableControls()
+	private void reEnableControls()
 	{
 		siftCard.run.setEnabled( true );
 		siftCard.cmdLine.setEnabled( true );

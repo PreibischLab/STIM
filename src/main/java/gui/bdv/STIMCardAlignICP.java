@@ -29,7 +29,6 @@ import cmd.InteractiveAlignment;
 import data.STDataUtils;
 import gui.DisplayScaleOverlay;
 import mpicbg.models.Affine2D;
-import mpicbg.models.AffineModel2D;
 import mpicbg.models.CoordinateTransform;
 import mpicbg.models.IllDefinedDataPointsException;
 import mpicbg.models.Model;
@@ -222,18 +221,21 @@ public class STIMCardAlignICP
 		panel.add(panelbuttons, "span,growx,pushy");
 
 		// disable RANSAC slider if not used
-		useRANSAC.addActionListener( e -> maxErrorRANSACSlider.setEnabled( useRANSAC.isSelected() ) );
+		useRANSAC.addActionListener( e -> SwingUtilities.invokeLater( () -> maxErrorRANSACSlider.setEnabled( useRANSAC.isSelected() ) ) );
 
 		// disable lambdas if no regularization is selected
 		boxModelFinal2.addActionListener( e -> {
-			tfFinal.setEnabled( boxModelFinal2.getSelectedIndex() != 0 );
-			labelFinalReg.setForeground( boxModelFinal2.getSelectedIndex() == 0 ? Color.gray : Color.black );
+			SwingUtilities.invokeLater( () ->
+			{
+				tfFinal.setEnabled( boxModelFinal2.getSelectedIndex() != 0 );
+				labelFinalReg.setForeground( boxModelFinal2.getSelectedIndex() == 0 ? Color.gray : Color.black );
+			});
 		} );
 
 		// be able to change number of iterations while running
-		iterationsSlider.changeListeners().add( () -> {
-			param.maxIterations.set( (int)Math.round( iterationsSlider.getValue().getValue() ) );
-		});
+		iterationsSlider.changeListeners().add( () ->
+			SwingUtilities.invokeLater( () -> param.maxIterations.set( (int)Math.round( iterationsSlider.getValue().getValue() ) ) )
+		);
 
 		//
 		// Run ICP alignment
@@ -248,8 +250,6 @@ public class STIMCardAlignICP
 				// wait a bit
 				try { Thread.sleep( 100 ); } catch (InterruptedException e1) {}
 
-				reEnableControls();
-
 				icpThread = null;
 
 				// we're just stopping ...
@@ -258,11 +258,16 @@ public class STIMCardAlignICP
 				System.out.println( "2D transform: " + stimcard.sourceData().values().iterator().next().get( 0 ).currentModel2D() );
 				System.out.println( "3D viewer transform: " + stimcard.sourceData().values().iterator().next().get( 0 ).currentModel3D() );
 
-				if ( manualCard != null )
+				SwingUtilities.invokeLater( () ->
 				{
-					manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( stimcard.sourceData().values().iterator().next().get( 0 ).currentModel() ) );
-					manualCard.reEnableControlsExternal();
-				}
+					reEnableControls();
+
+					if ( manualCard != null )
+					{
+						manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( stimcard.sourceData().values().iterator().next().get( 0 ).currentModel() ) );
+						manualCard.reEnableControlsExternal();
+					}
+				});
 
 				return;
 			}
@@ -271,20 +276,23 @@ public class STIMCardAlignICP
 			if ( previousModel == null )
 				previousModel = (Affine2D)((Model)stimcard.sourceData().values().iterator().next().get( 0 ).currentModel()).copy();
 
-			run.setForeground( Color.red );
-			run.setFont( run.getFont().deriveFont( Font.BOLD ) );
-			run.setText( "     STOP ICP run     ");
-			cmdLine.setEnabled( false );
-			reset.setEnabled( false );
-			saveTransform.setEnabled( false );
-			bar.setValue( 1 );
-			stimcardSIFT.cmdLine.setEnabled( false );
-			stimcardSIFT.run.setEnabled( false );
-			stimcardSIFT.saveTransform.setEnabled( false );
-			stimcardSIFT.overlayInliers.setSelected( false );
+			SwingUtilities.invokeLater( () -> 
+			{
+				run.setForeground( Color.red );
+				run.setFont( run.getFont().deriveFont( Font.BOLD ) );
+				run.setText( "     STOP ICP run     ");
+				cmdLine.setEnabled( false );
+				reset.setEnabled( false );
+				saveTransform.setEnabled( false );
+				bar.setValue( 1 );
+				stimcardSIFT.cmdLine.setEnabled( false );
+				stimcardSIFT.run.setEnabled( false );
+				stimcardSIFT.saveTransform.setEnabled( false );
+				stimcardSIFT.overlayInliers.setSelected( false );
 
-			if ( manualCard != null )
-				manualCard.disableControlsExternal();
+				if ( manualCard != null )
+					manualCard.disableControlsExternal();
+			});
 
 			// TODO: make sure current model is taken into account (seems to be somehow, weird)
 			icpThread = new Thread( () ->
@@ -314,7 +322,7 @@ public class STIMCardAlignICP
 				{
 					System.out.println( "no genes for ICP, please run SIFT successfully first or select 'all displayed genes'.");
 
-					reEnableControls();
+					SwingUtilities.invokeLater( () -> reEnableControls() );
 					icpThread = null;
 
 					return;
@@ -410,10 +418,13 @@ public class STIMCardAlignICP
 						SwingUtilities.invokeLater( () -> manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( previousModel ) ) );
 				}
 
-				if ( manualCard != null )
-					SwingUtilities.invokeLater( () -> manualCard.reEnableControlsExternal() );
+				SwingUtilities.invokeLater( () -> 
+				{ 
+					reEnableControls();
+					if ( manualCard != null )
+						manualCard.reEnableControlsExternal();
+				});
 
-				SwingUtilities.invokeLater( () -> reEnableControls() );
 				stimcard.applyTransformationToBDV( true );
 
 				icpThread = null;
@@ -430,8 +441,11 @@ public class STIMCardAlignICP
 			stimcardSIFT.setModel( previousModel );
 			stimcard.applyTransformationToBDV( true );
 
-			if ( manualCard != null )
-				manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( previousModel ) );
+			SwingUtilities.invokeLater( () ->
+			{
+				if ( manualCard != null )
+					manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( previousModel ) );
+			});
 
 			System.out.println( "reset ICP transformations.");
 		});
