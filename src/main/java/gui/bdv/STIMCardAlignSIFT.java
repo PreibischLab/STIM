@@ -480,7 +480,7 @@ public class STIMCardAlignSIFT
 			{
 				// request to cancel
 				siftThread.stop();
-				threads.forEach( t -> t.stop() );
+				new ArrayList<>( threads ).forEach( t -> t.stop() );
 
 				// wait a bit
 				try { Thread.sleep( 1000 ); } catch (InterruptedException e1) {}
@@ -491,8 +491,12 @@ public class STIMCardAlignSIFT
 				threads.clear();
 
 				setModel( previousModel );
+
 				if ( manualCard != null )
+				{
 					manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( previousModel ) );
+					manualCard.reEnableControlsExternal();
+				}
 
 				stimcard.applyTransformationToBDV( true );
 
@@ -517,7 +521,11 @@ public class STIMCardAlignSIFT
 			{
 				icpCard.cmdLine.setEnabled( false );
 				icpCard.run.setEnabled( false );
+				icpCard.reset.setEnabled( false );
+				icpCard.saveTransform.setEnabled( false );
 			}
+			if ( manualCard != null )
+				manualCard.disableControlsExternal();
 
 			siftThread = new Thread( () ->
 			{
@@ -621,6 +629,9 @@ public class STIMCardAlignSIFT
 				}
 
 				reEnableControls();
+
+				if ( manualCard != null )
+					manualCard.reEnableControlsExternal();
 
 				stimcard.bdvhandle().getViewerPanel().requestRepaint();
 				siftThread = null;
@@ -797,6 +808,8 @@ public class STIMCardAlignSIFT
 		{
 			icpCard.cmdLine.setEnabled( true );
 			icpCard.run.setEnabled( true );
+			icpCard.reset.setEnabled( false );
+			icpCard.saveTransform.setEnabled( false );
 		}
 	}
 

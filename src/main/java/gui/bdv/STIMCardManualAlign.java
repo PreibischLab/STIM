@@ -138,17 +138,30 @@ public class STIMCardManualAlign
 			{
 				previousModel = (Affine2D)((Model)stimcard.sourceData().values().iterator().next().get( 0 ).currentModel()).copy();
 
-				// TODO: disable SIFT, ICP controls
+				// disable local controls
 				isRunning.set( true );
 				reset.setEnabled( false );
 				cancel.setEnabled( true );
 				cancel.setForeground( Color.red );
 				run.setText( "Finish" );
 				run.setForeground( new Color( 50, 150, 50 ) );
-	
+
+				// disable SIFT, ICP controls
+				siftCard.run.setEnabled( false );
+				siftCard.cmdLine.setEnabled( false );
+				siftCard.reset.setEnabled( false );
+				siftCard.overlayInliers.setSelected( false );
+				siftCard.saveTransform.setEnabled( false );
+				if ( icpCard != null )
+				{
+					icpCard.run.setEnabled( false );
+					icpCard.cmdLine.setEnabled( false );
+					icpCard.reset.setEnabled( false );
+					icpCard.saveTransform.setEnabled( false );
+				}
+
 				// we need to switch to single-source, fused mode showing only the current gene
 				// and activate the first source to transform it
-	
 				final HashSet<String> visible = stimcard.currentlyVisibleGenes();
 	
 				if ( visible.size() == 0 )
@@ -227,7 +240,7 @@ public class STIMCardManualAlign
 		});
 	}
 
-	public void setTransformGUI( final AffineTransform2D t )
+	public synchronized void setTransformGUI( final AffineTransform2D t )
 	{
 		m00.setValue( t.get( 0, 0 ) );
 		m01.setValue( t.get( 0, 1 ) );
@@ -237,9 +250,50 @@ public class STIMCardManualAlign
 		m12.setValue( t.get( 1, 2 ) );
 	}
 
-	protected void reEnableControls()
+	// called by ICP, SIFT
+	public synchronized void disableControlsExternal()
 	{
-		// TODO: enable SIFT, ICP controls
+		reset.setEnabled( false );
+		cancel.setEnabled( false );
+		run.setEnabled( false );
+
+		m00.setEnabled( false );
+		m01.setEnabled( false );
+		m02.setEnabled( false );
+		m10.setEnabled( false );
+		m11.setEnabled( false );
+		m12.setEnabled( false );
+	}
+
+	// called by ICP, SIFT
+	public synchronized void reEnableControlsExternal()
+	{
+		reset.setEnabled( true );
+		cancel.setEnabled( false );
+		run.setEnabled( true );
+
+		m00.setEnabled( true );
+		m01.setEnabled( true );
+		m02.setEnabled( true );
+		m10.setEnabled( true );
+		m11.setEnabled( true );
+		m12.setEnabled( true );
+	}
+
+	// called locally
+	private synchronized void reEnableControls()
+	{
+		siftCard.run.setEnabled( true );
+		siftCard.cmdLine.setEnabled( true );
+		siftCard.reset.setEnabled( true );
+		siftCard.saveTransform.setEnabled( false );
+		if ( icpCard != null )
+		{
+			icpCard.run.setEnabled( true );
+			icpCard.cmdLine.setEnabled( true );
+			icpCard.reset.setEnabled( true );
+			icpCard.saveTransform.setEnabled( true );
+		}
 
 		run.setText( "Start" );
 		run.setForeground( Color.black );

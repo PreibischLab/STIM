@@ -20,6 +20,7 @@ import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 
 import align.AlignTools;
 import align.ICPAlign;
@@ -36,6 +37,7 @@ import mpicbg.models.NotEnoughDataPointsException;
 import mpicbg.models.Point;
 import mpicbg.models.PointMatch;
 import net.imglib2.Interval;
+import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.util.Pair;
 import net.miginfocom.swing.MigLayout;
 import util.BoundedValue;
@@ -257,7 +259,10 @@ public class STIMCardAlignICP
 				System.out.println( "3D viewer transform: " + stimcard.sourceData().values().iterator().next().get( 0 ).currentModel3D() );
 
 				if ( manualCard != null )
+				{
 					manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( stimcard.sourceData().values().iterator().next().get( 0 ).currentModel() ) );
+					manualCard.reEnableControlsExternal();
+				}
 
 				return;
 			}
@@ -275,7 +280,11 @@ public class STIMCardAlignICP
 			bar.setValue( 1 );
 			stimcardSIFT.cmdLine.setEnabled( false );
 			stimcardSIFT.run.setEnabled( false );
+			stimcardSIFT.saveTransform.setEnabled( false );
 			stimcardSIFT.overlayInliers.setSelected( false );
+
+			if ( manualCard != null )
+				manualCard.disableControlsExternal();
 
 			// TODO: make sure current model is taken into account (seems to be somehow, weird)
 			icpThread = new Thread( () ->
@@ -361,13 +370,15 @@ public class STIMCardAlignICP
 								},
 								m ->
 								{
-									synchronized (stimcard)
+									synchronized (this)
 									{
+										
 										stimcardSIFT.setModel( (Affine2D)m );
 										stimcard.applyTransformationToBDV( true );
 
 										if ( manualCard != null )
-											manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( (Affine2D)m ) );
+											SwingUtilities.invokeLater( () -> manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( (Affine2D)m ) ) );
+										SimpleMultiThreading.threadWait( 100 );
 									}
 								},
 								service);
@@ -402,6 +413,9 @@ public class STIMCardAlignICP
 					if ( manualCard != null )
 						manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( previousModel ) );
 				}
+
+				if ( manualCard != null )
+					manualCard.reEnableControlsExternal();
 
 				reEnableControls();
 				stimcard.applyTransformationToBDV( true );
