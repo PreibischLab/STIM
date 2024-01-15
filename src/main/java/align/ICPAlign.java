@@ -157,14 +157,11 @@ public class ICPAlign
 
 		do
 		{
-			System.out.println( i );
+			System.out.println( "Iteration: " + i );
 			try
 			{
-				System.out.println( "Running iteration ");
 				icp.runICPIteration( model, model );
-				System.out.print( "Updating BDV ... ");
 				updateBDV.accept( model );
-				System.out.println( "done");
 			}
 			catch ( Exception e )
 			{
