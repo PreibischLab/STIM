@@ -363,7 +363,7 @@ public class STIMCardAlignICP
 								v ->
 								{
 									progressBarValue[0] += v;
-									bar.setValue((int) Math.round(progressBarValue[0]));
+									SwingUtilities.invokeLater( () -> bar.setValue((int) Math.round(progressBarValue[0])) );
 								},
 								m ->
 								{
@@ -384,14 +384,14 @@ public class STIMCardAlignICP
 					System.out.println( "ICP finished successfully.");
 					try
 					{
-						model = icpT.getA();
+						final Model modelFinal = icpT.getA();
 
-						stimcardSIFT.setModel( (Affine2D)model );
+						stimcardSIFT.setModel( (Affine2D)modelFinal );
 
 						if ( manualCard != null )
-							manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( (Affine2D)model ) );
+							SwingUtilities.invokeLater( () -> manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( (Affine2D)modelFinal ) ) );
 
-						System.out.println( "2D model: " + model );
+						System.out.println( "2D model: " + modelFinal );
 						System.out.println( "2D transform: " + stimcard.sourceData().values().iterator().next().get( 0 ).currentModel2D() );
 						System.out.println( "3D viewer transform: " + stimcard.sourceData().values().iterator().next().get( 0 ).currentModel3D() );
 					}
@@ -407,13 +407,13 @@ public class STIMCardAlignICP
 					stimcardSIFT.setModel( previousModel );
 
 					if ( manualCard != null )
-						manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( previousModel ) );
+						SwingUtilities.invokeLater( () -> manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( previousModel ) ) );
 				}
 
 				if ( manualCard != null )
-					manualCard.reEnableControlsExternal();
+					SwingUtilities.invokeLater( () -> manualCard.reEnableControlsExternal() );
 
-				reEnableControls();
+				SwingUtilities.invokeLater( () -> reEnableControls() );
 				stimcard.applyTransformationToBDV( true );
 
 				icpThread = null;
