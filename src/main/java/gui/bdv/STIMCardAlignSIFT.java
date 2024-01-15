@@ -609,6 +609,7 @@ public class STIMCardAlignSIFT
 					}
 
 					// Overlay detections
+					// TODO: they seem off, do we forget the boundary we added to the image???
 					siftoverlay.setInliers( match.getInliers() );
 
 					// Remember all genes with inliers
@@ -631,7 +632,6 @@ public class STIMCardAlignSIFT
 				else
 				{
 					setModel( previousModel );
-					//stimcard.setCurrentModel( previousModel );
 					stimcard.applyTransformationToBDV( true );
 
 					lastMaxError = Double.NaN;
