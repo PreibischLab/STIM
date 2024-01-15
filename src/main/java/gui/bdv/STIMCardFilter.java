@@ -192,6 +192,7 @@ public class STIMCardFilter
 				currentActiveValues[ 0 ] = true;
 				filters[ 0 ][ 0 ] = true;
 				filters[ 0 ][ 2 ] = ffSingleSpot;
+				currentRadiusValues[ 0 ] = ffSingleSpot;
 				update = true;
 			}
 
@@ -200,6 +201,7 @@ public class STIMCardFilter
 				currentActiveValues[ 1 ] = true;
 				filters[ 1 ][ 0 ] = true;
 				filters[ 1 ][ 2 ] = ffMedian;
+				currentRadiusValues[ 1 ] = ffMedian;
 				update = true;
 			}
 
@@ -208,6 +210,7 @@ public class STIMCardFilter
 				currentActiveValues[ 2 ] = true;
 				filters[ 2 ][ 0 ] = true;
 				filters[ 2 ][ 2 ] = ffGauss;
+				currentRadiusValues[ 2 ] = ffGauss;
 				update = true;
 			}
 
@@ -216,6 +219,7 @@ public class STIMCardFilter
 				currentActiveValues[ 3 ] = true;
 				filters[ 3 ][ 0 ] = true;
 				filters[ 3 ][ 2 ] = ffMean;
+				currentRadiusValues[ 3 ] = ffMean;
 				update = true;
 			}
 
@@ -286,7 +290,7 @@ public class STIMCardFilter
 
 			new Thread( () ->
 			{
-				table.setForeground( Color.lightGray );
+				SwingUtilities.invokeLater( () -> table.setForeground( Color.lightGray ) );
 	
 				// replace original values first
 				stimcard.sourceData().forEach( (gene,data) ->
@@ -294,7 +298,7 @@ public class STIMCardFilter
 					data.forEach( d ->
 					{
 						final Iterator<Double> iFilt = d.originalValues().iterator();
-						d.tree().forEach( t -> t.set( iFilt.next() ) );	
+						d.tree().forEach( t -> t.set( iFilt.next() ) );
 					});
 				} );
 	
