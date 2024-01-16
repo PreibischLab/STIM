@@ -224,8 +224,6 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 							filterFactories );
 
 			BdvOptions options = BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() ).addTo( source );
-			if ( dataToVisualize.size() == 1 )
-				options = options.is2D();
 			source = BdvFunctions.show( stack.rra, stack.interval, gene, options );
 			source.setDisplayRange( stack.minDisplay, stack.maxDisplay );
 			source.setDisplayRangeBounds( stack.minDisplay, stack.maxDisplay * 2);
