@@ -16,7 +16,6 @@ import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
 import data.STDataStatistics;
-import data.STDataUtils;
 import examples.VisualizeAnnotations;
 import examples.VisualizeStack;
 import examples.VisualizeStack.STIMStack;
@@ -25,7 +24,6 @@ import filter.SingleSpotRemovingFilterFactory;
 import gui.STDataAssembly;
 import gui.bdv.AddedGene.Rendering;
 import gui.celltype.CellTypeExplorer;
-import imglib2.TransformedIterableRealInterval;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
 import net.imglib2.Interval;
@@ -208,8 +206,9 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 		// random gene coloring
 		Random rnd = new Random( 343 );
 
-		for ( final String gene : genesToShow )
+		for ( int i = 0; i < genesToShow.size(); ++i )
 		{
+			final String gene = genesToShow.get( i );
 			System.out.println( "Rendering gene: " + gene );
 
 			final STIMStack stack =
@@ -233,8 +232,7 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 			source.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.FUSED );
 			source.setCurrent();
 
-			if ( genesToShow.size() > 1 )
-				source.setColor( Render.randomColor( rnd ) );
+			source.setColor( BigDataViewerDisplay.getColor(genesToShow, i, rnd) );
 		}
 
 		final AffineTransform3D t = new AffineTransform3D();

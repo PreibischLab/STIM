@@ -208,22 +208,7 @@ public class BigDataViewerDisplay implements Callable<Void>
 			final String gene = genesToShow.get( i );
 			System.out.println( "Rendering gene: " + gene );
 
-			final ARGBType col;
-
-			if ( genesToShow.size() == 1 ) // one gene
-				col = new ARGBType( ARGBType.rgba(255, 255, 255, 0) );
-			else if ( i == 0 && genesToShow.size() == 2 ) // two genes
-				col = new ARGBType( ARGBType.rgba(0, 255, 0, 0) );
-			else if ( i == 1 && genesToShow.size() == 2 )
-				col = new ARGBType( ARGBType.rgba(255, 0, 255, 0) );
-			else if ( i == 0 && genesToShow.size() == 3 ) // three genes
-				col = new ARGBType( ARGBType.rgba(255, 255, 0, 0) );
-			else if ( i == 1 && genesToShow.size() == 3 )
-				col = new ARGBType( ARGBType.rgba(0, 255, 255, 0) );
-			else if ( i == 2 && genesToShow.size() == 3 )
-				col = new ARGBType( ARGBType.rgba(255, 0, 255, 0) );
-			else // many genes
-				col = Render.randomColor( rnd );
+			final ARGBType col = getColor(genesToShow, i, rnd);
 
 			final AddedGene addedGene = AddedGene.addGene(
 					inputPath,
@@ -303,6 +288,28 @@ public class BigDataViewerDisplay implements Callable<Void>
 		splitPanel.setCollapsed(false);
 
 		return null;
+	}
+
+	public static ARGBType getColor( final List< String > genesToShow, final int i, final Random rnd )
+	{
+		final ARGBType col;
+
+		if ( genesToShow.size() == 1 ) // one gene
+			col = new ARGBType( ARGBType.rgba(255, 255, 255, 0) );
+		else if ( i == 0 && genesToShow.size() == 2 ) // two genes
+			col = new ARGBType( ARGBType.rgba(0, 255, 0, 0) );
+		else if ( i == 1 && genesToShow.size() == 2 )
+			col = new ARGBType( ARGBType.rgba(255, 0, 255, 0) );
+		else if ( i == 0 && genesToShow.size() == 3 ) // three genes
+			col = new ARGBType( ARGBType.rgba(255, 255, 0, 0) );
+		else if ( i == 1 && genesToShow.size() == 3 )
+			col = new ARGBType( ARGBType.rgba(0, 255, 255, 0) );
+		else if ( i == 2 && genesToShow.size() == 3 )
+			col = new ARGBType( ARGBType.rgba(255, 0, 255, 0) );
+		else // many genes
+			col = Render.randomColor( rnd );
+
+		return col;
 	}
 
 	public static final void main(final String... args) {
