@@ -27,11 +27,10 @@ import data.STData;
 import data.STDataStatistics;
 import data.STDataUtils;
 import filter.FilterFactory;
-import filter.GaussianFilterFactory;
-import filter.GaussianFilterFactory.WeightType;
 import filter.MedianFilterFactory;
 import filter.SingleSpotRemovingFilterFactory;
 import gui.STDataAssembly;
+import gui.bdv.AddedGene;
 import gui.bdv.AddedGene.Rendering;
 import ij.ImageJ;
 import ij.ImagePlus;
@@ -52,8 +51,6 @@ import net.imglib2.realtransform.RealViews;
 import net.imglib2.realtransform.Scale3D;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Intervals;
-import net.imglib2.util.Pair;
-import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import render.Render;
 import tools.BDVFlyThrough;
@@ -61,10 +58,19 @@ import tools.BDVFlyThrough.CallbackBDV;
 
 public class VisualizeStack
 {
+	/*
 	protected static double minRange = 0;
 	protected static double maxRange = 100;
 	protected static double min = 0.1;
 	protected static double max = 5.5;
+	*/
+
+	public static class STIMStack
+	{
+		public RealRandomAccessible< DoubleType > rra;
+		public Interval interval;
+		public double minDisplay, maxDisplay;
+	}
 
 	public static BdvStackSource<?> render2d( final STDataAssembly stdata )
 	{
@@ -84,11 +90,17 @@ public class VisualizeStack
 								stdata.data(),
 								stdata.transform() ) );
 
+		final double brightnessMin = 0.0;
+		final double brightnessMax = 0.5;
+		final double[] minmax = AddedGene.minmax( stdata.data().getExprData( gene ) );
+		double minDisplay = AddedGene.getDisplayMin( minmax[ 0 ], minmax[ 1 ], brightnessMin );
+		double maxDisplay = AddedGene.getDisplayMax( minmax[ 1 ], brightnessMax );
+
 		final BdvOptions options = BdvOptions.options().is2D().numRenderingThreads( Runtime.getRuntime().availableProcessors() / 2 );
 
 		BdvStackSource<?> bdv = BdvFunctions.show( renderRRA, interval, gene, options );
-		bdv.setDisplayRangeBounds( minRange, maxRange );
-		bdv.setDisplayRange( min, max );
+		bdv.setDisplayRangeBounds( minDisplay, minmax[ 1 ] );
+		bdv.setDisplayRange( minDisplay, maxDisplay );
 		//bdv.setColor( new ARGBType( ARGBType.rgba( 255, 0, 0, 0 ) ) );
 		//bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
 		//bdv.setCurrent();
@@ -107,18 +119,18 @@ public class VisualizeStack
 		//filterFactorys.add( new MeanFilterFactory<>( new DoubleType( 0 ), 50.0 ) );
 		filterFactorys.add( new SingleSpotRemovingFilterFactory<>( outofbounds, 30 ) );
 
-		final Pair< RealRandomAccessible< DoubleType >, Interval > stack = createStack( stdata, gene, outofbounds, 4.0, 0, 0.5, Rendering.Gauss, 1, filterFactorys );
+		final STIMStack stack = createStack( stdata, gene, outofbounds, 4.0, 0, 0.5, Rendering.Gauss, 1, filterFactorys );
 
 		if ( scale != 1.0 )
 		{
 			final AffineGet scaleTransform = new Scale3D( scale, scale, scale );
-			final RandomAccessible< DoubleType > scaledImg = RealViews.affine( stack.getA(), scaleTransform );
+			final RandomAccessible< DoubleType > scaledImg = RealViews.affine( stack.rra, scaleTransform );
 	
-			return Views.interval( scaledImg, Intervals.smallestContainingInterval( Intervals.scale( Intervals.expand( stack.getB(), 200, 2 ), scale ) ) );
+			return Views.interval( scaledImg, Intervals.smallestContainingInterval( Intervals.scale( Intervals.expand( stack.interval, 200, 2 ), scale ) ) );
 		}
 		else
 		{
-			return Views.interval( Views.raster( stack.getA() ), stack.getB() );
+			return Views.interval( Views.raster( stack.rra ), stack.interval );
 		}
 	}
 
@@ -133,13 +145,13 @@ public class VisualizeStack
 		//filterFactorys.add( new MeanFilterFactory<>( new DoubleType( 0 ), 50.0 ) );
 		filterFactorys.add( new SingleSpotRemovingFilterFactory<>( outofbounds, 30 ) );
 
-		final Pair< RealRandomAccessible< DoubleType >, Interval > stack = createStack( stdata, "Calm2", outofbounds, 4.0, 0, 0.5, Rendering.Gauss, 2, filterFactorys );
-		final Interval interval = stack.getB();
+		final STIMStack stack = createStack( stdata, "Calm2", outofbounds, 4.0, 0, 0.5, Rendering.Gauss, 2, filterFactorys );
+		final Interval interval = stack.interval;
 
 		final BdvOptions options = BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() );
-		BdvStackSource< ? > source = BdvFunctions.show( stack.getA(), interval, "Calm2", options );
-		source.setDisplayRangeBounds( minRange, maxRange );
-		source.setDisplayRange( min, max );
+		BdvStackSource< ? > source = BdvFunctions.show( stack.rra, interval, "Calm2", options );
+		source.setDisplayRangeBounds( stack.minDisplay, stack.maxDisplay * 2 );
+		source.setDisplayRange( stack.minDisplay, stack.maxDisplay );
 		//source.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
 		//source.setCurrent();
 
@@ -171,16 +183,16 @@ public class VisualizeStack
 					{
 						final int newGeneIndex = ( i == 220 ) ? 0 : i / 20;
 
-						final Pair< RealRandomAccessible< DoubleType >, Interval > stack = 
+						final STIMStack stack = 
 								createStack( stdata, genesToVisualize.get( newGeneIndex ), outofbounds, 4.0, 0, 0.5, Rendering.Gauss, 2.0, null );
 
 						BdvStackSource<?> newSource =
 								BdvFunctions.show(
-										stack.getA(),
-										stack.getB(),
+										stack.rra,
+										stack.interval,
 										genesToVisualize.get( newGeneIndex ),
 										BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() ) );
-						newSource.setDisplayRange( min, max );
+						newSource.setDisplayRange( stack.minDisplay, stack.maxDisplay );
 						newSource.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
 
 						if ( oldSource != null )
@@ -211,7 +223,7 @@ public class VisualizeStack
 	}
 	*/
 
-	public static Pair< RealRandomAccessible< DoubleType >, Interval > createStack(
+	public static STIMStack createStack(
 			final List< STDataAssembly > stdata,
 			final String gene,
 			final DoubleType outofbounds,
@@ -224,8 +236,19 @@ public class VisualizeStack
 	{
 		final ArrayList< IterableRealInterval< DoubleType > > slices = new ArrayList<>();
 
+		double minDisplay = Double.MAX_VALUE;
+		double maxDisplay = -Double.MAX_VALUE;
+
 		for ( int i = 0; i < stdata.size(); ++i )
-			slices.add( Render.getRealIterable( stdata.get( i ), gene, filterFactorys ) );
+		{
+			final IterableRealInterval<DoubleType> data = Render.getRealIterable( stdata.get( i ), gene, filterFactorys );
+
+			final double[] minmax = AddedGene.minmax( data );
+			minDisplay = Math.min( minDisplay, AddedGene.getDisplayMin( minmax[ 0 ], minmax[ 1 ], brightnessMin ) );
+			maxDisplay = Math.max( maxDisplay, AddedGene.getDisplayMax( minmax[ 1 ], brightnessMax ) );
+
+			slices.add( data );
+		}
 
 		// we need to re-compute the statistics because the transformation might have changed it
 		final double medianDistance = new STDataStatistics( stdata.get( 0 ).data() ).getMedianDistance();
@@ -239,9 +262,13 @@ public class VisualizeStack
 
 		final StackedIterableRealInterval< DoubleType > stack = new StackedIterableRealInterval<>( slices, spacing );
 
-		return new ValuePair<>(
-				RenderImage.createRRA( stack, medianDistance, renderType, renderingFactor ),
-				interval );
+		final STIMStack stimStack = new STIMStack();
+		stimStack.rra = RenderImage.createRRA( stack, medianDistance, renderType, renderingFactor );
+		stimStack.interval = interval;
+		stimStack.minDisplay = minDisplay;
+		stimStack.maxDisplay = maxDisplay;
+
+		return stimStack;
 	}
 
 	public static void setupRecordMovie( final BdvStackSource<?> bdvSource, final CallbackBDV callback )

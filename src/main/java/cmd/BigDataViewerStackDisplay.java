@@ -11,23 +11,22 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-import io.SpatialDataContainer;
-import io.SpatialDataIO;
-
 import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
+import data.STDataStatistics;
 import data.STDataUtils;
 import examples.VisualizeAnnotations;
 import examples.VisualizeStack;
+import examples.VisualizeStack.STIMStack;
 import filter.FilterFactory;
-import filter.MedianFilterFactory;
-import filter.SingleSpotRemovingFilterFactory;
-import gui.RenderThread;
 import gui.STDataAssembly;
+import gui.bdv.AddedGene.Rendering;
 import gui.celltype.CellTypeExplorer;
 import imglib2.TransformedIterableRealInterval;
+import io.SpatialDataContainer;
+import io.SpatialDataIO;
 import net.imglib2.Interval;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.realtransform.AffineTransform2D;
@@ -37,12 +36,12 @@ import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import picocli.CommandLine;
-import picocli.CommandLine.Option;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
 import render.Render;
 
-@Command(name = "st-bdv-view", mixinStandardHelpOptions = true, version = "0.2.0", description = "Spatial Transcriptomics as IMages project - visualize ST data in BigDataViewer")
-public class DisplayStackedSlides implements Callable<Void> {
+@Command(name = "st-bdv-view3d", mixinStandardHelpOptions = true, version = "0.2.0", description = "Spatial Transcriptomics as IMages project - visualize ST data in BigDataViewer")
+public class BigDataViewerStackDisplay implements Callable<Void> {
 
 	@Option(names = {"-i", "--input"}, required = true, description = "input file or N5 container, e.g. -i /home/ssq.n5")
 	private String inputPath = null;
@@ -59,20 +58,32 @@ public class DisplayStackedSlides implements Callable<Void> {
 	@Option(names = {"-z", "--zSpacingFactor"}, required = false, description = "define the z-spacing between different sections (as a factor of median spacing between sequenced locations), e.g. -z 10.0 (default: 5.0)")
 	private double zSpacingFactor = 5.0;
 
-	@Option(names = {"-c", "--contrast"}, description = "comma separated contrast range for BigDataViewer display, e.g. -c '0,255' (default 0.1,5)" )
-	private String contrastString = null;
-
 	@Option(names = {"-d", "--datasets"}, required = false, description = "comma separated list of one or more datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: all)")
 	private String datasets = null;
 
-	@Option(names = {"-f", "--singleSpotFilter"}, required = false, description = "filter single spots using the median distance between all spots as threshold (default: false)")
-	private boolean singleSpotFilter = false;
+	@Option(names = {"-bmin", "--brightnessMin"}, required = false, description = "min initial brightness relative to the maximal value + overall min intensity (default: 0.0)")
+	private double brightnessMin = 0.0;
 
-	@Option(names = {"-m", "--median"}, required = false, description = "median-filter all spots using a given radius, e.g -m 20.0 (default: no filtering)")
-	private Double median = null;
+	@Option(names = {"-bmax", "--brightnessMax"}, required = false, description = "max initial brightness relative to the maximal value (default: 0.5)")
+	private double brightnessMax = 0.5;
 
-	@Option(names = {"-sf", "--smoothnessFactor"}, required = false, description = "factor for the sigma of the gaussian used for rendering, corresponds to smoothness, e.g -sf 2.0 (default: 1.5)")
-	private double smoothnessFactor = 1.5;
+	@Option(names = {"--rendering"}, required = false, description = "inital rendering type (Gauss, Mean, NearestNeighbor, Linear), e.g --rendering Gauss (default: Gauss)")
+	private Rendering rendering = Rendering.Gauss;
+
+	@Option(names = {"-rf", "--renderingFactor"}, required = false, description = "factor for the amount of filtering or radius used for rendering, corresponds to smoothness for Gauss, e.g -rf 2.0 (default: 1.5)")
+	private double renderingFactor = 1.5;
+
+	@Option(names = {"--ffSingleSpot"}, required = false, description = "filter single spots using the median distance between all spots as threshold, e.g. --ffSingleSpot 1.5 (default: no filtering)")
+	private Double ffSingleSpot = null;
+
+	@Option(names = {"--ffMedian"}, required = false, description = "median-filter all spots using a given radius, e.g --ffMedian 5.0 (default: no filtering)")
+	private Double ffMedian = null;
+
+	@Option(names = {"--ffGauss"}, required = false, description = "Gauss-filter all spots using a given radius, e.g --ffGauss 2.0 (default: no filtering)")
+	private Double ffGauss = null;
+
+	@Option(names = {"--ffMean"}, required = false, description = "mean/avg-filter all spots using a given radius, e.g --ffMean 2.5 (default: no filtering)")
+	private Double ffMean = null;
 
 	@Override
 	public Void call() throws Exception {
@@ -85,6 +96,7 @@ public class DisplayStackedSlides implements Callable<Void> {
 		}
 
 		final ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
 		final List<SpatialDataIO> iodata = new ArrayList<>();
 		if (SpatialDataContainer.isCompatibleContainer(inputPath)) {
 			SpatialDataContainer container = SpatialDataContainer.openForReading(inputPath, service);
@@ -103,6 +115,12 @@ public class DisplayStackedSlides implements Callable<Void> {
 		else {
 			System.out.println("Opening dataset '" + inputPath + "' ...");
 			iodata.add(SpatialDataIO.openReadOnly(inputPath, service));
+		}
+
+		if ( iodata.size() <= 1 )
+		{
+			System.out.println("Only one dataset selected, cannot be displayed in 3D. Please use 'st-bdv-view' instead for 2D. Stopping.");
+			return null;
 		}
 
 		if (genes == null || genes.length() == 0) {
@@ -136,23 +154,11 @@ public class DisplayStackedSlides implements Callable<Void> {
 		else
 			annotationList = new ArrayList<>();
 
-		final double[] minmax = parseContrastString(contrastString, 0, 5 );
-
 		final DoubleType outofbounds = new DoubleType( 0 );
-
-		final List< FilterFactory< DoubleType, DoubleType > > filterFactorys = new ArrayList<>();
-
-		if ( singleSpotFilter )
-		{
-			System.out.println( "Using single-spot filtering, radius="  + (dataToVisualize.get( 0 ).statistics().getMedianDistance() * 1.5) );
-			filterFactorys.add( new SingleSpotRemovingFilterFactory<>( outofbounds, dataToVisualize.get( 0 ).statistics().getMedianDistance() * 1.5 ) );
-		}
-
-		if ( median != null && median > 0.0 )
-		{
-			System.out.println( "Using median filtering, radius=" + median );
-			filterFactorys.add( new MedianFilterFactory<>( outofbounds, median ) );
-		}
+		final List<FilterFactory<DoubleType, DoubleType>> filterFactories =
+				RenderImage.assembleFilterFactories(
+						new STDataStatistics( dataToVisualize.get( 0 ).data() ),
+						ffSingleSpot, ffMedian, ffGauss, ffMean );
 
 		BdvStackSource< ? > source = null;
 
@@ -166,13 +172,13 @@ public class DisplayStackedSlides implements Callable<Void> {
 			final HashMap<Long, ARGBType > lut = new HashMap<>();
 
 			final List< FilterFactory< IntType, IntType > > filterFactorysInt = new ArrayList<>();
-			
+			/*
 			if ( singleSpotFilter )
 			{
 				System.out.println( "Using single-spot filtering, radius="  + (dataToVisualize.get( 0 ).statistics().getMedianDistance() * 1.5) );
 				filterFactorysInt.add( new SingleSpotRemovingFilterFactory<>( outofboundsInt, dataToVisualize.get( 0 ).statistics().getMedianDistance() * 1.5 ) );
 			}
-
+			*/
 			final RealRandomAccessible< IntType > rra;
 			final Interval interval;
 
@@ -228,33 +234,24 @@ public class DisplayStackedSlides implements Callable<Void> {
 		{
 			System.out.println( "Rendering gene: " + gene );
 
-			final RealRandomAccessible< DoubleType > rra;
-			final Interval interval;
-
-			if ( dataToVisualize.size() > 1 )
-			{
-				final Pair< RealRandomAccessible< DoubleType >, Interval > stack =
-						VisualizeStack.createStack( dataToVisualize, gene, outofbounds, zSpacingFactor, smoothnessFactor, filterFactorys );
-				rra = stack.getA();
-				interval = stack.getB();
-			}
-			else
-			{
-				rra = Render.getRealRandomAccessible( dataToVisualize.get( 0 ), gene, smoothnessFactor, filterFactorys );
-
-				interval =
-						STDataUtils.getIterableInterval(
-								new TransformedIterableRealInterval<>(
-										dataToVisualize.get( 0 ).data(),
-										dataToVisualize.get( 0 ).transform() ) );
-			}
+			final STIMStack stack =
+					VisualizeStack.createStack(
+							dataToVisualize,
+							gene,
+							outofbounds,
+							zSpacingFactor,
+							brightnessMin,
+							brightnessMax,
+							rendering,
+							renderingFactor,
+							filterFactories );
 
 			BdvOptions options = BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() ).addTo( source );
 			if ( dataToVisualize.size() == 1 )
 				options = options.is2D();
-			source = BdvFunctions.show( rra, interval, gene, options );
-			source.setDisplayRange( minmax[0], minmax[1] );
-			source.setDisplayRangeBounds( 0, 200 );
+			source = BdvFunctions.show( stack.rra, stack.interval, gene, options );
+			source.setDisplayRange( stack.minDisplay, stack.maxDisplay );
+			source.setDisplayRangeBounds( stack.minDisplay, stack.maxDisplay * 2);
 			source.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.FUSED );
 			source.setCurrent();
 
@@ -297,7 +294,7 @@ public class DisplayStackedSlides implements Callable<Void> {
 	}
 
 	public static final void main(final String... args) {
-		CommandLine.call(new DisplayStackedSlides(), args);
+		CommandLine.call(new BigDataViewerStackDisplay(), args);
 	}
 
 }

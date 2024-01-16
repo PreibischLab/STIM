@@ -17,7 +17,7 @@ public class PrintHelp implements Callable<Void> {
 		final List<Callable<Void>> commands = Arrays.asList(
 				new View(),
 				new RenderImage(),
-				new DisplayStackedSlides(),
+				new BigDataViewerStackDisplay(),
 				new Resave(),
 				new AddSlice(),
 				new Normalize(),
