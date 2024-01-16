@@ -22,7 +22,9 @@ import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
+import cmd.RenderImage;
 import data.STData;
+import data.STDataStatistics;
 import data.STDataUtils;
 import filter.FilterFactory;
 import filter.GaussianFilterFactory;
@@ -105,7 +107,7 @@ public class VisualizeStack
 		//filterFactorys.add( new MeanFilterFactory<>( new DoubleType( 0 ), 50.0 ) );
 		filterFactorys.add( new SingleSpotRemovingFilterFactory<>( outofbounds, 30 ) );
 
-		final Pair< RealRandomAccessible< DoubleType >, Interval > stack = createStack( stdata, gene, outofbounds, 4.0, 1, filterFactorys );
+		final Pair< RealRandomAccessible< DoubleType >, Interval > stack = createStack( stdata, gene, outofbounds, 4.0, 0, 0.5, Rendering.Gauss, 1, filterFactorys );
 
 		if ( scale != 1.0 )
 		{
@@ -131,7 +133,7 @@ public class VisualizeStack
 		//filterFactorys.add( new MeanFilterFactory<>( new DoubleType( 0 ), 50.0 ) );
 		filterFactorys.add( new SingleSpotRemovingFilterFactory<>( outofbounds, 30 ) );
 
-		final Pair< RealRandomAccessible< DoubleType >, Interval > stack = createStack( stdata, "Calm2", outofbounds, 4.0, 2, filterFactorys );
+		final Pair< RealRandomAccessible< DoubleType >, Interval > stack = createStack( stdata, "Calm2", outofbounds, 4.0, 0, 0.5, Rendering.Gauss, 2, filterFactorys );
 		final Interval interval = stack.getB();
 
 		final BdvOptions options = BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() );
@@ -170,7 +172,7 @@ public class VisualizeStack
 						final int newGeneIndex = ( i == 220 ) ? 0 : i / 20;
 
 						final Pair< RealRandomAccessible< DoubleType >, Interval > stack = 
-								createStack( stdata, genesToVisualize.get( newGeneIndex ), outofbounds );
+								createStack( stdata, genesToVisualize.get( newGeneIndex ), outofbounds, 4.0, 0, 0.5, Rendering.Gauss, 2.0, null );
 
 						BdvStackSource<?> newSource =
 								BdvFunctions.show(
@@ -192,6 +194,7 @@ public class VisualizeStack
 					} } );
 	}
 
+	/*
 	public static Pair< RealRandomAccessible< DoubleType >, Interval > createStack( final List< STDataAssembly > stdata, final String gene, final DoubleType outofbounds )
 	{
 		return createStack(stdata, gene, outofbounds, 5.0, null );
@@ -206,13 +209,17 @@ public class VisualizeStack
 	{
 		return createStack(stdata, gene, outofbounds, spacingFactor, 1.5, filterFactorys);
 	}
+	*/
 
 	public static Pair< RealRandomAccessible< DoubleType >, Interval > createStack(
 			final List< STDataAssembly > stdata,
 			final String gene,
 			final DoubleType outofbounds,
 			final double spacingFactor,
-			final double renderSigmaFactor,
+			final double brightnessMin,
+			final double brightnessMax,
+			final Rendering renderType,
+			final double renderingFactor,
 			final List< FilterFactory< DoubleType, DoubleType > > filterFactorys )
 	{
 		final ArrayList< IterableRealInterval< DoubleType > > slices = new ArrayList<>();
@@ -220,22 +227,21 @@ public class VisualizeStack
 		for ( int i = 0; i < stdata.size(); ++i )
 			slices.add( Render.getRealIterable( stdata.get( i ), gene, filterFactorys ) );
 
-		final double medianDistance = stdata.get( 0 ).statistics().getMedianDistance();
-
-		// gauss crisp
-		double gaussRenderSigma = medianDistance * 1.0;
-		//double gaussRenderRadius = medianDistance * 4;
+		// we need to re-compute the statistics because the transformation might have changed it
+		final double medianDistance = new STDataStatistics( stdata.get( 0 ).data() ).getMedianDistance();
 
 		final double spacing = medianDistance * spacingFactor;
 
 		final Interval interval2d = STDataUtils.getCommonIterableInterval( slices );
-		final long[] minI = new long[] { interval2d.min( 0 ), interval2d.min( 1 ), 0 - Math.round( Math.ceil( gaussRenderSigma * 3 ) ) };
-		final long[] maxI = new long[] { interval2d.max( 0 ), interval2d.max( 1 ), Math.round( ( stdata.size() - 1 ) * spacing ) + Math.round( Math.ceil( gaussRenderSigma * 3 ) ) };
+		final long[] minI = new long[] { interval2d.min( 0 ), interval2d.min( 1 ), 0 - Math.round( Math.ceil( medianDistance * 3 ) ) };
+		final long[] maxI = new long[] { interval2d.max( 0 ), interval2d.max( 1 ), Math.round( ( stdata.size() - 1 ) * spacing ) + Math.round( Math.ceil( medianDistance * 3 ) ) };
 		final Interval interval = new FinalInterval( minI, maxI );
 
 		final StackedIterableRealInterval< DoubleType > stack = new StackedIterableRealInterval<>( slices, spacing );
 
-		return new ValuePair<>( Render.render( stack, new GaussianFilterFactory<>( outofbounds, gaussRenderSigma*renderSigmaFactor, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS ) ), interval );
+		return new ValuePair<>(
+				RenderImage.createRRA( stack, medianDistance, renderType, renderingFactor ),
+				interval );
 	}
 
 	public static void setupRecordMovie( final BdvStackSource<?> bdvSource, final CallbackBDV callback )

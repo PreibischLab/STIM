@@ -295,6 +295,34 @@ public class RenderImage implements Callable<Void> {
 		return filterFactories;
 	}
 
+	public static RealRandomAccessible< DoubleType > createRRA(
+			final IterableRealInterval< DoubleType > data,
+			final double medianDistance,
+			final Rendering renderType,
+			final double renderingFactor )
+	{
+		final RealRandomAccessible< DoubleType > renderRRA;
+
+		if ( renderType == Rendering.Gauss )
+		{
+			renderRRA = Render.render( data, new GaussianFilterFactory<>( new DoubleType( 0 ), medianDistance*renderingFactor, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS ) );
+		}
+		else if ( renderType == Rendering.NN )
+		{
+			renderRRA = Render.renderNN( data, new DoubleType( 0 ), new MaxDistanceParam( medianDistance*renderingFactor ) );
+		}
+		else if ( renderType == Rendering.Mean )
+		{
+			renderRRA = Render.render( data, new MeanFilterFactory<>( new DoubleType( 0 ), medianDistance*renderingFactor ) );
+		}
+		else // LINEAR
+		{
+			renderRRA = Render.renderLinear( data, 5, 3.0, new DoubleType( 0 ),  new MaxDistanceParam( medianDistance*renderingFactor ) );
+		}
+
+		return renderRRA;
+	}
+
 	public static RandomAccessibleInterval< DoubleType > display(
 			final STData stdata,
 			final STDataStatistics stStats,
@@ -308,24 +336,8 @@ public class RenderImage implements Callable<Void> {
 		// we work at full resolution so rendering and filter parameters are independent of the scale
 		final IterableRealInterval< DoubleType > data = Render.getRealIterable( stdata, null, gene, filterFactories );
 
-		final RealRandomAccessible< DoubleType > renderRRA;
-
-		if ( renderType == Rendering.Gauss )
-		{
-			renderRRA = Render.render( data, new GaussianFilterFactory<>( new DoubleType( 0 ), stStats.getMedianDistance()*renderingFactor, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS ) );
-		}
-		else if ( renderType == Rendering.NN )
-		{
-			renderRRA = Render.renderNN( data, new DoubleType( 0 ), new MaxDistanceParam( stStats.getMedianDistance()*renderingFactor ) );
-		}
-		else if ( renderType == Rendering.Mean )
-		{
-			renderRRA = Render.render( data, new MeanFilterFactory<>( new DoubleType( 0 ), stStats.getMedianDistance()*renderingFactor ) );
-		}
-		else // LINEAR
-		{
-			renderRRA = Render.renderLinear( data, 5, 3.0, new DoubleType( 0 ),  new MaxDistanceParam( stStats.getMedianDistance()*renderingFactor ) );
-		}
+		final RealRandomAccessible< DoubleType > renderRRA =
+				createRRA( data, stStats.getMedianDistance(), renderType, renderingFactor );
 
 		return Views.interval( RealViews.affine( renderRRA, coordinateTransform ), renderInterval );
 	}
