@@ -70,7 +70,7 @@ public class SIFTOverlay implements OverlayRenderer, TransformListener< AffineTr
 		{
 			final Color color;
 			final Stroke stroke;
-			if ( ((PointST) pm.getP1()).getGene().equals( gene ) )
+			if ( ((PointST) pm.getP2()).getGene().equals( gene ) )
 			{
 				color = colorSelected;
 				stroke = strokeSelected;
@@ -81,8 +81,8 @@ public class SIFTOverlay implements OverlayRenderer, TransformListener< AffineTr
 				stroke = strokeDefault;
 			}
 
-			lPos[ 0 ] = pm.getP1().getL()[ 0 ];
-			lPos[ 1 ] = pm.getP1().getL()[ 1 ];
+			lPos[ 0 ] = pm.getP2().getL()[ 0 ];
+			lPos[ 1 ] = pm.getP2().getL()[ 1 ];
 			lPos[ 2 ] = 0;
 
 			viewerTransform.apply( lPos, gPos );
