@@ -21,6 +21,7 @@ import bdv.viewer.SynchronizedViewerState;
 import data.STDataUtils;
 import examples.VisualizeAnnotations;
 import filter.FilterFactory;
+import filter.SingleSpotRemovingFilterFactory;
 import gui.DisplayScaleOverlay;
 import gui.STDataAssembly;
 import gui.bdv.AddedGene;
@@ -155,13 +156,13 @@ public class BigDataViewerDisplay implements Callable<Void>
 			final HashMap<Long, ARGBType > lut = new HashMap<>();
 
 			final List< FilterFactory< IntType, IntType > > filterFactorysInt = new ArrayList<>();
-			/*
-			if ( singleSpotFilter )
+
+			if ( ffSingleSpot != null && ffSingleSpot > 0  )
 			{
-				System.out.println( "Using single-spot filtering, radius="  + (dataToVisualize.get( 0 ).statistics().getMedianDistance() * 1.5) );
-				filterFactorysInt.add( new SingleSpotRemovingFilterFactory<>( outofboundsInt, dataToVisualize.get( 0 ).statistics().getMedianDistance() * 1.5 ) );
+				System.out.println( "Using single-spot filtering, effective radius="  + (dataToVisualize.statistics().getMedianDistance() * ffSingleSpot) );
+				filterFactorysInt.add( new SingleSpotRemovingFilterFactory<>( outofboundsInt, dataToVisualize.statistics().getMedianDistance() * ffSingleSpot ) );
 			}
-			*/
+
 			final RealRandomAccessible< IntType > rra;
 			final Interval interval;
 

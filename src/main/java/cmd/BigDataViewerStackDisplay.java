@@ -21,6 +21,7 @@ import examples.VisualizeAnnotations;
 import examples.VisualizeStack;
 import examples.VisualizeStack.STIMStack;
 import filter.FilterFactory;
+import filter.SingleSpotRemovingFilterFactory;
 import gui.STDataAssembly;
 import gui.bdv.AddedGene.Rendering;
 import gui.celltype.CellTypeExplorer;
@@ -154,15 +155,9 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 		else
 			annotationList = new ArrayList<>();
 
-		final DoubleType outofbounds = new DoubleType( 0 );
-		final List<FilterFactory<DoubleType, DoubleType>> filterFactories =
-				RenderImage.assembleFilterFactories(
-						new STDataStatistics( dataToVisualize.get( 0 ).data() ),
-						ffSingleSpot, ffMedian, ffGauss, ffMean );
-
 		BdvStackSource< ? > source = null;
 
-		//
+		// TODO: TEST
 		// Display annotations
 		//
 		for ( final String annotation : annotationList )
@@ -172,42 +167,20 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 			final HashMap<Long, ARGBType > lut = new HashMap<>();
 
 			final List< FilterFactory< IntType, IntType > > filterFactorysInt = new ArrayList<>();
-			/*
-			if ( singleSpotFilter )
+
+			if ( ffSingleSpot != null && ffSingleSpot > 0  )
 			{
-				System.out.println( "Using single-spot filtering, radius="  + (dataToVisualize.get( 0 ).statistics().getMedianDistance() * 1.5) );
-				filterFactorysInt.add( new SingleSpotRemovingFilterFactory<>( outofboundsInt, dataToVisualize.get( 0 ).statistics().getMedianDistance() * 1.5 ) );
+				System.out.println( "Using single-spot filtering, effective radius=" + (dataToVisualize.get( 0 ).statistics().getMedianDistance() * ffSingleSpot) );
+				filterFactorysInt.add( new SingleSpotRemovingFilterFactory<>( outofboundsInt, dataToVisualize.get( 0 ).statistics().getMedianDistance() * ffSingleSpot ) );
 			}
-			*/
+
 			final RealRandomAccessible< IntType > rra;
 			final Interval interval;
 
-			if ( dataToVisualize.size() > 1 )
-			{
-				final Pair< RealRandomAccessible< IntType >, Interval > stack =
-						VisualizeAnnotations.createStack(dataToVisualize, annotation, zSpacingFactor * 0.75 * spotSize, zSpacingFactor, outofboundsInt, filterFactorysInt, lut );
-				rra = stack.getA();
-				interval = stack.getB();
-			}
-			else
-			{
-				final STDataAssembly slide = dataToVisualize.get( 0 );
-
-				rra = VisualizeAnnotations.visualize2d(
-						slide.data(),
-						annotation,
-						spotSize,
-						slide.transform(),
-						outofboundsInt,
-						filterFactorysInt,
-						lut );
-
-				interval = STDataUtils.getIterableInterval(
-						new TransformedIterableRealInterval<>(
-								slide.data(),
-								slide.transform() ) );
-
-			}
+			final Pair< RealRandomAccessible< IntType >, Interval > stack =
+					VisualizeAnnotations.createStack(dataToVisualize, annotation, zSpacingFactor * 0.75 * spotSize, zSpacingFactor, outofboundsInt, filterFactorysInt, lut );
+			rra = stack.getA();
+			interval = stack.getB();
 
 			CellTypeExplorer cte = new CellTypeExplorer( lut );
 
@@ -226,6 +199,11 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 		//
 		// Display genes
 		//
+		final DoubleType outofbounds = new DoubleType( 0 );
+		final List<FilterFactory<DoubleType, DoubleType>> filterFactories =
+				RenderImage.assembleFilterFactories(
+						new STDataStatistics( dataToVisualize.get( 0 ).data() ),
+						ffSingleSpot, ffMedian, ffGauss, ffMean );
 
 		// random gene coloring
 		Random rnd = new Random( 343 );
