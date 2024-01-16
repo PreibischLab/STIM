@@ -296,7 +296,7 @@ public class STIMCardManualAlign
 		siftCard.run.setEnabled( true );
 		siftCard.cmdLine.setEnabled( true );
 		siftCard.reset.setEnabled( true );
-		siftCard.saveTransform.setEnabled( false );
+		siftCard.saveTransform.setEnabled( true );
 		if ( icpCard != null )
 		{
 			icpCard.run.setEnabled( true );
