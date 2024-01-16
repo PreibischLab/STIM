@@ -242,31 +242,6 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 		return null;
 	}
 
-	public static double[] parseContrastString( final String contrastString, final double defaultMin, final double defaultMax )
-	{
-		double minI = defaultMin;
-		double maxI = defaultMax;
-
-		if ( contrastString != null && contrastString.length() > 0 )
-		{
-			String[] contrastStrings = contrastString.trim().split( "," );
-
-			if ( contrastStrings.length != 2 )
-			{
-				System.out.println( "contrast string could not parsed " + Arrays.asList( contrastStrings ) + ", ignoring - setting default range (" + minI + "," + maxI + ")" );
-			}
-			else
-			{
-				minI = Double.parseDouble( contrastStrings[ 0 ] );
-				maxI = Double.parseDouble( contrastStrings[ 1 ] );
-	
-				System.out.println( "contrast range set to (" + minI + "," + maxI + ")" );
-			}
-		}
-
-		return new double[] { minI, maxI };
-	}
-
 	public static final void main(final String... args) {
 		CommandLine.call(new BigDataViewerStackDisplay(), args);
 	}
