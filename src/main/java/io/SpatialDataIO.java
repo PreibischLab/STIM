@@ -127,22 +127,32 @@ public abstract class SpatialDataIO {
 	protected String locationPath;
 	protected String exprValuePath;
 	protected String annotationPath;
+	protected String path;
+
+	public String getPath() { return path; }
 
 	/**
 	 * Create a new SpatialDataIO instance.
 	 *
 	 * @param ioSupplier {@link Supplier} for N5Reader or N5Writer
+	 * @param basePath the path to the dataset that we load (just for info)
 	 * @param readOnly whether to open the file in read-only mode
 	 * @param service {@link ExecutorService} for parallel IO
 	 */
-	public SpatialDataIO(final Supplier<? extends N5Reader> ioSupplier, final boolean readOnly, ExecutorService service) {
-		this(ioSupplier, readOnly, 1024, new int[]{512, 512}, new GzipCompression(3), service);
+	public SpatialDataIO(
+			final Supplier<? extends N5Reader> ioSupplier,
+			final String basePath,
+			final boolean readOnly,
+			final ExecutorService service )
+	{
+		this(ioSupplier, basePath, readOnly, 1024, new int[]{512, 512}, new GzipCompression(3), service);
 	}
 
 	/**
 	 * Create a new SpatialDataIO instance.
 	 *
 	 * @param ioSupplier {@link Supplier} for N5Reader or N5Writer
+	 * @param basePath the path to the dataset that we load (just for info)
 	 * @param readOnly whether to open the file in read-only mode
 	 * @param vectorBlockSize block size for vector data
 	 * @param matrixBlockSize block size for matrix data
@@ -151,6 +161,7 @@ public abstract class SpatialDataIO {
 	 */
 	public SpatialDataIO(
 			final Supplier<? extends N5Reader> ioSupplier,
+			final String basePath,
 			final boolean readOnly,
 			final int vectorBlockSize,
 			final int[] matrixBlockSize,
@@ -159,6 +170,8 @@ public abstract class SpatialDataIO {
 
 		if (!readOnly && !(ioSupplier.get() instanceof N5Writer))
 			throw new IllegalArgumentException("Supplier for read-write must return N5Writer");
+
+		this.path = basePath;
 
 		this.ioSupplier = ioSupplier;
 		this.readOnly = readOnly;
@@ -395,9 +408,9 @@ public abstract class SpatialDataIO {
 		}
 
 		if (extension.endsWith("ad"))
-			return new AnnDataIO(writerSupplier, false, service);
+			return new AnnDataIO(writerSupplier, path, false, service);
 		else
-			return new N5IO(writerSupplier, false, service);
+			return new N5IO(writerSupplier, path, false, service);
 	}
 
 	/**
@@ -434,9 +447,9 @@ public abstract class SpatialDataIO {
 		}
 
 		if (extension.endsWith("ad"))
-			return new AnnDataIO(readerSupplier, true, service);
+			return new AnnDataIO(readerSupplier, path, true, service);
 		else
-			return new N5IO(readerSupplier, true, service);
+			return new N5IO(readerSupplier, path, true, service);
 	}
 
 	// TODO: refactor when pulling out AnnData stuff

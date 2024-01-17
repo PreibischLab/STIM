@@ -41,19 +41,20 @@ import render.Render;
 
 public class AnnDataIO extends SpatialDataIO {
 
-	public AnnDataIO(final Supplier<? extends N5Reader> ioSupplier, final boolean readOnly, final ExecutorService service) {
-		super(ioSupplier, readOnly, service);
+	public AnnDataIO(final Supplier<? extends N5Reader> ioSupplier, final String basePath, final boolean readOnly, final ExecutorService service) {
+		super(ioSupplier, basePath, readOnly, service);
 	}
 
 	public AnnDataIO(
 			final Supplier<? extends N5Reader> ioSupplier,
+			final String basePath,
 			final boolean readOnly,
 			final int vectorBlockSize,
 			final int[] matrixBlockSize,
 			final Compression compression,
 			final ExecutorService service) {
 
-		super(ioSupplier, readOnly, vectorBlockSize, matrixBlockSize, compression, service);
+		super(ioSupplier, basePath, readOnly, vectorBlockSize, matrixBlockSize, compression, service);
 
 		// TODO: remove this check once the issue is fixed
 		if (!N5HDF5Reader.class.isInstance(ioSupplier.get()))

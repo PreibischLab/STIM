@@ -28,8 +28,9 @@ public class IOTest extends AbstractIOTest {
 	@Test
 	public void readonly_file_cannot_be_written() {
 		// use writer here to create file
-		try (N5HDF5Writer writer = new N5HDF5Writer(getPlaygroundPath("data.h5ad"))) {
-			SpatialDataIO sdio = new AnnDataIO(() -> writer, true, executorService);
+		String path = getPlaygroundPath("data.h5ad");
+		try (N5HDF5Writer writer = new N5HDF5Writer(path)) {
+			SpatialDataIO sdio = new AnnDataIO(() -> writer, path, true, executorService);
 			assertThrows(IllegalStateException.class, () -> sdio.writeData(null));
 		}
 		catch (Exception e) {
