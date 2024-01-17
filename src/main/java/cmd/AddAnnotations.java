@@ -12,20 +12,19 @@ import java.util.stream.Collectors;
 
 import gui.STDataAssembly;
 import io.SpatialDataIO;
-
 import io.TextFileAccess;
 import io.TextFileIO;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.type.numeric.integer.IntType;
 import picocli.CommandLine;
-import picocli.CommandLine.Option;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
 
 @Command(name = "st-add-annotations", mixinStandardHelpOptions = true, version = "0.2.0", description = "Spatial Transcriptomics as IMages project - add annotations to slice-dataset")
 public class AddAnnotations implements Callable<Void> {
 
-	@Option(names = {"-i", "--input"}, required = true, description = "input dataset, e.g. -i /home/ssq.n5")
+	@Option(names = {"-i", "--input"}, required = true, description = "input dataset, e.g. -i /home/ssq.n5/Puck_180528_20")
 	private String inputPath = null;
 
 	@Option(names = {"-a", "--annotation"}, required = true, description = "comma separated list of one or more annotation info, e.g. -m '/home/celltypes_180528_20.csv,/home/clustering_180528_22.csv'")
