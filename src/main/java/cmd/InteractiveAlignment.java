@@ -47,6 +47,20 @@ import util.Threads;
 // -i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d1 Puck_180531_22.n5 -d2 Puck_180531_23.n5 -n 4 -sk 2
 // -i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d1 Puck_180602_15.n5 -d2 Puck_180602_16.n5 -n 4 -sk 2
 // -i visium.n5 -d1 slice1.h5ad -d2 slice2.n5 -n 9 -sk 14
+
+// align all
+//-i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d1 Puck_180528_22.n5 -d2 Puck_180528_20.n5 -n 4 -sk 2 // huge shift
+//-i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d1 Puck_180531_13.n5 -d2 Puck_180528_22.n5 -n 4 -sk 2
+//-i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d1 Puck_180531_17.n5 -d2 Puck_180531_13.n5 -n 4 -sk 2
+//-i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d1 Puck_180531_18.n5 -d2 Puck_180531_17.n5 -n 4 -sk 2
+//-i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d1 Puck_180531_19.n5 -d2 Puck_180531_18.n5 -n 4 -sk 2 --ffSingleSpot 1.5
+//-i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d1 Puck_180531_22.n5 -d2 Puck_180531_19.n5 -n 8 -sk 2 --ffSingleSpot 1.5
+//-i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d1 Puck_180531_23.n5 -d2 Puck_180531_22.n5 -n 8 -sk 2 --ffSingleSpot 1.5
+//-i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d1 Puck_180602_15.n5 -d2 Puck_180531_23.n5 -n 8 -sk 2 --ffSingleSpot 1.5
+//-i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d1 Puck_180602_16.n5 -d2 Puck_180602_15.n5 -n 8 -sk 2 --ffSingleSpot 1.5
+//-i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d1 Puck_180602_17.n5 -d2 Puck_180602_16.n5 -n 8 -sk 2 --ffSingleSpot 1.5
+//-i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d1 Puck_180602_18.n5 -d2 Puck_180602_17.n5 -n 8 -sk 2 --ffSingleSpot 1.5
+//-i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d1 Puck_180602_20.n5 -d2 Puck_180602_18.n5 -n 8 -sk 2 --ffSingleSpot 1.5
 public class InteractiveAlignment implements Callable<Void> {
 
 	@Option(names = {"-i", "--input"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")
