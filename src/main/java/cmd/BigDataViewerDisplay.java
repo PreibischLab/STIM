@@ -11,6 +11,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+import javax.swing.SwingUtilities;
+
 import bdv.ui.splitpanel.SplitPanel;
 import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
@@ -34,7 +36,6 @@ import io.SpatialDataContainer;
 import io.SpatialDataIO;
 import net.imglib2.Interval;
 import net.imglib2.RealRandomAccessible;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.integer.IntType;
@@ -147,6 +148,7 @@ public class BigDataViewerDisplay implements Callable<Void>
 		BdvStackSource< ? > source = null;
 
 		// TODO: TEST
+		// TODO: needs to be transformed!
 		// Display annotations
 		//
 		for ( final String annotation : annotationList )
@@ -216,10 +218,10 @@ public class BigDataViewerDisplay implements Callable<Void>
 					rendering,
 					source,
 					dataToVisualize,
-					AddedGene.convert2Dto3D( dataToVisualize.transform() ), //m3d,
+					null, //transformed data is already loaded, this is an additional transform
 					gene,
 					renderingFactor,
-					col, //new ARGBType( ARGBType.rgba(0, 255, 0, 0) ),
+					col,
 					brightnessMin,
 					brightnessMax );
 
@@ -233,8 +235,21 @@ public class BigDataViewerDisplay implements Callable<Void>
 
 		final HashMap< String, SourceGroup > geneToBDVSource = new HashMap<>();
 
-		// TODO: ADD ANNOTATIONS AS GROUP
+		// ADD ANNOTATIONS AS GROUP
+		for ( int i = 0; i < annotationList.size(); ++i )
+		{
+			final String annotation = annotationList.get( i );
 
+			final SourceGroup handle = new SourceGroup();
+			state.addGroup( handle );
+			state.setGroupName( handle, annotation );
+			state.setGroupActive( handle, true );
+			state.addSourceToGroup( state.getSources().get( i ), handle );
+
+			geneToBDVSource.put( annotation, handle );
+		}
+
+		// Add genes as group
 		for ( int i = 0; i < genesToShow.size(); ++i )
 		{
 			final String gene = genesToShow.get( i );
@@ -243,7 +258,7 @@ public class BigDataViewerDisplay implements Callable<Void>
 			state.addGroup( handle );
 			state.setGroupName( handle, gene );
 			state.setGroupActive( handle, true );
-			state.addSourceToGroup( state.getSources().get(i), handle );
+			state.addSourceToGroup( state.getSources().get( i + annotationList.size()), handle );
 
 			geneToBDVSource.put( gene, handle );
 		}
@@ -251,41 +266,45 @@ public class BigDataViewerDisplay implements Callable<Void>
 		source.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.GROUP );
 		state.removeGroups( oldGroups );
 
-		// add scale (so the right size of the images for alignment can be selected)
-		final DisplayScaleOverlay overlay = new DisplayScaleOverlay();
-		source.getBdvHandle().getViewerPanel().renderTransformListeners().add(overlay);
-		source.getBdvHandle().getViewerPanel().getDisplay().overlays().add(overlay);
+		final BdvStackSource< ? > finalSource = source;
 
-		// show scalebar (so the right error can be selected)
-		source.getBdvHandle().getAppearanceManager().appearance().setShowScaleBar( true );
+		SwingUtilities.invokeLater( () -> 
+		{
+			// add scale (so the right size of the images for alignment can be selected)
+			final DisplayScaleOverlay overlay = new DisplayScaleOverlay();
+			finalSource.getBdvHandle().getViewerPanel().renderTransformListeners().add(overlay);
+			finalSource.getBdvHandle().getViewerPanel().getDisplay().overlays().add(overlay);
 
-		// collapse all existing panels (except sources)
-		source.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_SOURCEGROUPS_CARD, true); // collapse groups panel
-		source.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_SOURCES_CARD, false); // collapse sources panel
-		source.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_VIEWERMODES_CARD, false); // collapse display modes panel
+			// add STIMCard panel
+			final STIMCard card =
+					new STIMCard(
+							new ArrayList<>( Arrays.asList( dataToVisualize ) ),
+							dataToVisualize.data().getGeneNames().stream().map( s -> new ValuePair<String, Double>(s, null) ).collect( Collectors.toList() ),
+							sourceData,
+							geneToBDVSource,
+							overlay,
+							dataToVisualize.statistics().getMedianDistance(), rendering, renderingFactor, brightnessMin, brightnessMax, finalSource.getBdvHandle());
 
-		// add STIMCard panel
-		final STIMCard card =
-				new STIMCard(
-						new ArrayList<>( Arrays.asList( dataToVisualize ) ),
-						dataToVisualize.data().getGeneNames().stream().map( s -> new ValuePair<String, Double>(s, null) ).collect( Collectors.toList() ),
-						sourceData,
-						geneToBDVSource,
-						overlay,
-						dataToVisualize.statistics().getMedianDistance(), rendering, renderingFactor, brightnessMin, brightnessMax, source.getBdvHandle());
+			// add STIMCardFilter panel
+			final STIMCardFilter cardFilter = new STIMCardFilter( card, ffSingleSpot, ffMedian, ffGauss, ffMean, service );
 
-		source.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
+			// show scalebar (so the right error can be selected)
+			finalSource.getBdvHandle().getAppearanceManager().appearance().setShowScaleBar( true );
 
-		// add STIMCardFilter panel
-		final STIMCardFilter cardFilter = new STIMCardFilter( card, ffSingleSpot, ffMedian, ffGauss, ffMean, service );
-		source.getBdvHandle().getCardPanel().addCard( "STIM Filtering Options", "STIM Filtering Options", cardFilter.getPanel(), true );
+			// collapse all existing panels (except sources)
+			finalSource.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_SOURCEGROUPS_CARD, true); // collapse groups panel
+			finalSource.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_SOURCES_CARD, false); // collapse sources panel
+			finalSource.getBdvHandle().getCardPanel().setCardExpanded(bdv.ui.BdvDefaultCards.DEFAULT_VIEWERMODES_CARD, false); // collapse display modes panel
 
-		// the side panel
-		final SplitPanel splitPanel = source.getBdvHandle().getSplitPanel();
+			finalSource.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
+			finalSource.getBdvHandle().getCardPanel().addCard( "STIM Filtering Options", "STIM Filtering Options", cardFilter.getPanel(), true );
 
-		// Expands the split Panel (after waiting 2 secs for the BDV to calm down)
-		SimpleMultiThreading.threadWait( 2000 );
-		splitPanel.setCollapsed(false);
+			// the side panel
+			final SplitPanel splitPanel = finalSource.getBdvHandle().getSplitPanel();
+
+			// Expands the split Panel (after waiting 2 secs for the BDV to calm down)
+			splitPanel.setCollapsed(false);
+		});
 
 		return null;
 	}
