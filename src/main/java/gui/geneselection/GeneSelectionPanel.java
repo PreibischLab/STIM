@@ -46,6 +46,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellRenderer;
 
@@ -281,10 +282,10 @@ public class GeneSelectionPanel extends JPanel
 			for ( final int r : rows )
 				selected.add( data.get( r ).getA() );
 
-			action.accept( selected );
+			SwingUtilities.invokeLater( () -> action.accept( selected ) );
 		}
 
-		parent.quit();
+		SwingUtilities.invokeLater( () -> parent.quit() );
 	}
 
 	protected static class MyRenderer extends DefaultTableCellRenderer
