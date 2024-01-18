@@ -155,7 +155,7 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 
 		BdvStackSource< ? > source = null;
 
-		// TODO: TEST
+		//
 		// Display annotations
 		//
 		for ( final String annotation : annotationList )
