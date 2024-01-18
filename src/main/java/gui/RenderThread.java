@@ -6,42 +6,34 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import javax.swing.SwingUtilities;
 
-import bdv.tools.brightness.ConverterSetup;
 import bdv.ui.BdvDefaultCards;
 import bdv.ui.splitpanel.SplitPanel;
 import bdv.util.BdvFunctions;
-import bdv.util.BdvHandle;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
 import bdv.viewer.SourceGroup;
 import bdv.viewer.SynchronizedViewerState;
 import data.STDataUtils;
-import filter.FilterFactory;
-import filter.MedianFilterFactory;
 import gui.bdv.AddedGene;
 import gui.bdv.AddedGene.Rendering;
 import gui.bdv.STIMCard;
 import gui.bdv.STIMCardFilter;
 import imglib2.TransformedIterableRealInterval;
 import net.imglib2.Interval;
-import net.imglib2.RealRandomAccessible;
 import net.imglib2.img.array.ArrayImgs;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
-import render.Render;
 
 public class RenderThread implements Runnable
 {
