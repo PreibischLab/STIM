@@ -55,7 +55,7 @@ public class View implements Callable<Void> {
 
 		new STDataExplorer( dataToVisualize, inputPath, SpatialDataContainer.openExisting(inputPath, service).getDatasets() );
 
-		service.shutdown();
+		//service.shutdown();
 		return null;
 	}
 

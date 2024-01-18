@@ -11,6 +11,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
+import javax.swing.SwingUtilities;
+
 import bdv.tools.brightness.ConverterSetup;
 import bdv.ui.BdvDefaultCards;
 import bdv.ui.splitpanel.SplitPanel;
@@ -80,25 +82,29 @@ public class RenderThread implements Runnable
 		this.interval =
 				STDataUtils.getCommonIterableInterval(
 						slides.stream().map(
-								pair -> new TransformedIterableRealInterval<>( pair.data(), pair.transform() ) )
+								slide -> new TransformedIterableRealInterval<>( slide.data(), slide.transform() ) )
 						.collect( Collectors.toList() ) );
 
 		this.options = BdvOptions.options().is2D().numRenderingThreads( Runtime.getRuntime().availableProcessors() );
 		this.bdv = BdvFunctions.show( Views.extendZero( ArrayImgs.doubles( 1, 1 ) ), interval, "", options );
 		this.bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
 
-		// add scale (so the right size of the images for alignment can be selected)
-		overlay = new DisplayScaleOverlay();
-		bdv.getBdvHandle().getViewerPanel().renderTransformListeners().add(overlay);
-		bdv.getBdvHandle().getViewerPanel().getDisplay().overlays().add(overlay);
+		this.overlay = new DisplayScaleOverlay();
 
-		// show scalebar (so the right error can be selected)
-		bdv.getBdvHandle().getAppearanceManager().appearance().setShowScaleBar( true );
-
-		// collapse all existing panels (except sources)
-		bdv.getBdvHandle().getCardPanel().setCardExpanded(BdvDefaultCards.DEFAULT_SOURCEGROUPS_CARD, false); // collapse groups panel
-		bdv.getBdvHandle().getCardPanel().setCardExpanded(BdvDefaultCards.DEFAULT_SOURCES_CARD, false); // collapse sources panel
-		bdv.getBdvHandle().getCardPanel().setCardExpanded(BdvDefaultCards.DEFAULT_VIEWERMODES_CARD, false); // collapse display modes panel
+		SwingUtilities.invokeLater( () ->
+		{
+			// add scale (so the right size of the images for alignment can be selected)
+			bdv.getBdvHandle().getViewerPanel().renderTransformListeners().add(overlay);
+			bdv.getBdvHandle().getViewerPanel().getDisplay().overlays().add(overlay);
+	
+			// show scalebar (so the right error can be selected)
+			bdv.getBdvHandle().getAppearanceManager().appearance().setShowScaleBar( true );
+	
+			// collapse all existing panels (except sources)
+			bdv.getBdvHandle().getCardPanel().setCardExpanded(BdvDefaultCards.DEFAULT_SOURCEGROUPS_CARD, false); // collapse groups panel
+			bdv.getBdvHandle().getCardPanel().setCardExpanded(BdvDefaultCards.DEFAULT_SOURCES_CARD, false); // collapse sources panel
+			bdv.getBdvHandle().getCardPanel().setCardExpanded(BdvDefaultCards.DEFAULT_VIEWERMODES_CARD, false); // collapse display modes panel
+		});
 	}
 
 	@Override
@@ -157,7 +163,7 @@ public class RenderThread implements Runnable
 							Rendering.Gauss,
 							bdv,
 							slide,
-							AddedGene.convert2Dto3D( slide.transform() ), //m3d,
+							null, //AddedGene.convert2Dto3D( slide.transform() ), //m3d,
 							gene,
 							1.5,
 							new ARGBType( ARGBType.rgba(255, 255, 255, 0) ),
@@ -194,25 +200,28 @@ public class RenderThread implements Runnable
 							addedGene.data().statistics().getMedianDistance(),
 							Rendering.Gauss, 1.5, 0, 0.5, bdv.getBdvHandle());
 
-					bdv.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
-
 					// add STIMCardFilter panel
 					final STIMCardFilter cardFilter = new STIMCardFilter( card, null, null, null, null, Executors.newFixedThreadPool( 1 ));
-					bdv.getBdvHandle().getCardPanel().addCard( "STIM Filtering Options", "STIM Filtering Options", cardFilter.getPanel(), true );
 
-					// the side panel
-					final SplitPanel splitPanel = bdv.getBdvHandle().getSplitPanel();
-
-					// Expands the split Panel (after waiting 1 secs for the BDV to calm down)
-					SimpleMultiThreading.threadWait( 1000 );
-					splitPanel.setCollapsed(false);
+					SwingUtilities.invokeLater( () -> 
+					{
+						bdv.getBdvHandle().getCardPanel().addCard( "STIM Display Options", "STIM Display Options", card.getPanel(), true );
+						bdv.getBdvHandle().getCardPanel().addCard( "STIM Filtering Options", "STIM Filtering Options", cardFilter.getPanel(), true );
+	
+						// the side panel
+						final SplitPanel splitPanel = bdv.getBdvHandle().getSplitPanel();
+	
+						// Expands the split Panel (after waiting 1 secs for the BDV to calm down)
+						//SimpleMultiThreading.threadWait( 1000 );
+						splitPanel.setCollapsed(false);
+					});
 				}
 				else
 				{
 					final List< String > geneList = new ArrayList<>( Arrays.asList( gene ) );
 					final List< String > inputPaths = new ArrayList<>( Arrays.asList( inputContainer ) );
 					final List< String > datasets = new ArrayList<>( Arrays.asList( this.datasets.get( lastElement.getB() ) ) );
-					final List< AffineTransform3D > transforms = new ArrayList<>( Arrays.asList( AddedGene.convert2Dto3D( slide.transform() ) ) );
+					final List< AffineTransform3D > transforms = new ArrayList<>( Arrays.asList( new AffineTransform3D() ) );
 					final List< ARGBType > colors = new ArrayList<>( Arrays.asList( new ARGBType( ARGBType.rgba(255, 255, 255, 0) ) ) );
 
 					final SynchronizedViewerState state = bdv.getBdvHandle().getViewerPanel().state();
