@@ -37,16 +37,6 @@ import net.imglib2.view.Views;
 
 public class RenderThread implements Runnable
 {
-	/*
-	protected static int medianFilter = 0;
-	protected static double gaussFactor = 1;
-
-	public static double minRange = 0;
-	public static double maxRange = 200;
-	public static double min = 0.1;
-	public static double max = 5;
-	*/
-
 	protected final BdvOptions options;
 	protected BdvStackSource< ? > bdv;
 	protected final Interval interval;
