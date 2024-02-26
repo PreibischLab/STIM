@@ -35,41 +35,59 @@ import util.Threads;
 @Command(name = "st-align-pairs", mixinStandardHelpOptions = true, version = "0.2.0", description = "Spatial Transcriptomics as IMages project - align pairs of slices")
 public class PairwiseSectionAligner implements Callable<Void> {
 
-	@Option(names = {"-c", "--container"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")
+	@Option(names = {"-i", "--input"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")
 	private String containerPath = null;
 
 	@Option(names = {"-d", "--datasets"}, required = false, description = "ordered, comma separated list of one or more datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: all, in order as saved in N5 metadata)")
 	private String datasets = null;
 
-	//@Option(names = {"-l", "--loadGenes"}, required = false, description = "load a plain text file with gene names")
-	//private String loadGenes = null;
-
-	//@Option(names = {"-s", "--saveGenes"}, required = false, description = "save a plain text file with gene names that were used (can be later imported with -l)")
-	//private String saveGenes = null;
-
 	@Option(names = {"-o", "--overwrite"}, required = false, description = "overwrite existing pairwise matches (default: false)")
 	private boolean overwrite = false;
 
-	// TODO: do rendering parameters
+	//
 	// rendering parameters
-	@Option(names = {"-s", "--scale"}, required = false, description = "scaling factor rendering the coordinates into images, which is highly sample-dependent (default: 0.05 for slideseq data)")
+	//
+	@Option(names = {"-s", "--scale"}, required = false, description = "initial scaling factor for rendering the coordinates into images, can be changed interactively (default: 0.05 for slideseq data)")
 	private double scale = 0.05;
 
-	@Option(names = {"-sf", "--smoothnessFactor"}, required = false, description = "factor for the sigma of the gaussian used for rendering, corresponds to smoothness, e.g -sf 2.0 (default: 4.0)")
-	private double smoothnessFactor = 4.0;
+	@Option(names = {"-bmin", "--brightnessMin"}, required = false, description = "min initial brightness relative to the maximal value + overall min intensity (default: 0.0)")
+	private double brightnessMin = 0.0;
 
-	@Option(names = {"--renderingGene"}, required = false, description = "gene used for visualizing the results, e.g. renderingGene Calm2 (default: Calm2 if present, else first gene in the list)")
-	private String renderingGene = null;
+	@Option(names = {"-bmax", "--brightnessMax"}, required = false, description = "max initial brightness relative to the maximal value (default: 0.5)")
+	private double brightnessMax = 0.5;
 
+	@Option(names = {"-rf", "--renderingFactor"}, required = false, description = "factor for the amount of filtering or radius used for rendering, corresponds to smoothness for Gauss, e.g -rf 2.0 (default: 1.0)")
+	private double renderingFactor = 1.0;
+
+	@Option(names = {"--rendering"}, required = false, description = "inital rendering type (Gauss, Mean, NearestNeighbor, Linear), e.g --rendering Gauss (default: Gauss)")
+	private Rendering rendering = Rendering.Gauss;
+
+	@Option(names = {"-sk", "--skip"}, required = false, description = "skips the first N genes when selecting by highest entropy, as they can be outliers (default: 10)")
+	private int skipFirstNGenes = 10;
+
+	@Option(names = {"--ffSingleSpot"}, required = false, description = "filter single spots using the median distance between all spots as threshold, e.g. --ffSingleSpot 1.5 (default: no filtering)")
+	private Double ffSingleSpot = null;
+
+	@Option(names = {"--ffMedian"}, required = false, description = "median-filter all spots using a given radius, e.g --ffMedian 5.0 (default: no filtering)")
+	private Double ffMedian = null;
+
+	@Option(names = {"--ffGauss"}, required = false, description = "Gauss-filter all spots using a given radius, e.g --ffGauss 2.0 (default: no filtering)")
+	private Double ffGauss = null;
+
+	@Option(names = {"--ffMean"}, required = false, description = "mean/avg-filter all spots using a given radius, e.g --ffMean 2.5 (default: no filtering)")
+	private Double ffMean = null;
+
+	//
 	// alignment parameters
+	//
 	@Option(names = {"-r", "--range"}, required = false, description = "range in which pairs of datasets will be aligned, therefore the order in -d is important (default: 2)")
 	private int range = 2;
 
 	@Option(names = {"-g", "--genes"}, required = false, description = "comma separated list of one or more genes to be used (on top of numGenes, which can be set to 0 if only selected genes should be used), e.g. -g 'Calm2,Hpca,Ptgds'")
 	private String genes = null;
 
-	@Option(names = {"-n", "--numGenes"}, required = false, description = "use N number of genes that have the highest entropy (default: 100)")
-	private int numGenes = 100;
+	@Option(names = {"-n", "--numGenes"}, required = false, description = "initial number of genes for alignment that have the highest entropy (default: 10)")
+	private int numGenes = 10;
 
 	@Option(names = {"-e", "--maxEpsilon"}, required = false, description = "maximally allowed alignment error (in global space, independent of scaling factor) for SIFT on a 2D rigid model (default: 10 times the average distance between sequenced locations)")
 	private double maxEpsilon = -Double.MAX_VALUE;
@@ -206,65 +224,32 @@ public class PairwiseSectionAligner implements Callable<Void> {
 					System.out.print( g + " ");
 				System.out.println();
 
-				/*
-				if ( loadGenes != null && loadGenes.length() > 0 )
-				{
-					final File file = new File( loadGenes );
-					if ( !file.exists() )
-					{
-						System.out.println( "File for loading genes '" + file.getAbsolutePath() + "' does not exist. stopping.");
-						return null;
-					}
-		
-					for ( final String gene : TextFileIO.loadGenes( file, new HashSet<>( stData1.getGeneNames() ), new HashSet<>( stData2.getGeneNames() ) ) )
-						genesToTest.add( gene );
-		
-					System.out.println( "Loaded genes, number of genes now " + genesToTest.size() );
-				}
-		
-				System.out.println( "Total number of genes: " + genesToTest.size() );
-		
-				if ( saveGenes != null && saveGenes.length() > 0 )
-				{
-					TextFileIO.saveGenes( new File( saveGenes ), genesToTest );
-					System.out.println( "Saved genes to file " + new File( saveGenes ).getAbsolutePath() );
-				}
-				*/
-
 				//
 				// start alignment
 				//
-
-				//final double scale = 0.05; //global scaling
-				//final double smoothnessFactor = 4.0;
-
-				//final double maxEpsilon = 250;
-				//final int minNumInliers = 30;
-				//final int minNumInliersPerGene = 5;
-		
 				final SIFTParam p = new SIFTParam();
 				p.setIntrinsicParameters( SIFTPreset.VERYTHOROUGH );
 				// TODO: set all parameters
 				final List< FilterFactory< DoubleType, DoubleType > > filterFactories = null;
-				p.setDatasetParameters(maxEpsilon, scale, 1024, filterFactories, Rendering.Gauss, smoothnessFactor, 0.0, 1.0); 
+				//p.setDatasetParameters(maxEpsilon, scale, 1024, filterFactories, Rendering.Gauss, smoothnessFactor, 0.0, 1.0); 
 				p.minInliersGene = minNumInliersGene;
 				p.minInliersTotal = minNumInliers;
 
 				if ( visualizeResult )
 				{
-					if ( renderingGene == null )
-					{
-						if ( genesToTest.contains( "Calm2" ) )
-							renderingGene = "Calm2";
-						else
-							renderingGene = genesToTest.iterator().next();
-					}
+					String renderingGene;
+
+					if ( genesToTest.contains( "Calm2" ) )
+						renderingGene = "Calm2";
+					else
+						renderingGene = genesToTest.iterator().next();
 
 					AlignTools.defaultGene = renderingGene;
 					AlignTools.defaultScale = scale;
+
+					System.out.println( "Gene used for rendering: " + renderingGene );
 				}
 
-				System.out.println( "Gene used for rendering: " + renderingGene );
 
 				System.out.println( "Aligning ... ");
 
