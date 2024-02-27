@@ -13,19 +13,18 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
   echo "Assuming on Linux operating system"
   MEM=$(cat /proc/meminfo | grep MemTotal | sed s/^MemTotal:\\\s*\\\|\\\s\\+[^\\\s]*$//g)
   MEMGB=$(($MEM/1024/1024))
-  MEM=$((($MEMGB/5)*4))
 elif [[ "$OSTYPE" == "darwin"* ]]; then
   echo "Assuming on MacOS X operating system"
   # sysctl returns total hardware memory size in bytes
   MEM=$(sysctl hw.memsize | grep hw.memsize | sed s/hw.memsize://g)
   MEMGB=$(($MEM/1024/1024/1024))
-  MEM=$((($MEMGB/5)*4))
 else
   echo "ERROR - Operating system (arg2) must be either linux or osx - EXITING (on windows please run the windows specific install script)"
   exit
 fi
 
-echo "Available memory:" $MEMGB "GB, setting Java memory limit to" $MEM "GB"
+MEM_LIMIT=$((($MEMGB/5)*4))
+echo "Available memory:" $MEMGB "GB, setting Java memory limit to" $MEM_LIMIT "GB"
 
 mvn clean install
 mvn -Dmdep.outputFile=cp.txt -Dmdep.includeScope=runtime dependency:build-classpath
@@ -42,7 +41,7 @@ install_command () {
 	echo '' >> $1
 	echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> $1
 	echo 'java \' >> $1
-	echo "  -Xmx${MEM}g \\" >> $1
+	echo "  -Xmx${MEM_LIMIT}g \\" >> $1
 	echo -n '  -cp $JAR:' >> $1
 	echo -n $(cat cp.txt) >> $1
 	echo ' \' >> $1

@@ -21,9 +21,9 @@ for /F "skip=1" %%A in ('wmic ComputerSystem get TotalPhysicalMemory') do (
 :: batch can only handle integers below 2^31
 :: -> cut last six digits of number in bytes (~MB) and divide by 1024 (~GB) 
 set /A "MEMGB=%MEM:~,-6%/1024"
-set /A "MEM=(3*MEMGB)/4"
+set /A "MEM_LIMIT=(4*MEMGB)/5"
 
-echo Available memory: %MEMGB%GB, setting Java memory limit to %MEM%GB
+echo Available memory: %MEMGB%GB, setting Java memory limit to %MEM_LIMIT%GB
 
 :: Skip tests for now, since they don't work on windows.
 call mvn clean install -DskipTests
@@ -73,7 +73,7 @@ goto :EOF
 		echo @echo off
 		echo.
 		echo java^^
-		echo  -Xmx%MEM%g^^
+		echo  -Xmx%MEM_LIMIT%g^^
 		echo  -cp %USERPROFILE%\.m2\repository\net\preibisch\imglib2-st\%VERSION%\imglib2-st-%VERSION%.jar;^^
 		type cp.txt
 		echo ^^
