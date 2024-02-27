@@ -30,27 +30,27 @@ INSTALL_DIR=${INSTALL_DIR:-$(pwd)}
 REPO_DIR=${REPO_DIR:-$(mvn help:evaluate -Dexpression=settings.localRepository -q -DforceStdout)}
 
 echo ""
-echo "Downloading dependencies into $REPO_DIR"
-echo "Installing into $INSTALL_DIR"
+echo "Downloading dependencies into ${REPO_DIR}"
+echo "Installing into ${INSTALL_DIR}"
 
 # check for operating system
-if [[ "$OSTYPE" == "linux-gnu" ]]; then
+if [[ "${OSTYPE}" == "linux-gnu" ]]; then
   echo "Assuming on Linux operating system"
   MEM=$(cat /proc/meminfo | grep MemTotal | sed s/^MemTotal:\\\s*\\\|\\\s\\+[^\\\s]*$//g)
-  MEMGB=$(($MEM/1024/1024))
-elif [[ "$OSTYPE" == "darwin"* ]]; then
+  MEMGB=$((${MEM}/1024/1024))
+elif [[ "${OSTYPE}" == "darwin"* ]]; then
   echo "Assuming on MacOS X operating system"
   # sysctl returns total hardware memory size in bytes
   MEM=$(sysctl hw.memsize | grep hw.memsize | sed s/hw.memsize://g)
-  MEMGB=$(($MEM/1024/1024/1024))
+  MEMGB=$((${MEM}/1024/1024/1024))
 else
   echo "ERROR - Operating system must be either Linux or MacOS X - EXITING"
   echo "(on Windows, please run the Windows specific install script)"
   exit
 fi
 
-MEM_LIMIT=$((($MEMGB/5)*4))
-echo "Available memory:" $MEMGB "GB, setting Java memory limit to" $MEM_LIMIT "GB"
+MEM_LIMIT=$(((${MEMGB}/5)*4))
+echo "Available memory:" ${MEMGB} "GB, setting Java memory limit to" ${MEM_LIMIT} "GB"
 echo ""
 
 mvn clean install -Dmaven.repo.local=${REPO_DIR}
@@ -91,23 +91,23 @@ install_command st-align-pairs-view "cmd.ViewPairwiseAlignment"
 install_command st-align-global "cmd.GlobalOpt"
 install_command st-help "cmd.PrintHelp"
 
-if [ $(pwd) == "$INSTALL_DIR" ]; then
+if [ $(pwd) == "${INSTALL_DIR}" ]; then
     echo "Installation directory equals current directory, we are done."
 else
-	echo "Creating directory $INSTALL_DIR and moving files..."
-    mkdir -p $INSTALL_DIR
-    mv st-explorer $INSTALL_DIR/
-    mv st-bdv-view $INSTALL_DIR/
-    mv st-render $INSTALL_DIR/
-    mv st-resave $INSTALL_DIR/
-    mv st-add-slice $INSTALL_DIR/
-    mv st-normalize $INSTALL_DIR/
-    mv st-add-annotations $INSTALL_DIR/
-    mv st-align-pairs $INSTALL_DIR/
-	mv st-align-pairs-add $INSTALL_DIR/
-    mv st-align-pairs-view $INSTALL_DIR/
-    mv st-align-global $INSTALL_DIR/
-    mv st-help $INSTALL_DIR/
+	echo "Creating directory ${INSTALL_DIR} and moving files..."
+    mkdir -p ${INSTALL_DIR}
+    mv st-explorer ${INSTALL_DIR}/
+    mv st-bdv-view ${INSTALL_DIR}/
+    mv st-render ${INSTALL_DIR}/
+    mv st-resave ${INSTALL_DIR}/
+    mv st-add-slice ${INSTALL_DIR}/
+    mv st-normalize ${INSTALL_DIR}/
+    mv st-add-annotations ${INSTALL_DIR}/
+    mv st-align-pairs ${INSTALL_DIR}/
+	mv st-align-pairs-add ${INSTALL_DIR}/
+    mv st-align-pairs-view ${INSTALL_DIR}/
+    mv st-align-global ${INSTALL_DIR}/
+    mv st-help ${INSTALL_DIR}/
 fi
 
 rm cp.txt
