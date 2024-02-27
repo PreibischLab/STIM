@@ -66,7 +66,7 @@ install_command () {
 
 	echo '#!/bin/bash' > $1
 	echo '' >> $1
-	echo "JAR=${HOME}/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> $1
+	echo "JAR=${REPO_DIR}/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> $1
 	echo 'java \' >> $1
 	echo "  -Xmx${MEM_LIMIT}g \\" >> $1
 	echo -n '  -cp $JAR:' >> $1
