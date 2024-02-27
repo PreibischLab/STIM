@@ -28,6 +28,10 @@ if "%REPO_DIR"=="" (
 )
 :donerepo
 
+echo.
+echo Downloading dependencies into %REPO_DIR%
+echo Installing into %INSTALL_DIR%
+
 :: read out total memory of system
 for /F "skip=1" %%A in ('wmic ComputerSystem get TotalPhysicalMemory') do (
 	set MEM=%%A
