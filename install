@@ -19,7 +19,8 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
   MEM=$(sysctl hw.memsize | grep hw.memsize | sed s/hw.memsize://g)
   MEMGB=$(($MEM/1024/1024/1024))
 else
-  echo "ERROR - Operating system (arg2) must be either linux or osx - EXITING (on windows please run the windows specific install script)"
+  echo "ERROR - Operating system must be either Linux or MacOS X - EXITING"
+  echo "(on Windows, please run the Windows specific install script)"
   exit
 fi
 
