@@ -2,10 +2,35 @@
 
 # This script is shamelessly adapted from https://github.com/saalfeldlab/n5-utils, thanks @axtimwalde & co!
 
+display_usage () {
+  echo "Usage: install.sh [options]"
+  echo ""
+  echo "OPTIONS"
+  echo "  -h                    Display this help message"
+  echo "  -i <install_dir>      Install commands into <install_dir>"
+  echo "                        (default: current directory)"
+  echo "  -r <repository_dir>   Download dependencies into <repository_dir>"
+  echo "                        (default: standard maven repository, most"
+  echo "                        likely \$HOME/.m2/repository)"
+  exit
+}
+
 VERSION="0.2.0-SNAPSHOT"
-INSTALL_DIR=${1:-$(pwd)}
+
+while getopts :hi:r: flag
+do
+  case "${flag}" in
+    h) display_usage;;
+    i) INSTALL_DIR=${OPTARG};;
+    r) REPO_DIR=${OPTARG};;
+	?) display_usage;;
+  esac
+done
+INSTALL_DIR=${INSTALL_DIR:-$(pwd)}
+REPO_DIR=${REPO_DIR:-$(mvn help:evaluate -Dexpression=settings.localRepository -q -DforceStdout)}
 
 echo ""
+echo "Downloading dependencies into $REPO_DIR"
 echo "Installing into $INSTALL_DIR"
 
 # check for operating system
@@ -26,9 +51,10 @@ fi
 
 MEM_LIMIT=$((($MEMGB/5)*4))
 echo "Available memory:" $MEMGB "GB, setting Java memory limit to" $MEM_LIMIT "GB"
+echo ""
 
-mvn clean install
-mvn -Dmdep.outputFile=cp.txt -Dmdep.includeScope=runtime dependency:build-classpath
+mvn clean install -Dmaven.repo.local=${REPO_DIR}
+mvn -Dmdep.outputFile=cp.txt -Dmdep.includeScope=runtime -Dmaven.repo.local=${REPO_DIR} dependency:build-classpath
 
 echo ""
 
@@ -40,7 +66,7 @@ install_command () {
 
 	echo '#!/bin/bash' > $1
 	echo '' >> $1
-	echo "JAR=\$HOME/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> $1
+	echo "JAR=${HOME}/.m2/repository/net/preibisch/imglib2-st/${VERSION}/imglib2-st-${VERSION}.jar" >> $1
 	echo 'java \' >> $1
 	echo "  -Xmx${MEM_LIMIT}g \\" >> $1
 	echo -n '  -cp $JAR:' >> $1
