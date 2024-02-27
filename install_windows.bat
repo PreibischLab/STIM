@@ -5,18 +5,35 @@ setlocal EnableExtensions
 :: is adapted from https://github.com/saalfeldlab/n5-utils, by @axtimwalde & co
 set "VERSION=0.2.0-SNAPSHOT"
 
-if "%~1"=="" (
+:: parse arguments one by one
+:parse
+	if "%~1"=="" goto :doneparsing
+
+	if /i "%~1"=="/h"    call :usage
+	if /i "%~1"=="/i"    set "INSTALL_DIR=%~2" & shift & shift & goto :parse
+	if /i "%~1"=="/r"    set "REPO_DIR=%~2" & shift & shift & goto :parse
+:doneparsing
+
+:: default for installation dir = current directory
+if "%INSTALL_DIR"=="" (
     set "INSTALL_DIR=%CD%"
-) else (
-    set "INSTALL_DIR=%~1"
 )
+
+:: default for repository dir = standard maven repository
+if "%REPO_DIR"=="" (
+	for /F "skip=1" %%A in ('mvn help:evaluate -Dexpression=settings.localRepository -q -DforceStdout') do (
+		set REPO_DIR=%%A
+		goto :donerepo
+	)
+)
+:donerepo
 
 :: read out total memory of system
 for /F "skip=1" %%A in ('wmic ComputerSystem get TotalPhysicalMemory') do (
 	set MEM=%%A
-	goto :done
+	goto :donemem
 )
-:done
+:donemem
 
 :: batch can only handle integers below 2^31
 :: -> cut last six digits of number in bytes (~MB) and divide by 1024 (~GB) 
@@ -26,8 +43,8 @@ set /A "MEM_LIMIT=(4*MEMGB)/5"
 echo Available memory: %MEMGB%GB, setting Java memory limit to %MEM_LIMIT%GB
 
 :: Skip tests for now, since they don't work on windows.
-call mvn clean install -DskipTests
-call mvn -Dmdep.outputFile=cp.txt -Dmdep.includeScope=runtime dependency:build-classpath
+call mvn clean install -DskipTests -Dmaven.repo.local="%REPO_DIR%"
+call mvn -Dmdep.outputFile=cp.txt -Dmdep.includeScope=runtime -Dmaven.repo.local="%REPO_DIR%" dependency:build-classpath
 
 call :install_command st-explorer.bat cmd.View
 call :install_command st-render.bat cmd.RenderImage
@@ -80,6 +97,18 @@ goto :EOF
 		echo  %2 %%*
 	) > %1
 goto :EOF
+
+:usage
+    echo USAGE: install_windows.bat [options]
+	echo.
+	echo. OPTIONS
+	echo.   /h                    Display this help message
+	echo.   /i <install_dir>      Install commands into <install_dir>
+	echo.                         (default: current directory)
+	echo.   /r <repository_dir>   Download dependencies into <repository_dir>
+	echo.                         (default: standard maven repository, most
+	echo.                         likely \%USERPROFILE\%\.m2\repository)
+    goto :EOF 
 
 endlocal
 
