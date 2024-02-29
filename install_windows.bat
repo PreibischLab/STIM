@@ -5,29 +5,46 @@ setlocal EnableExtensions
 :: is adapted from https://github.com/saalfeldlab/n5-utils, by @axtimwalde & co
 set "VERSION=0.2.0-SNAPSHOT"
 
-if "%~1"=="" (
-    set "INSTALL_DIR=%CD%"
-) else (
-    set "INSTALL_DIR=%~1"
-)
+:: default for installation dir = current directory
+set "INSTALL_DIR=%CD%"
+
+:: default for repository dir = standard maven repository
+set "REPO_DIR=%USERPROFILE%\.m2\repository"
+
+:: parse arguments one by one
+:parse
+	if "%~1"=="" goto :doneparsing
+
+	if /i "%~1"=="/h"    call :usage & goto :EOF
+	if /i "%~1"=="/i"    set "INSTALL_DIR=%~2" & shift & shift & goto :parse
+	if /i "%~1"=="/r"    set "REPO_DIR=%~2" & shift & shift & goto :parse
+	
+	:: argument doesn't match any of the above
+	echo Unknown option "%~1"
+	call :usage & goto :EOF
+:doneparsing
+
+echo.
+echo Downloading dependencies into %REPO_DIR%
+echo Installing into %INSTALL_DIR%
 
 :: read out total memory of system
 for /F "skip=1" %%A in ('wmic ComputerSystem get TotalPhysicalMemory') do (
 	set MEM=%%A
-	goto :done
+	goto :donemem
 )
-:done
+:donemem
 
 :: batch can only handle integers below 2^31
 :: -> cut last six digits of number in bytes (~MB) and divide by 1024 (~GB) 
 set /A "MEMGB=%MEM:~,-6%/1024"
-set /A "MEM=(3*MEMGB)/4"
+set /A "MEM_LIMIT=(4*MEMGB)/5"
 
-echo Available memory: %MEMGB%GB, setting Java memory limit to %MEM%GB
+echo Available memory: %MEMGB%GB, setting Java memory limit to %MEM_LIMIT%GB
 
 :: Skip tests for now, since they don't work on windows.
-call mvn clean install -DskipTests
-call mvn -Dmdep.outputFile=cp.txt -Dmdep.includeScope=runtime dependency:build-classpath
+call mvn clean install -DskipTests -Dmaven.repo.local="%REPO_DIR%"
+call mvn -Dmdep.outputFile=cp.txt -Dmdep.includeScope=runtime -Dmaven.repo.local="%REPO_DIR%" dependency:build-classpath
 
 call :install_command st-explorer.bat cmd.View
 call :install_command st-render.bat cmd.RenderImage
@@ -73,15 +90,22 @@ goto :EOF
 		echo @echo off
 		echo.
 		echo java^^
-		echo  -Xmx%MEM%g^^
-		echo  -cp %USERPROFILE%\.m2\repository\net\preibisch\imglib2-st\%VERSION%\imglib2-st-%VERSION%.jar;^^
+		echo  -Xmx%MEM_LIMIT%g^^
+		echo  -cp %REPO_DIR%\net\preibisch\imglib2-st\%VERSION%\imglib2-st-%VERSION%.jar;^^
 		type cp.txt
 		echo ^^
 		echo  %2 %%*
 	) > %1
 goto :EOF
 
+:usage
+	echo USAGE: install_windows.bat [options]
+	echo.
+	echo. OPTIONS
+	echo.   /h                    Display this help message
+	echo.   /i [install_dir]      Install commands into [install_dir]
+	echo.                         (default: current directory)
+	echo.   /r [repository_dir]   Download dependencies into [repository_dir]
+	echo.                         (default: %%USERPROFILE%%\.m2\repository)
+
 endlocal
-
-
-
