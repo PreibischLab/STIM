@@ -9,19 +9,19 @@ set "VERSION=0.2.0-SNAPSHOT"
 set "INSTALL_DIR=%CD%"
 
 :: default for repository dir = standard maven repository
-for /F %%A in ('mvn help:evaluate -Dexpression=settings.localRepository -q -DforceStdout') do (
-	set REPO_DIR=%%A
-	goto :donerepo
-)
-:donerepo
+set "REPO_DIR=%USERPROFILE%\.m2\repository"
 
 :: parse arguments one by one
 :parse
 	if "%~1"=="" goto :doneparsing
 
-	if /i "%~1"=="/h"    call :usage
+	if /i "%~1"=="/h"    call :usage & goto :EOF
 	if /i "%~1"=="/i"    set "INSTALL_DIR=%~2" & shift & shift & goto :parse
 	if /i "%~1"=="/r"    set "REPO_DIR=%~2" & shift & shift & goto :parse
+	
+	:: argument doesn't match any of the above
+	echo Unknown option "%~1"
+	call :usage & goto :EOF
 :doneparsing
 
 echo.
@@ -91,7 +91,7 @@ goto :EOF
 		echo.
 		echo java^^
 		echo  -Xmx%MEM_LIMIT%g^^
-		echo  -cp %USERPROFILE%\.m2\repository\net\preibisch\imglib2-st\%VERSION%\imglib2-st-%VERSION%.jar;^^
+		echo  -cp %REPO_DIR%\net\preibisch\imglib2-st\%VERSION%\imglib2-st-%VERSION%.jar;^^
 		type cp.txt
 		echo ^^
 		echo  %2 %%*
@@ -99,18 +99,13 @@ goto :EOF
 goto :EOF
 
 :usage
-    echo USAGE: install_windows.bat [options]
+	echo USAGE: install_windows.bat [options]
 	echo.
 	echo. OPTIONS
 	echo.   /h                    Display this help message
-	echo.   /i <install_dir>      Install commands into <install_dir>
+	echo.   /i [install_dir]      Install commands into [install_dir]
 	echo.                         (default: current directory)
-	echo.   /r <repository_dir>   Download dependencies into <repository_dir>
-	echo.                         (default: standard maven repository, most
-	echo.                         likely \%USERPROFILE\%\.m2\repository)
-    goto :EOF 
+	echo.   /r [repository_dir]   Download dependencies into [repository_dir]
+	echo.                         (default: %%USERPROFILE%%\.m2\repository)
 
 endlocal
-
-
-
