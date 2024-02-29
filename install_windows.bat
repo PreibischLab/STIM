@@ -5,6 +5,16 @@ setlocal EnableExtensions
 :: is adapted from https://github.com/saalfeldlab/n5-utils, by @axtimwalde & co
 set "VERSION=0.2.0-SNAPSHOT"
 
+:: default for installation dir = current directory
+set "INSTALL_DIR=%CD%"
+
+:: default for repository dir = standard maven repository
+for /F %%A in ('mvn help:evaluate -Dexpression=settings.localRepository -q -DforceStdout') do (
+	set REPO_DIR=%%A
+	goto :donerepo
+)
+:donerepo
+
 :: parse arguments one by one
 :parse
 	if "%~1"=="" goto :doneparsing
@@ -13,20 +23,6 @@ set "VERSION=0.2.0-SNAPSHOT"
 	if /i "%~1"=="/i"    set "INSTALL_DIR=%~2" & shift & shift & goto :parse
 	if /i "%~1"=="/r"    set "REPO_DIR=%~2" & shift & shift & goto :parse
 :doneparsing
-
-:: default for installation dir = current directory
-if "%INSTALL_DIR"=="" (
-    set "INSTALL_DIR=%CD%"
-)
-
-:: default for repository dir = standard maven repository
-if "%REPO_DIR"=="" (
-	for /F "skip=1" %%A in ('mvn help:evaluate -Dexpression=settings.localRepository -q -DforceStdout') do (
-		set REPO_DIR=%%A
-		goto :donerepo
-	)
-)
-:donerepo
 
 echo.
 echo Downloading dependencies into %REPO_DIR%
