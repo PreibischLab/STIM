@@ -52,7 +52,7 @@ import picocli.CommandLine.Option;
 import render.MaxDistanceParam;
 import render.Render;
 
-@Command(name = "st-render", mixinStandardHelpOptions = true, version = "0.2.1", description = "Spatial Transcriptomics as IMages project - render ST data as images in Fiji/ImageJ")
+@Command(name = "st-render", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - render ST data as images in Fiji/ImageJ")
 public class RenderImage implements Callable<Void> {
 
 	// st-render -i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d Puck_180531_22.n5,Puck_180531_23.n5 -g Malat1

@@ -32,7 +32,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import util.Threads;
 
-@Command(name = "st-align-pairs", mixinStandardHelpOptions = true, version = "0.2.1", description = "Spatial Transcriptomics as IMages project - align pairs of slices")
+@Command(name = "st-align-pairs", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - align pairs of slices")
 public class PairwiseSectionAligner implements Callable<Void> {
 
 	@Option(names = {"-i", "--input"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")

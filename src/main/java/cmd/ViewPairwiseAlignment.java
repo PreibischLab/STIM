@@ -24,7 +24,7 @@ import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Command;
 
-@Command(name = "st-align-pairs-view", mixinStandardHelpOptions = true, version = "0.2.1", description = "Spatial Transcriptomics as IMages project - view and check pairwise alignments")
+@Command(name = "st-align-pairs-view", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - view and check pairwise alignments")
 public class ViewPairwiseAlignment implements Callable<Void> {
 
 	@Option(names = {"-c", "--container"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")
