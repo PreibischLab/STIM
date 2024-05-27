@@ -45,7 +45,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import render.Render;
 
-@Command(name = "st-bdv-view", mixinStandardHelpOptions = true, version = "0.2.0", description = "Spatial Transcriptomics as IMages project - visualize ST data in BigDataViewer")
+@Command(name = "st-bdv-view", mixinStandardHelpOptions = true, version = "0.2.1", description = "Spatial Transcriptomics as IMages project - visualize ST data in BigDataViewer")
 public class BigDataViewerDisplay implements Callable<Void>
 {
 	@Option(names = {"-i", "--input"}, required = true, description = "input file (AnnData) or N5 container, e.g. -i /home/ssq.n5")

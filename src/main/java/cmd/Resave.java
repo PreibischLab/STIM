@@ -38,7 +38,7 @@ import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Command;
 
-@Command(name = "st-resave", mixinStandardHelpOptions = true, version = "0.2.0", description = "Spatial Transcriptomics as IMages project - resave a slice-dataset to N5/AnnData")
+@Command(name = "st-resave", mixinStandardHelpOptions = true, version = "0.2.1", description = "Spatial Transcriptomics as IMages project - resave a slice-dataset to N5/AnnData")
 public class Resave implements Callable<Void> {
 
 	@Option(names = {"-c", "--container"}, required = false, description = "N5 output container path to which a new dataset will be added (N5 can exist or new one will be created), e.g. -o /home/ssq.n5. If omitted, a single slice-dataset will be stored in the current path.")

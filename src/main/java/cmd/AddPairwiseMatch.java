@@ -24,7 +24,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-@Command(name = "st-align-pairs-add", mixinStandardHelpOptions = true, version = "0.2.0", description = "Spatial Transcriptomics as IMages project - add manual landmarks to align pairs of slices")
+@Command(name = "st-align-pairs-add", mixinStandardHelpOptions = true, version = "0.2.1", description = "Spatial Transcriptomics as IMages project - add manual landmarks to align pairs of slices")
 public class AddPairwiseMatch implements Callable<Void> {
 
 	@Option(names = {"-c", "--container"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")

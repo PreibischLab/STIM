@@ -17,7 +17,7 @@ import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Command;
 
-@Command(name = "st-normalize", mixinStandardHelpOptions = true, version = "0.2.0", description = "Spatial Transcriptomics as IMages project - normalize dataset")
+@Command(name = "st-normalize", mixinStandardHelpOptions = true, version = "0.2.1", description = "Spatial Transcriptomics as IMages project - normalize dataset")
 public class Normalize implements Callable<Void> {
 
 		@Option(names = {"-c", "--container"}, required = false, description = "N5 container; if given, all datasets are taken from and added to that container")
