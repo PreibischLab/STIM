@@ -49,7 +49,7 @@ public class STIMCard
 	private final DisplayScaleOverlay overlay;
 	private double currentRF, currentBrightnessMin, currentBrightnessMax;
 	private Rendering currentRendering;
-	private double medianDistance;
+	private final double medianDistance;
 
 	public STIMCard(
 			final List<STDataAssembly> data,
@@ -85,8 +85,8 @@ public class STIMCard
 
 		final JPanel extraPanel = new JPanel( new MigLayout("gap 0, ins 0 0 0 0, fill", "[right][grow]", "center") );
 		// TODO: Advanced parameters for many of them
-		final String options[] = Arrays.asList( Rendering.values() ).stream().map( r -> r.name() ).toArray(String[]::new);
-		final JComboBox< String > box = new JComboBox< String > (options);
+		final String[] options = Arrays.stream(Rendering.values()).map(Enum::name).toArray(String[]::new);
+		final JComboBox< String > box = new JComboBox<>(options);
 		box.setBorder( BorderFactory.createEmptyBorder(0, 10, 0, 5));
 		box.setSelectedIndex( currentRendering.ordinal() );
 		extraPanel.add( box, "aligny baseline" /*"growx, wrap"*/ );
@@ -318,7 +318,7 @@ public class STIMCard
 		//
 		add.addActionListener( l -> 
 		{
-			if ( gse == null || gse.frame().isVisible() == false )
+			if ( gse == null || !gse.frame().isVisible())
 				gse = new GeneSelectionExplorer(
 					allGenes,
 					list ->
@@ -332,12 +332,11 @@ public class STIMCard
 							final List< AffineTransform3D > transforms = new ArrayList<>();
 							final List< ARGBType > colors = new ArrayList<>();
 
-							for ( int i = 0; i < anyDatasets.size(); ++i )
-							{
-								inputPaths.add( anyDatasets.get(i).inputPath() );
-								datasets.add( anyDatasets.get(i).dataset() );
-								transforms.add( anyDatasets.get(i).currentModel3D() );
-								colors.add( anyDatasets.get(i).color() );
+							for (AddedGene anyDataset : anyDatasets) {
+								inputPaths.add(anyDataset.inputPath());
+								datasets.add(anyDataset.dataset());
+								transforms.add(anyDataset.currentModel3D());
+								colors.add(anyDataset.color());
 							}
 
 							addGenes( list, inputPaths, datasets, transforms, colors );
@@ -447,23 +446,23 @@ public class STIMCard
 
 	public String createCmdLineArgs( final boolean addDataset, final boolean addGenes )
 	{
-		String cmdLine = "";
+		StringBuilder cmdLine = new StringBuilder();
 
 		if ( addDataset )
 		{
-			cmdLine += "-i " + inputPath() + " ";
+			cmdLine.append("-i ").append(inputPath()).append(" ");
 
 			final HashSet<String> datasets = currentlyVisibleDatasets();
 
-			if ( datasets.size() > 0 )
+			if (!datasets.isEmpty())
 			{
 				final Iterator<String> i = datasets.iterator();
-				cmdLine += "-d " + i.next();
+				cmdLine.append("-d ").append(i.next());
 
 				while ( i.hasNext() )
-					cmdLine += "," + i.next();
+					cmdLine.append(",").append(i.next());
 
-				cmdLine += " ";
+				cmdLine.append(" ");
 			}
 		}
 
@@ -471,21 +470,21 @@ public class STIMCard
 		{
 			final HashSet<String> genes = currentlyVisibleGenes();
 
-			if ( genes.size() > 0 )
+			if (!genes.isEmpty())
 			{
 				final Iterator<String> i = genes.iterator();
-				cmdLine += "-g " + i.next();
+				cmdLine.append("-g ").append(i.next());
 
 				while ( i.hasNext() )
-					cmdLine += "," + i.next();
+					cmdLine.append(",").append(i.next());
 
-				cmdLine += " ";
+				cmdLine.append(" ");
 			}
 		}
 
-		cmdLine += "--rendering " + currentDisplayMode() + " -bmin " + currentBrightnessMin() + " -bmax " + currentBrightnessMax() + " -rf " + currentRenderingFactor() + " ";
+		cmdLine.append("--rendering ").append(currentDisplayMode()).append(" -bmin ").append(currentBrightnessMin()).append(" -bmax ").append(currentBrightnessMax()).append(" -rf ").append(currentRenderingFactor()).append(" ");
 
-		return cmdLine;
+		return cmdLine.toString();
 	}
 
 	public HashSet< String > currentlyVisibleGenes()
@@ -495,19 +494,14 @@ public class STIMCard
 
 		final HashSet< String > genes = new HashSet<>();
 
-		sourceData().entrySet().forEach( set ->
-		{
-			active.forEach( source ->
-			{
-				set.getValue().forEach( gene ->
-				{
-					if ( gene.soc() == source )
-						genes.add( set.getKey() );
-				});
-				//if ( set.getValue().getA().soc() == source || set.getValue().getB().soc() == source )
-				//	genes.add( set.getKey() );
-			} );
-		});
+		sourceData().forEach((key, value) -> active.forEach(source -> {
+			value.forEach(gene -> {
+				if (gene.soc() == source)
+					genes.add(key);
+			});
+			//if ( set.getValue().getA().soc() == source || set.getValue().getB().soc() == source )
+			//	genes.add( set.getKey() );
+		}));
 
 		return genes; 
 	}
@@ -519,23 +513,18 @@ public class STIMCard
 
 		final HashSet< String > datasets = new HashSet<>();
 
-		sourceData().entrySet().forEach( set ->
-		{
-			active.forEach( source ->
-			{
-				set.getValue().forEach( gene ->
-				{
-					if ( gene.soc() == source )
-						datasets.add( gene.dataset() );
-				});
-				//if ( set.getValue().getA().soc() == source )
-				//	datasets.add( set.getValue().getA().dataset() );
+		sourceData().forEach((key, value) -> active.forEach(source -> {
+			value.forEach(gene -> {
+				if (gene.soc() == source)
+					datasets.add(gene.dataset());
+			});
+			//if ( set.getValue().getA().soc() == source )
+			//	datasets.add( set.getValue().getA().dataset() );
 
-				//if ( set.getValue().getB().soc() == source )
-				//	datasets.add( set.getValue().getB().dataset() );
-					
-			} );
-		});
+			//if ( set.getValue().getB().soc() == source )
+			//	datasets.add( set.getValue().getB().dataset() );
+
+		}));
 
 		return datasets;
 	}

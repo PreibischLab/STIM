@@ -32,7 +32,12 @@ public class STIMCardManualAlign
 {
 	private final JPanel panel;
 
-	private JFormattedTextField m00, m01, m02, m10, m11, m12;
+	private final JFormattedTextField m00;
+	private final JFormattedTextField m01;
+	private final JFormattedTextField m02;
+	private final JFormattedTextField m10;
+	private final JFormattedTextField m11;
+	private final JFormattedTextField m12;
 	private final JButton reset, run, cancel;
 	private Affine2D<?> previousModel = null;
 
@@ -169,7 +174,7 @@ public class STIMCardManualAlign
 				// and activate the first source to transform it
 				final HashSet<String> visible = stimcard.currentlyVisibleGenes();
 	
-				if ( visible.size() == 0 )
+				if (visible.isEmpty())
 				{
 					System.out.println( "Nothing is visibile. Maybe consider restarting to return to predefined viewing mode.");
 					return;

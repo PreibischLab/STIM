@@ -293,34 +293,26 @@ public class STIMCardFilter
 				SwingUtilities.invokeLater( () -> table.setForeground( Color.lightGray ) );
 	
 				// replace original values first
-				stimcard.sourceData().forEach( (gene,data) ->
-				{
-					data.forEach( d ->
-					{
-						final Iterator<Double> iFilt = d.originalValues().iterator();
-						d.tree().forEach( t -> t.set( iFilt.next() ) );
-					});
-				} );
+				stimcard.sourceData().values().forEach(data -> data.forEach(d -> {
+					final Iterator<Double> iFilt = d.originalValues().iterator();
+					d.tree().forEach( t -> t.set( iFilt.next() ) );
+				}));
 	
 				for ( final FilterFactory<DoubleType, DoubleType> filterFactory : filterFactories() )
 				{
 					stimcard.sourceData().forEach( (gene,data) ->
 					{
 						final List< Callable< Void > > tasks = new ArrayList<>();
-	
-						data.forEach( d ->
-						{
-							tasks.add( () ->
-							{
-								final RealPointSampleList<DoubleType> filteredA =
-										Filters.filter( d.tree(), d.tree().iterator(), filterFactory );
-	
-								final RealCursor<DoubleType> iAFilt = filteredA.cursor();
-								d.tree().forEach( t -> t.set( iAFilt.next() ) );
-	
-								return null;
-							});
-						});
+
+						data.forEach(d -> tasks.add(() -> {
+							final RealPointSampleList<DoubleType> filteredA =
+									Filters.filter( d.tree(), d.tree().iterator(), filterFactory );
+
+							final RealCursor<DoubleType> iAFilt = filteredA.cursor();
+							d.tree().forEach( t -> t.set( iAFilt.next() ) );
+
+							return null;
+						}));
 
 						try { service.invokeAll( tasks ); } catch (InterruptedException e) { e.printStackTrace(); }
 					});

@@ -44,7 +44,7 @@ import util.BoundedValuePanel;
 
 public class STIMCardAlignICP
 {
-	public class ICPParams
+	public static class ICPParams
 	{
 		double maxErrorICP, maxErrorRANSAC;
 		AtomicInteger maxIterations = new AtomicInteger( 100 ); // so it can be changed
@@ -81,7 +81,7 @@ public class STIMCardAlignICP
 	private final ICPParams param;
 	private final JPanel panel;
 	private final STIMCardFilter cardFilter;
-	private STIMCardAlignSIFT stimcardSIFT;
+	private final STIMCardAlignSIFT stimcardSIFT;
 	private STIMCardManualAlign manualCard = null; // may or may not be there
 
 	public STIMCardAlignICP(
@@ -99,7 +99,7 @@ public class STIMCardAlignICP
 		this.stimcardSIFT = stimcardSIFT;
 
 		final Interval interval = STDataUtils.getCommonInterval( stimcard.data().get( 0 ).data(), stimcard.data().get( 1 ).data() );
-		this.param.maxErrorICP = Math.max( stimcard.medianDistance(), ( Math.max( interval.dimension( 0 ), interval.dimension( 1 ) ) / 20 ) / 5.0 );
+		this.param.maxErrorICP = Math.max(stimcard.medianDistance(), (Math.max(interval.dimension(0), interval.dimension(1)) / 20.0) / 5.0);
 		this.param.maxErrorRANSAC = this.param.maxErrorICP / 2.0;
 
 		// max ICP error
@@ -127,7 +127,7 @@ public class STIMCardAlignICP
 		panel.add(maxErrorRANSACSlider, "growx, wrap");
 
 		// iterations
-		final BoundedValuePanel iterationsSlider = new BoundedValuePanel(new BoundedValue(50, Math.round( Math.ceil( param.maxIterations.get() * 2 ) ), param.maxIterations.get() ));
+		final BoundedValuePanel iterationsSlider = new BoundedValuePanel(new BoundedValue(50, Math.round((double) (param.maxIterations.get() * 2)), param.maxIterations.get() ));
 		iterationsSlider.setBorder(null);
 		final JLabel iterationsLabel = new JLabel("Max. iterations");
 		//iterationsLabel.setFont( f );
@@ -135,7 +135,7 @@ public class STIMCardAlignICP
 		panel.add(iterationsSlider, "growx, wrap");
 
 		// which genes
-		final JComboBox< String > boxGenes = new JComboBox< String > ( new String[] { "All displayed genes", "SIFT genes only" } );
+		final JComboBox< String > boxGenes = new JComboBox<>(new String[]{"All displayed genes", "SIFT genes only"});
 		boxGenes.setBorder( null );
 		boxGenes.setSelectedIndex( 1 );
 		final JLabel boxLabel = new JLabel("Genes to use ");
@@ -150,13 +150,13 @@ public class STIMCardAlignICP
 		panel.add(siftResults, "span,growx,pushy");
 
 		// Panel for FINAL MODEL
-		final JComboBox< String > boxModelFinal1 = new JComboBox< String > (STIMCardAlignSIFT.optionsModel);
+		final JComboBox< String > boxModelFinal1 = new JComboBox<>(STIMCardAlignSIFT.optionsModel);
 		boxModelFinal1.setSelectedIndex( 1 );
 		final JLabel boxModeFinalLabel1 = new JLabel("Final model ");
 		panel.add( boxModeFinalLabel1, "aligny baseline, sy 2" );
 		panel.add( boxModelFinal1, "growx, wrap" );
 		final JPanel panFinal = new JPanel( new MigLayout("gap 0, ins 0 0 0 0, fill", "[right][grow]", "center") );
-		final JComboBox< String > boxModelFinal2 = new JComboBox< String > (STIMCardAlignSIFT.optionsModelReg);
+		final JComboBox< String > boxModelFinal2 = new JComboBox<>(STIMCardAlignSIFT.optionsModelReg);
 		boxModelFinal2.setSelectedIndex( 0 );
 		panFinal.add( boxModelFinal2 );
 		final JLabel labelFinalReg = new JLabel( "λ=" );
@@ -224,13 +224,10 @@ public class STIMCardAlignICP
 		useRANSAC.addActionListener( e -> SwingUtilities.invokeLater( () -> maxErrorRANSACSlider.setEnabled( useRANSAC.isSelected() ) ) );
 
 		// disable lambdas if no regularization is selected
-		boxModelFinal2.addActionListener( e -> {
-			SwingUtilities.invokeLater( () ->
-			{
-				tfFinal.setEnabled( boxModelFinal2.getSelectedIndex() != 0 );
-				labelFinalReg.setForeground( boxModelFinal2.getSelectedIndex() == 0 ? Color.gray : Color.black );
-			});
-		} );
+		boxModelFinal2.addActionListener(e -> SwingUtilities.invokeLater(() -> {
+			tfFinal.setEnabled( boxModelFinal2.getSelectedIndex() != 0 );
+			labelFinalReg.setForeground( boxModelFinal2.getSelectedIndex() == 0 ? Color.gray : Color.black );
+		}));
 
 		// be able to change number of iterations while running
 		iterationsSlider.changeListeners().add( () ->
@@ -248,7 +245,7 @@ public class STIMCardAlignICP
 				icpThread.stop();
 
 				// wait a bit
-				try { Thread.sleep( 100 ); } catch (InterruptedException e1) {}
+				try { Thread.sleep( 100 ); } catch (InterruptedException ignored) {}
 
 				icpThread = null;
 
@@ -318,11 +315,11 @@ public class STIMCardAlignICP
 				else
 					genes = new HashSet<>( stimcardSIFT.genesWithInliers() ); // genes from SIFT
 
-				if ( genes.size() == 0 )
+				if (genes.isEmpty())
 				{
 					System.out.println( "no genes for ICP, please run SIFT successfully first or select 'all displayed genes'.");
 
-					SwingUtilities.invokeLater( () -> reEnableControls() );
+					SwingUtilities.invokeLater(this::reEnableControls);
 					icpThread = null;
 
 					return;
@@ -353,12 +350,10 @@ public class STIMCardAlignICP
 				else
 					param.ffMean = null;
 
-				System.out.println( "Running ICP align with the following parameters: \n" + param.toString() );
+				System.out.println( "Running ICP align with the following parameters: \n" + param);
 				System.out.println( "FINAL model: " + STIMCardAlignSIFT.optionsModel[ boxModelFinal1.getSelectedIndex() ] + ", regularizer: " + STIMCardAlignSIFT.optionsModelReg[ boxModelFinal2.getSelectedIndex() ] + ", lambda=" + lambda );
 
-				final boolean visResult = false;
 				final double[] progressBarValue = new double[] { 1.0 };
-
 
 				final Pair<Model, List<PointMatch>> icpT = 
 						ICPAlign.alignICP(

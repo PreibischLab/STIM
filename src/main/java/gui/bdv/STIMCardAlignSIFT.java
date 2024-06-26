@@ -3,7 +3,6 @@ package gui.bdv;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.text.DecimalFormat;
@@ -44,7 +43,6 @@ import align.SiftMatch;
 import data.STData;
 import data.STDataUtils;
 import gui.overlay.SIFTOverlay;
-import imglib2.TransformedIterableRealInterval;
 import io.SpatialDataIO;
 import mpicbg.models.Affine2D;
 import mpicbg.models.AffineModel2D;
@@ -73,7 +71,7 @@ public class STIMCardAlignSIFT
 	private STIMCardManualAlign manualCard = null; // may or may not be there
 
 	private Thread siftThread = null;
-	private List< Thread > threads = new ArrayList<>();
+	private final List<Thread> threads = new ArrayList<>();
 
 	protected final JButton cmdLine, saveTransform, run, reset;
 	protected final JCheckBox overlayInliers;
@@ -86,15 +84,15 @@ public class STIMCardAlignSIFT
 
 	private Affine2D<?> previousModel = null;
 	private final SIFTParam param;
-	final static String optionsSIFT[] = { "Fast", "Normal", "Thorough", "Very thorough", "Custom ..." };
+	final static String[] optionsSIFT = { "Fast", "Normal", "Thorough", "Very thorough", "Custom ..." };
 	private boolean customModeSIFT = false; // we always start with "normal" for 
 
 	private final ExecutorService service;
-	private HashSet< String > genesWithInliers = new HashSet<>();
+	private final HashSet<String> genesWithInliers = new HashSet<>();
 	private double lastMaxError = Double.NaN;
 
-	final static String optionsModel[] = { "Translation", "Rigid", "Similarity", "Affine" };
-	final static String optionsModelReg[] = { "No Reg.", "Transl.", "Rigid", "Simil.", "Affine" };
+	final static String[] optionsModel = { "Translation", "Rigid", "Similarity", "Affine" };
+	final static String[] optionsModelReg = { "No Reg.", "Transl.", "Rigid", "Simil.", "Affine" };
 
 	public STIMCardAlignSIFT(
 			final String dataset1,
@@ -110,7 +108,7 @@ public class STIMCardAlignSIFT
 		this.service = service;
 
 		final Interval interval = STDataUtils.getCommonInterval( stimcard.data().get( 0 ).data(), stimcard.data().get( 1 ).data() );
-		this.param.maxError = Math.max( interval.dimension( 0 ), interval.dimension( 1 ) ) / 20;
+		this.param.maxError = Math.max(interval.dimension(0), interval.dimension(1)) / 20.0;
 		this.param.sift.maxOctaveSize = 1024; // TODO find out
 
 		this.siftoverlay = new SIFTOverlay( new ArrayList<>(), stimcard.bdvhandle() );
@@ -128,7 +126,7 @@ public class STIMCardAlignSIFT
 		final NumberFormatter formatterDouble01 = formatterDouble01();
 
 		// SIFT presets
-		final JComboBox< String > box = new JComboBox< String > ( optionsSIFT );
+		final JComboBox< String > box = new JComboBox<>(optionsSIFT);
 		box.setBorder( null );
 		box.setSelectedIndex( initSIFTPreset );
 		final JLabel boxLabel = new JLabel("SIFT Matching Preset ");
@@ -175,13 +173,13 @@ public class STIMCardAlignSIFT
 		final int componentCount = panel.getComponentCount();
 
 		// Panel for RANSAC MODEL
-		boxModelRANSAC1 = new JComboBox< String > (optionsModel);
+		boxModelRANSAC1 = new JComboBox<>(optionsModel);
 		boxModelRANSAC1.setSelectedIndex( 1 );
 		final JLabel boxModeRANSACLabel1 = new JLabel("RANSAC model ");
 		panel.add( boxModeRANSACLabel1, "aligny baseline, sy 2" );
 		panel.add( boxModelRANSAC1, "growx, wrap" );
 		final JPanel panRANSAC = new JPanel( new MigLayout("gap 0, ins 0 0 0 0, fill", "[right][grow]", "center") );
-		boxModelRANSAC2 = new JComboBox< String > (optionsModelReg);
+		boxModelRANSAC2 = new JComboBox<>(optionsModelReg);
 		boxModelRANSAC2.setSelectedIndex( 0 );
 		panRANSAC.add( boxModelRANSAC2 );
 		final JLabel labelRANSACReg = new JLabel( "λ=" );
@@ -194,13 +192,13 @@ public class STIMCardAlignSIFT
 		panel.add( panRANSAC, "growx, wrap" );
 
 		// Panel for FINAL MODEL
-		boxModelFinal1 = new JComboBox< String > (optionsModel);
+		boxModelFinal1 = new JComboBox<>(optionsModel);
 		boxModelFinal1.setSelectedIndex( 1 );
 		final JLabel boxModeFinalLabel1 = new JLabel("Final model ");
 		panel.add( boxModeFinalLabel1, "aligny baseline, sy 2" );
 		panel.add( boxModelFinal1, "growx, wrap" );
 		final JPanel panFinal = new JPanel( new MigLayout("gap 0, ins 0 0 0 0, fill", "[right][grow]", "center") );
-		boxModelFinal2 = new JComboBox< String > (optionsModelReg);
+		boxModelFinal2 = new JComboBox<>(optionsModelReg);
 		boxModelFinal2.setSelectedIndex( 0 );
 		panFinal.add( boxModelFinal2 );
 		final JLabel labelFinalReg = new JLabel( "λ=" );
@@ -349,46 +347,42 @@ public class STIMCardAlignSIFT
 		final AtomicBoolean triggedChange = new AtomicBoolean( false );
 
 		customComponents.forEach( c -> {
-			if ( JFormattedTextField.class.isInstance( c ))
-				((JFormattedTextField)c).addPropertyChangeListener( e -> {
+			if (c instanceof JFormattedTextField)
+				c.addPropertyChangeListener(e -> {
 					if ( !triggedChange.get() && e.getOldValue() != null && e.getNewValue() != null && e.getOldValue() != e.getNewValue() && box.getSelectedIndex() != 4 )
 					{
 						box.setSelectedIndex( 4 );
 					}
 				} );
-			else if ( JCheckBox.class.isInstance( c ) )
+			else if (c instanceof JCheckBox)
 				((JCheckBox)c).addChangeListener( e -> { if ( !triggedChange.get() && box.getSelectedIndex() != 4 ) box.setSelectedIndex( 4 ); } );
-			else if ( BoundedValuePanel.class.isInstance( c ) )
+			else if (c instanceof BoundedValuePanel)
 				((BoundedValuePanel)c).changeListeners().add( () -> { if ( !triggedChange.get() && box.getSelectedIndex() != 4 ) box.setSelectedIndex( 4 ); } );
 		});
 
 		// transform listener for max octave size
-		stimcard.bdvhandle().getViewerPanel().transformListeners().add( l -> SwingUtilities.invokeLater( () -> updateMaxOctaveSize() ) );
+		stimcard.bdvhandle().getViewerPanel().transformListeners().add(l -> SwingUtilities.invokeLater(this::updateMaxOctaveSize));
 
 		// advanced options listener (changes menu)
-		advancedOptions.addChangeListener( e ->
-		{
-			SwingUtilities.invokeLater( () ->
+		advancedOptions.addChangeListener( e -> SwingUtilities.invokeLater( () -> {
+			if ( !customModeSIFT )
 			{
-				if ( !customModeSIFT )
-				{
-					// change to advanced mode
-					AtomicInteger cc = new AtomicInteger(componentCount);
-					triggedChange.set(true);
-					advancedSIFTComponents.forEach( c -> panel.add(c, "span,growx,pushy", cc.getAndIncrement() ));
-					panel.updateUI();
-	
-					triggedChange.set( false );
-					customModeSIFT = true;
-				}
-				else
-				{
-					// change to simple mode
-					advancedSIFTComponents.forEach( c -> panel.remove( c ) );
-					customModeSIFT = false;
-				}
-			});
-		});
+				// change to advanced mode
+				AtomicInteger cc = new AtomicInteger(componentCount);
+				triggedChange.set(true);
+				advancedSIFTComponents.forEach( c -> panel.add(c, "span,growx,pushy", cc.getAndIncrement() ));
+				panel.updateUI();
+
+				triggedChange.set( false );
+				customModeSIFT = true;
+			}
+			else
+			{
+				// change to simple mode
+				advancedSIFTComponents.forEach(panel::remove);
+				customModeSIFT = false;
+			}
+		}));
 
 		// advanced menu listener (changes menu)
 		box.addActionListener( e -> {
@@ -492,10 +486,10 @@ public class STIMCardAlignSIFT
 			{
 				// request to cancel
 				siftThread.stop();
-				new ArrayList<>( threads ).forEach( t -> t.stop() );
+				new ArrayList<>( threads ).forEach(Thread::stop);
 
 				// wait a bit
-				try { Thread.sleep( 500 ); } catch (InterruptedException e1) {}
+				try { Thread.sleep( 500 ); } catch (InterruptedException ignored) {}
 
 				siftThread = null;
 				threads.clear();
@@ -548,9 +542,9 @@ public class STIMCardAlignSIFT
 			{
 				AddedGene.updateRemainingSources( stimcard.bdvhandle().getViewerPanel().state(), stimcard.geneToBDVSource(), stimcard.sourceData() );
 
-				final Pair<Model<?>, Model<?>> modelPair = extractParamtersFromGUI( param );
+				final Pair<Model<?>, Model<?>> modelPair = extractParametersFromGUI(param );
 
-				System.out.println( "Running SIFT align with the following parameters: \n" + param.toString() );
+				System.out.println( "Running SIFT align with the following parameters: \n" + param);
 				System.out.println( "RANSAC model: " + optionsModel[ boxModelRANSAC1.getSelectedIndex() ] + ", regularizer: " + optionsModelReg[ boxModelRANSAC2.getSelectedIndex() ] + ", lambda=" + tfRANSAC.getText() );
 				System.out.println( "FINAL model: " + optionsModel[ boxModelFinal1.getSelectedIndex() ] + ", regularizer: " + optionsModelReg[ boxModelFinal2.getSelectedIndex() ] + ", lambda=" + tfFinal.getText() );
 
@@ -584,7 +578,7 @@ public class STIMCardAlignSIFT
 				// 
 				// apply transformations
 				//
-				if ( match.getInliers().size() > 0 )
+				if (!match.getInliers().isEmpty())
 				{
 					try
 					{
@@ -706,7 +700,7 @@ public class STIMCardAlignSIFT
 		cmdLine.addActionListener( l -> 
 		{
 			final SIFTParam paramsCmdLine = new SIFTParam();
-			final Pair<Model<?>, Model<?>> modelPair = extractParamtersFromGUI( paramsCmdLine );
+			final Pair<Model<?>, Model<?>> modelPair = extractParametersFromGUI(paramsCmdLine );
 
 			
 			// TODO ...
@@ -791,25 +785,25 @@ public class STIMCardAlignSIFT
 				stimcard.currentScale() ) );
 	}
 
-	protected Pair<Model<?>, Model<?>> extractParamtersFromGUI( final SIFTParam param )
+	protected Pair<Model<?>, Model<?>> extractParametersFromGUI(final SIFTParam param )
 	{
 		param.setIntrinsicParameters(
-				(int)Integer.parseInt( fdSize.getText().trim() ),
-				(int)Integer.parseInt( fdBins.getText().trim() ),
-				(int)Integer.parseInt( minOS.getText().trim() ),
-				(int)Integer.parseInt( steps.getText().trim() ),
+				Integer.parseInt( fdSize.getText().trim() ),
+				Integer.parseInt( fdBins.getText().trim() ),
+				Integer.parseInt( minOS.getText().trim() ),
+				Integer.parseInt( steps.getText().trim() ),
 				Double.parseDouble( initialSigma.getText().trim() ),
 				biDirectional.isSelected(),
 				Double.parseDouble( rod.getText().trim() ),
 				Double.parseDouble( ilr.getText().trim() ),
 				(int)Math.round( inliersPerGeneSlider.getValue().getValue() ),
 				(int)Math.round( inliersSlider.getValue().getValue() ),
-				(int)Integer.parseInt( it.getText().trim() ) );
+				Integer.parseInt( it.getText().trim() ));
 
 		param.setDatasetParameters(
 				maxErrorSlider.getValue().getValue(),
 				stimcard.currentScale(),
-				(int)Integer.parseInt( maxOS.getText().trim() ),
+				Integer.parseInt( maxOS.getText().trim() ),
 				stimcardFilter.filterFactories(),
 				stimcard.currentDisplayMode(), stimcard.currentRenderingFactor(), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
 
@@ -851,9 +845,8 @@ public class STIMCardAlignSIFT
 
 		final Interval finalInterval = PairwiseSIFT.intervalForAlignment( data1, t1, data2, t2 );
 		final int maxSize = (int)Math.max( finalInterval.dimension( 0 ), finalInterval.dimension( 1 ) );
-		final int po2 = (int)Math.pow( 2, (maxSize == 0 ? 0 : 32 - Integer.numberOfLeadingZeros( maxSize - 1 ) ) );
 
-		return po2;
+		return (int) Math.pow(2, (maxSize == 0 ? 0 : 32 - Integer.numberOfLeadingZeros(maxSize - 1)));
 	}
 
 	public static NumberFormatter formatterInt()
@@ -910,48 +903,48 @@ public class STIMCardAlignSIFT
 			if ( modelIndex == 0 )
 				return new TranslationModel2D();
 			else if ( modelIndex == 1 )
-				return new InterpolatedAffineModel2D<TranslationModel2D, RigidModel2D>( new TranslationModel2D(), new RigidModel2D(), lambda );
+				return new InterpolatedAffineModel2D<>(new TranslationModel2D(), new RigidModel2D(), lambda);
 			else if ( modelIndex == 2 )
-				return new InterpolatedAffineModel2D<TranslationModel2D, SimilarityModel2D>( new TranslationModel2D(), new SimilarityModel2D(), lambda );
+				return new InterpolatedAffineModel2D<>(new TranslationModel2D(), new SimilarityModel2D(), lambda);
 			else if ( modelIndex == 3 )
-				return new InterpolatedAffineModel2D<TranslationModel2D, AffineModel2D>( new TranslationModel2D(), new AffineModel2D(), lambda );
+				return new InterpolatedAffineModel2D<>(new TranslationModel2D(), new AffineModel2D(), lambda);
 			else
 				throw new RuntimeException( "Unknown model index: "+ modelIndex );
 		}
 		else if ( regIndex == 2 )
 		{
 			if ( modelIndex == 0 )
-				return new InterpolatedAffineModel2D<RigidModel2D, TranslationModel2D>( new RigidModel2D(), new TranslationModel2D(), lambda );
+				return new InterpolatedAffineModel2D<>(new RigidModel2D(), new TranslationModel2D(), lambda);
 			else if ( modelIndex == 1 )
 				return new RigidModel2D();
 			else if ( modelIndex == 2 )
-				return new InterpolatedAffineModel2D<RigidModel2D, SimilarityModel2D>( new RigidModel2D(), new SimilarityModel2D(), lambda );
+				return new InterpolatedAffineModel2D<>(new RigidModel2D(), new SimilarityModel2D(), lambda);
 			else if ( modelIndex == 3 )
-				return new InterpolatedAffineModel2D<RigidModel2D, AffineModel2D>( new RigidModel2D(), new AffineModel2D(), lambda );
+				return new InterpolatedAffineModel2D<>(new RigidModel2D(), new AffineModel2D(), lambda);
 			else
 				throw new RuntimeException( "Unknown model index: "+ modelIndex );
 		}
 		else if ( regIndex == 3 )
 		{
 			if ( modelIndex == 0 )
-				return new InterpolatedAffineModel2D<SimilarityModel2D, TranslationModel2D>( new SimilarityModel2D(), new TranslationModel2D(), lambda );
+				return new InterpolatedAffineModel2D<>(new SimilarityModel2D(), new TranslationModel2D(), lambda);
 			else if ( modelIndex == 1 )
-				return new InterpolatedAffineModel2D<SimilarityModel2D, RigidModel2D>( new SimilarityModel2D(), new RigidModel2D(), lambda );
+				return new InterpolatedAffineModel2D<>(new SimilarityModel2D(), new RigidModel2D(), lambda);
 			else if ( modelIndex == 2 )
 				return new SimilarityModel2D();
 			else if ( modelIndex == 3 )
-				return new InterpolatedAffineModel2D<SimilarityModel2D, AffineModel2D>( new SimilarityModel2D(), new AffineModel2D(), lambda );
+				return new InterpolatedAffineModel2D<>(new SimilarityModel2D(), new AffineModel2D(), lambda);
 			else
 				throw new RuntimeException( "Unknown model index: "+ modelIndex );
 		}
 		else if ( regIndex == 4 )
 		{
 			if ( modelIndex == 0 )
-				return new InterpolatedAffineModel2D<AffineModel2D, TranslationModel2D>( new AffineModel2D(), new TranslationModel2D(), lambda );
+				return new InterpolatedAffineModel2D<>(new AffineModel2D(), new TranslationModel2D(), lambda);
 			else if ( modelIndex == 1 )
-				return new InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>( new AffineModel2D(), new RigidModel2D(), lambda );
+				return new InterpolatedAffineModel2D<>(new AffineModel2D(), new RigidModel2D(), lambda);
 			else if ( modelIndex == 2 )
-				return new InterpolatedAffineModel2D<AffineModel2D, SimilarityModel2D>( new AffineModel2D(), new SimilarityModel2D(), lambda );
+				return new InterpolatedAffineModel2D<>(new AffineModel2D(), new SimilarityModel2D(), lambda);
 			else if ( modelIndex == 3 )
 				return new AffineModel2D();
 			else
