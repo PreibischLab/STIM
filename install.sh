@@ -89,6 +89,7 @@ install_command st-align-pairs "cmd.PairwiseSectionAligner"
 install_command st-align-pairs-add "cmd.AddPairwiseMatch"
 install_command st-align-pairs-view "cmd.ViewPairwiseAlignment"
 install_command st-align-global "cmd.GlobalOpt"
+install_command st-align-interactive "cmd.InteractiveAlignment"
 install_command st-help "cmd.PrintHelp"
 
 if [ $(pwd) == "${INSTALL_DIR}" ]; then
@@ -107,6 +108,7 @@ else
 	mv st-align-pairs-add ${INSTALL_DIR}/
     mv st-align-pairs-view ${INSTALL_DIR}/
     mv st-align-global ${INSTALL_DIR}/
+    mv st-align-interactive ${INSTALL_DIR}/
     mv st-help ${INSTALL_DIR}/
 fi
 

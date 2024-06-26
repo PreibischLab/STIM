@@ -56,6 +56,7 @@ call :install_command st-add-annotations.bat cmd.AddAnnotations
 call :install_command st-align-pairs.bat cmd.PairwiseSectionAligner
 call :install_command st-align-pairs-view.bat cmd.ViewPairwiseAlignment
 call :install_command st-align-global.bat cmd.GlobalOpt
+call :install_command st-align-interactive.bat cmd.InteractiveAlignment
 call :install_command st-help.bat cmd.PrintHelp
 
 if "%CD%"=="%INSTALL_DIR%" (
@@ -73,6 +74,7 @@ if "%CD%"=="%INSTALL_DIR%" (
 	move "st-align-pairs.bat" "%INSTALL_DIR%\"
 	move "st-align-pairs-view.bat" "%INSTALL_DIR%\"
 	move "st-align-global.bat" "%INSTALL_DIR%\"
+	move "st-align-interactive.bat" "%INSTALL_DIR%\"
 	move "st-help.bat" "%INSTALL_DIR%\"
 )
 
