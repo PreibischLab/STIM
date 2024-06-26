@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -192,11 +193,11 @@ public class STIMCardAlignICP
 
 		try
 		{
-			cmdLine.setIcon(new ImageIcon(ImageIO.read( InteractiveAlignment.class.getResource("../cmdline.png") )));
-			saveTransform.setIcon(new ImageIcon(ImageIO.read( InteractiveAlignment.class.getResource("../save.png") )));
-			reset.setIcon(new ImageIcon(ImageIO.read( InteractiveAlignment.class.getResource("../reset.png") )));
+			cmdLine.setIcon(new ImageIcon(ImageIO.read(Objects.requireNonNull(InteractiveAlignment.class.getResource("../cmdline.png")))));
+			saveTransform.setIcon(new ImageIcon(ImageIO.read(Objects.requireNonNull(InteractiveAlignment.class.getResource("../save.png")))));
+			reset.setIcon(new ImageIcon(ImageIO.read(Objects.requireNonNull(InteractiveAlignment.class.getResource("../reset.png")))));
 		}
-		catch (IOException e)
+		catch (IOException | NullPointerException e)
 		{
 			cmdLine.setText("Cmd-line");
 			cmdLine.setFont( cmdLine.getFont().deriveFont( 10.5f ));
