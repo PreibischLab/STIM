@@ -234,9 +234,9 @@ public class STIMCardAlignSIFT
 
 		try
 		{
-			cmdLine.setIcon(new ImageIcon(ImageIO.read(Objects.requireNonNull(InteractiveAlignment.class.getResource("../cmdline.png")))));
-			saveTransform.setIcon(new ImageIcon(ImageIO.read(Objects.requireNonNull(InteractiveAlignment.class.getResource("../save.png")))));
-			reset.setIcon(new ImageIcon(ImageIO.read(Objects.requireNonNull(InteractiveAlignment.class.getResource("../reset.png")))));
+			cmdLine.setIcon(new ImageIcon(ImageIO.read(Objects.requireNonNull(InteractiveAlignment.class.getResource("/cmdline.png")))));
+			saveTransform.setIcon(new ImageIcon(ImageIO.read(Objects.requireNonNull(InteractiveAlignment.class.getResource("/save.png")))));
+			reset.setIcon(new ImageIcon(ImageIO.read(Objects.requireNonNull(InteractiveAlignment.class.getResource("/reset.png")))));
 		}
 		catch (IOException | NullPointerException e)
 		{
