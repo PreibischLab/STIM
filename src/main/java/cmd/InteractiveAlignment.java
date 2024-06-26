@@ -34,9 +34,6 @@ import gui.bdv.STIMCardManualAlign;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
 import io.TextFileAccess;
-import mpicbg.models.AffineModel2D;
-import net.imglib2.multithreading.SimpleMultiThreading;
-import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
@@ -165,7 +162,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		}
 
 		// get all genes sorted (so we can pick quickly later)
-		if ( allGenes.size() == 0 )
+		if (allGenes.isEmpty())
 		{
 			allGenes.addAll( Pairwise.allGenes( data1.data(), data2.data(), Threads.numThreads() ) );
 
@@ -338,7 +335,7 @@ public class InteractiveAlignment implements Callable<Void> {
 
 		// TODO: BDV should call the transform listener
 		//SimpleMultiThreading.threadWait( 2000 );
-		SwingUtilities.invokeLater( () -> cardAlignSIFT.updateMaxOctaveSize() );
+		SwingUtilities.invokeLater(cardAlignSIFT::updateMaxOctaveSize);
 
 		System.out.println("done");
 
