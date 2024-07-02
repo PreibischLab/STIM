@@ -280,7 +280,7 @@ public class AddedGene
 									new AffineTransform2D()/*data.transform()*/ ) );
 
 		BdvOptions options = BdvOptions.options().numRenderingThreads(Math.max(2,Runtime.getRuntime().availableProcessors() / 2))
-				.addTo(bdv).is2D().preferredSize(1000, 900);
+				.addTo(bdv).is2D().preferredSize(1000, 925);
 
 		final BdvStackSource< ? > source = BdvFunctions.show( rra, interval, gene, options );
 

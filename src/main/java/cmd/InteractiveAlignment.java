@@ -314,7 +314,6 @@ public class InteractiveAlignment implements Callable<Void> {
 
 		cardAlignSIFT.setICPCard( cardAlignICP );
 
-		// TODO: Manual alignment
 		final STIMCardManualAlign cardAlignManual = new STIMCardManualAlign(card, cardAlignSIFT, cardAlignICP);
 		
 		cardAlignSIFT.setManualAlignCard( cardAlignManual );
@@ -324,7 +323,7 @@ public class InteractiveAlignment implements Callable<Void> {
 
 		SwingUtilities.invokeLater( () ->
 		{
-			source.getBdvHandle().getCardPanel().addCard( "Manual Alignment", "Manual Alignment", cardAlignManual.getPanel(), true );
+			source.getBdvHandle().getCardPanel().addCard( "Manual Alignment", "Manual Alignment", cardAlignManual.getPanel(), false );
 			source.getBdvHandle().getCardPanel().addCard( "SIFT Alignment", "SIFT Alignment", cardAlignSIFT.getPanel(), true );
 			source.getBdvHandle().getCardPanel().addCard( "ICP Alignment", "ICP Alignment", cardAlignICP.getPanel(), false );
 		});

@@ -211,7 +211,7 @@ public class STIMCardAlignICP
 		saveTransform.setToolTipText( "Save transformation to container" );
 		reset.setToolTipText( "Reset transformation" );
 
-		panelbuttons.add(cmdLine);
+		//panelbuttons.add(cmdLine);
 		panelbuttons.add(saveTransform);
 		panelbuttons.add(reset);
 		JPanel j = new JPanel();
@@ -463,6 +463,7 @@ public class STIMCardAlignICP
 	protected void reEnableControls()
 	{
 		cmdLine.setEnabled( true );
+
 		reset.setEnabled( true );
 		saveTransform.setEnabled( true );
 		run.setText( "Run ICP alignment" );
