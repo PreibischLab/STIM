@@ -135,6 +135,7 @@ public class STIMCard
 
 					for ( final String gene : geneToBDVSource.keySet() )
 					{
+						// TODO: old sources are not removed from BDV
 						System.out.println( "replacing sources for '" + gene + "'");
 	
 						final SourceGroup currentSourceGroup = geneToBDVSource.get( gene );
