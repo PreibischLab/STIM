@@ -176,6 +176,9 @@ public class AddedGene
 				toRemove.add( entry.getKey() );
 
 		toRemove.forEach( s -> {
+			// TODO: remove the source all together somehow ruins the display mode (check with Tobi)
+			sourceData.get( s ).forEach( a -> a.source().setActive( false ) );
+
 			geneToBDVSource.remove( s );
 			sourceData.remove( s );
 			} );

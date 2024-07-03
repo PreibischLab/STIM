@@ -175,6 +175,11 @@ public class STIMCard
 							state.removeSourceFromGroup( s, currentSourceGroup );
 	
 						//sourceData.put( gene, new ValuePair<>( gene1, gene2 ) );
+
+						// TODO: remove the source all together somehow ruins the display mode (check with Tobi)
+						// remove old sources
+						sourceData.get( gene ).forEach( a -> a.source().setActive( false ) );
+
 						sourceData.put( gene, newDatasets );
 					}
 
