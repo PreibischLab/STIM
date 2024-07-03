@@ -80,7 +80,8 @@ install_command () {
 
 install_command st-explorer "cmd.View"
 install_command st-render "cmd.RenderImage"
-install_command st-bdv-view "cmd.DisplayStackedSlides"
+install_command st-bdv-view "cmd.BigDataViewerDisplay"
+install_command st-bdv-view3d "cmd.BigDataViewerStackDisplay"
 install_command st-resave "cmd.Resave"
 install_command st-add-slice "cmd.AddSlice"
 install_command st-normalize "cmd.Normalize"
@@ -92,6 +93,8 @@ install_command st-align-global "cmd.GlobalOpt"
 install_command st-align-interactive "cmd.InteractiveAlignment"
 install_command st-help "cmd.PrintHelp"
 
+install_command st-test-stdev "cmd.ComputeVariance"
+
 if [ $(pwd) == "${INSTALL_DIR}" ]; then
     echo "Installation directory equals current directory, we are done."
 else
@@ -99,6 +102,7 @@ else
     mkdir -p ${INSTALL_DIR}
     mv st-explorer ${INSTALL_DIR}/
     mv st-bdv-view ${INSTALL_DIR}/
+    mv st-bdv-view3d ${INSTALL_DIR}/
     mv st-render ${INSTALL_DIR}/
     mv st-resave ${INSTALL_DIR}/
     mv st-add-slice ${INSTALL_DIR}/
@@ -110,6 +114,7 @@ else
     mv st-align-global ${INSTALL_DIR}/
     mv st-align-interactive ${INSTALL_DIR}/
     mv st-help ${INSTALL_DIR}/
+    mv st-test-stdev ${INSTALL_DIR}/
 fi
 
 rm cp.txt

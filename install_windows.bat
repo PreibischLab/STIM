@@ -48,7 +48,8 @@ call mvn -Dmdep.outputFile=cp.txt -Dmdep.includeScope=runtime -Dmaven.repo.local
 
 call :install_command st-explorer.bat cmd.View
 call :install_command st-render.bat cmd.RenderImage
-call :install_command st-bdv-view.bat cmd.DisplayStackedSlides
+call :install_command st-bdv-view.bat cmd.BigDataViewerDisplay
+call :install_command st-bdv-view3d.bat cmd.BigDataViewerStackDisplay
 call :install_command st-resave.bat cmd.Resave
 call :install_command st-add-slice.bat cmd.AddSlice
 call :install_command st-normalize.bat cmd.Normalize
@@ -66,6 +67,7 @@ if "%CD%"=="%INSTALL_DIR%" (
    	mkdir "%INSTALL_DIR%"
    	move "st-explorer.bat" "%INSTALL_DIR%\"
 	move "st-bdv-view.bat" "%INSTALL_DIR%\"
+	move "st-bdv-view3d.bat" "%INSTALL_DIR%\"
 	move "st-render.bat" "%INSTALL_DIR%\"
    	move "st-resave.bat" "%INSTALL_DIR%\"
 	move "st-add-slice.bat" "%INSTALL_DIR%\"
