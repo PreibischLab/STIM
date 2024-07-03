@@ -60,7 +60,7 @@ import util.Threads;
 //-i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d1 Puck_180602_20.n5 -d2 Puck_180602_18.n5 -n 8 -sk 2 --ffSingleSpot 1.5
 public class InteractiveAlignment implements Callable<Void> {
 
-	@Option(names = {"-i", "--input"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")
+	@Option(names = {"-c", "--container"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")
 	private String inputPath = null;
 
 	@Option(names = {"-d1", "--dataset1"}, required = false, description = "the first dataset (slice), e.g. -d1 'Puck_180528_20'")
