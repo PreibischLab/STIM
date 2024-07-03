@@ -71,7 +71,7 @@ public class GlobalOpt implements Callable<Void> {
 	@Option(names = {"--minIterationsICP"}, required = false, description = "minimum number of iterations during ICP (default: 500)")
 	private int minIterationsICP = 500;
 
-	@Option(names = {"-sf", "--smoothnessFactor"}, required = false, description = "FOR DISPLAY ONLY: factor for the sigma of the gaussian used for rendering, corresponds to smoothness, e.g -sf 2.0 (default: 1.5)")
+	@Option(names = {"-rf", "--renderingFactor"}, required = false, description = "FOR DISPLAY ONLY: factor for the amount of filtering or radius used for rendering, corresponds to smoothness for Gauss, e.g -rf 2.0 (default: 4.0)")
 	private double smoothnessFactor = AlignTools.defaultSmoothnessFactor;
 
 	@Option(names = {"-g", "--gene"}, required = false, description = "FOR DISPLAY ONLY: gene to display, e.g. -g Calm2")
