@@ -228,10 +228,10 @@ public class PairwiseSectionAligner implements Callable<Void> {
 				// start alignment
 				//
 				final SIFTParam p = new SIFTParam();
-				p.setIntrinsicParameters( SIFTPreset.VERYTHOROUGH );
 				// TODO: set all parameters
 				final List< FilterFactory< DoubleType, DoubleType > > filterFactories = null;
-				//p.setDatasetParameters(maxEpsilon, scale, 1024, filterFactories, Rendering.Gauss, smoothnessFactor, 0.0, 1.0); 
+				p.setDatasetParameters(maxEpsilon, scale, 1024, filterFactories, Rendering.Gauss, renderingFactor, 0.0, 1.0); 
+				p.setIntrinsicParameters( SIFTPreset.VERYTHOROUGH );
 				p.minInliersGene = minNumInliersGene;
 				p.minInliersTotal = minNumInliers;
 
