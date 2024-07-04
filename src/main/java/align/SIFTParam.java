@@ -146,10 +146,9 @@ public class SIFTParam
 			this.sift.fdSize = 8;
 			this.sift.fdBins = 8;
 			this.sift.steps = 10;
-			this.sift.minOctaveSize = 64;
+			this.sift.minOctaveSize = 128;
 			this.sift.initialSigma = 0.5f;
 			this.rod = 0.90f;
-			this.sift.minOctaveSize = 128;
 			this.biDirectional = true;
 			this.minInlierRatio = 0.0;
 			this.minInliersGene = 7;
