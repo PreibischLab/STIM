@@ -152,7 +152,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 
 		final List<STDataAssembly> dataToAlign = new ArrayList<>();
 		for (final String dataset : datasetNames) {
-			logger.warn("Opening dataset '" + dataset + "' in '" + containerPath + "' ...");
+			logger.info("Opening dataset '" + dataset + "' in '" + containerPath + "' ...");
 			dataToAlign.add(container.openDataset(dataset).readData());
 		}
 
@@ -257,7 +257,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 				//
 				// start alignment
 				//
-				logger.info( "Aligning " + dataset1 + " <> " + dataset2 + " on " + genesToTest.size() + "genes (" + threadsUse + " threads)");
+				logger.info( "Aligning " + dataset1 + " <> " + dataset2 + " on " + genesToTest.size() + " genes (" + threadsUse + " threads)");
 				final SIFTParam p = new SIFTParam();
 				final List< FilterFactory< DoubleType, DoubleType > > filterFactories = null;
 				p.setDatasetParameters(maxEpsilon, scale, 1024, filterFactories, Rendering.Gauss, renderingFactor, brightnessMin, brightnessMax); 
