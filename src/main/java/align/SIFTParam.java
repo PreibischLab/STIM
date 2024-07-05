@@ -153,7 +153,7 @@ public class SIFTParam
 			this.minInlierRatio = 0.0;
 			this.minInliersGene = 7;
 			this.minInliersTotal = 15;
-			this.iterations = 100000;
+			this.iterations = 10000;
 
 			break;
 		}

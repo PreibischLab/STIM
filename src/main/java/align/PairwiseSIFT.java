@@ -198,14 +198,15 @@ public class PairwiseSIFT
 			final List< String > genesToTest,
 			final SIFTParam p,
 			final boolean visualizeResult,
-			final int numThreads )
+			final int numThreads,
+			final Consumer<Double> progressBar )
 	{
 		final ExecutorService service = Threads.createFixedExecutorService( numThreads );
 
 		final SiftMatch s = pairwiseSIFT(
 				stDataA, transformA, stDataAname, stDataB, transformB, stDataBname,
 				modelPairwise, modelGlobal, genesToTest, p,
-				visualizeResult,service, new ArrayList<>(), v -> {} );
+				visualizeResult,service, new ArrayList<>(), progressBar );
 
 		service.shutdown();
 
@@ -269,7 +270,8 @@ public class PairwiseSIFT
 			tasks.add( () ->
 			{
 				synchronized ( threads ) { threads.add( Thread.currentThread() ); }
-
+				
+				progressBar.accept( progressPerGene / 0.1 );
 				final List< PointMatch > allPerGeneInliers = new ArrayList<>();
 
 				final String gene = genesToTest.get( g );
@@ -297,7 +299,7 @@ public class PairwiseSIFT
 				//impB.show();
 				//SimpleMultiThreading.threadHaltUnClean();
 
-				progressBar.accept( progressPerGene / 4.0 );
+				progressBar.accept( progressPerGene / 3.9 );
 
 				final List< PointMatch > matchesAB = extractCandidates(impA.getProcessor(), impB.getProcessor(), gene, p );
 				final List< PointMatch > candidatesTmp = new ArrayList<>();

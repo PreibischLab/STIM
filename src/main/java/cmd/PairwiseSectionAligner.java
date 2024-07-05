@@ -37,6 +37,7 @@ import picocli.CommandLine.Option;
 import util.Threads;
 import org.apache.logging.log4j.Logger;
 import util.LoggerUtil;
+import util.ProgressBar;
 
 @Command(name = "st-align-pairs", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - align pairs of slices")
 public class PairwiseSectionAligner implements Callable<Void> {
@@ -150,9 +151,10 @@ public class PairwiseSectionAligner implements Callable<Void> {
 			datasetNames = container.getDatasets();
 		}
 
+		logger.info("Opening " + datasetNames.size() +  " datasets");
 		final List<STDataAssembly> dataToAlign = new ArrayList<>();
 		for (final String dataset : datasetNames) {
-			logger.info("Opening dataset '" + dataset + "' in '" + containerPath + "' ...");
+			logger.debug("Opening dataset '" + dataset + "' in '" + containerPath + "' ...");
 			dataToAlign.add(container.openDataset(dataset).readData());
 		}
 
@@ -200,17 +202,17 @@ public class PairwiseSectionAligner implements Callable<Void> {
 		}
 
 		if (numGenes > 0 && entropyPath == null) {
-			logger.info( "Computing standard deviation of genes for all sections (will take a while)" );
+			logger.info( "Retrieving standard deviation of genes for all sections" );
 			for ( int i = 0; i < dataToAlign.size(); ++i ) {
 				final String dataset_name = datasetNames.get( i );
-				logger.debug( "Now processing " + dataset_name );
-
+				
 				final ArrayImg<DoubleType, DoubleArray> entropy_values_rai;
 				final STDataAssembly stData = dataToAlign.get( i );
 				if (stData.data().getGeneAnnotations().containsKey("stdev")) {
 					logger.debug("Gene annotation 'stdev' was found for " + dataset_name + ". Omitting.");
 					continue;
 				}
+				logger.debug( "Computing standard deviation of genes for " + dataset_name + " (may take a while)" );
 				final double[] entropy_values = ExtractGeneLists.computeEntropy("stdev", stData.data(), numThreads);
 	
 				entropy_values_rai = ArrayImgs.doubles(entropy_values, (long) stData.data().numGenes());
@@ -275,16 +277,17 @@ public class PairwiseSectionAligner implements Callable<Void> {
 				
 				logger.debug("Processing SIFT with parameters: " + p.toString());
 				long time = System.currentTimeMillis();
+				ProgressBar progressBar = new ProgressBar(100);
 				SiftMatch match = PairwiseSIFT.pairwiseSIFT(
 						stData1, t1, dataset1, stData2, t2, dataset2,
 						new RigidModel2D(), new RigidModel2D(),
 						new ArrayList<>( genesToTest ),
-						p, visualizeResult, threadsUse );
+						p, visualizeResult, threadsUse, progressBar);
 
 				if (saveResult && match.getNumInliers() >= minNumInliers) {
 					container.savePairwiseMatch(match);
 				}
-				logger.info("Aligned " + dataset1 + " <> " + dataset2 + " in " + (System.currentTimeMillis() - time)/1000 + " s");
+				logger.debug("Aligned " + dataset1 + " <> " + dataset2 + " in " + (System.currentTimeMillis() - time)/1000 + " s");
 
 			}
 		}
