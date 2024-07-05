@@ -202,6 +202,10 @@ public class PairwiseSectionAligner implements Callable<Void> {
 
 				final ArrayImg<DoubleType, DoubleArray> entropy_values_rai;
 				final STDataAssembly stData = dataToAlign.get( i );
+				if (stData.data().getGeneAnnotations().containsKey("stdev")) {
+					System.out.println("- a gene annotation 'stdev' was found. Omitting.");
+					continue;
+				}
 				final double[] entropy_values = ExtractGeneLists.computeEntropy("stdev", stData.data(), numThreads);
 	
 				entropy_values_rai = ArrayImgs.doubles(entropy_values, (long) stData.data().numGenes());
