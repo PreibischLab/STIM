@@ -54,9 +54,9 @@ public class AddSlice implements Callable<Void> {
 				: SpatialDataContainer.createNew(containerPath, service);
 
 		if (shouldBeMoved)
-			container.addExistingDataset(inputDatasetPath, locationPath, exprValPath, annotationPath);
+			container.addExistingDataset(inputDatasetPath, locationPath, exprValPath, annotationPath, null);
 		else
-			container.linkExistingDataset(inputDatasetPath, locationPath, exprValPath, annotationPath);
+			container.linkExistingDataset(inputDatasetPath, locationPath, exprValPath, annotationPath, null);
 
 		final String operation = shouldBeMoved ? "Moved" : "Linked";
 		System.out.println(operation + " dataset '" + inputDatasetPath + "' to container '" + containerPath + "'.");
