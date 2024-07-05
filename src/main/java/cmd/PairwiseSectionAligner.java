@@ -196,7 +196,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 
 		if (numGenes > 0 && entropyPath == null) {
 			System.out.println( "Computing standard deviation of genes for all sections: " );
-			for ( int i = 0; i < dataToAlign.size() - 1; ++i ) {
+			for ( int i = 0; i < dataToAlign.size(); ++i ) {
 				final String dataset_name = datasetNames.get( i );
 				System.out.print(dataset_name + " ");
 
