@@ -413,7 +413,7 @@ public class PairwiseSIFT
 		final ArrayList< PointMatch > inliers = consensus( allCandidates, modelGlobal, p.minInliersTotal, p.iterations, p.minInlierRatio, p.maxError );
 
 		// the model that maps J to I
-		logger.debug( stDataAname + "\t" + stDataBname + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + AlignTools.modelToAffineTransform2D( (Affine2D<?>)modelGlobal ).inverse() );
+		logger.info( stDataAname + "<>" + stDataBname + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + AlignTools.modelToAffineTransform2D( (Affine2D<?>)modelGlobal ).inverse() );
 
 		if ( visualizeResult && inliers.size() >= p.minInliersTotal )
 		{

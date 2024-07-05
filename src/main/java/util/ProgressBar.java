@@ -33,7 +33,7 @@ public class ProgressBar implements Consumer<Double> {
             System.out.printf("\r%s %.2f%%", bar, (progress / total) * 100);
         } catch (Exception e) {
             String bar = "[" + String.format("%" + width + "s", "").replace(' ', '=') + "]";
-            System.out.printf("\r%s %.2f%%", bar, (progress / total) * 100);
+            System.out.printf("\r%s %.2f%%", bar, 100.0);
         }
         if (progress >= total) {
             System.out.println();
