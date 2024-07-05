@@ -85,6 +85,7 @@ install_command st-resave "cmd.Resave"
 install_command st-add-slice "cmd.AddSlice"
 install_command st-normalize "cmd.Normalize"
 install_command st-add-annotations "cmd.AddAnnotations"
+install_command st-add-entropy "cmd.AddEntropy"
 install_command st-align-pairs "cmd.PairwiseSectionAligner"
 install_command st-align-pairs-add "cmd.AddPairwiseMatch"
 install_command st-align-pairs-view "cmd.ViewPairwiseAlignment"
@@ -104,8 +105,9 @@ else
     mv st-add-slice ${INSTALL_DIR}/
     mv st-normalize ${INSTALL_DIR}/
     mv st-add-annotations ${INSTALL_DIR}/
+    mv st-add-entropy ${INSTALL_DIR}/
     mv st-align-pairs ${INSTALL_DIR}/
-	mv st-align-pairs-add ${INSTALL_DIR}/
+	  mv st-align-pairs-add ${INSTALL_DIR}/
     mv st-align-pairs-view ${INSTALL_DIR}/
     mv st-align-global ${INSTALL_DIR}/
     mv st-align-interactive ${INSTALL_DIR}/
