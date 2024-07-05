@@ -43,6 +43,7 @@ public class AddEntropy implements Callable<Void> {
 		final STDataAssembly stData = sdio.readData();
 		final ArrayImg<DoubleType, DoubleArray> entropy_values_rai;
 
+		System.out.println("Computing gene variability with method '" + method + "' (might take a while)");
 		final double[] entropy_values = ExtractGeneLists.computeEntropy(method, stData.data(), numThreads);
 		entropy_values_rai = ArrayImgs.doubles(entropy_values, (long) stData.data().numGenes());
 		stData.data().getGeneAnnotations().put(geneLabels, entropy_values_rai);

@@ -240,7 +240,7 @@ public class AnnDataIO extends SpatialDataIO {
 	
 	@Override
 	protected void writeGeneAnnotations(N5Writer writer, String annotationPath, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
-		AnnDataDetails.addToDataFrame(writer,  geneAnnotationPath, label, (RandomAccessibleInterval<IntType>) data, options1d);
+		AnnDataDetails.addToDataFrame(writer,  geneAnnotationPath, label, (RandomAccessibleInterval<DoubleType>) data, options1d);
 	}
 
 	@Override

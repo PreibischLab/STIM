@@ -3,7 +3,9 @@ package analyze;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -28,19 +30,33 @@ public class ExtractGeneLists
 
 	public static double[] computeEntropy(final String method, final STData stData, final int numThreads) throws IOException {
 		final ArrayList<Pair<String, Double>> entropy;
-		final double[] entropy_values;
+		final double[] entropyValues;
 
 		switch (method) {
 			case "stdev":
 				entropy = ExtractGeneLists.computeStdev(stData, Math.min(Threads.numThreads(), numThreads) );
-				entropy_values = entropy.stream()
-										.mapToDouble(pair -> pair.getB())
-										.toArray();
-				return entropy_values;
+				break;
 			default:
 				System.out.println("Error: method " + method + " not supported");
 				return null;
 		}
+
+		// We resort given the current order of genes by creating a hashmap of genes
+		Map<String, Pair<String, Double>> pairMap = new HashMap<>();
+		for (Pair<String, Double> pair : entropy) {
+			pairMap.put(pair.getA(), pair);
+		}
+
+		// and here we do the resorting
+		ArrayList<Pair<String, Double>> reorderedEntropy = new ArrayList<>();
+		for (String key : stData.getGeneNames()) {
+			reorderedEntropy.add(pairMap.get(key));
+		}
+
+		entropyValues = reorderedEntropy.stream()
+								.mapToDouble(pair -> pair.getB())
+								.toArray();
+		return entropyValues;
 	}
 
 	public static ArrayList< Pair< String, Double > > computeStdev( final STData data, final int numThreads )
