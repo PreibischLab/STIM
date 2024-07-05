@@ -38,9 +38,12 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import util.KDTreeUtil;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 public class Render
 {
+	private static final Logger logger = LoggerUtil.getLogger();
 	public static IterableRealInterval< DoubleType > getRealIterable(
 			final STDataAssembly stdata,
 			final String gene )
@@ -167,14 +170,14 @@ public class Render
 
 		if ( idsIn == null )
 		{
-			System.out.println( "WARNING: annotation '" + annotation + "' does not exist. skipping.");
+			logger.warn( "annotation '" + annotation + "' does not exist. skipping.");
 			return null;
 		}
 
 		final Object type = Views.iterable( idsIn ).firstElement();
 		if ( !IntegerType.class.isInstance( type ) )
 		{
-			System.out.println( "WARNING: annotation '" + annotation + "' is not an integer type (but "+ type.getClass().getSimpleName() +". don't know how to render it. skipping.");
+			logger.warn( "annotation '" + annotation + "' is not an integer type (but "+ type.getClass().getSimpleName() +". don't know how to render it. skipping.");
 			return null;
 		}
 
@@ -196,7 +199,7 @@ public class Render
 			}
 		}
 
-		System.out.println( "Rendering annotation '" + annotation + "', type="+ type.getClass().getSimpleName() + ", min=" + min + ", max= " + max + " as integers" );
+		logger.debug( "Rendering annotation '" + annotation + "', type="+ type.getClass().getSimpleName() + ", min=" + min + ", max= " + max + " as integers" );
 
 		final RandomAccessibleInterval< IntType > ids;
 		if ( IntType.class.isInstance( type ) )

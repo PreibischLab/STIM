@@ -49,10 +49,13 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import util.KDTreeUtil;
 import util.Threads;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 @Deprecated
 public class IntensityAdjustment
 {
+	private static final Logger logger = LoggerUtil.getLogger();
 	public static HashMap< Integer, AffineModel1D > adjustIntensities(
 			final SpatialDataContainer container,
 			final List< String > pucks,
@@ -101,7 +104,7 @@ public class IntensityAdjustment
 
 		//genes.clear();
 		//genes.add( "Calm2" );
-		System.out.println( "Genes to be used: " + genes.size() );
+		logger.debug( "Genes to be used: " + genes.size() );
 
 		final ExecutorService service = Threads.createFixedExecutorService( nThreads );
 
@@ -183,7 +186,7 @@ public class IntensityAdjustment
 					throw new RuntimeException( e );
 				}
 
-				System.out.println( new Date( System.currentTimeMillis() ) + ": " + i + "-" + j + ": Found " + localMatches.size() + " corresponding measures (using max " + maxMatches + ")" );
+				logger.info( new Date( System.currentTimeMillis() ) + ": " + i + "-" + j + ": Found " + localMatches.size() + " corresponding measures (using max " + maxMatches + ")" );
 
 				if ( localMatches.size() > 0 )
 					intensityMatches.put( new ValuePair< Integer, Integer >( i, j ), localMatches );
@@ -228,7 +231,7 @@ public class IntensityAdjustment
 				}
 			}
 
-			System.out.println( matches.getKey().getA() + "-" + matches.getKey().getB() + ": " + newList.size() + ", " + inliers.size() + ", " + sumWeights );
+			logger.info( matches.getKey().getA() + "-" + matches.getKey().getB() + ": " + newList.size() + ", " + inliers.size() + ", " + sumWeights );
 			/*
 			while ( matches.getValue().size() > maxMatches - 1 )
 				matches.getValue().remove( rnd.nextInt( matches.getValue().size() ) );
@@ -332,25 +335,25 @@ public class IntensityAdjustment
 		{
 			int unaligned = tc.preAlign().size();
 			if ( unaligned > 0 )
-				System.out.println( "(" + new Date( System.currentTimeMillis() ) + "): pre-aligned all tiles but " + unaligned );
+				logger.info( "(" + new Date( System.currentTimeMillis() ) + "): pre-aligned all tiles but " + unaligned );
 			else
-				System.out.println( "(" + new Date( System.currentTimeMillis() ) + "): prealigned all tiles" );
+				logger.info( "(" + new Date( System.currentTimeMillis() ) + "): prealigned all tiles" );
 
 			tc.optimize( maxError, maxIterations, 200 );
 
-			System.out.println( "(" + new Date( System.currentTimeMillis() ) + "): Global optimization of " + tc.getTiles().size() +  " view-tiles:" );
-			System.out.println( "(" + new Date( System.currentTimeMillis() ) + "):    Avg Error: " + tc.getError() + "px" );
-			System.out.println( "(" + new Date( System.currentTimeMillis() ) + "):    Min Error: " + tc.getMinError() + "px" );
-			System.out.println( "(" + new Date( System.currentTimeMillis() ) + "):    Max Error: " + tc.getMaxError() + "px" );
+			logger.info( "(" + new Date( System.currentTimeMillis() ) + "): Global optimization of " + tc.getTiles().size() +  " view-tiles:" );
+			logger.info( "(" + new Date( System.currentTimeMillis() ) + "):    Avg Error: " + tc.getError() + "px" );
+			logger.info( "(" + new Date( System.currentTimeMillis() ) + "):    Min Error: " + tc.getMinError() + "px" );
+			logger.info( "(" + new Date( System.currentTimeMillis() ) + "):    Max Error: " + tc.getMaxError() + "px" );
 		}
 		catch (NotEnoughDataPointsException e)
 		{
-			System.out.println( "Global optimization failed: " + e );
+			logger.error( "Global optimization failed: " + e );
 			e.printStackTrace();
 		}
 		catch (IllDefinedDataPointsException e)
 		{
-			System.out.println( "Global optimization failed: " + e );
+			logger.error( "Global optimization failed: " + e );
 			e.printStackTrace();
 		}
 
@@ -371,7 +374,7 @@ public class IntensityAdjustment
 		}
 
 		avgScale /= ids.size();
-		System.out.println( "(" + new Date( System.currentTimeMillis() ) + "): Avg scale (will be corrected to avoid compression/expansion): " + avgScale );
+		logger.info( "(" + new Date( System.currentTimeMillis() ) + "): Avg scale (will be corrected to avoid compression/expansion): " + avgScale );
 
 		final AffineModel1D scale = new AffineModel1D();
 		scale.set( 1.0 / avgScale, 0 );
@@ -389,7 +392,7 @@ public class IntensityAdjustment
 			minOffset = Math.min( minOffset, array[ 1 ] );
 		}
 
-		System.out.println( "(" + new Date( System.currentTimeMillis() ) + "): Min offset (will be corrected to avoid negative intensities and offsets: " + minOffset );
+		logger.info( "(" + new Date( System.currentTimeMillis() ) + "): Min offset (will be corrected to avoid negative intensities and offsets: " + minOffset );
 		//System.out.println( "(" + new Date( System.currentTimeMillis() ) + "): Intensity adjustments:" );
 
 		for ( final Entry<Integer, AffineModel1D> e : result.entrySet() )
@@ -465,13 +468,13 @@ public class IntensityAdjustment
 		final boolean correctScaling = true;
 		final int nThreads = Runtime.getRuntime().availableProcessors() / 2;
 
-		System.out.println( "max dist for assignment = " + maxDistance );
+		logger.info( "max dist for assignment = " + maxDistance );
 
 		long time = System.currentTimeMillis();
 
 		final HashMap< Integer, AffineModel1D > models = adjustIntensities(container, pucks, puckData, transforms, maxDistance, maxMatches, correctScaling, nThreads );
 
-		System.out.println( "took " + (System.currentTimeMillis() - time ) + " msec." );
+		logger.info( "took " + (System.currentTimeMillis() - time ) + " msec." );
 
 		for ( int i = 0; i < pucks.size(); ++i )
 		{
@@ -484,10 +487,10 @@ public class IntensityAdjustment
 			final SpatialDataIO sdio = container.openDataset(puck);
 			sdio.updateTransformation((AffineGet) model, "intensity_transform");
 
-			System.out.println( pucks.get( i ) + ": " + model );
+			logger.info( pucks.get( i ) + ": " + model );
 		}
 
-		System.out.println( "done." );
+		logger.info( "done." );
 		service.shutdown();
 	}
 }

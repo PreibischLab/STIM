@@ -23,9 +23,13 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 @Command(name = "st-align-pairs-add", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - add manual landmarks to align pairs of slices")
 public class AddPairwiseMatch implements Callable<Void> {
+
+	private static final Logger logger = LoggerUtil.getLogger();
 
 	@Option(names = {"-c", "--container"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")
 	private String containerPath = null;
@@ -57,12 +61,12 @@ public class AddPairwiseMatch implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 		if (!(new File(containerPath)).exists()) {
-			System.out.println("Container '" + containerPath + "' does not exist. Stopping.");
+			logger.error("Container '" + containerPath + "' does not exist. Stopping.");
 			return null;
 		}
 
 		if (!SpatialDataContainer.isCompatibleContainer(containerPath)) {
-			System.out.println("Pairwise alignment does not work for single dataset '" + containerPath + "'. Stopping.");
+			logger.error("Pairwise alignment does not work for single dataset '" + containerPath + "'. Stopping.");
 			return null;
 		}
 
@@ -71,7 +75,7 @@ public class AddPairwiseMatch implements Callable<Void> {
 
 		final String[] datasetAB = datasets.split(",");
 		if (datasetAB.length != 2) {
-			System.out.println("Exactly two datasets must be specified, separated by a comma. Instead, '" + datasets + "' was given. Stopping.");
+			logger.error("Exactly two datasets must be specified, separated by a comma. Instead, '" + datasets + "' was given. Stopping.");
 			return null;
 		}
 		final String datasetA = datasetAB[0].trim();
@@ -80,7 +84,7 @@ public class AddPairwiseMatch implements Callable<Void> {
 
 		for (final String dataset : datasetAB) {
 			if (!container.getDatasets().contains(dataset)) {
-				System.out.println("Container does not contain dataset '" + dataset + "'. Stopping.");
+				logger.error("Container does not contain dataset '" + dataset + "'. Stopping.");
 				return null;
 			}
 		}
@@ -91,7 +95,7 @@ public class AddPairwiseMatch implements Callable<Void> {
 			while ((line = reader.readLine()) != null) {
 				final String[] coords = line.split(",");
 				if (coords.length != 5) {
-					System.out.println("Line '" + line + "' does not contain exactly 5 comma-separated coordinates. Stopping.");
+					logger.error("Line '" + line + "' does not contain exactly 5 comma-separated coordinates. Stopping.");
 					return null;
 				}
 
@@ -102,7 +106,7 @@ public class AddPairwiseMatch implements Callable<Void> {
 								new PointST(new double[]{Double.parseDouble(coords[3]), Double.parseDouble(coords[4])}, gene)));
 			}
 		} catch (final Exception e) {
-			System.out.println("Could not read csv file '" + csvPath + "':\n" + e.getMessage() + "\nStopping.");
+			logger.error("Could not read csv file '" + csvPath + "':\n" + e.getMessage() + "\nStopping.");
 			return null;
 		}
 
@@ -120,7 +124,7 @@ public class AddPairwiseMatch implements Callable<Void> {
 			}
 
 			if (renderingGene == null) {
-				System.out.println("Could not find a common gene to visualize between the two datasets. Stopping.");
+				logger.error("Could not find a common gene to visualize between the two datasets. Stopping.");
 				return null;
 			}
 
@@ -140,13 +144,13 @@ public class AddPairwiseMatch implements Callable<Void> {
 					.setTitle(matchName + "-inliers-" + match.getNumInliers());
 		}
 
-		System.out.println("Adding pairwise match '" + matchName + "' to container '" + containerPath + "'...");
+		logger.info("Adding pairwise match '" + matchName + "' to container '" + containerPath + "'...");
 		if (container.getMatches().contains(matchName)) {
 			if (overwrite) {
-				System.out.println("Overwriting existing pairwise match '" + matchName + "'...");
+				logger.warn("Overwriting existing pairwise match '" + matchName + "'...");
 				container.deleteMatch(matchName);
 			} else {
-				System.out.println("Pairwise match '" + matchName + "' already exists. Stopping.");
+				logger.error("Pairwise match '" + matchName + "' already exists. Stopping.");
 				return null;
 			}
 		}

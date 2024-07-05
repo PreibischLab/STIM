@@ -44,10 +44,13 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import render.Render;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 @Command(name = "st-bdv-view", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - visualize ST data in BigDataViewer")
 public class BigDataViewerDisplay implements Callable<Void>
 {
+	private static final Logger logger = LoggerUtil.getLogger();
 	@Option(names = {"-i", "--input"}, required = true, description = "input file (AnnData) or N5 container, e.g. -i /home/ssq.n5")
 	private String inputPath = null;
 
@@ -93,7 +96,7 @@ public class BigDataViewerDisplay implements Callable<Void>
 		final boolean useTransform = true;
 
 		if (!(new File(inputPath)).exists()) {
-			System.out.println("Container / dataset '" + inputPath + "' does not exist. Stopping.");
+			logger.error("Container / dataset '" + inputPath + "' does not exist. Stopping.");
 			return null;
 		}
 
@@ -106,32 +109,32 @@ public class BigDataViewerDisplay implements Callable<Void>
 			final SpatialDataContainer container = SpatialDataContainer.openForReading(inputPath, service);
 
 			if (dataset != null && dataset.trim().length() != 0) {
-					System.out.println("Opening dataset '" + dataset + "' in '" + inputPath + "' ...");
+					logger.debug("Opening dataset '" + dataset + "' in '" + inputPath + "' ...");
 					iodata = container.openDatasetReadOnly(dataset.trim());
 			}
 			else
 			{
-				System.out.println("No dataset defined. stopping.");
+				logger.error("No dataset defined. stopping.");
 				return null;
 			}
 		}
 		else {
-			System.out.println("Opening dataset '" + inputPath + "' ...");
+			logger.debug("Opening dataset '" + inputPath + "' ...");
 			iodata = SpatialDataIO.openReadOnly(inputPath, service);
 		}
 
 		if (genes == null || genes.length() == 0) {
-			System.out.println("No genes available. stopping.");
+			logger.error("No genes available. stopping.");
 			return null;
 		}
 
 		List<String> genesToShow = Arrays.stream(genes.split(",")).map(String::trim).collect(Collectors.toList());
 		if (genesToShow.size() == 0) {
-			System.out.println("No genes available. stopping.");
+			logger.error("No genes available. stopping.");
 			return null;
 		}
 
-		System.out.println( genesToShow.size() ) ;
+		logger.debug( genesToShow.size() ) ;
 
 		final STDataAssembly dataToVisualize = iodata.readData();
 
@@ -161,7 +164,7 @@ public class BigDataViewerDisplay implements Callable<Void>
 
 			if ( ffSingleSpot != null && ffSingleSpot > 0  )
 			{
-				System.out.println( "Using single-spot filtering, effective radius="  + (dataToVisualize.statistics().getMedianDistance() * ffSingleSpot) );
+				logger.debug( "Using single-spot filtering, effective radius="  + (dataToVisualize.statistics().getMedianDistance() * ffSingleSpot) );
 				filterFactorysInt.add( new SingleSpotRemovingFilterFactory<>( outofboundsInt, dataToVisualize.statistics().getMedianDistance() * ffSingleSpot ) );
 			}
 
@@ -208,7 +211,7 @@ public class BigDataViewerDisplay implements Callable<Void>
 		for ( int i = 0; i < genesToShow.size(); ++i )
 		{
 			final String gene = genesToShow.get( i );
-			System.out.println( "Rendering gene: " + gene );
+			logger.debug( "Rendering gene: " + gene );
 
 			final ARGBType col = getColor(genesToShow, i, rnd);
 

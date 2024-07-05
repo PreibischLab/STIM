@@ -28,9 +28,12 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 public class TextFileAccess 
 {
+	private static final Logger logger = LoggerUtil.getLogger();
 	public static void recursiveDelete( final File file ) throws IOException
 	{
 		if ( file.isDirectory() )
@@ -54,7 +57,7 @@ public class TextFileAccess
 		}
 		catch (IOException e)
 		{
-			System.out.println("TextFileAccess.openFileRead(): " + e);
+			logger.error("TextFileAccess.openFileRead(): " + e);
 			inputFile = null;
 		}
 		return (inputFile);
@@ -69,7 +72,7 @@ public class TextFileAccess
 		}
 		catch (IOException e)
 		{
-			System.out.println("TextFileAccess.openFileRead(): " + e);
+			logger.error("TextFileAccess.openFileRead(): " + e);
 			inputFile = null;
 		}
 		return (inputFile);
@@ -84,7 +87,7 @@ public class TextFileAccess
 		}
 		catch (IOException e)
 		{
-			System.out.println("TextFileAccess.openFileWrite(): " + e);
+			logger.error("TextFileAccess.openFileWrite(): " + e);
 			outputFile = null;
 		}
 		return (outputFile);
@@ -99,7 +102,7 @@ public class TextFileAccess
 		}
 		catch (IOException e)
 		{
-			System.out.println("TextFileAccess.openFileWrite(): " + e);
+			logger.error("TextFileAccess.openFileWrite(): " + e);
 			outputFile = null;
 		}
 		return (outputFile);

@@ -19,12 +19,15 @@ import data.STDataText;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 public class TextFileIO
 {
+	private static final Logger logger = LoggerUtil.getLogger();
 	public static STData readSlideSeq( final File beadLocations, final File reads )
 	{
-		System.out.println( "Parsing " + beadLocations.getName() + ", " + reads.getName() );
+		logger.debug( "Parsing " + beadLocations.getName() + ", " + reads.getName() );
 
 		final BufferedReader beadLocationsIn = TextFileAccess.openFileRead( beadLocations );
 		final BufferedReader readsIn = TextFileAccess.openFileRead( reads );
@@ -36,7 +39,7 @@ public class TextFileIO
 			readsIn.close();
 		} catch (IOException e) {}
 
-		System.out.println( data );
+		logger.debug( data );
 
 		return data;
 	}
@@ -46,15 +49,15 @@ public class TextFileIO
 		long time = System.currentTimeMillis();
 
 		final HashMap< String, double[] > coordinateMap = readSlideSeqCoordinates( beadLocations );
-		System.out.println( "Read " + coordinateMap.keySet().size() + " coordinates." );
+		logger.debug( "Read " + coordinateMap.keySet().size() + " coordinates." );
 
 		final Pair< List< Pair< double[], String > >, HashMap< String, double[] > > geneData = readSlideSeqGenes( reads, coordinateMap );
-		System.out.println( "Read data for " + geneData.getB().keySet().size() + " genes." );
+		logger.debug( "Read data for " + geneData.getB().keySet().size() + " genes." );
 
 		final STData data = new STDataText( geneData.getA(), geneData.getB() );
-		//System.out.println( data );
+		//logger.debug( data );
 
-		System.out.println( "Parsing took " + ( System.currentTimeMillis() - time ) + " ms." );
+		logger.debug( "Parsing took " + ( System.currentTimeMillis() - time ) + " ms." );
 
 		return data;
 	}
@@ -64,11 +67,11 @@ public class TextFileIO
 		long time = System.currentTimeMillis();
 
 		final HashMap< String, double[] > coordinateMap = readSlideSeqCoordinates( beadLocations );
-		System.out.println( "Read " + coordinateMap.keySet().size() + " coordinates." );
+		logger.debug( "Read " + coordinateMap.keySet().size() + " coordinates." );
 
 		// coordinates, geneMap
 		final Pair< List< Pair< double[], String > >, HashMap< String, double[] > > geneData = readSlideSeqGenes( reads, coordinateMap );
-		System.out.println( "Read data for " + geneData.getB().keySet().size() + " genes." );
+		logger.debug( "Read data for " + geneData.getB().keySet().size() + " genes." );
 
 		final HashSet< Integer > notAssigned = new HashSet<>();
 		final List< String > barcodes = geneData.getA().stream().map(Pair::getB).collect(Collectors.toList() );
@@ -81,7 +84,7 @@ public class TextFileIO
 					notAssigned);
 			annotationIds.put(entry.getKey(), ids);
 			if (!notAssigned.isEmpty())
-				System.out.println( "not assigned after reading '" + entry.getKey() + "': " + notAssigned.size() );
+				logger.warn( "not assigned after reading '" + entry.getKey() + "': " + notAssigned.size() );
 		}
 
 		final STData data;
@@ -136,7 +139,7 @@ public class TextFileIO
 				data.getAnnotations().put(entry.getKey(), ArrayImgs.ints(entry.getValue(), (int)data.numLocations()));
 		}
 
-		System.out.println( "Parsing took " + ( System.currentTimeMillis() - time ) + " ms." );
+		logger.debug( "Parsing took " + ( System.currentTimeMillis() - time ) + " ms." );
 
 		return data;
 	}
@@ -175,7 +178,7 @@ public class TextFileIO
 
 			if ( index == null )
 			{
-				System.out.println( "barcode '" + barcodeWithId[ 0 ] + "' defined in annotation not found in the location/expression data. Ignoring.");
+				logger.debug( "barcode '" + barcodeWithId[ 0 ] + "' defined in annotation not found in the location/expression data. Ignoring.");
 				continue;
 			}
 	
@@ -185,7 +188,7 @@ public class TextFileIO
 		}
 
 		if ( i != barcodes.size() )
-			System.out.println( "WARNING: Not all ids could be assigned (only " + i + " out of " + barcodes.size() + ")." );
+			logger.warn( "Not all ids could be assigned (only " + i + " out of " + barcodes.size() + ")." );
 
 		if ( notAssigned != null )
 		{
@@ -223,7 +226,7 @@ public class TextFileIO
 		}
 
 		if ( i != numLocations )
-			System.out.println( "WARNING: Not all ids could be assigned (only " + i + " out of " + numLocations + "). Assigning label 0 to all other locations." );
+			logger.warn( "Not all ids could be assigned (only " + i + " out of " + numLocations + "). Assigning label 0 to all other locations." );
 
 		return ids;
 	}
@@ -359,7 +362,7 @@ public class TextFileIO
 			if ( existingGenes1.contains( trimmed ) && existingGenes2.contains( trimmed ) )
 				genes.add( trimmed );
 			else
-				System.out.println( "Gene '" + trimmed + "' does not exist in both datasets, skipping.");
+				logger.warn( "Gene '" + trimmed + "' does not exist in both datasets, skipping.");
 		}
 
 		in.close();

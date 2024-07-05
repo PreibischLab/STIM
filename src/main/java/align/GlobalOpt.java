@@ -34,9 +34,13 @@ import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 public class GlobalOpt
 {
+	private static final Logger logger = LoggerUtil.getLogger();
+
 	public static double centerOfMassDistance( final STData dataA, final STData dataB, final AffineTransform2D transformA, final AffineTransform2D transformB )
 	{
 		final Interval intervalA = dataA.getRenderInterval();
@@ -171,25 +175,25 @@ public class GlobalOpt
 			{
 				int unaligned = tc.preAlign().size();
 				if ( unaligned > 0 )
-					System.out.println( "(" + new Date( System.currentTimeMillis() ) + "): pre-aligned all tiles but " + unaligned );
+					logger.info( "(" + new Date( System.currentTimeMillis() ) + "): pre-aligned all tiles but " + unaligned );
 				else
-					System.out.println( "(" + new Date( System.currentTimeMillis() ) + "): prealigned all tiles" );
+					logger.info( "(" + new Date( System.currentTimeMillis() ) + "): prealigned all tiles" );
 
 				TileUtil.optimizeConcurrently(
 						new ErrorStatistic( maxPlateauwidth + 1 ),  maxAllowedError, maxIterations, maxPlateauwidth, 1.0f,
 						tc, tc.getTiles(), tc.getFixedTiles(), numThreads );
 
-				System.out.println( "(" + new Date( System.currentTimeMillis() ) + "): Global optimization of " + tc.getTiles().size());
-				System.out.println( "(" + new Date( System.currentTimeMillis() ) + "):    Avg Error: " + tc.getError() + "px" );
-				System.out.println( "(" + new Date( System.currentTimeMillis() ) + "):    Min Error: " + tc.getMinError() + "px" );
-				System.out.println( "(" + new Date( System.currentTimeMillis() ) + "):    Max Error: " + tc.getMaxError() + "px" );
+				logger.info( "(" + new Date( System.currentTimeMillis() ) + "): Global optimization of " + tc.getTiles().size());
+				logger.info( "(" + new Date( System.currentTimeMillis() ) + "):    Avg Error: " + tc.getError() + "px" );
+				logger.info( "(" + new Date( System.currentTimeMillis() ) + "):    Min Error: " + tc.getMinError() + "px" );
+				logger.info( "(" + new Date( System.currentTimeMillis() ) + "):    Max Error: " + tc.getMaxError() + "px" );
 
 				// give some time for the output
 				try { Thread.sleep( 50 ); } catch ( Exception e) {}
 			}
 			catch (Exception e)
 			{
-				System.out.println( "Global optimization failed, please report this bug: " + e );
+				logger.error( "Global optimization failed, please report this bug: " + e );
 				e.printStackTrace();
 				return;
 			}
@@ -282,7 +286,7 @@ public class GlobalOpt
 		worstTile1.removeConnectedTile( worstTile2 );
 		worstTile2.removeConnectedTile( worstTile1 );
 
-		System.out.println( new Date( System.currentTimeMillis() ) +  ": Removed link from " + tileToIndex.get( worstTile1 ) + " to " + tileToIndex.get( worstTile2 ) );
+		logger.info( new Date( System.currentTimeMillis() ) +  ": Removed link from " + tileToIndex.get( worstTile1 ) + " to " + tileToIndex.get( worstTile2 ) );
 
 		return new ValuePair<>( worstTile1, worstTile2 );
 	}
@@ -314,7 +318,7 @@ public class GlobalOpt
 
 		for ( final Alignment align : alignments )
 			if ( align.i < pucks.size() && align.j < pucks.size() )
-				System.out.println( align.i + "-" + align.j + ": " + align.t );
+				logger.info( align.i + "-" + align.j + ": " + align.t );
 
 		/*
 i=0: 0=0.0 1=0.024038337709212782 2=0.24492487553469394 3=0.1518118833959881 4=0.7241020145787477 5=0.1306794304704525 6=0.15222925121638156 7=0.15483774054692553 8=0.132491429163626 9=0.17711581870553708 10=0.08701363466375361 11=0.2045784760110544 12=0.20891249466281947 
@@ -375,7 +379,7 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 				maxQuality = Math.max( maxQuality, quality[ i ][ j ] );
 				minQuality = Math.min( minQuality, quality[ i ][ j ] );
 
-				System.out.println( "Connecting " + i + "-" + j );
+				logger.debug( "Connecting " + i + "-" + j );
 
 				final STData stDataA = puckData.get(i).data();
 				final STData stDataB = puckData.get(j).data();
@@ -415,8 +419,8 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 			}
 		}
 
-		System.out.println( "minQ: " + minQuality );
-		System.out.println( "maxQ: " + maxQuality );
+		logger.debug( "minQ: " + minQuality );
+		logger.debug( "maxQ: " + maxQuality );
 
 		for ( int i = 0; i < pucks.size(); ++i )
 		{
@@ -434,13 +438,13 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 			System.out.println();
 		}
 
-		System.out.println( dataToTile.keySet().size() + " / " + pucks.size() );
-		System.out.println( tileToData.keySet().size() + " / " + pucks.size() );
+		logger.debug( dataToTile.keySet().size() + " / " + pucks.size() );
+		logger.debug( tileToData.keySet().size() + " / " + pucks.size() );
 
 		//System.exit( 0 );
 
 		for ( int i = 0; i < pucks.size(); ++i )
-			System.out.println( puckData.get( i ) + ": " + dataToTile.get( puckData.get( i ) ) );
+			logger.debug( puckData.get( i ) + ": " + dataToTile.get( puckData.get( i ) ) );
 
 		final TileConfiguration tileConfig = new TileConfiguration();
 
@@ -462,7 +466,7 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 				util.Threads.numThreads() );
 
 		for ( final Pair< Tile< ? >, Tile< ? > > removed : removedInconsistentPairs )
-			System.out.println( "Removed " + tileToIndex.get( removed.getA() ) + " to " + tileToIndex.get( removed.getB() ) + " (" + tileToData.get( removed.getA() ) + " to " + tileToData.get( removed.getB() ) + ")" );
+			logger.info( "Removed " + tileToIndex.get( removed.getA() ) + " to " + tileToIndex.get( removed.getB() ) + " (" + tileToData.get( removed.getA() ) + " to " + tileToData.get( removed.getB() ) + ")" );
 
 		/*
 		try
@@ -493,7 +497,7 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 
 		for ( int i = 0; i < pucks.size(); ++i )
 		{
-			System.out.println( puckData.get( i ) + ": " + dataToTile.get( puckData.get( i ) ).getModel() );
+			logger.debug( puckData.get( i ) + ": " + dataToTile.get( puckData.get( i ) ).getModel() );
 
 			final RigidModel2D model = dataToTile.get( puckData.get( i ) ).getModel();
 			/*

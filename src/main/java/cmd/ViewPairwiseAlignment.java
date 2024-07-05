@@ -23,10 +23,13 @@ import net.imglib2.realtransform.AffineTransform2D;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Command;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 @Command(name = "st-align-pairs-view", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - view and check pairwise alignments")
 public class ViewPairwiseAlignment implements Callable<Void> {
-
+	
+	private static final Logger logger = LoggerUtil.getLogger();
 	@Option(names = {"-c", "--container"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")
 	private String containerPath = null;
 
@@ -48,12 +51,12 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 		if (!(new File(containerPath)).exists()) {
-			System.out.println("Container '" + containerPath + "' does not exist. Stopping.");
+			logger.error("Container '" + containerPath + "' does not exist. Stopping.");
 			return null;
 		}
 
 		if (!SpatialDataContainer.isCompatibleContainer(containerPath)) {
-			System.out.println("Pairwise visualization does not work for single dataset '" + containerPath + "'. Stopping.");
+			logger.error("Pairwise visualization does not work for single dataset '" + containerPath + "'. Stopping.");
 			return null;
 		}
 
@@ -67,13 +70,13 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 					.collect(Collectors.toList());
 		}
 		else {
-			System.out.println("No input datasets specified. Trying to open all datasets in '" + containerPath + "' ...");
+			logger.warn("No input datasets specified. Trying to open all datasets in '" + containerPath + "' ...");
 			datasetNames = container.getDatasets();
 		}
 
 		final List<STData> dataToVisualize = new ArrayList<>();
 		for (final String dataset : datasetNames) {
-			System.out.println("Opening dataset '" + dataset + "' in '" + containerPath + "' ...");
+			logger.info("Opening dataset '" + dataset + "' in '" + containerPath + "' ...");
 			dataToVisualize.add(container.openDatasetReadOnly(dataset).readData().data());
 		}
 

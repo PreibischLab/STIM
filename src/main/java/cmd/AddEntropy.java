@@ -14,10 +14,14 @@ import net.imglib2.type.numeric.real.DoubleType;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 // In the future, this will support more methods for computing the std
 @Command(name = "st-add-entropy", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - add annotations to slice-dataset")
 public class AddEntropy implements Callable<Void> {
+
+	private static final Logger logger = LoggerUtil.getLogger();
 
 	@Option(names = {"-i", "--input"}, required = true, description = "input dataset, e.g. -i /home/ssq.n5/Puck_180528_20")
 	private String inputPath = null;
@@ -34,7 +38,7 @@ public class AddEntropy implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 		if (inputPath == null) {
-			System.out.println("No input path defined. Stopping.");
+			logger.error("No input path defined. Stopping.");
 			return null;
 		}
 
@@ -43,13 +47,13 @@ public class AddEntropy implements Callable<Void> {
 		final STDataAssembly stData = sdio.readData();
 		final ArrayImg<DoubleType, DoubleArray> entropy_values_rai;
 
-		System.out.println("Computing gene variability with method '" + method + "' (might take a while)");
+		logger.info("Computing gene variability with method '" + method + "' (might take a while)");
 		final double[] entropy_values = ExtractGeneLists.computeEntropy(method, stData.data(), numThreads);
 		entropy_values_rai = ArrayImgs.doubles(entropy_values, (long) stData.data().numGenes());
 		stData.data().getGeneAnnotations().put(geneLabels, entropy_values_rai);
 		sdio.updateStoredGeneAnnotations(stData.data().getGeneAnnotations());
 	
-		System.out.println( "Done." );
+		logger.debug( "Done." );
 
 		service.shutdown();
 		return null;

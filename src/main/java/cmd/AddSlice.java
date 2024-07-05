@@ -9,9 +9,13 @@ import java.io.File;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 @Command(name = "st-add-slice", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - add slice-dataset to a container")
 public class AddSlice implements Callable<Void> {
+
+	private static final Logger logger = LoggerUtil.getLogger();
 
 	@Option(names = {"-i", "--input"}, required = true, description = "input dataset, e.g. -i /home/ssq.n5")
 	private String inputDatasetPath = null;
@@ -35,18 +39,18 @@ public class AddSlice implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 		if (containerPath == null) {
-			System.out.println("No container defined. Stopping.");
+			logger.error("No container defined. Stopping.");
 			return null;
 		}
 
 		if (inputDatasetPath == null) {
-			System.out.println("No dataset defined. Stopping.");
+			logger.error("No dataset defined. Stopping.");
 			return null;
 		}
 
 		final File containerFile = new File(containerPath);
 		final boolean containerExists = (containerFile.exists());
-		System.out.println( "Container '" + containerFile.getAbsolutePath() + "' " + ( containerExists ? "exists" : "is new ..." ) );
+		logger.info( "Container '" + containerFile.getAbsolutePath() + "' " + ( containerExists ? "exists" : "is new ..." ) );
 
 		ExecutorService service = Executors.newFixedThreadPool(1);
 		SpatialDataContainer container = containerExists
@@ -59,7 +63,7 @@ public class AddSlice implements Callable<Void> {
 			container.linkExistingDataset(inputDatasetPath, locationPath, exprValPath, annotationPath, null);
 
 		final String operation = shouldBeMoved ? "Moved" : "Linked";
-		System.out.println(operation + " dataset '" + inputDatasetPath + "' to container '" + containerPath + "'.");
+		logger.info(operation + " dataset '" + inputDatasetPath + "' to container '" + containerPath + "'.");
 
 		service.shutdown();
 		return null;

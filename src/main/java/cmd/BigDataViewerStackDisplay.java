@@ -38,10 +38,13 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import render.Render;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 @Command(name = "st-bdv-view3d", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - visualize ST data in BigDataViewer")
 public class BigDataViewerStackDisplay implements Callable<Void> {
-
+	
+	private static final Logger logger = LoggerUtil.getLogger();
 	@Option(names = {"-i", "--input"}, required = true, description = "input file or N5 container, e.g. -i /home/ssq.n5")
 	private String inputPath = null;
 
@@ -90,7 +93,7 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 		final boolean useTransform = true;
 
 		if (!(new File(inputPath)).exists()) {
-			System.out.println("Container / dataset '" + inputPath + "' does not exist. Stopping.");
+			logger.error("Container / dataset '" + inputPath + "' does not exist. Stopping.");
 			return null;
 		}
 
@@ -102,34 +105,34 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 
 			if (datasets != null && datasets.length() != 0) {
 				for (String dataset : datasets.split(",")) {
-					System.out.println("Opening dataset '" + dataset + "' in '" + inputPath + "' ...");
+					logger.info("Opening dataset '" + dataset + "' in '" + inputPath + "' ...");
 					iodata.add(container.openDatasetReadOnly(dataset.trim()));
 				}
 			}
 			else {
-				System.out.println("Opening all datasets in '" + inputPath + "' ...");
+				logger.info("Opening all datasets in '" + inputPath + "' ...");
 				iodata.addAll(container.openAllDatasets());
 			}
 		}
 		else {
-			System.out.println("Opening dataset '" + inputPath + "' ...");
+			logger.info("Opening dataset '" + inputPath + "' ...");
 			iodata.add(SpatialDataIO.openReadOnly(inputPath, service));
 		}
 
 		if ( iodata.size() <= 1 )
 		{
-			System.out.println("Only one dataset selected, cannot be displayed in 3D. Please use 'st-bdv-view' instead for 2D. Stopping.");
+			logger.error("Only one dataset selected, cannot be displayed in 3D. Please use 'st-bdv-view' instead for 2D. Stopping.");
 			return null;
 		}
 
 		if (genes == null || genes.length() == 0) {
-			System.out.println("No genes available. stopping.");
+			logger.error("No genes available. stopping.");
 			return null;
 		}
 
 		List<String> genesToShow = Arrays.stream(genes.split(",")).map(String::trim).collect(Collectors.toList());
 		if (genesToShow.size() == 0) {
-			System.out.println("No genes available. stopping.");
+			logger.error("No genes available. stopping.");
 			return null;
 		}
 
@@ -143,7 +146,7 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 		}
 
 		if (dataToVisualize.size() == 0) {
-			System.out.println("No datasets that contain sequencing data. stopping.");
+			logger.error("No datasets that contain sequencing data. stopping.");
 			return null;
 		}
 
@@ -168,7 +171,7 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 
 			if ( ffSingleSpot != null && ffSingleSpot > 0  )
 			{
-				System.out.println( "Using single-spot filtering, effective radius=" + (dataToVisualize.get( 0 ).statistics().getMedianDistance() * ffSingleSpot) );
+				logger.debug( "Using single-spot filtering, effective radius=" + (dataToVisualize.get( 0 ).statistics().getMedianDistance() * ffSingleSpot) );
 				filterFactorysInt.add( new SingleSpotRemovingFilterFactory<>( outofboundsInt, dataToVisualize.get( 0 ).statistics().getMedianDistance() * ffSingleSpot ) );
 			}
 
@@ -209,7 +212,7 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 		for ( int i = 0; i < genesToShow.size(); ++i )
 		{
 			final String gene = genesToShow.get( i );
-			System.out.println( "Rendering gene: " + gene );
+			logger.debug( "Rendering gene: " + gene );
 
 			final STIMStack stack =
 					VisualizeStack.createStack(

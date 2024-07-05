@@ -16,10 +16,13 @@ import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Command;
 import util.Threads;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 @Command(name = "st-align-global", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - global alignment of all slices")
 public class GlobalOpt implements Callable<Void> {
-
+	
+	private static final Logger logger = LoggerUtil.getLogger();
 	@Option(names = {"-c", "--container"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")
 	private String containerPath = null;
 
@@ -80,12 +83,12 @@ public class GlobalOpt implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 		if (!(new File(containerPath)).exists()) {
-			System.out.println("Container '" + containerPath + "' does not exist. Stopping.");
+			logger.error("Container '" + containerPath + "' does not exist. Stopping.");
 			return null;
 		}
 
 		if (!SpatialDataContainer.isCompatibleContainer(containerPath)) {
-			System.out.println("Global alignment does not work for single dataset '" + containerPath + "'. Stopping.");
+			logger.error("Global alignment does not work for single dataset '" + containerPath + "'. Stopping.");
 			return null;
 		}
 
@@ -99,13 +102,13 @@ public class GlobalOpt implements Callable<Void> {
 					.collect(Collectors.toList());
 		}
 		else {
-			System.out.println("No input datasets specified. Trying to open all datasets in '" + containerPath + "' ...");
+			logger.warn("No input datasets specified. Trying to open all datasets in '" + containerPath + "' ...");
 			datasetNames = container.getDatasets();
 		}
 
 		for (final String dataset : datasetNames) {
 			if (!container.getDatasets().contains(dataset)) {
-				System.out.println("Container does not contain dataset '" + dataset + "' in '" + containerPath + "'. Stopping.");
+				logger.error("Container does not contain dataset '" + dataset + "' in '" + containerPath + "'. Stopping.");
 				return null;
 			}
 		}

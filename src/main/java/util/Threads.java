@@ -5,9 +5,12 @@ import java.util.Vector;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 public class Threads
 {
+	private static final Logger logger = LoggerUtil.getLogger();
 	public static int numThreads() { return Math.max( 1, Runtime.getRuntime().availableProcessors() ); }
 
 	public static ExecutorService createFlexibleExecutorService( final int nThreads ) { return Executors.newWorkStealingPool( nThreads ); }
@@ -69,7 +72,7 @@ public class Threads
 		}
 		catch ( final InterruptedException e )
 		{
-			System.out.println( "Failed to " + jobDescription + ": " + e );
+			logger.error( "Failed to " + jobDescription + ": " + e );
 			e.printStackTrace();
 		}
 	}

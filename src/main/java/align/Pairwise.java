@@ -52,9 +52,12 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import util.Threads;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 public class Pairwise
 {
+	private static final Logger logger = LoggerUtil.getLogger();
 	// how many peaks to test in the PCM
 	public static final int nHighest = 5;
 
@@ -178,14 +181,14 @@ public class Pairwise
 
 	public static List< Pair< String, Double > > allGenes( final STData stdataA, final STData stdataB, final int numThreads )
 	{
-		System.out.println( "Sorting all genes of both datasets by stdev (this takes a bit) ... ");
+		logger.info( "Sorting all genes of both datasets by stdev (this takes a bit) ... ");
 		long time = System.currentTimeMillis();
 
 		// from big to small
 		final ArrayList< Pair< String, Double > > listA = ExtractGeneLists.sortByStDevIntensity( stdataA, numThreads );
 		final ArrayList< Pair< String, Double > > listB = ExtractGeneLists.sortByStDevIntensity( stdataB, numThreads );
 
-		System.out.println( "Took " + (System.currentTimeMillis() - time) + " ms." );
+		logger.info( "Took " + (System.currentTimeMillis() - time) + " ms." );
 
 		// now we want to find the combination of genes where both have high variance
 		// we therefore sort them by the sum of ranks of both lists
@@ -250,7 +253,7 @@ public class Pairwise
 		return list;
 	}
 
-	public static List< String > genesToTest( final STData stdataA, final STData stdataB, final String geneLabel, final int numGenes, final int numThreads ) throws UnexpectedException
+	public static List< String > genesToTest( final STData stdataA, final STData stdataB, final String geneLabel, final int numGenes ) throws UnexpectedException
 	{
 		if ( numGenes <= 0 )
 			return new ArrayList<>();
@@ -613,9 +616,9 @@ public class Pairwise
 				final STData stDataA = puckData.get(i).data();
 				final STData stDataB = puckData.get(j).data();
 		
-				System.out.println( new Date( System.currentTimeMillis() ) + ": Finding genes" );
+				logger.info( new Date( System.currentTimeMillis() ) + ": Finding genes" );
 
-				final List< String > genesToTest = genesToTest( stDataA, stDataB, "stdev", 50, Threads.numThreads() );
+				final List< String > genesToTest = genesToTest( stDataA, stDataB, "stdev", 50 );
 		
 				/*
 				final List< String > genesToTest = new ArrayList<>();
@@ -627,7 +630,7 @@ public class Pairwise
 				genesToTest.add( "Pcp4" );
 				*/
 
-				System.out.println( new Date( System.currentTimeMillis() ) + ": Running correlation" );
+				logger.info( new Date( System.currentTimeMillis() ) + ": Running correlation" );
 				final Pair< AffineTransform2D, Double > result = align( stDataA, stDataB, genesToTest, 0.025, 2, 5, true );
 				final AffineTransform2D pcmTransform = result.getA();
 		
@@ -639,12 +642,12 @@ public class Pairwise
 				//pcmTransform.set( 0.24192189559966745, 0.9702957262759967, -199.37562080565206, -0.9702957262759967, 0.24192189559966745, 4602.7163253270855 );
 				//System.out.println( "PCM transform: " + pcmTransform );
 
-				System.out.println( new Date( System.currentTimeMillis() ) + ": Running ICP" );
+				logger.info( new Date( System.currentTimeMillis() ) + ": Running ICP" );
 
 				final AffineTransform2D icpTransform = alignICP( stDataA, stDataB, genesToTest, pcmTransform, 20, 50 );
 				//System.out.println( "ICP transform: " + icpTransform );
 		
-				System.out.println( i + "\t" + j + "\t" + Math.abs( i - j ) + "\t" + genesToTest.size() + "\t" + result.getB() + "\t" + pcmTransform + "\t" + icpTransform );
+				logger.info( i + "\t" + j + "\t" + Math.abs( i - j ) + "\t" + genesToTest.size() + "\t" + result.getB() + "\t" + pcmTransform + "\t" + icpTransform );
 
 				if ( pucks.size() != 2 )
 					continue;

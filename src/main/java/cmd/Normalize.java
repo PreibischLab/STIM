@@ -16,10 +16,13 @@ import data.NormalizingSTData;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Command;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 @Command(name = "st-normalize", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - normalize dataset")
 public class Normalize implements Callable<Void> {
-
+	
+		private static final Logger logger = LoggerUtil.getLogger();
 		@Option(names = {"-c", "--container"}, required = false, description = "N5 container; if given, all datasets are taken from and added to that container")
 		private String containerPath = null;
 
@@ -34,7 +37,7 @@ public class Normalize implements Callable<Void> {
 			List<String> inputDatasets = (input == null) ? new ArrayList<>() :
 					Arrays.stream(input.split(",")).map(String::trim).collect(Collectors.toList());
 			if (inputDatasets.isEmpty()) {
-				System.out.println("No input paths defined: " + input + ". Stopping.");
+				logger.error("No input paths defined: " + input + ". Stopping.");
 				return null;
 			}
 
@@ -54,7 +57,7 @@ public class Normalize implements Callable<Void> {
 			}
 
 			if (outputDatasets.size() != inputDatasets.size()) {
-				System.out.println("Size of input datasets " + inputDatasets + " not equal to size of output datasets " + outputDatasets + ". Stopping.");
+				logger.error("Size of input datasets " + inputDatasets + " not equal to size of output datasets " + outputDatasets + ". Stopping.");
 				return null;
 			}
 
@@ -71,7 +74,7 @@ public class Normalize implements Callable<Void> {
 				STDataAssembly stData = sdin.readData();
 
 				if (stData == null) {
-					System.out.println("Could not load dataset '" + inputPath + "'. Stopping.");
+					logger.error("Could not load dataset '" + inputPath + "'. Stopping.");
 					return null;
 				}
 
@@ -85,7 +88,7 @@ public class Normalize implements Callable<Void> {
 					container.addExistingDataset(outputPath);
 			}
 
-			System.out.println("Done.");
+			logger.debug("Done.");
 			service.shutdown();
 
 			return null;

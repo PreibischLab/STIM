@@ -18,9 +18,12 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import util.CompensatedSum;
 import util.Threads;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 public class ExtractGeneLists
 {
+	private static final Logger logger = LoggerUtil.getLogger();
 	public static ArrayList< Pair< String, Double > > sortByStDevIntensity( final STData data, final int numThreads )
 	{
 		final ArrayList< Pair< String, Double > > stDev = computeStdev(data, numThreads);
@@ -37,7 +40,7 @@ public class ExtractGeneLists
 				entropy = ExtractGeneLists.computeStdev(stData, Math.min(Threads.numThreads(), numThreads) );
 				break;
 			default:
-				System.out.println("Error: method " + method + " not supported");
+				logger.error("Method " + method + " not supported");
 				return null;
 		}
 

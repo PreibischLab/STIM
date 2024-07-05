@@ -19,9 +19,12 @@ import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.view.Views;
 import util.CompensatedSum;
 import util.Threads;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 public class NormalizingRandomAccessibleInterval implements RandomAccessibleInterval< DoubleType >
 {
+	private static final Logger logger = LoggerUtil.getLogger();
 	final int n;
 
 	/*
@@ -49,7 +52,7 @@ public class NormalizingRandomAccessibleInterval implements RandomAccessibleInte
 		final long numGenes = input.dimension( 0 );
 		final long numLocations = input.dimension( 1 );
 
-		System.out.println( "Computing normalization sums for all genes (" + input.dimension( 0 ) + ") and locations (" + input.dimension( 1 ) + ") ... " );
+		logger.info( "Computing normalization sums for all genes (" + input.dimension( 0 ) + ") and locations (" + input.dimension( 1 ) + ") ... " );
 
 		/*
 		final Cursor< DoubleType > cursor = this.sumsPerLocation.cursor();

@@ -28,9 +28,12 @@ import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import util.Threads;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 public class GlobalOptSIFT
 {
+	private static final Logger logger = LoggerUtil.getLogger();
 	protected static SiftMatch loadMatch(final SpatialDataContainer container, final String datasetA, final String datasetB ) {
 
 		SiftMatch match;
@@ -47,7 +50,7 @@ public class GlobalOptSIFT
 		}
 		catch (Exception e) {
 			final String matchName = container.constructMatchName(datasetA, datasetB);
-			System.out.println("error reading: " + matchName + ": " + e);
+			logger.error("error reading: " + matchName + ": " + e);
 			e.printStackTrace();
 			match = new SiftMatch();
 		}
@@ -94,7 +97,7 @@ public class GlobalOptSIFT
 		double minQuality = Double.MAX_VALUE;
 
 		final double lambda1 = icpRefine ? 1.0 : lambda;
-		System.out.println( "Lambda for SIFT global align (amount of regularization by rigid model): " + lambda1 );
+		logger.debug( "Lambda for SIFT global align (amount of regularization by rigid model): " + lambda1 );
 
 		for ( int i = 0; i < datasets.size() - 1; ++i )
 		{
@@ -147,7 +150,7 @@ public class GlobalOptSIFT
 				final List< PointMatch > inliers = match.getInliers();
 				if (!inliers.isEmpty())
 				{
-					System.out.println( "Connecting " + i + " to " + j + " ... "); 
+					logger.debug( "Connecting " + i + " to " + j + " ... "); 
 					tileA.connect( tileB, inliers );
 				}
 			}
@@ -155,8 +158,8 @@ public class GlobalOptSIFT
 
 		if ( useQuality )
 		{
-			System.out.println( "minQ: " + minQuality );
-			System.out.println( "maxQ: " + maxQuality );
+			logger.debug( "minQ: " + minQuality );
+			logger.debug( "maxQ: " + maxQuality );
 	
 			for ( int i = 0; i < datasets.size(); ++i )
 			{
@@ -175,13 +178,13 @@ public class GlobalOptSIFT
 			}
 		}
 
-		System.out.println( dataToTile.keySet().size() + " / " + datasets.size() );
-		System.out.println( tileToData.keySet().size() + " / " + datasets.size() );
+		logger.debug( dataToTile.keySet().size() + " / " + datasets.size() );
+		logger.debug( tileToData.keySet().size() + " / " + datasets.size() );
 
 		//System.exit( 0 );
 
 		for ( int i = 0; i < datasets.size(); ++i )
-			System.out.println( data.get( i ) + ": " + dataToTile.get( data.get( i ) ).getModel() );
+			logger.debug( data.get( i ) + ": " + dataToTile.get( data.get( i ) ).getModel() );
 
 		final TileConfiguration tileConfig = new TileConfiguration();
 
@@ -203,7 +206,7 @@ public class GlobalOptSIFT
 				numThreads );
 
 		for ( final Pair< Tile< ? >, Tile< ? > > removed : removedInconsistentPairs )
-			System.out.println( "Removed " + tileToIndex.get( removed.getA() ) + " to " + tileToIndex.get( removed.getB() ) + " (" + tileToData.get( removed.getA() ) + " to " + tileToData.get( removed.getB() ) + ")" );
+			logger.info( "Removed " + tileToIndex.get( removed.getA() ) + " to " + tileToIndex.get( removed.getB() ) + " (" + tileToData.get( removed.getA() ) + " to " + tileToData.get( removed.getB() ) + ")" );
 
 		final List< Pair< STData, AffineTransform2D > > dataTrafoPair = new ArrayList<>();
 
@@ -214,7 +217,7 @@ public class GlobalOptSIFT
 			ioObjects.get(i).updateTransformation(transform, "model_sift");
 			ioObjects.get(i).updateTransformation(transform, "transform"); // will be overwritten by ICP later
 
-			System.out.println( data.get( i ) + ": " + transform );
+			logger.debug( data.get( i ) + ": " + transform );
 			dataTrafoPair.add(new ValuePair<>(data.get(i).data(), transform));
 		}
 
@@ -224,7 +227,7 @@ public class GlobalOptSIFT
 			AlignTools.visualizeList(dataTrafoPair, AlignTools.defaultScale, Rendering.Gauss, smoothnessFactor, displaygene, true);
 		}
 
-		System.out.println( "Avg error: " + tileConfig.getError() );
+		logger.info( "Avg error: " + tileConfig.getError() );
 
 		if ( icpRefine )
 		{
@@ -270,7 +273,7 @@ public class GlobalOptSIFT
 	
 						if ( wasRemoved )
 						{
-							System.out.println( i + "<>" + j + " was removed in global opt. Not running ICP." );
+							logger.warn( i + "<>" + j + " was removed in global opt. Not running ICP." );
 						}
 						else
 						{
@@ -311,7 +314,7 @@ public class GlobalOptSIFT
 								final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileA = dataToTileICP.get(data.get(i));
 								final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileB = dataToTileICP.get(data.get(j));
 	
-								System.out.println( "Connecting " + i + " to " + j + " with " + icpT.getB().size() + " inliers." ); 
+								logger.info( "Connecting " + i + " to " + j + " with " + icpT.getB().size() + " inliers." ); 
 								tileA.connect( tileB, icpT.getB() );
 							}
 
@@ -349,11 +352,11 @@ public class GlobalOptSIFT
 					tileConfigICP.getFixedTiles(),
 					numThreads );
 	
-				System.out.println( " avg=" + tileConfigICP.getError() + ", min=" + tileConfigICP.getMinError() + ", max=" + tileConfigICP.getMaxError() );
+				logger.info( " avg=" + tileConfigICP.getError() + ", min=" + tileConfigICP.getMinError() + ", max=" + tileConfigICP.getMaxError() );
 			}
 			catch ( Exception e )
 			{
-				System.out.println( ": Could not solve, cause: " + e );
+				logger.error( ": Could not solve, cause: " + e );
 				e.printStackTrace();
 			}
 	
@@ -366,7 +369,7 @@ public class GlobalOptSIFT
 				container.openDataset(datasets.get(i)).updateTransformation(transform, "model_icp");
 				container.openDataset(datasets.get(i)).updateTransformation(transform, "transform");
 
-				System.out.println( data.get( i ) + ": " + transform );
+				logger.debug( data.get( i ) + ": " + transform );
 	
 				dataICP.add(new ValuePair<>(data.get(i).data(), transform));
 			}
@@ -374,7 +377,7 @@ public class GlobalOptSIFT
 			if ( !skipDisplayResults )
 				AlignTools.visualizeList( dataICP, AlignTools.defaultScale, Rendering.Gauss, smoothnessFactor, displaygene, true ).setTitle( "ICP-reg" );
 
-			System.out.println( "Avg error: " + tileConfigICP.getError() );
+			logger.info( "Avg error: " + tileConfigICP.getError() );
 		}
 	}
 

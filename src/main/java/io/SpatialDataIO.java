@@ -35,10 +35,13 @@ import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 
 public abstract class SpatialDataIO {
-
+	
+	private static final Logger logger = LoggerUtil.getLogger();
 	public static String transformFieldName = "transform";
 
 	// expose internal methods
@@ -217,7 +220,7 @@ public abstract class SpatialDataIO {
 	 */
 	public STDataAssembly readData() throws IOException {
 		long time = System.currentTimeMillis();
-		System.out.print( "Reading spatial data ... " );
+		logger.debug( "Reading spatial data ... " );
 
 		N5Reader reader = ioSupplier.get();
 		RandomAccessibleInterval<DoubleType> locations = readLocations(reader);
@@ -238,7 +241,7 @@ public abstract class SpatialDataIO {
 			throw new SpatialDataException("Missing or wrong number of gene names.");
 
 		if (barcodes == null || barcodes.isEmpty() || barcodes.size() != numLocations) {
-			System.out.println( "Missing or wrong number of barcodes, setting empty Strings instead");
+			logger.debug( "Missing or wrong number of barcodes, setting empty Strings instead");
 			barcodes = new ArrayList<>();
 			for (int i = 0; i < numLocations; ++i)
 				barcodes.add("");
@@ -261,8 +264,8 @@ public abstract class SpatialDataIO {
 		for (final String geneAnnotationLabel : detectGeneAnnotations(reader))
 			stData.getGeneAnnotations().put(geneAnnotationLabel, readGeneAnnotations(reader, geneAnnotationLabel));
 
-		System.out.println("Loading took " + (System.currentTimeMillis() - time) + " ms.");
-		System.out.println("Metadata:" +
+		logger.debug("Loading took " + (System.currentTimeMillis() - time) + " ms.");
+		logger.debug("Metadata:" +
 				" dims=" + locationDims[1] +
 				", numLocations=" + numLocations +
 				", numGenes=" + numGenes +
@@ -333,7 +336,7 @@ public abstract class SpatialDataIO {
 		N5Writer writer = (N5Writer) ioSupplier.get();
 		STData stData = data.data();
 
-		System.out.print( "Saving spatial data ... " );
+		logger.debug( "Saving spatial data ... " );
 		long time = System.currentTimeMillis();
 
 		writeHeader(writer, stData);
@@ -347,7 +350,7 @@ public abstract class SpatialDataIO {
 
 		updateStoredAnnotations(stData.getAnnotations());
 
-		System.out.println( "Saving took " + ( System.currentTimeMillis() - time ) + " ms." );
+		logger.debug( "Saving took " + ( System.currentTimeMillis() - time ) + " ms." );
 	}
 
 	/**
@@ -365,7 +368,7 @@ public abstract class SpatialDataIO {
 
 		for (Entry<String, RandomAccessibleInterval<? extends NativeType<?>>> newEntry : metadata.entrySet()) {
 			if (existingAnnotations.contains(newEntry.getKey()))
-				System.out.println("Existing metadata '" + newEntry.getKey() + "' was not updated.");
+				logger.warn("Existing metadata '" + newEntry.getKey() + "' was not updated.");
 			else
 				writeAnnotations(writer, newEntry.getKey(), newEntry.getValue());
 		}
@@ -386,7 +389,7 @@ public abstract class SpatialDataIO {
 
 		for (Entry<String, RandomAccessibleInterval<? extends NativeType<?>>> newEntry : metadata.entrySet()) {
 			if (existingGeneAnnotations.contains(newEntry.getKey()))
-				System.out.println("Existing metadata '" + newEntry.getKey() + "' was not updated.");
+				logger.warn("Existing metadata '" + newEntry.getKey() + "' was not updated.");
 			else
 				writeGeneAnnotations(writer, newEntry.getKey(), newEntry.getValue());
 		}
