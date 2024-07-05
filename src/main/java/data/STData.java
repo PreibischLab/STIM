@@ -26,6 +26,11 @@ public interface STData extends IterableRealInterval< RealLocalizable >
 	 */
 	public Map< String, RandomAccessibleInterval< ? extends NativeType< ? > > > getAnnotations();
 
+	/**
+	 * @return additional gene annotations that map any gene to an arbitrary value
+	 */
+	public Map< String, RandomAccessibleInterval< ? extends NativeType< ? > > > getGeneAnnotations();
+
 	int getIndexForGene( final String geneName );
 
 	/**

@@ -33,6 +33,7 @@ import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 
 
@@ -58,6 +59,10 @@ public abstract class SpatialDataIO {
 			return instance.readExpressionValues(reader);
 		}
 
+		public List<Pair<String,Double>> readExpressionStd(N5Reader reader) throws IOException {
+			return instance.readExpressionStd(reader);
+		}
+
 		public List<String> readBarcodes(N5Reader reader) throws IOException {
 			return instance.readBarcodes(reader);
 		}
@@ -74,8 +79,16 @@ public abstract class SpatialDataIO {
 			return instance.detectAnnotations(reader);
 		}
 
+		public List<String> detectGeneAnnotations(N5Reader reader) throws IOException {
+			return instance.detectGeneAnnotations(reader);
+		}
+
 		public <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readAnnotations(N5Reader reader, String label) throws IOException {
 			return instance.readAnnotations(reader, label);
+		}
+
+		public <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readGeneAnnotations(N5Reader reader, String label) throws IOException {
+			return instance.readGeneAnnotations(reader, label);
 		}
 
 		public void writeHeader(N5Writer writer, STData data) throws IOException {
@@ -105,6 +118,10 @@ public abstract class SpatialDataIO {
 		public void writeAnnotations(N5Writer writer, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
 			instance.writeAnnotations(writer, label, data);
 		}
+
+		public void writeGeneAnnotations(N5Writer writer, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
+			instance.writeGeneAnnotations(writer, label, data);
+		}
 	}
 
 	/**
@@ -127,6 +144,7 @@ public abstract class SpatialDataIO {
 	protected String locationPath;
 	protected String exprValuePath;
 	protected String annotationPath;
+	protected String geneAnnotationPath;
 	protected String path;
 
 	public String getPath() { return path; }
@@ -178,7 +196,7 @@ public abstract class SpatialDataIO {
 
 		this.options = new N5Options(matrixBlockSize, compression, service);
 		this.options1d = new N5Options(new int[]{vectorBlockSize}, compression, service);
-		setDataPaths(null, null, null);
+		setDataPaths(null, null, null, null);
 	}
 
 	/**
@@ -189,7 +207,7 @@ public abstract class SpatialDataIO {
 	 * @param exprValuePath path to expression values
 	 * @param annotationPath path to annotations
 	 */
-	public abstract void setDataPaths(String locationPath, String exprValuePath, String annotationPath);
+	public abstract void setDataPaths(String locationPath, String exprValuePath, String annotationPath, String geneAnnotationPath);
 
 	/**
 	 * Read data (locations, expression values, barcodes, gene names, and transformations) from the given instance.
@@ -240,6 +258,9 @@ public abstract class SpatialDataIO {
 		for (final String annotationLabel : detectAnnotations(reader))
 			stData.getAnnotations().put(annotationLabel, readAnnotations(reader, annotationLabel));
 
+		for (final String geneAnnotationLabel : detectGeneAnnotations(reader))
+			stData.getGeneAnnotations().put(geneAnnotationLabel, readGeneAnnotations(reader, geneAnnotationLabel));
+
 		System.out.println("Loading took " + (System.currentTimeMillis() - time) + " ms.");
 		System.out.println("Metadata:" +
 				" dims=" + locationDims[1] +
@@ -263,6 +284,12 @@ public abstract class SpatialDataIO {
 
 	protected abstract RandomAccessibleInterval<DoubleType> readExpressionValues(N5Reader reader, String exprValuesPath) throws IOException; // size: [numGenes x numLocations]
 
+	protected List<Pair<String,Double>> readExpressionStd(N5Reader reader) throws IOException {
+		return readExpressionStd(reader, exprValuePath);
+	}
+
+	protected abstract List<Pair<String,Double>> readExpressionStd(N5Reader reader, String exprValuesPath) throws IOException; // size: [numGenes x numLocations]
+
 	protected abstract List<String> readBarcodes(N5Reader reader) throws IOException;
 
 	protected abstract List<String> readGeneNames(N5Reader reader) throws IOException;
@@ -273,13 +300,25 @@ public abstract class SpatialDataIO {
 		return detectAnnotations(reader, annotationPath);
 	}
 
+	protected List<String> detectGeneAnnotations(N5Reader reader) throws IOException {
+		return detectGeneAnnotations(reader, geneAnnotationPath);
+	}
+
 	protected abstract List<String> detectAnnotations(N5Reader reader, String annotationsPath) throws IOException;
+
+	protected abstract List<String> detectGeneAnnotations(N5Reader reader, String geneAnnotationsPath) throws IOException;
 
 	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readAnnotations(N5Reader reader, String label) throws IOException {
 		return readAnnotations(reader, annotationPath, label);
 	}
 
+	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readGeneAnnotations(N5Reader reader, String label) throws IOException {
+		return readAnnotations(reader, geneAnnotationPath, label);
+	}
+
 	protected abstract <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readAnnotations(N5Reader reader, String annotationsPath, String label) throws IOException;
+
+	protected abstract <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readGeneAnnotations(N5Reader reader, String annotationsPath, String label) throws IOException;
 
 	/**
 	 * Write data (locations, expression values, barcodes, gene names, and transformations) for the given instance.
@@ -332,6 +371,27 @@ public abstract class SpatialDataIO {
 		}
 	}
 
+	/**
+	 * Write the given annotations to the underlying file; existing annotations are not updated.
+	 *
+	 * @param metadata map of annotations
+	 * @throws IOException
+	 */
+	public void updateStoredGeneAnnotations(Map<String, RandomAccessibleInterval<? extends NativeType<?>>> metadata) throws IOException {
+		if (readOnly)
+			throw new IllegalStateException("Trying to write to read-only file.");
+
+		N5Writer writer = (N5Writer) ioSupplier.get();
+		List<String> existingGeneAnnotations = detectGeneAnnotations(writer);
+
+		for (Entry<String, RandomAccessibleInterval<? extends NativeType<?>>> newEntry : metadata.entrySet()) {
+			if (existingGeneAnnotations.contains(newEntry.getKey()))
+				System.out.println("Existing metadata '" + newEntry.getKey() + "' was not updated.");
+			else
+				writeGeneAnnotations(writer, newEntry.getKey(), newEntry.getValue());
+		}
+	}
+
 	protected abstract void writeHeader(N5Writer writer, STData data) throws IOException;
 
 	protected void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations) throws IOException {
@@ -349,7 +409,6 @@ public abstract class SpatialDataIO {
 	protected abstract void writeBarcodes(N5Writer writer, List<String> barcodes) throws IOException;
 
 	protected abstract void writeGeneNames(N5Writer writer, List<String> geneNames) throws IOException;
-
 	// public to be able to only write the transformation to a dataset
 	public abstract void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException;
 
@@ -357,7 +416,13 @@ public abstract class SpatialDataIO {
 		writeAnnotations(writer, annotationPath, label, data);
 	}
 
+	protected void writeGeneAnnotations(N5Writer writer, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
+		writeGeneAnnotations(writer, annotationPath, label, data);
+	}
+
 	protected abstract void writeAnnotations(N5Writer writer, String annotationsPath, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException;
+
+	protected abstract void writeGeneAnnotations(N5Writer writer, String annotationsPath, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException;
 
 	/**
 	 * Write the given transformation to the underlying file; existing transformations with the same name will be overwritten.

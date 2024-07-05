@@ -39,6 +39,7 @@ public class SpatialDataContainer {
 	final private static String locationPathKey = "-locations";
 	final private static String exprValuePathKey = "-exprValues";
 	final private static String annotationPathKey = "-annotations";
+	final private static String geneAnnotationPathKey = "-geneAnnotations";
 
 
 	protected SpatialDataContainer(final String path, final ExecutorService service, final boolean readOnly) throws IOException {
@@ -100,25 +101,25 @@ public class SpatialDataContainer {
 	}
 
 	public void addExistingDataset(String path) throws IOException {
-		addExistingDataset(path, null, null, null);
+		addExistingDataset(path, null, null, null, null);
 	}
 
-	public void addExistingDataset(String path, String locationPath, String exprValuePath, String annotationPath) throws IOException {
+	public void addExistingDataset(String path, String locationPath, String exprValuePath, String annotationPath, String geneAnnotationPath) throws IOException {
 		associateDataset(path, (src, dest) -> {
 			try {return Files.move(src, dest);}
 			catch (IOException e) {throw new SpatialDataException("Could not move dataset to container.", e);}
-		}, locationPath, exprValuePath, annotationPath);
+		}, locationPath, exprValuePath, annotationPath, geneAnnotationPath);
 	}
 
 	public void linkExistingDataset(String path) throws IOException {
-		linkExistingDataset(path, null, null, null);
+		linkExistingDataset(path, null, null, null, null);
 	}
 
-	public void linkExistingDataset(String path, String locationPath, String exprValuePath, String annotationPath) throws IOException {
+	public void linkExistingDataset(String path, String locationPath, String exprValuePath, String annotationPath, String geneAnnotationPath) throws IOException {
 		associateDataset(path, (target, link) -> {
 			try {return Files.createSymbolicLink(link, target);}
 			catch (IOException e) {throw new SpatialDataException("Could not link dataset to container.", e);}
-		}, locationPath, exprValuePath, annotationPath);
+		}, locationPath, exprValuePath, annotationPath, geneAnnotationPath);
 	}
 
 	protected void associateDataset(
@@ -126,7 +127,8 @@ public class SpatialDataContainer {
 			BinaryOperator<Path> associationOperation,
 			String locationPath,
 			String exprValuePath,
-			String annotationPath
+			String annotationPath,
+			String geneAnnotationPath
 	) throws IOException {
 
 		Path oldPath = Paths.get(path);
@@ -148,6 +150,8 @@ public class SpatialDataContainer {
 			writer.setAttribute("/", datasetName + exprValuePathKey, exprValuePath);
 		if (annotationPath != null)
 			writer.setAttribute("/", datasetName + annotationPathKey, annotationPath);
+		if (geneAnnotationPath != null)
+			writer.setAttribute("/", datasetName + geneAnnotationPathKey, geneAnnotationPath);
 	}
 
 	public void deleteDataset(String datasetName) throws IOException {
@@ -167,8 +171,9 @@ public class SpatialDataContainer {
 		String path1 = n5.getAttribute("/", datasetName + locationPathKey, String.class);
 		String path2 = n5.getAttribute("/", datasetName + exprValuePathKey, String.class);
 		String path3 = n5.getAttribute("/", datasetName + annotationPathKey, String.class);
+		String path4 = n5.getAttribute("/", datasetName + geneAnnotationPathKey, String.class);
 		SpatialDataIO sdio = SpatialDataIO.open(Paths.get(rootPath, datasetName).toRealPath().toString(), service);
-		sdio.setDataPaths(path1, path2, path3);
+		sdio.setDataPaths(path1, path2, path3, path4);
 		return sdio;
 	}
 
@@ -178,8 +183,9 @@ public class SpatialDataContainer {
 		String path1 = n5.getAttribute("/", datasetName + locationPathKey, String.class);
 		String path2 = n5.getAttribute("/", datasetName + exprValuePathKey, String.class);
 		String path3 = n5.getAttribute("/", datasetName + annotationPathKey, String.class);
+		String path4 = n5.getAttribute("/", datasetName + geneAnnotationPathKey, String.class);
 		SpatialDataIO sdio = SpatialDataIO.openReadOnly(Paths.get(rootPath, datasetName).toRealPath().toString(), service);
-		sdio.setDataPaths(path1, path2, path3);
+		sdio.setDataPaths(path1, path2, path3, path4);
 		return sdio;
 	}
 

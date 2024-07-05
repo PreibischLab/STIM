@@ -51,6 +51,12 @@ public class NormalizingSTData implements STData
 	}
 
 	@Override
+	public Map< String, RandomAccessibleInterval< ? extends NativeType< ? > > > getGeneAnnotations()
+	{
+		return data.getGeneAnnotations();
+	}
+
+	@Override
 	public IterableRealInterval< DoubleType > getExprData( String geneName )
 	{
 		// TODO: use the entire values array so that the gene can be switched virtually
