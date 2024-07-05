@@ -1,11 +1,13 @@
 package align;
 
 import java.io.IOException;
+import java.rmi.UnexpectedException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -30,7 +32,9 @@ import imglib2.phasecorrelation.PhaseCorrelationPeak2;
 import io.Path;
 import io.SpatialDataContainer;
 import mpicbg.models.AffineModel2D;
+import net.imglib2.Cursor;
 import net.imglib2.Interval;
+import net.imglib2.IterableInterval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealLocalizable;
 import net.imglib2.RealPoint;
@@ -40,6 +44,8 @@ import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.realtransform.AffineTransform2D;
+import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.complex.ComplexDoubleType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Intervals;
@@ -219,22 +225,45 @@ public class Pairwise
 		return toTest;
 	}
 
-	public static List< String > genesToTest( final STData stdataA, final STData stdataB, final int numGenes, final int numThreads )
+	public static ArrayList<Pair<String, Double>> getGenesEntropy( final STData stData, final String geneLabel ) throws UnexpectedException {
+		Map< String, RandomAccessibleInterval< ? extends NativeType< ? > > > geneAnnotation = stData.getGeneAnnotations();
+		if (!geneAnnotation.containsKey(geneLabel)) {
+			throw new UnexpectedException("The property '" + geneLabel + "' was not found as gene annotation");
+		}
+
+		final RandomAccessibleInterval entropy = geneAnnotation.get(geneLabel);
+		List<String> geneNames = stData.getGeneNames();
+
+		ArrayList<Pair<String, Double>> list = new ArrayList<>();
+		final IterableInterval< DoubleType > entropyValue = Views.flatIterable(entropy);
+		final double[] entropyValueCopy = new double[ (int)entropyValue.size() ];
+		final Cursor< DoubleType > cursor = entropyValue.localizingCursor();
+
+		while ( cursor.hasNext() )
+		{
+			final DoubleType t = cursor.next();
+			entropyValueCopy[ cursor.getIntPosition( 0 ) ] = t.get();
+		}
+
+		for (int i = 0; i < geneNames.size(); i++) {
+			list.add(new ValuePair<>(geneNames.get(i), entropyValueCopy[i]));
+		}
+		return list;
+	}
+
+	public static List< String > genesToTest( final STData stdataA, final STData stdataB, final String geneLabel, final int numGenes, final int numThreads ) throws UnexpectedException
 	{
 		if ( numGenes <= 0 )
 			return new ArrayList<>();
 
-		System.out.println( "Sorting all genes of both datasets by stdev (this takes a bit) ... ");
-		long time = System.currentTimeMillis();
-
-		// from big to small
-		final ArrayList< Pair< String, Double > > listA = ExtractGeneLists.sortByStDevIntensity( stdataA, numThreads );
-		final ArrayList< Pair< String, Double > > listB = ExtractGeneLists.sortByStDevIntensity( stdataB, numThreads );
-
-		System.out.println( "Took " + (System.currentTimeMillis() - time) + " ms." );
-
+		// this assumes that the "stdev" or similar has been computed
+		final ArrayList<Pair<String, Double>> listA = getGenesEntropy( stdataA, geneLabel );
+		final ArrayList<Pair<String, Double>> listB = getGenesEntropy( stdataB, geneLabel );
+			
 		// now we want to find the combination of genes where both have high variance
 		// we therefore sort them by the sum of ranks of both lists
+		Collections.sort( listA, (o1, o2) -> o2.getB().compareTo( o1.getB() ));
+		Collections.sort( listB, (o1, o2) -> o2.getB().compareTo( o1.getB() ));
 
 		final HashMap<String, Integer > geneToIndexB = new HashMap<>();
 
@@ -248,10 +277,6 @@ public class Pairwise
 				entries.add( new ValuePair<>( i, geneToIndexB.get( listA.get( i ).getA() ) ) );
 
 		Collections.sort( entries, (o1,o2) -> (o1.getA()+o1.getB()) - (o2.getA()+o2.getB()) ); 
-
-		//for ( int i = 0; i < 10; ++i )
-		//	System.out.println( entries.get( i ).getA() + " (" + listA.get( entries.get( i ).getA() ).getA() +"), " + entries.get( i ).getB() + " ("  + listB.get( entries.get( i ).getB() ).getA() + ")" );
-		//System.out.println( entries.get( entries.size() - 1 ).getA() + ", " + entries.get( entries.size() - 1 ).getB() );
 
 		final ArrayList< String > toTest = new ArrayList<>();
 
@@ -591,7 +616,7 @@ public class Pairwise
 		
 				System.out.println( new Date( System.currentTimeMillis() ) + ": Finding genes" );
 
-				final List< String > genesToTest = genesToTest( stDataA, stDataB, 50, Threads.numThreads() );
+				final List< String > genesToTest = genesToTest( stDataA, stDataB, "stdev", 50, Threads.numThreads() );
 		
 				/*
 				final List< String > genesToTest = new ArrayList<>();

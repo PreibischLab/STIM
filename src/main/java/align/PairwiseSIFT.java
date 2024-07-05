@@ -533,7 +533,7 @@ public class PairwiseSIFT
 
 				//System.out.println( new Date( System.currentTimeMillis() ) + ": Finding genes" );
 
-				final List< String > genesToTest = Pairwise.genesToTest( stDataA, stDataB, 2000, numThreads );
+				final List< String > genesToTest = Pairwise.genesToTest( stDataA, stDataB, "stdev", 2000, numThreads );
 				//for ( final String gene : genesToTest )
 				//	System.out.println( gene );
 				/*final List< String > genesToTest = new ArrayList<>();
