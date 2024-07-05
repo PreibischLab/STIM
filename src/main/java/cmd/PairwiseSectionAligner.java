@@ -39,7 +39,7 @@ import util.Threads;
 @Command(name = "st-align-pairs", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - align pairs of slices")
 public class PairwiseSectionAligner implements Callable<Void> {
 
-	@Option(names = {"-i", "--input"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")
+	@Option(names = {"-c", "--container"}, required = true, description = "input N5 container path, e.g. -c /home/ssq.n5.")
 	private String containerPath = null;
 
 	@Option(names = {"-d", "--datasets"}, required = false, description = "ordered, comma separated list of one or more datasets, e.g. -d 'Puck_180528_20,Puck_180528_22' (default: all, in order as saved in N5 metadata)")
@@ -111,7 +111,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 	@Option(names = {"--numThreads"}, required = false, description = "number of threads for parallel processing")
 	private int numThreads = 128;
 
-	//-i /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d 'Puck_180602_20,Puck_180602_18,Puck_180602_17,Puck_180602_16,Puck_180602_15,Puck_180531_23,Puck_180531_22,Puck_180531_19,Puck_180531_18,Puck_180531_17,Puck_180531_13,Puck_180528_22,Puck_180528_20' -n 100 --overwrite
+	//-c /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d 'Puck_180602_20,Puck_180602_18,Puck_180602_17,Puck_180602_16,Puck_180602_15,Puck_180531_23,Puck_180531_22,Puck_180531_19,Puck_180531_18,Puck_180531_17,Puck_180531_13,Puck_180528_22,Puck_180528_20' -n 100 --overwrite
 
 	@Override
 	public Void call() throws Exception {
@@ -260,9 +260,11 @@ public class PairwiseSectionAligner implements Callable<Void> {
 					System.out.print( g + " ");
 				System.out.println();
 
-				// TODO: set all parameters
+
+				//
+				// start alignment
+				//
 				final SIFTParam p = new SIFTParam();
-				final List< FilterFactory< DoubleType, DoubleType > > filterFactories = null;
 				p.setDatasetParameters(maxEpsilon, scale, 1024, filterFactories, Rendering.Gauss, renderingFactor, brightnessMin, brightnessMax); 
 				p.setIntrinsicParameters( SIFTPreset.VERYTHOROUGH );
 				p.minInliersGene = minNumInliersGene;
@@ -281,8 +283,8 @@ public class PairwiseSectionAligner implements Callable<Void> {
 
 				long time = System.currentTimeMillis();
 
-				// hard case: -i /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d1 Puck_180602_15 -d2 Puck_180602_16 -n 30
-				// even harder: -i /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d1 Puck_180602_20 -d2 Puck_180602_18 -n 100 --overwrite
+				// hard case: -c /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d1 Puck_180602_15 -d2 Puck_180602_16 -n 30
+				// even harder: -c /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d1 Puck_180602_20 -d2 Puck_180602_18 -n 100 --overwrite
 				SiftMatch match = PairwiseSIFT.pairwiseSIFT(
 						stData1, t1, dataset1, stData2, t2, dataset2,
 						new RigidModel2D(), new RigidModel2D(),
