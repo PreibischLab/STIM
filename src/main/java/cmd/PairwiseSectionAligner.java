@@ -18,6 +18,7 @@ import align.PairwiseSIFT;
 import align.SIFTParam;
 import align.SIFTParam.SIFTPreset;
 import align.SiftMatch;
+import analyze.ExtractGeneLists;
 import data.STData;
 import filter.FilterFactory;
 import gui.STDataAssembly;
@@ -27,6 +28,9 @@ import io.SpatialDataContainer;
 import mpicbg.models.RigidModel2D;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.img.array.ArrayImg;
+import net.imglib2.img.array.ArrayImgs;
+import net.imglib2.img.basictypeaccess.array.DoubleArray;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -89,6 +93,9 @@ public class PairwiseSectionAligner implements Callable<Void> {
 	@Option(names = {"-n", "--numGenes"}, required = false, description = "initial number of genes for alignment that have the highest entropy (default: 10)")
 	private int numGenes = 10;
 
+	@Option(names = {"--entropyPath"}, required = false, description = "path where the entropy is stored as gene annotations (default: compute standard deviation from scratch)")
+	private String entropyPath = null;
+
 	@Option(names = {"-e", "--maxEpsilon"}, required = false, description = "maximally allowed alignment error (in global space, independent of scaling factor) for SIFT on a 2D rigid model (default: 10 times the average distance between sequenced locations)")
 	private double maxEpsilon = -Double.MAX_VALUE;
 
@@ -100,6 +107,9 @@ public class PairwiseSectionAligner implements Callable<Void> {
 
 	@Option(names = {"--hidePairwiseRendering"}, required = false, description = "do not show pairwise renderings that apply the 2D rigid models (default: false - showing them)")
 	private boolean hidePairwiseRendering = false;
+
+	@Option(names = {"--numThreads"}, required = false, description = "number of threads for parallel processing")
+	private int numThreads = 128;
 
 	//-i /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d 'Puck_180602_20,Puck_180602_18,Puck_180602_17,Puck_180602_16,Puck_180602_15,Puck_180531_23,Puck_180531_22,Puck_180531_19,Puck_180531_18,Puck_180531_17,Puck_180531_13,Puck_180528_22,Puck_180528_20' -n 100 --overwrite
 
@@ -178,6 +188,31 @@ public class PairwiseSectionAligner implements Callable<Void> {
 		if (visualizeResult)
 			new ImageJ();
 
+		HashSet<String> all_genes = new HashSet<String>(dataToAlign.get(0).data().getGeneNames());
+
+		for ( int i = 1; i < dataToAlign.size(); ++i ) {
+			all_genes.retainAll(new HashSet<String>(dataToAlign.get(i).data().getGeneNames()));
+		}
+
+		if (numGenes > 0 && entropyPath == null) {
+			System.out.println( "Computing standard deviation of genes for all sections: " );
+			for ( int i = 0; i < dataToAlign.size() - 1; ++i ) {
+				final String dataset_name = datasetNames.get( i );
+				System.out.print(dataset_name + " ");
+
+				final ArrayImg<DoubleType, DoubleArray> entropy_values_rai;
+				final STDataAssembly stData = dataToAlign.get( i );
+				final double[] entropy_values = ExtractGeneLists.computeEntropy("stdev", stData.data(), numThreads);
+	
+				entropy_values_rai = ArrayImgs.doubles(entropy_values, (long) stData.data().numGenes());
+				stData.data().getGeneAnnotations().put("stdev", entropy_values_rai);
+				container.openDataset(dataset_name).updateStoredGeneAnnotations(stData.data().getGeneAnnotations());
+			}
+			entropyPath = "stdev";
+		} else if (entropyPath != null) {
+			System.out.println( "Will take genes from '" + entropyPath + "' property in gene annotation" );
+		}
+
 		for ( int i = 0; i < dataToAlign.size() - 1; ++i ) {
 			for ( int j = i + 1; j < dataToAlign.size(); ++j ) {
 				if ( Math.abs( j - i ) > range )
@@ -197,7 +232,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 				//
 				System.out.println( "Assembling genes for alignment (" + numGenes + " genes)... ");
 		
-				final HashSet< String > genesToTest = new HashSet<>( Pairwise.genesToTest( stData1, stData2, numGenes, Threads.numThreads() ) );
+				final HashSet< String > genesToTest = new HashSet<>( Pairwise.genesToTest( stData1, stData2, entropyPath, numGenes, Threads.numThreads() ) );
 		
 				if ( numGenes > 0 )
 					System.out.println( "Automatically identified " + genesToTest.size() + " genes for alignment" );
@@ -220,38 +255,29 @@ public class PairwiseSectionAligner implements Callable<Void> {
 					System.out.println( "Added desired genes, number of genes now " + genesToTest.size() + ": " );
 				}
 
+				System.out.print( "Number of genes to process " + genesToTest.size() + ": " );
 				for ( String g : genesToTest )
 					System.out.print( g + " ");
 				System.out.println();
 
-				//
-				// start alignment
-				//
-				final SIFTParam p = new SIFTParam();
-				p.setIntrinsicParameters( SIFTPreset.VERYTHOROUGH );
 				// TODO: set all parameters
+				final SIFTParam p = new SIFTParam();
 				final List< FilterFactory< DoubleType, DoubleType > > filterFactories = null;
-				//p.setDatasetParameters(maxEpsilon, scale, 1024, filterFactories, Rendering.Gauss, smoothnessFactor, 0.0, 1.0); 
+				p.setDatasetParameters(maxEpsilon, scale, 1024, filterFactories, Rendering.Gauss, renderingFactor, brightnessMin, brightnessMax); 
+				p.setIntrinsicParameters( SIFTPreset.VERYTHOROUGH );
 				p.minInliersGene = minNumInliersGene;
 				p.minInliersTotal = minNumInliers;
 
+				System.out.println("Processing SIFT with parameters: " + p.toString());
 				if ( visualizeResult )
 				{
-					String renderingGene;
-
-					if ( genesToTest.contains( "Calm2" ) )
-						renderingGene = "Calm2";
-					else
-						renderingGene = genesToTest.iterator().next();
-
+					String renderingGene = genesToTest.iterator().next();
 					AlignTools.defaultGene = renderingGene;
 					AlignTools.defaultScale = scale;
-
 					System.out.println( "Gene used for rendering: " + renderingGene );
 				}
 
-
-				System.out.println( "Aligning ... ");
+				System.out.println("Aligning ... ");
 
 				long time = System.currentTimeMillis();
 
@@ -261,14 +287,13 @@ public class PairwiseSectionAligner implements Callable<Void> {
 						stData1, t1, dataset1, stData2, t2, dataset2,
 						new RigidModel2D(), new RigidModel2D(),
 						new ArrayList<>( genesToTest ),
-						p, visualizeResult, Threads.numThreads() );
+						p, visualizeResult, Math.min(Threads.numThreads(), numThreads) );
 
 				if (saveResult && match.getNumInliers() >= minNumInliers) {
 					container.savePairwiseMatch(match);
 				}
 
-
-				System.out.println( "Took " + (System.currentTimeMillis() - time)/1000 + " sec." );
+				System.out.println("Took " + (System.currentTimeMillis() - time)/1000 + " sec.");
 
 			}
 		}
