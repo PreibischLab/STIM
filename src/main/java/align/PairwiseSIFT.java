@@ -271,7 +271,7 @@ public class PairwiseSIFT
 			{
 				synchronized ( threads ) { threads.add( Thread.currentThread() ); }
 				
-				progressBar.accept( progressPerGene / 0.1 );
+				progressBar.accept( progressPerGene / 10.0 );
 				final List< PointMatch > allPerGeneInliers = new ArrayList<>();
 
 				final String gene = genesToTest.get( g );
@@ -299,7 +299,7 @@ public class PairwiseSIFT
 				//impB.show();
 				//SimpleMultiThreading.threadHaltUnClean();
 
-				progressBar.accept( progressPerGene / 3.9 );
+				progressBar.accept( progressPerGene / 4.0 );
 
 				final List< PointMatch > matchesAB = extractCandidates(impA.getProcessor(), impB.getProcessor(), gene, p );
 				final List< PointMatch > candidatesTmp = new ArrayList<>();
