@@ -413,7 +413,7 @@ public class PairwiseSIFT
 		final ArrayList< PointMatch > inliers = consensus( allCandidates, modelGlobal, p.minInliersTotal, p.iterations, p.minInlierRatio, p.maxError );
 
 		// the model that maps J to I
-		logger.info( stDataAname + "<>" + stDataBname + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + AlignTools.modelToAffineTransform2D( (Affine2D<?>)modelGlobal ).inverse() );
+		logger.debug( stDataAname + "<>" + stDataBname + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + AlignTools.modelToAffineTransform2D( (Affine2D<?>)modelGlobal ).inverse() );
 
 		if ( visualizeResult && inliers.size() >= p.minInliersTotal )
 		{
@@ -464,7 +464,7 @@ public class PairwiseSIFT
 		logger.debug( "errors: " + minError + "/" + error + "/" + maxError );
 
 		progressBar.accept( 10.0 );
-
+		logger.info( stDataAname + "<>" + stDataBname + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + AlignTools.modelToAffineTransform2D( (Affine2D<?>)modelGlobal ).inverse() );
 		return new SiftMatch(stDataAname, stDataBname, allCandidates.size(), inliers);
 	}
 
