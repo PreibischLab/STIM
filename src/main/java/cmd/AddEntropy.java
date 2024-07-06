@@ -42,7 +42,7 @@ public class AddEntropy implements Callable<Void> {
 			return null;
 		}
 
-		final ExecutorService service = Executors.newFixedThreadPool(8);
+		final ExecutorService service = Executors.newFixedThreadPool(numThreads);
 		final SpatialDataIO sdio = SpatialDataIO.open(inputPath, service);
 		final STDataAssembly stData = sdio.readData();
 		final ArrayImg<DoubleType, DoubleArray> entropy_values_rai;

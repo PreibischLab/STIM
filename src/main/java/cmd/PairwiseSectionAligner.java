@@ -97,7 +97,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 	@Option(names = {"-n", "--numGenes"}, required = false, description = "initial number of genes for alignment that have the highest entropy (default: 10)")
 	private int numGenes = 10;
 
-	@Option(names = {"--entropyPath"}, required = false, description = "path where the entropy is stored as gene annotations (default: compute standard deviation from scratch)")
+	@Option(names = {"--entropyPath"}, required = false, description = "path where the entropy is stored as gene annotations (if no path given: compute standard deviation from scratch)")
 	private String entropyPath = null;
 
 	@Option(names = {"-e", "--maxEpsilon"}, required = false, description = "maximally allowed alignment error (in global space, independent of scaling factor) for SIFT on a 2D rigid model (default: 10 times the average distance between sequenced locations)")
@@ -198,7 +198,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 		HashSet<String> all_genes = new HashSet<String>(dataToAlign.get(0).data().getGeneNames());
 
 		for ( int i = 1; i < dataToAlign.size(); ++i ) {
-			all_genes.retainAll(new HashSet<String>(dataToAlign.get(i).data().getGeneNames()));
+			all_genes.retainAll(dataToAlign.get(i).data().getGeneNames());
 		}
 
 		if (numGenes > 0 && entropyPath == null) {
