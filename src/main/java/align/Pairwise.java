@@ -1,7 +1,6 @@
 package align;
 
 import java.io.IOException;
-import java.rmi.UnexpectedException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -224,10 +223,10 @@ public class Pairwise
 		return toTest;
 	}
 
-	public static ArrayList<Pair<String, Double>> getGenesEntropy( final STData stData, final String geneLabel ) throws UnexpectedException {
+	public static ArrayList<Pair<String, Double>> getGenesEntropy( final STData stData, final String geneLabel ) throws IllegalArgumentException {
 		Map< String, RandomAccessibleInterval< ? extends NativeType< ? > > > geneAnnotation = stData.getGeneAnnotations();
 		if (!geneAnnotation.containsKey(geneLabel)) {
-			throw new UnexpectedException("The property '" + geneLabel + "' was not found as gene annotation");
+			throw new IllegalArgumentException("The property '" + geneLabel + "' was not found as gene annotation");
 		}
 
 		final RandomAccessibleInterval entropy = geneAnnotation.get(geneLabel);
@@ -250,7 +249,7 @@ public class Pairwise
 		return list;
 	}
 
-	public static List< String > genesToTest( final STData stdataA, final STData stdataB, final String geneLabel, final int numGenes, final int numThreads ) throws UnexpectedException
+	public static List< String > genesToTest( final STData stdataA, final STData stdataB, final String geneLabel, final int numGenes, final int numThreads ) throws IllegalArgumentException
 	{
 		if ( numGenes <= 0 )
 			return new ArrayList<>();
