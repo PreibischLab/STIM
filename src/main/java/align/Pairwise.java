@@ -616,7 +616,7 @@ public class Pairwise
 				final STData stDataA = puckData.get(i).data();
 				final STData stDataB = puckData.get(j).data();
 		
-				logger.info( new Date( System.currentTimeMillis() ) + ": Finding genes" );
+				logger.info( "Finding genes" );
 
 				final List< String > genesToTest = genesToTest( stDataA, stDataB, "stdev", 50 );
 		
@@ -630,7 +630,7 @@ public class Pairwise
 				genesToTest.add( "Pcp4" );
 				*/
 
-				logger.info( new Date( System.currentTimeMillis() ) + ": Running correlation" );
+				logger.info( "Running correlation" );
 				final Pair< AffineTransform2D, Double > result = align( stDataA, stDataB, genesToTest, 0.025, 2, 5, true );
 				final AffineTransform2D pcmTransform = result.getA();
 		
@@ -642,7 +642,7 @@ public class Pairwise
 				//pcmTransform.set( 0.24192189559966745, 0.9702957262759967, -199.37562080565206, -0.9702957262759967, 0.24192189559966745, 4602.7163253270855 );
 				//System.out.println( "PCM transform: " + pcmTransform );
 
-				logger.info( new Date( System.currentTimeMillis() ) + ": Running ICP" );
+				logger.info( "Running ICP" );
 
 				final AffineTransform2D icpTransform = alignICP( stDataA, stDataB, genesToTest, pcmTransform, 20, 50 );
 				//System.out.println( "ICP transform: " + icpTransform );

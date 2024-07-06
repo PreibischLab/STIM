@@ -175,18 +175,18 @@ public class GlobalOpt
 			{
 				int unaligned = tc.preAlign().size();
 				if ( unaligned > 0 )
-					logger.info( "(" + new Date( System.currentTimeMillis() ) + "): pre-aligned all tiles but " + unaligned );
+					logger.info( "Pre-aligned all tiles but " + unaligned );
 				else
-					logger.info( "(" + new Date( System.currentTimeMillis() ) + "): prealigned all tiles" );
+					logger.info( "Prealigned all tiles" );
 
 				TileUtil.optimizeConcurrently(
 						new ErrorStatistic( maxPlateauwidth + 1 ),  maxAllowedError, maxIterations, maxPlateauwidth, 1.0f,
 						tc, tc.getTiles(), tc.getFixedTiles(), numThreads );
 
-				logger.info( "(" + new Date( System.currentTimeMillis() ) + "): Global optimization of " + tc.getTiles().size());
-				logger.info( "(" + new Date( System.currentTimeMillis() ) + "):    Avg Error: " + tc.getError() + "px" );
-				logger.info( "(" + new Date( System.currentTimeMillis() ) + "):    Min Error: " + tc.getMinError() + "px" );
-				logger.info( "(" + new Date( System.currentTimeMillis() ) + "):    Max Error: " + tc.getMaxError() + "px" );
+				logger.info( "Global optimization of " + tc.getTiles().size());
+				logger.info( "   Avg Error: " + tc.getError() + "px" );
+				logger.info( "   Min Error: " + tc.getMinError() + "px" );
+				logger.info( "   Max Error: " + tc.getMaxError() + "px" );
 
 				// give some time for the output
 				try { Thread.sleep( 50 ); } catch ( Exception e) {}
@@ -286,7 +286,7 @@ public class GlobalOpt
 		worstTile1.removeConnectedTile( worstTile2 );
 		worstTile2.removeConnectedTile( worstTile1 );
 
-		logger.info( new Date( System.currentTimeMillis() ) +  ": Removed link from " + tileToIndex.get( worstTile1 ) + " to " + tileToIndex.get( worstTile2 ) );
+		logger.info( "Removed link from " + tileToIndex.get( worstTile1 ) + " to " + tileToIndex.get( worstTile2 ) );
 
 		return new ValuePair<>( worstTile1, worstTile2 );
 	}

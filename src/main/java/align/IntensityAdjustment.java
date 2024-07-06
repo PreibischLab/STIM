@@ -186,7 +186,7 @@ public class IntensityAdjustment
 					throw new RuntimeException( e );
 				}
 
-				logger.info( new Date( System.currentTimeMillis() ) + ": " + i + "-" + j + ": Found " + localMatches.size() + " corresponding measures (using max " + maxMatches + ")" );
+				logger.info( i + "-" + j + ": Found " + localMatches.size() + " corresponding measures (using max " + maxMatches + ")" );
 
 				if ( localMatches.size() > 0 )
 					intensityMatches.put( new ValuePair< Integer, Integer >( i, j ), localMatches );
@@ -335,16 +335,16 @@ public class IntensityAdjustment
 		{
 			int unaligned = tc.preAlign().size();
 			if ( unaligned > 0 )
-				logger.info( "(" + new Date( System.currentTimeMillis() ) + "): pre-aligned all tiles but " + unaligned );
+				logger.info( "Pre-aligned all tiles but " + unaligned );
 			else
-				logger.info( "(" + new Date( System.currentTimeMillis() ) + "): prealigned all tiles" );
+				logger.info( "Prealigned all tiles" );
 
 			tc.optimize( maxError, maxIterations, 200 );
 
-			logger.info( "(" + new Date( System.currentTimeMillis() ) + "): Global optimization of " + tc.getTiles().size() +  " view-tiles:" );
-			logger.info( "(" + new Date( System.currentTimeMillis() ) + "):    Avg Error: " + tc.getError() + "px" );
-			logger.info( "(" + new Date( System.currentTimeMillis() ) + "):    Min Error: " + tc.getMinError() + "px" );
-			logger.info( "(" + new Date( System.currentTimeMillis() ) + "):    Max Error: " + tc.getMaxError() + "px" );
+			logger.info( "Global optimization of " + tc.getTiles().size() +  " view-tiles:" );
+			logger.info( "   Avg Error: " + tc.getError() + "px" );
+			logger.info( "   Min Error: " + tc.getMinError() + "px" );
+			logger.info( "   Max Error: " + tc.getMaxError() + "px" );
 		}
 		catch (NotEnoughDataPointsException e)
 		{
@@ -374,7 +374,7 @@ public class IntensityAdjustment
 		}
 
 		avgScale /= ids.size();
-		logger.info( "(" + new Date( System.currentTimeMillis() ) + "): Avg scale (will be corrected to avoid compression/expansion): " + avgScale );
+		logger.info( "Avg scale (will be corrected to avoid compression/expansion): " + avgScale );
 
 		final AffineModel1D scale = new AffineModel1D();
 		scale.set( 1.0 / avgScale, 0 );
@@ -392,7 +392,7 @@ public class IntensityAdjustment
 			minOffset = Math.min( minOffset, array[ 1 ] );
 		}
 
-		logger.info( "(" + new Date( System.currentTimeMillis() ) + "): Min offset (will be corrected to avoid negative intensities and offsets: " + minOffset );
+		logger.info("Min offset (will be corrected to avoid negative intensities and offsets: " + minOffset );
 		//System.out.println( "(" + new Date( System.currentTimeMillis() ) + "): Intensity adjustments:" );
 
 		for ( final Entry<Integer, AffineModel1D> e : result.entrySet() )
