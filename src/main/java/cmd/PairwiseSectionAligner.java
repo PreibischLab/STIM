@@ -191,7 +191,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 		HashSet<String> all_genes = new HashSet<String>(dataToAlign.get(0).data().getGeneNames());
 
 		for ( int i = 1; i < dataToAlign.size(); ++i ) {
-			all_genes.retainAll(new HashSet<String>(dataToAlign.get(i).data().getGeneNames()));
+			all_genes.retainAll(dataToAlign.get(i).data().getGeneNames());
 		}
 
 		if (numGenes > 0 && entropyPath == null) {
