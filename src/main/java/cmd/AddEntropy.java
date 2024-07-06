@@ -33,7 +33,7 @@ public class AddEntropy implements Callable<Void> {
 	private String geneLabels = "stdev";
 
 	@Option(names = {"--numThreads"}, required = false, description = "number of threads for parallel processing")
-	private int numThreads = 128;
+	private int numThreads = 8;
 
 	@Override
 	public Void call() throws Exception {

@@ -113,7 +113,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 	private boolean hidePairwiseRendering = false;
 
 	@Option(names = {"--numThreads"}, required = false, description = "number of threads for parallel processing")
-	private int numThreads = 128;
+	private int numThreads = 8;
 
 	//-c /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d 'Puck_180602_20,Puck_180602_18,Puck_180602_17,Puck_180602_16,Puck_180602_15,Puck_180531_23,Puck_180531_22,Puck_180531_19,Puck_180531_18,Puck_180531_17,Puck_180531_13,Puck_180528_22,Puck_180528_20' -n 100 --overwrite
 
