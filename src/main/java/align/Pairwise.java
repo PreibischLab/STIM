@@ -252,7 +252,7 @@ public class Pairwise
 		return list;
 	}
 
-	public static List< String > genesToTest( final STData stdataA, final STData stdataB, final String geneLabel, final int numGenes, final int numThreads ) throws IllegalArgumentException
+	public static List< String > genesToTest( final STData stdataA, final STData stdataB, final String geneLabel, final int numGenes ) throws IllegalArgumentException
 	{
 		if ( numGenes <= 0 )
 			return new ArrayList<>();
@@ -617,7 +617,7 @@ public class Pairwise
 		
 				logger.info( "Finding genes" );
 
-				final List< String > genesToTest = genesToTest( stDataA, stDataB, "stdev", 50, 8 );
+				final List< String > genesToTest = genesToTest( stDataA, stDataB, "stdev", 50 );
 		
 				/*
 				final List< String > genesToTest = new ArrayList<>();
