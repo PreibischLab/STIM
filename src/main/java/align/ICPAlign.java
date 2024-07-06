@@ -169,7 +169,7 @@ public class ICPAlign
 			catch ( Exception e )
 			{
 				//System.out.println( "Failed with e: " + e );
-				e.printStackTrace();
+				logger.error("Error during ICP alignment", e);
 				return null;
 			}
 

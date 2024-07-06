@@ -106,7 +106,7 @@ public class NormalizingRandomAccessibleInterval implements RandomAccessibleInte
 		}
 		catch ( final InterruptedException | ExecutionException e )
 		{
-			e.printStackTrace();
+			logger.error("Error during dataset normalization", e);
 			throw new RuntimeException( e );
 		}
 

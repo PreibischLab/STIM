@@ -50,8 +50,7 @@ public class GlobalOptSIFT
 		}
 		catch (Exception e) {
 			final String matchName = container.constructMatchName(datasetA, datasetB);
-			logger.error("error reading: " + matchName + ": " + e);
-			e.printStackTrace();
+			logger.error("error reading: " + matchName + ": ", e);
 			match = new SiftMatch();
 		}
 
@@ -356,8 +355,7 @@ public class GlobalOptSIFT
 			}
 			catch ( Exception e )
 			{
-				logger.error( ": Could not solve, cause: " + e );
-				e.printStackTrace();
+				logger.error( ": Could not solve, cause: ", e );
 			}
 	
 			final List< Pair< STData, AffineTransform2D > > dataICP = new ArrayList<>();

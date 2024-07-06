@@ -159,7 +159,7 @@ public class InteractiveAlignment implements Callable<Void> {
 			}
 			catch (IOException e )
 			{
-				logger.error( "Couldn't load tmp file: " + e);
+				logger.error( "Couldn't load tmp file: ", e);
 				allGenes.clear();
 			}
 		}
@@ -179,7 +179,7 @@ public class InteractiveAlignment implements Callable<Void> {
 			}
 			catch (IOException e )
 			{
-				logger.error( "Couldn't save tmp file: " + e);
+				logger.error( "Couldn't save tmp file: ", e);
 			}
 		}
 

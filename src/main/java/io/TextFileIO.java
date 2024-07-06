@@ -282,7 +282,7 @@ public class TextFileIO
 		}
 		catch (Exception e )
 		{
-			e.printStackTrace();
+			logger.error("Error parsing gene expression from text file", e);
 			return null;
 		}
 
@@ -330,7 +330,7 @@ public class TextFileIO
 		catch ( Exception e )
 		{
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error("Error parsing locations from text file", e);
 			return null;
 		}
 

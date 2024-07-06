@@ -182,7 +182,7 @@ public class IntensityAdjustment
 				}
 				catch ( final InterruptedException | ExecutionException e )
 				{
-					e.printStackTrace();
+					logger.error("Error adjusting intensities", e);
 					throw new RuntimeException( e );
 				}
 
@@ -348,13 +348,11 @@ public class IntensityAdjustment
 		}
 		catch (NotEnoughDataPointsException e)
 		{
-			logger.error( "Global optimization failed: " + e );
-			e.printStackTrace();
+			logger.error( "Global optimization failed: ", e );
 		}
 		catch (IllDefinedDataPointsException e)
 		{
-			logger.error( "Global optimization failed: " + e );
-			e.printStackTrace();
+			logger.error( "Global optimization failed: ", e );
 		}
 
 		final HashMap< Integer, AffineModel1D > result = new HashMap<>();

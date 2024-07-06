@@ -57,7 +57,7 @@ public class TextFileAccess
 		}
 		catch (IOException e)
 		{
-			logger.error("TextFileAccess.openFileRead(): " + e);
+			logger.error("TextFileAccess.openFileRead(): ", e);
 			inputFile = null;
 		}
 		return (inputFile);
@@ -72,7 +72,7 @@ public class TextFileAccess
 		}
 		catch (IOException e)
 		{
-			logger.error("TextFileAccess.openFileRead(): " + e);
+			logger.error("TextFileAccess.openFileRead(): ", e);
 			inputFile = null;
 		}
 		return (inputFile);
@@ -87,7 +87,7 @@ public class TextFileAccess
 		}
 		catch (IOException e)
 		{
-			logger.error("TextFileAccess.openFileWrite(): " + e);
+			logger.error("TextFileAccess.openFileWrite(): ", e);
 			outputFile = null;
 		}
 		return (outputFile);
@@ -102,7 +102,7 @@ public class TextFileAccess
 		}
 		catch (IOException e)
 		{
-			logger.error("TextFileAccess.openFileWrite(): " + e);
+			logger.error("TextFileAccess.openFileWrite(): ", e);
 			outputFile = null;
 		}
 		return (outputFile);

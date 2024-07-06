@@ -72,8 +72,7 @@ public class Threads
 		}
 		catch ( final InterruptedException e )
 		{
-			logger.error( "Failed to " + jobDescription + ": " + e );
-			e.printStackTrace();
+			logger.error( "Failed to " + jobDescription + ": ", e );
 		}
 	}
 

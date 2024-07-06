@@ -150,7 +150,7 @@ public class Pairwise
 			catch ( Exception e )
 			{
 				//System.out.println( "Failed with e: " + e );
-				e.printStackTrace();
+				logger.error("Error during ICP alignment", e);
 				return null;
 			}
 
@@ -360,7 +360,7 @@ public class Pairwise
 		}
 		catch ( final InterruptedException | ExecutionException e )
 		{
-			e.printStackTrace();
+			logger.error("Error during pairwise alignment", e);
 			throw new RuntimeException( e );
 		}
 

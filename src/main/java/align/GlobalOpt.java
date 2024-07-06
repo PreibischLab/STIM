@@ -119,7 +119,7 @@ public class GlobalOpt
 		}
 		catch (IOException e)
 		{
-			e.printStackTrace();
+			logger.error("Could not load pairwise alignments", e);
 			return null;
 		}
 
@@ -193,8 +193,7 @@ public class GlobalOpt
 			}
 			catch (Exception e)
 			{
-				logger.error( "Global optimization failed, please report this bug: " + e );
-				e.printStackTrace();
+				logger.error( "Global optimization failed, please report this bug: ", e );
 				return;
 			}
 

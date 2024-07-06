@@ -108,7 +108,7 @@ public class ExtractGeneLists
 		}
 		catch ( final InterruptedException | ExecutionException e )
 		{
-			e.printStackTrace();
+			logger.error("Error computing standard deviation", e);
 			throw new RuntimeException( e );
 		}
 

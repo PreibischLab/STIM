@@ -400,7 +400,7 @@ public class PairwiseSIFT
 		}
 		catch ( final InterruptedException | ExecutionException e )
 		{
-			e.printStackTrace();
+			logger.error("Error during pairwise SIFT alignment", e);
 			throw new RuntimeException( e );
 		}
 
