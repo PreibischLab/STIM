@@ -245,7 +245,7 @@ public class Pairwise
 		}
 
 		for (int i = 0; i < geneNames.size(); i++) {
-			list.add(new ValuePair<>(geneNames.get(i), entropyValueCopy[i]));
+			list.add(new ValuePair<>(geneNames.get(i), cursor.next().get()));
 		}
 		return list;
 	}
