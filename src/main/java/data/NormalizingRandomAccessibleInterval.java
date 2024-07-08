@@ -49,26 +49,9 @@ public class NormalizingRandomAccessibleInterval implements RandomAccessibleInte
 
 	final protected void init()
 	{
-		final long numGenes = input.dimension( 0 );
 		final long numLocations = input.dimension( 1 );
 
 		logger.info( "Computing normalization sums for all genes (" + input.dimension( 0 ) + ") and locations (" + input.dimension( 1 ) + ") ... " );
-
-		/*
-		final Cursor< DoubleType > cursor = this.sumsPerLocation.cursor();
-
-		// for each location do
-		for ( long i = 0; i < numLocations; ++i )
-		{
-			final CompensatedSum realSum = new CompensatedSum( (int)numGenes );
-
-			// iterate and sum all gene expression values of that location
-			for ( final DoubleType t : Views.iterable( Views.hyperSlice( input, 1, i ) ) )
-				realSum.add( t.get() );
-
-			cursor.next().set( realSum.getSum() );
-		}
-		*/
 
 		final List< Callable< Void > > tasks = new ArrayList<>();
 		final AtomicLong nextLocation = new AtomicLong();

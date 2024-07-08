@@ -119,29 +119,8 @@ public class GlobalOptSIFT
 				final STDataAssembly stDataA = data.get(i);
 				final STDataAssembly stDataB = data.get(j);
 
-				final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileA, tileB;
-
-				if ( !dataToTile.containsKey( stDataA ) )
-				{
-					tileA = new Tile<>( new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), lambda1 ) );
-					dataToTile.put( stDataA, tileA );
-					tileToData.put( tileA, stDataA );
-				}
-				else
-				{
-					tileA = dataToTile.get( stDataA );
-				}
-
-				if ( !dataToTile.containsKey( stDataB ) )
-				{
-					tileB = new Tile<>( new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), lambda1 ) );
-					dataToTile.put( stDataB, tileB );
-					tileToData.put( tileB, stDataB );
-				}
-				else
-				{
-					tileB = dataToTile.get( stDataB );
-				}
+				final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileA = getOrComputeTileFor(dataToTile, tileToData, lambda1, stDataA);
+				final Tile<InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>> tileB = getOrComputeTileFor(dataToTile, tileToData, lambda1, stDataB);
 
 				tileToIndex.putIfAbsent( tileA, i );
 				tileToIndex.putIfAbsent( tileB, j );
@@ -236,14 +215,12 @@ public class GlobalOptSIFT
 			final TileConfiguration tileConfigICP = new TileConfiguration();
 	
 			final HashMap<STDataAssembly, Tile<InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>>> dataToTileICP = new HashMap<>();
-			final HashMap<Tile<InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>>, STDataAssembly> tileToDataICP = new HashMap<>();
-	
+
 			for ( final STDataAssembly stdata : dataToTile.keySet() )
 			{
 				final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tile =
 						new Tile<>( new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), lambda ) );
 				dataToTileICP.put( stdata, tile );
-				tileToDataICP.put( tile, stdata );
 			}
 	
 			for ( int i = 0; i < datasets.size() - 1; ++i )
@@ -377,6 +354,21 @@ public class GlobalOptSIFT
 
 			logger.info( "Avg error: " + tileConfigICP.getError() );
 		}
+	}
+
+	private static Tile<InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>> getOrComputeTileFor(HashMap<STDataAssembly, Tile<InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>>> dataToTile, HashMap<Tile<InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>>, STDataAssembly> tileToData, double lambda1, STDataAssembly stDataA) {
+		Tile<InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>> tileA;
+		if ( !dataToTile.containsKey(stDataA ) )
+		{
+			tileA = new Tile<>( new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), lambda1 ) );
+			dataToTile.put( stDataA, tileA );
+			tileToData.put( tileA, stDataA );
+		}
+		else
+		{
+			tileA = dataToTile.get( stDataA );
+		}
+		return tileA;
 	}
 
 	public static void main( String[] args ) throws IOException

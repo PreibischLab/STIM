@@ -6,7 +6,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.apache.logging.log4j.Logger;
-import util.LoggerUtil;
 
 public class Threads
 {
@@ -19,7 +18,7 @@ public class Threads
 	public static ExecutorService createFixedExecutorService( final int nThreads ) { return Executors.newFixedThreadPool( nThreads ); }
 	public static ExecutorService createFixedExecutorService() { return createFixedExecutorService( numThreads() ); }
 
-	public static final Vector<ImagePortion> divideIntoPortions( final long imageSize )
+	public static Vector<ImagePortion> divideIntoPortions(final long imageSize)
 	{
 		int numPortions;
 
@@ -63,7 +62,7 @@ public class Threads
 		return portions;
 	}
 
-	public static final void execTasks( final ArrayList< Callable< Void > > tasks, final ExecutorService taskExecutor, final String jobDescription )
+	public static void execTasks(final ArrayList<Callable<Void>> tasks, final ExecutorService taskExecutor, final String jobDescription)
 	{
 		try
 		{

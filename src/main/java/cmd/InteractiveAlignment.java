@@ -303,14 +303,6 @@ public class InteractiveAlignment implements Callable<Void> {
 		final STIMCardAlignSIFT cardAlignSIFT =
 				new STIMCardAlignSIFT( dataset1, dataset2, card, cardFilter, service );
 
-		// TODO: REMOVE
-		//AffineModel2D model = new AffineModel2D();
-		//model.set(0.323679918598243, -0.9185551542794,  1.002878826719069, 0.351176728134501, -546.6035992226643, 4231.453000084942 );
-		//model.set( 0.9998829279367252, -0.015301320880288342, 0.015301320880288342, 0.9998829279367252, -33.029768630348656, 902.5019182873548 );
-		//cardAlignSIFT.setModel( model );
-		//card.applyTransformationToBDV( true );
-		// TODO: REMOVE
-
 		// add STIMCardAlignICP panel
 		final STIMCardAlignICP cardAlignICP =
 				new STIMCardAlignICP( dataset1, dataset2, overlay, card, cardFilter, cardAlignSIFT, service );

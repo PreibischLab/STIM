@@ -135,7 +135,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 		SpatialDataContainer container = SpatialDataContainer.openExisting(containerPath, service);
 
 		final List<String> datasetNames;
-		if (datasets != null && datasets.trim().length() != 0) {
+		if (datasets != null && !datasets.trim().isEmpty()) {
 			datasetNames = Arrays.stream(datasets.split(","))
 					.map(String::trim)
 					.collect(Collectors.toList());
@@ -195,12 +195,6 @@ public class PairwiseSectionAligner implements Callable<Void> {
 		if (visualizeResult)
 			new ImageJ();
 
-		HashSet<String> all_genes = new HashSet<String>(dataToAlign.get(0).data().getGeneNames());
-
-		for ( int i = 1; i < dataToAlign.size(); ++i ) {
-			all_genes.retainAll(dataToAlign.get(i).data().getGeneNames());
-		}
-
 		if (numGenes > 0 && entropyPath == null) {
 			logger.info( "Retrieving standard deviation of genes for all sections" );
 			for ( int i = 0; i < dataToAlign.size(); ++i ) {
@@ -215,7 +209,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 				logger.debug( "Computing standard deviation of genes for " + dataset_name + " (may take a while)" );
 				final double[] entropy_values = ExtractGeneLists.computeEntropy("stdev", stData.data(), numThreads);
 	
-				entropy_values_rai = ArrayImgs.doubles(entropy_values, (long) stData.data().numGenes());
+				entropy_values_rai = ArrayImgs.doubles(entropy_values, stData.data().numGenes());
 				stData.data().getGeneAnnotations().put("stdev", entropy_values_rai);
 				container.openDataset(dataset_name).updateStoredGeneAnnotations(stData.data().getGeneAnnotations());
 			}
@@ -239,7 +233,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 				// assemble gene set for alignment
 				final HashSet< String > genesToTest = new HashSet<>( Pairwise.genesToTest( stData1, stData2, entropyPath, numGenes ) );
 		
-				if ( genes != null && genes.length() > 0 )
+				if ( genes != null && !genes.isEmpty())
 				{
 					HashSet< String > genes1 = new HashSet<>( stData1.getGeneNames() );
 					HashSet< String > genes2 = new HashSet<>( stData2.getGeneNames() );
