@@ -28,6 +28,7 @@ import util.LoggerUtil;
 public class ICPAlign
 {
 	private static final Logger logger = LoggerUtil.getLogger();
+
 	public static double computeSum( final RealLocalizable q, final HashMap< String, NearestNeighborSearchOnKDTree< DoubleType > > searchReference )
 	{
 		double sum = 0;
@@ -117,7 +118,7 @@ public class ICPAlign
 		}
 		catch (NotEnoughDataPointsException e)
 		{
-			logger.error( e.getMessage() );
+			logger.error(e);
 			return null;
 		}
 
@@ -160,7 +161,7 @@ public class ICPAlign
 
 		do
 		{
-			logger.info( "Iteration: " + i );
+			logger.info("Iteration: {}", i);
 			try
 			{
 				icp.runICPIteration( model, model );
@@ -181,7 +182,7 @@ public class ICPAlign
 
 			progressBar.accept( progressPerIteration );
 
-			logger.info( i + ": " + icp.getNumPointMatches() + " matches found by ICP." );
+			logger.info("{}: {} matches found by ICP.", i, icp.getNumPointMatches());
 		}
 		while ( !converged && ++i < maxIterations.get() );
 

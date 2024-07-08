@@ -34,6 +34,7 @@ import util.LoggerUtil;
 public class TextFileAccess 
 {
 	private static final Logger logger = LoggerUtil.getLogger();
+
 	public static void recursiveDelete( final File file ) throws IOException
 	{
 		if ( file.isDirectory() )

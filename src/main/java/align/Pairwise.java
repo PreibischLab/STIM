@@ -2,7 +2,6 @@ package align;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -186,7 +185,7 @@ public class Pairwise
 		final ArrayList< Pair< String, Double > > listA = ExtractGeneLists.sortByStDevIntensity( stdataA, numThreads );
 		final ArrayList< Pair< String, Double > > listB = ExtractGeneLists.sortByStDevIntensity( stdataB, numThreads );
 
-		logger.info( "Took " + (System.currentTimeMillis() - time) + " ms." );
+		logger.info("Took {} ms.", System.currentTimeMillis() - time);
 
 		// now we want to find the combination of genes where both have high variance
 		// we therefore sort them by the sum of ranks of both lists
@@ -644,8 +643,9 @@ public class Pairwise
 
 				final AffineTransform2D icpTransform = alignICP( stDataA, stDataB, genesToTest, pcmTransform, 20, 50 );
 				//System.out.println( "ICP transform: " + icpTransform );
-		
-				logger.info( i + "\t" + j + "\t" + Math.abs( i - j ) + "\t" + genesToTest.size() + "\t" + result.getB() + "\t" + pcmTransform + "\t" + icpTransform );
+
+				logger.info("{}\t{}\t{}\t{}\t{}\t{}\t{}",
+							i, j, Math.abs(i - j), genesToTest.size(), result.getB(), pcmTransform, icpTransform);
 
 				if ( pucks.size() != 2 )
 					continue;

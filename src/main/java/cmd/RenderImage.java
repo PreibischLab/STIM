@@ -58,6 +58,7 @@ import util.LoggerUtil;
 public class RenderImage implements Callable<Void> {
 	
 	private static final Logger logger = LoggerUtil.getLogger();
+
 	// st-render -i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d Puck_180531_22.n5,Puck_180531_23.n5 -g Malat1
 	// -dm Gauss -bMin 0.0 -bMax 0.1579 -rf 2.0922  --ffSingleSpot 1.25 --scale 0.10557775847089489
 	@Option(names = {"-i", "--input"}, required = true, description = "input file or N5 container path, e.g. -i /home/ssq.n5.")
@@ -108,7 +109,7 @@ public class RenderImage implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 		if (!(new File(inputPath)).exists()) {
-			logger.error("Container / dataset '" + inputPath + "' does not exist. Stopping.");
+			logger.error("Container / dataset '{}' does not exist. Stopping.", inputPath);
 			return null;
 		}
 
@@ -121,17 +122,17 @@ public class RenderImage implements Callable<Void> {
 			if (datasets != null && !datasets.isEmpty())
 				datasetNames = Arrays.asList(datasets.split(","));
 			else {
-				logger.info("Opening all datasets in '" + inputPath + "':");
+				logger.info("Opening all datasets in '{}':", inputPath);
 				datasetNames = container.getDatasets();
 			}
 
 			for (String dataset : datasetNames) {
-				logger.info("Opening dataset '" + dataset + "' in '" + inputPath + "' ...");
+				logger.info("Opening dataset '{}' in '{}' ...", dataset, inputPath);
 				iodata.put(dataset.trim(), container.openDatasetReadOnly(dataset.trim()));
 			}
 		}
 		else {
-			logger.info("Opening dataset '" + inputPath + "' ...");
+			logger.info("Opening dataset '{}' ...", inputPath);
 			iodata.put(inputPath, SpatialDataIO.openReadOnly(inputPath, service));
 		}
 
@@ -146,7 +147,7 @@ public class RenderImage implements Callable<Void> {
 			final STDataAssembly stAssembly = entry.getValue().readData();
 
 			if (stAssembly != null) {
-				logger.debug("Assigning transform to " + entry.getKey());
+				logger.debug("Assigning transform to {}", entry.getKey());
 				AffineTransform2D transform = ignoreTransforms ? new AffineTransform2D() : stAssembly.transform();
 				dataToVisualize.add(new ValuePair<>(stAssembly.data(), transform));
 				logger.debug(transform);
@@ -172,7 +173,7 @@ public class RenderImage implements Callable<Void> {
 
 		for ( final String gene : geneList )
 		{
-			logger.info( "Rendering gene " + gene );
+			logger.info("Rendering gene {}", gene);
 
 			//ImagePlus imp = AlignTools.visualizeList( dataToVisualize, scale, gene, true );// filterFactories );
 			ImagePlus imp = visualizeList( dataToVisualize, scale, brightnessMin, brightnessMax, gene, rendering, renderingFactor, border, filterFactories );
@@ -185,7 +186,7 @@ public class RenderImage implements Callable<Void> {
 			else
 			{
 				final String file = new File( output, gene + ".tif" ).getAbsolutePath();
-				logger.info( "Saving as " + file );
+				logger.info("Saving as {}", file);
 				IJ.saveAsTiff( imp, file );
 				imp.close();
 			}
@@ -220,7 +221,7 @@ public class RenderImage implements Callable<Void> {
 
 		final Interval finalInterval = Intervals.expand( interval, border );
 
-		logger.info( "Rendering interval: " + Util.printInterval( finalInterval ) );
+		logger.info("Rendering interval: {}", Util.printInterval(finalInterval));
 
 		final ImageStack stack = new ImageStack( (int)finalInterval.dimension( 0 ), (int)finalInterval.dimension( 1 ) );
 
@@ -243,7 +244,7 @@ public class RenderImage implements Callable<Void> {
 							gene,
 							finalInterval );
 
-			logger.info( "rendering  " + pair.getA().toString() );
+			logger.info("rendering  {}", pair.getA().toString());
 
 			final double[] minmax = AddedGene.minmax( pair.getA().getExprData( gene ) );
 			minDisplay = Math.min( minDisplay, AddedGene.getDisplayMin( minmax[ 0 ], minmax[ 1 ], brightnessMin ) );
@@ -273,25 +274,25 @@ public class RenderImage implements Callable<Void> {
 
 		if ( ffSingleSpot != null && ffSingleSpot > 0  )
 		{
-			logger.debug( "Using single-spot filtering, radius="  + ffSingleSpot );
+			logger.debug("Using single-spot filtering, radius={}", ffSingleSpot);
 			filterFactories.add( new SingleSpotRemovingFilterFactory<>( outofbounds, stats.getMedianDistance() * ffSingleSpot ) );
 		}
 
 		if ( ffMedian != null && ffMedian > 0.0 )
 		{
-			logger.debug( "Using median filtering, radius=" + ffMedian );
+			logger.debug("Using median filtering, radius={}", ffMedian);
 			filterFactories.add( new MedianFilterFactory<>( outofbounds, stats.getMedianDistance() * ffMedian ) );
 		}
 
 		if ( ffGauss != null && ffGauss > 0.0 )
 		{
-			logger.debug( "Using Gauss filtering, radius=" + ffGauss );
+			logger.debug("Using Gauss filtering, radius={}", ffGauss);
 			filterFactories.add( new GaussianFilterFactory<>( outofbounds, stats.getMedianDistance() * ffGauss ) );
 		}
 
 		if ( ffMean != null && ffMean > 0.0 )
 		{
-			logger.debug( "Using mean/avg filtering, radius=" + ffMean );
+			logger.debug("Using mean/avg filtering, radius={}", ffMean);
 			filterFactories.add( new MeanFilterFactory<>( outofbounds, stats.getMedianDistance() * ffMean ) );
 		}
 

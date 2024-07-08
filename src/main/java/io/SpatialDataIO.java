@@ -264,13 +264,9 @@ public abstract class SpatialDataIO {
 		for (final String geneAnnotationLabel : detectGeneAnnotations(reader))
 			stData.getGeneAnnotations().put(geneAnnotationLabel, readGeneAnnotations(reader, geneAnnotationLabel));
 
-		logger.debug("Loading took " + (System.currentTimeMillis() - time) + " ms.");
-		logger.debug("Metadata:" +
-				" dims=" + locationDims[1] +
-				", numLocations=" + numLocations +
-				", numGenes=" + numGenes +
-				", size(locations)=" + Util.printCoordinates(locationDims) +
-				", size(exprValues)=" + Util.printCoordinates(exprDims));
+		logger.debug("Loading took {} ms.", System.currentTimeMillis() - time);
+		logger.debug("Metadata: dims={}, numLocations={}, numGenes={}, size(locations)={}, size(exprValues)={}",
+					 locationDims[1], numLocations, numGenes, Util.printCoordinates(locationDims), Util.printCoordinates(exprDims));
 
 		return new STDataAssembly(stData, new STDataStatistics(stData), transform);
 	}
@@ -350,7 +346,7 @@ public abstract class SpatialDataIO {
 
 		updateStoredAnnotations(stData.getAnnotations());
 
-		logger.debug( "Saving took " + ( System.currentTimeMillis() - time ) + " ms." );
+		logger.debug("Saving took {} ms.", System.currentTimeMillis() - time);
 	}
 
 	/**
@@ -368,7 +364,7 @@ public abstract class SpatialDataIO {
 
 		for (Entry<String, RandomAccessibleInterval<? extends NativeType<?>>> newEntry : metadata.entrySet()) {
 			if (existingAnnotations.contains(newEntry.getKey()))
-				logger.warn("Existing metadata '" + newEntry.getKey() + "' was not updated.");
+				logger.warn("Existing metadata '{}' was not updated.", newEntry.getKey());
 			else
 				writeAnnotations(writer, newEntry.getKey(), newEntry.getValue());
 		}
@@ -389,7 +385,7 @@ public abstract class SpatialDataIO {
 
 		for (Entry<String, RandomAccessibleInterval<? extends NativeType<?>>> newEntry : metadata.entrySet()) {
 			if (existingGeneAnnotations.contains(newEntry.getKey()))
-				logger.warn("Existing metadata '" + newEntry.getKey() + "' was not updated.");
+				logger.warn("Existing metadata '{}' was not updated.", newEntry.getKey());
 			else
 				writeGeneAnnotations(writer, newEntry.getKey(), newEntry.getValue());
 		}

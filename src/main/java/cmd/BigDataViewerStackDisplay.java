@@ -93,7 +93,7 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 		final boolean useTransform = true;
 
 		if (!(new File(inputPath)).exists()) {
-			logger.error("Container / dataset '" + inputPath + "' does not exist. Stopping.");
+			logger.error("Container / dataset '{}' does not exist. Stopping.", inputPath);
 			return null;
 		}
 
@@ -105,17 +105,17 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 
 			if (datasets != null && !datasets.isEmpty()) {
 				for (String dataset : datasets.split(",")) {
-					logger.info("Opening dataset '" + dataset + "' in '" + inputPath + "' ...");
+					logger.info("Opening dataset '{}' in '{}' ...", dataset, inputPath);
 					iodata.add(container.openDatasetReadOnly(dataset.trim()));
 				}
 			}
 			else {
-				logger.info("Opening all datasets in '" + inputPath + "' ...");
+				logger.info("Opening all datasets in '{}' ...", inputPath);
 				iodata.addAll(container.openAllDatasets());
 			}
 		}
 		else {
-			logger.info("Opening dataset '" + inputPath + "' ...");
+			logger.info("Opening dataset '{}' ...", inputPath);
 			iodata.add(SpatialDataIO.openReadOnly(inputPath, service));
 		}
 
@@ -171,7 +171,7 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 
 			if ( ffSingleSpot != null && ffSingleSpot > 0  )
 			{
-				logger.debug( "Using single-spot filtering, effective radius=" + (dataToVisualize.get( 0 ).statistics().getMedianDistance() * ffSingleSpot) );
+				logger.debug("Using single-spot filtering, effective radius={}", dataToVisualize.get(0).statistics().getMedianDistance() * ffSingleSpot);
 				filterFactorysInt.add( new SingleSpotRemovingFilterFactory<>( outofboundsInt, dataToVisualize.get( 0 ).statistics().getMedianDistance() * ffSingleSpot ) );
 			}
 
@@ -212,7 +212,7 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 		for ( int i = 0; i < genesToShow.size(); ++i )
 		{
 			final String gene = genesToShow.get( i );
-			logger.debug( "Rendering gene: " + gene );
+			logger.debug("Rendering gene: {}", gene);
 
 			final STIMStack stack =
 					VisualizeStack.createStack(

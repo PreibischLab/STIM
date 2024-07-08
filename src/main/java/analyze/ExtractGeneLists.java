@@ -42,7 +42,7 @@ public class ExtractGeneLists
 				entropy = ExtractGeneLists.computeStdev(stData, Math.min(Threads.numThreads(), numThreads) );
 				break;
 			default:
-				logger.error("Method " + method + " not supported");
+				logger.error("Method {} not supported", method);
 				return null;
 		}
 

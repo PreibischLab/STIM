@@ -50,7 +50,7 @@ public class AddSlice implements Callable<Void> {
 
 		final File containerFile = new File(containerPath);
 		final boolean containerExists = (containerFile.exists());
-		logger.info( "Container '" + containerFile.getAbsolutePath() + "' " + ( containerExists ? "exists" : "is new ..." ) );
+		logger.info("Container '{}' {}", containerFile.getAbsolutePath(), containerExists ? "exists" : "is new ...");
 
 		ExecutorService service = Executors.newFixedThreadPool(1);
 		SpatialDataContainer container = containerExists
@@ -63,7 +63,7 @@ public class AddSlice implements Callable<Void> {
 			container.linkExistingDataset(inputDatasetPath, locationPath, exprValPath, annotationPath, null);
 
 		final String operation = shouldBeMoved ? "Moved" : "Linked";
-		logger.info(operation + " dataset '" + inputDatasetPath + "' to container '" + containerPath + "'.");
+		logger.info("{} dataset '{}' to container '{}'.", operation, inputDatasetPath, containerPath);
 
 		service.shutdown();
 		return null;

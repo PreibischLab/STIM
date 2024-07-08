@@ -25,9 +25,10 @@ import util.LoggerUtil;
 public class TextFileIO
 {
 	private static final Logger logger = LoggerUtil.getLogger();
+
 	public static STData readSlideSeq( final File beadLocations, final File reads )
 	{
-		logger.debug( "Parsing " + beadLocations.getName() + ", " + reads.getName() );
+		logger.debug("Parsing {}, {}", beadLocations.getName(), reads.getName());
 
 		final BufferedReader beadLocationsIn = TextFileAccess.openFileRead( beadLocations );
 		final BufferedReader readsIn = TextFileAccess.openFileRead( reads );
@@ -37,7 +38,7 @@ public class TextFileIO
 		try {
 			beadLocationsIn.close();
 			readsIn.close();
-		} catch (IOException e) {}
+		} catch (IOException ignored) {}
 
 		logger.debug( data );
 
@@ -49,15 +50,15 @@ public class TextFileIO
 		long time = System.currentTimeMillis();
 
 		final HashMap< String, double[] > coordinateMap = readSlideSeqCoordinates( beadLocations );
-		logger.debug( "Read " + coordinateMap.keySet().size() + " coordinates." );
+		logger.debug("Read {} coordinates.", coordinateMap.keySet().size());
 
 		final Pair< List< Pair< double[], String > >, HashMap< String, double[] > > geneData = readSlideSeqGenes( reads, coordinateMap );
-		logger.debug( "Read data for " + geneData.getB().keySet().size() + " genes." );
+		logger.debug("Read data for {} genes.", geneData.getB().keySet().size());
 
 		final STData data = new STDataText( geneData.getA(), geneData.getB() );
 		//logger.debug( data );
 
-		logger.debug( "Parsing took " + ( System.currentTimeMillis() - time ) + " ms." );
+		logger.debug("Parsing took {} ms.", System.currentTimeMillis() - time);
 
 		return data;
 	}
@@ -67,11 +68,11 @@ public class TextFileIO
 		long time = System.currentTimeMillis();
 
 		final HashMap< String, double[] > coordinateMap = readSlideSeqCoordinates( beadLocations );
-		logger.debug( "Read " + coordinateMap.keySet().size() + " coordinates." );
+		logger.debug("Read {} coordinates.", coordinateMap.keySet().size());
 
 		// coordinates, geneMap
 		final Pair< List< Pair< double[], String > >, HashMap< String, double[] > > geneData = readSlideSeqGenes( reads, coordinateMap );
-		logger.debug( "Read data for " + geneData.getB().keySet().size() + " genes." );
+		logger.debug("Read data for {} genes.", geneData.getB().keySet().size());
 
 		final HashSet< Integer > notAssigned = new HashSet<>();
 		final List< String > barcodes = geneData.getA().stream().map(Pair::getB).collect(Collectors.toList() );
@@ -84,12 +85,12 @@ public class TextFileIO
 					notAssigned);
 			annotationIds.put(entry.getKey(), ids);
 			if (!notAssigned.isEmpty())
-				logger.warn( "not assigned after reading '" + entry.getKey() + "': " + notAssigned.size() );
+				logger.warn("not assigned after reading '{}': {}", entry.getKey(), notAssigned.size());
 		}
 
 		final STData data;
 
-		if ( notAssigned.size() > 0 )
+		if (!notAssigned.isEmpty())
 		{
 			// reduce celltypes
 			final Map<String, int[]> annotationIdsRed = new HashMap<>();
@@ -139,7 +140,7 @@ public class TextFileIO
 				data.getAnnotations().put(entry.getKey(), ArrayImgs.ints(entry.getValue(), (int)data.numLocations()));
 		}
 
-		logger.debug( "Parsing took " + ( System.currentTimeMillis() - time ) + " ms." );
+		logger.debug("Parsing took {} ms.", System.currentTimeMillis() - time);
 
 		return data;
 	}
@@ -171,14 +172,14 @@ public class TextFileIO
 		{
 			String[] barcodeWithId = nextLine.split( "," );
 
-			if ( barcodeWithId.length != 2 || barcodeWithId[ 0 ].trim().length() == 0 )
+			if ( barcodeWithId.length != 2 || barcodeWithId[0].trim().isEmpty())
 				continue;
 
 			final Integer index = barcodeMap.get( barcodeWithId[ 0 ] );
 
 			if ( index == null )
 			{
-				logger.debug( "barcode '" + barcodeWithId[ 0 ] + "' defined in annotation not found in the location/expression data. Ignoring.");
+				logger.debug("barcode '{}' defined in annotation not found in the location/expression data. Ignoring.", barcodeWithId[0]);
 				continue;
 			}
 	
@@ -188,7 +189,7 @@ public class TextFileIO
 		}
 
 		if ( i != barcodes.size() )
-			logger.warn( "Not all ids could be assigned (only " + i + " out of " + barcodes.size() + ")." );
+			logger.warn("Not all ids could be assigned (only {} out of {}).", i, barcodes.size());
 
 		if ( notAssigned != null )
 		{
@@ -219,14 +220,14 @@ public class TextFileIO
 		{
 			String[] val = nextLine.split( "," );
 
-			if ( val.length != 2 || val[ 0 ].trim().length() == 0 )
+			if ( val.length != 2 || val[0].trim().isEmpty())
 				continue;
 
 			ids[ i++ ] = Integer.parseInt( val[ 1 ].trim() );
 		}
 
 		if ( i != numLocations )
-			logger.warn( "Not all ids could be assigned (only " + i + " out of " + numLocations + "). Assigning label 0 to all other locations." );
+			logger.warn("Not all ids could be assigned (only {} out of {}). Assigning label 0 to all other locations.", i, numLocations);
 
 		return ids;
 	}
@@ -337,8 +338,7 @@ public class TextFileIO
 		return coordinates;
 	}
 
-	public static void saveGenes( final File file, final Collection< String > genes ) throws IOException
-	{
+	public static void saveGenes( final File file, final Collection< String > genes ) {
 		PrintWriter out = TextFileAccess.openFileWrite( file );
 
 		for ( final String gene : genes )
@@ -362,7 +362,7 @@ public class TextFileIO
 			if ( existingGenes1.contains( trimmed ) && existingGenes2.contains( trimmed ) )
 				genes.add( trimmed );
 			else
-				logger.warn( "Gene '" + trimmed + "' does not exist in both datasets, skipping.");
+				logger.warn("Gene '{}' does not exist in both datasets, skipping.", trimmed);
 		}
 
 		in.close();

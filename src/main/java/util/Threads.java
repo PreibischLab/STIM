@@ -71,7 +71,7 @@ public class Threads
 		}
 		catch ( final InterruptedException e )
 		{
-			logger.error( "Failed to " + jobDescription + ": ", e );
+			logger.error("Failed to {}: ", jobDescription, e);
 		}
 	}
 

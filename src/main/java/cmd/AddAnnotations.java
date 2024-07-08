@@ -61,11 +61,11 @@ public class AddAnnotations implements Callable<Void> {
 		}
 
 		if (annotationList.size() != labelList.size()) {
-			logger.error("number of annotation files (" + annotationList.size() + ") does not match number of labels (" + labelList.size() + "). stopping.");
+			logger.error("number of annotation files ({}) does not match number of labels ({}). stopping.", annotationList.size(), labelList.size());
 			return null;
 		}
 
-		logger.info("adding annotations to " + inputPath);
+		logger.info("adding annotations to {}", inputPath);
 		final ExecutorService service = Executors.newFixedThreadPool(8);
 		final SpatialDataIO sdio = SpatialDataIO.open(inputPath, service);
 		final STDataAssembly stData = sdio.readData();
@@ -74,7 +74,7 @@ public class AddAnnotations implements Callable<Void> {
 
 			final String annotationName = annotationList.get(i);
 			final String label = labelList.get(i);
-			logger.debug("\n>>> Processing " + annotationName);
+			logger.debug("\n>>> Processing {}", annotationName);
 
 			final File in = new File(annotationName);
 			final BufferedReader readsIn;
@@ -87,11 +87,11 @@ public class AddAnnotations implements Callable<Void> {
 				readsIn = TextFileAccess.openFileRead( in );
 
 			if (readsIn == null) {
-				logger.error( "Could not open file '" + in.getAbsolutePath() + "'. Stopping." );
+				logger.error("Could not open file '{}'. Stopping.", in.getAbsolutePath());
 				return null;
 			}
 			else {
-				logger.debug("Loading file '" + in.getAbsolutePath() + "' as label '" + label + "'" );
+				logger.debug("Loading file '{}' as label '{}'", in.getAbsolutePath(), label);
 			}
 
 			final int[] ids;

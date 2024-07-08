@@ -51,7 +51,7 @@ public class NormalizingRandomAccessibleInterval implements RandomAccessibleInte
 	{
 		final long numLocations = input.dimension( 1 );
 
-		logger.info( "Computing normalization sums for all genes (" + input.dimension( 0 ) + ") and locations (" + input.dimension( 1 ) + ") ... " );
+		logger.info("Computing normalization sums for all genes ({}) and locations ({}) ... ", input.dimension(0), input.dimension(1));
 
 		final List< Callable< Void > > tasks = new ArrayList<>();
 		final AtomicLong nextLocation = new AtomicLong();

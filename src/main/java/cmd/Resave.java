@@ -61,7 +61,7 @@ public class Resave implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 		if (inputPaths == null) {
-			logger.error("No input paths defined: " + inputPaths + ". Stopping.");
+			logger.error("No input paths defined: {}. Stopping.", inputPaths);
 			return null;
 		}
 
@@ -73,15 +73,15 @@ public class Resave implements Callable<Void> {
 			return null;
 		}
 		if (outputFile.exists()) {
-			logger.error("File " + outputFile.getAbsolutePath() + " already exists, stopping." );
+			logger.error("File {} already exists, stopping.", outputFile.getAbsolutePath());
 			return null;
 		}
 
 		final File locationsFile = new File(elements[0].trim());
 		final File readsFile = new File(elements[1].trim());
 
-		logger.debug("Locations='" + locationsFile.getAbsolutePath() + "'");
-		logger.debug("Reads='" + readsFile.getAbsolutePath() + "'");
+		logger.debug("Locations='{}'", locationsFile.getAbsolutePath());
+		logger.debug("Reads='{}'", readsFile.getAbsolutePath());
 
 		BufferedReader locationsIn, readsIn = null;
 		Map<String, BufferedReader> annotationsInMap = new HashMap<>();
@@ -91,11 +91,11 @@ public class Resave implements Callable<Void> {
 			for (String annotationPath : annotations) {
 				final File annotationFile = new File(annotationPath.trim());
 				final String annotationLabel = Paths.get(annotationFile.getAbsolutePath()).getFileName().toString().split("\\.")[0];
-				logger.debug("Loading annotation file '" + annotationPath + "' as label '" + annotationLabel + "'.");
+				logger.debug("Loading annotation file '{}' as label '{}'.", annotationPath, annotationLabel);
 				annotationsInMap.put(annotationLabel, openCsvInput(annotationFile, annotationLabel));
 			}
 		} catch (IOException e) {
-			logger.error(e.getMessage());
+			logger.error(e);
 			return null;
 		}
 
@@ -112,7 +112,7 @@ public class Resave implements Callable<Void> {
 
 		final ExecutorService service = Executors.newFixedThreadPool(8);
 		SpatialDataIO sdio = SpatialDataIO.open(outputFile.getAbsolutePath(), service);
-		logger.info("\nSaving in file='" + outputFile.getPath() + "'");
+		logger.info("\nSaving in file='{}'", outputFile.getPath());
 		sdio.writeData(new STDataAssembly(data));
 
 		if (containerPath != null) {
@@ -123,7 +123,7 @@ public class Resave implements Callable<Void> {
 			else
 				container = SpatialDataContainer.createNew(containerPath, service);
 
-			logger.info("\nMoving file to '" + containerPath + "'");
+			logger.info("\nMoving file to '{}'", containerPath);
 			container.addExistingDataset(outputFile.getAbsolutePath());
 		}
 
@@ -270,7 +270,7 @@ public class Resave implements Callable<Void> {
 				return new BufferedReader(new InputStreamReader(gzip, StandardCharsets.UTF_8));
 			} catch ( Exception e ) { /* not a gzipped file*/ }
 
-			logger.error( "File '" + compressedFile + "' could not be read as archive." );
+			logger.error("File '{}' could not be read as archive.", compressedFile);
 
 			return null;
 		}

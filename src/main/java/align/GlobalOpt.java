@@ -175,7 +175,7 @@ public class GlobalOpt
 			{
 				int unaligned = tc.preAlign().size();
 				if ( unaligned > 0 )
-					logger.info( "Pre-aligned all tiles but " + unaligned );
+					logger.info("Pre-aligned all tiles but {}", unaligned);
 				else
 					logger.info( "Prealigned all tiles" );
 
@@ -183,10 +183,10 @@ public class GlobalOpt
 						new ErrorStatistic( maxPlateauwidth + 1 ),  maxAllowedError, maxIterations, maxPlateauwidth, 1.0f,
 						tc, tc.getTiles(), tc.getFixedTiles(), numThreads );
 
-				logger.info( "Global optimization of " + tc.getTiles().size());
-				logger.info( "   Avg Error: " + tc.getError() + "px" );
-				logger.info( "   Min Error: " + tc.getMinError() + "px" );
-				logger.info( "   Max Error: " + tc.getMaxError() + "px" );
+				logger.info("Global optimization of {}", tc.getTiles().size());
+				logger.info("   Avg Error: {}px", tc.getError());
+				logger.info("   Min Error: {}px", tc.getMinError());
+				logger.info("   Max Error: {}px", tc.getMaxError());
 
 				// give some time for the output
 				try { Thread.sleep( 50 ); } catch ( Exception ignored) {}
@@ -285,7 +285,7 @@ public class GlobalOpt
 		worstTile1.removeConnectedTile( worstTile2 );
 		worstTile2.removeConnectedTile( worstTile1 );
 
-		logger.info( "Removed link from " + tileToIndex.get( worstTile1 ) + " to " + tileToIndex.get( worstTile2 ) );
+		logger.info("Removed link from {} to {}", tileToIndex.get(worstTile1), tileToIndex.get(worstTile2));
 
 		return new ValuePair<>( worstTile1, worstTile2 );
 	}
@@ -308,12 +308,13 @@ public class GlobalOpt
 
 		for ( final Alignment align : alignments )
 			if ( align.i < pucks.size() && align.j < pucks.size() )
-				logger.info( align.i + "-" + align.j + ": " + align.t );
+				logger.info("{}-{}: {}", align.i, align.j, align.t);
 
 		final List< Pair< STData, AffineTransform2D > > initialdata = new ArrayList<>();
 
-		for ( int i = 0; i < puckData.size(); ++i )
-			initialdata.add(new ValuePair<>(puckData.get(i).data(), new AffineTransform2D()));
+		for (STDataAssembly puckDatum : puckData) {
+			initialdata.add(new ValuePair<>(puckDatum.data(), new AffineTransform2D()));
+		}
 
 		AlignTools.visualizeList( initialdata );
 		//visualizePair( puckData.get( debugA ), puckData.get( debugB ), new AffineTransform2D(), Alignment.getAlignment( alignments, debugA, debugB ).t );
@@ -341,7 +342,7 @@ public class GlobalOpt
 				maxQuality = Math.max( maxQuality, quality[ i ][ j ] );
 				minQuality = Math.min( minQuality, quality[ i ][ j ] );
 
-				logger.debug( "Connecting " + i + "-" + j );
+				logger.debug("Connecting {}-{}", i, j);
 
 				final STData stDataA = puckData.get(i).data();
 				final STData stDataB = puckData.get(j).data();
@@ -381,8 +382,8 @@ public class GlobalOpt
 			}
 		}
 
-		logger.debug( "minQ: " + minQuality );
-		logger.debug( "maxQ: " + maxQuality );
+		logger.debug("minQ: {}", minQuality);
+		logger.debug("maxQ: {}", maxQuality);
 
 		for ( int i = 0; i < pucks.size(); ++i )
 		{
@@ -400,13 +401,13 @@ public class GlobalOpt
 			System.out.println();
 		}
 
-		logger.debug( dataToTile.keySet().size() + " / " + pucks.size() );
-		logger.debug( tileToData.keySet().size() + " / " + pucks.size() );
+		logger.debug("{} / {}", dataToTile.keySet().size(), pucks.size());
+		logger.debug("{} / {}", tileToData.keySet().size(), pucks.size());
 
 		//System.exit( 0 );
 
 		for ( int i = 0; i < pucks.size(); ++i )
-			logger.debug( puckData.get( i ) + ": " + dataToTile.get( puckData.get( i ) ) );
+			logger.debug("{}: {}", puckData.get(i), dataToTile.get(puckData.get(i)));
 
 		final TileConfiguration tileConfig = new TileConfiguration();
 
@@ -428,13 +429,14 @@ public class GlobalOpt
 				Threads.numThreads());
 
 		for ( final Pair< Tile< ? >, Tile< ? > > removed : removedInconsistentPairs )
-			logger.info( "Removed " + tileToIndex.get( removed.getA() ) + " to " + tileToIndex.get( removed.getB() ) + " (" + tileToData.get( removed.getA() ) + " to " + tileToData.get( removed.getB() ) + ")" );
+			logger.info("Removed {} to {} ({} to {})",
+						tileToIndex.get(removed.getA()), tileToIndex.get(removed.getB()), tileToData.get(removed.getA()), tileToData.get(removed.getB()));
 
 		final List< Pair< STData, AffineTransform2D > > data = new ArrayList<>();
 
 		for ( int i = 0; i < pucks.size(); ++i )
 		{
-			logger.debug( puckData.get( i ) + ": " + dataToTile.get( puckData.get( i ) ).getModel() );
+			logger.debug("{}: {}", puckData.get(i), dataToTile.get(puckData.get(i)).getModel());
 
 			final RigidModel2D model = dataToTile.get( puckData.get( i ) ).getModel();
 

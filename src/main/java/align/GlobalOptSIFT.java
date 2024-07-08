@@ -50,7 +50,7 @@ public class GlobalOptSIFT
 		}
 		catch (Exception e) {
 			final String matchName = container.constructMatchName(datasetA, datasetB);
-			logger.error("error reading: " + matchName + ": ", e);
+			logger.error("error reading: {}: ", matchName, e);
 			match = new SiftMatch();
 		}
 
@@ -96,7 +96,7 @@ public class GlobalOptSIFT
 		double minQuality = Double.MAX_VALUE;
 
 		final double lambda1 = icpRefine ? 1.0 : lambda;
-		logger.debug( "Lambda for SIFT global align (amount of regularization by rigid model): " + lambda1 );
+		logger.debug("Lambda for SIFT global align (amount of regularization by rigid model): {}", lambda1);
 
 		for ( int i = 0; i < datasets.size() - 1; ++i )
 		{
@@ -128,7 +128,7 @@ public class GlobalOptSIFT
 				final List< PointMatch > inliers = match.getInliers();
 				if (!inliers.isEmpty())
 				{
-					logger.debug( "Connecting " + i + " to " + j + " ... "); 
+					logger.debug("Connecting {} to {} ... ", i, j);
 					tileA.connect( tileB, inliers );
 				}
 			}
@@ -136,8 +136,8 @@ public class GlobalOptSIFT
 
 		if ( useQuality )
 		{
-			logger.debug( "minQ: " + minQuality );
-			logger.debug( "maxQ: " + maxQuality );
+			logger.debug("minQ: {}", minQuality);
+			logger.debug("maxQ: {}", maxQuality);
 	
 			for ( int i = 0; i < datasets.size(); ++i )
 			{
@@ -156,13 +156,13 @@ public class GlobalOptSIFT
 			}
 		}
 
-		logger.debug( dataToTile.keySet().size() + " / " + datasets.size() );
-		logger.debug( tileToData.keySet().size() + " / " + datasets.size() );
+		logger.debug("{} / {}", dataToTile.keySet().size(), datasets.size());
+		logger.debug("{} / {}", tileToData.keySet().size(), datasets.size());
 
 		//System.exit( 0 );
 
 		for ( int i = 0; i < datasets.size(); ++i )
-			logger.debug( data.get( i ) + ": " + dataToTile.get( data.get( i ) ).getModel() );
+			logger.debug("{}: {}", data.get(i), dataToTile.get(data.get(i)).getModel());
 
 		final TileConfiguration tileConfig = new TileConfiguration();
 
@@ -184,7 +184,7 @@ public class GlobalOptSIFT
 				numThreads );
 
 		for ( final Pair< Tile< ? >, Tile< ? > > removed : removedInconsistentPairs )
-			logger.info( "Removed " + tileToIndex.get( removed.getA() ) + " to " + tileToIndex.get( removed.getB() ) + " (" + tileToData.get( removed.getA() ) + " to " + tileToData.get( removed.getB() ) + ")" );
+			logger.info("Removed {} to {} ({} to {})", tileToIndex.get(removed.getA()), tileToIndex.get(removed.getB()), tileToData.get(removed.getA()), tileToData.get(removed.getB()));
 
 		final List< Pair< STData, AffineTransform2D > > dataTrafoPair = new ArrayList<>();
 
@@ -195,7 +195,7 @@ public class GlobalOptSIFT
 			ioObjects.get(i).updateTransformation(transform, "model_sift");
 			ioObjects.get(i).updateTransformation(transform, "transform"); // will be overwritten by ICP later
 
-			logger.debug( data.get( i ) + ": " + transform );
+			logger.debug("{}: {}", data.get(i), transform);
 			dataTrafoPair.add(new ValuePair<>(data.get(i).data(), transform));
 		}
 
@@ -205,7 +205,7 @@ public class GlobalOptSIFT
 			AlignTools.visualizeList(dataTrafoPair, AlignTools.defaultScale, Rendering.Gauss, smoothnessFactor, displaygene, true);
 		}
 
-		logger.info( "Avg error: " + tileConfig.getError() );
+		logger.info("Avg error: {}", tileConfig.getError());
 
 		if ( icpRefine )
 		{
@@ -249,7 +249,7 @@ public class GlobalOptSIFT
 	
 						if ( wasRemoved )
 						{
-							logger.warn( i + "<>" + j + " was removed in global opt. Not running ICP." );
+							logger.warn("{}<>{} was removed in global opt. Not running ICP.", i, j);
 						}
 						else
 						{
@@ -289,22 +289,10 @@ public class GlobalOptSIFT
 							{
 								final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileA = dataToTileICP.get(data.get(i));
 								final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileB = dataToTileICP.get(data.get(j));
-	
-								logger.info( "Connecting " + i + " to " + j + " with " + icpT.getB().size() + " inliers." ); 
+
+								logger.info("Connecting {} to {} with {} inliers.", i, j, icpT.getB().size());
 								tileA.connect( tileB, icpT.getB() );
 							}
-
-							/*
-							List< Pair< STData, AffineTransform2D > > dataTmp = new ArrayList<>();
-	
-							dataTmp.add( new ValuePair<>( data.get( i ), GlobalOpt.modelToAffineTransform2D( modelA ) ) );
-							dataTmp.add( new ValuePair<>( data.get( j ), GlobalOpt.modelToAffineTransform2D( modelB ) ) );
-							dataTmp.add( new ValuePair<>( data.get( j ), GlobalOpt.modelToAffineTransform2D( icpT.getA() ) ) );
-							
-							GlobalOpt.visualizeList( dataTmp ).setTitle( i + "-" + j + "_ICP" );
-	
-							//SimpleMultiThreading.threadHaltUnClean();
-							*/
 						}
 					}
 				}
@@ -327,8 +315,8 @@ public class GlobalOptSIFT
 					tileConfigICP.getTiles(),
 					tileConfigICP.getFixedTiles(),
 					numThreads );
-	
-				logger.info( " avg=" + tileConfigICP.getError() + ", min=" + tileConfigICP.getMinError() + ", max=" + tileConfigICP.getMaxError() );
+
+				logger.info(" avg={}, min={}, max={}", tileConfigICP.getError(), tileConfigICP.getMinError(), tileConfigICP.getMaxError());
 			}
 			catch ( Exception e )
 			{
@@ -344,7 +332,7 @@ public class GlobalOptSIFT
 				container.openDataset(datasets.get(i)).updateTransformation(transform, "model_icp");
 				container.openDataset(datasets.get(i)).updateTransformation(transform, "transform");
 
-				logger.debug( data.get( i ) + ": " + transform );
+				logger.debug("{}: {}", data.get(i), transform);
 	
 				dataICP.add(new ValuePair<>(data.get(i).data(), transform));
 			}
@@ -352,7 +340,7 @@ public class GlobalOptSIFT
 			if ( !skipDisplayResults )
 				AlignTools.visualizeList( dataICP, AlignTools.defaultScale, Rendering.Gauss, smoothnessFactor, displaygene, true ).setTitle( "ICP-reg" );
 
-			logger.info( "Avg error: " + tileConfigICP.getError() );
+			logger.info("Avg error: {}", tileConfigICP.getError());
 		}
 	}
 

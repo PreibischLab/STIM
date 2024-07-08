@@ -112,33 +112,33 @@ public class InteractiveAlignment implements Callable<Void> {
 
 		if ( !SpatialDataContainer.isCompatibleContainer(inputPath) )
 		{
-			logger.error("'" + inputPath + "' is not a container. Stopping.");
+			logger.error("'{}' is not a container. Stopping.", inputPath);
 			return null;
 		}
 
 		// we might save the transformation, so open for writing
 		final SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath, service);
 
-		logger.info("Opening dataset '" + dataset1 + "' in '" + inputPath + "' ...");
+		logger.info("Opening dataset '{}' in '{}' ...", dataset1, inputPath);
 
 		final SpatialDataIO io1 = container.openDataset( dataset1 );
 		final STDataAssembly data1 = io1.readData();
 
 		//data1.transform().set( new AffineTransform2D() );
-		logger.debug( "Current transform: " + data1.transform() );
+		logger.debug("Current transform: {}", data1.transform());
 
-		logger.info("Opening dataset '" + dataset2 + "' in '" + inputPath + "' ...");
+		logger.info("Opening dataset '{}' in '{}' ...", dataset2, inputPath);
 
 		final SpatialDataIO io2 = container.openDataset( dataset2 );
 		final STDataAssembly data2 = io2.readData();
 
 		//data2.transform().set( new AffineTransform2D() );
-		logger.debug( "Current transform: " + data2.transform() );
+		logger.debug("Current transform: {}", data2.transform());
 
 		//
 		// assemble genes to test
 		//
-		logger.info("Assembling initial genes for alignment (" + numGenes + " genes)...");
+		logger.info("Assembling initial genes for alignment ({} genes)...", numGenes);
 
 		final Path tmpDir = Files.createTempDirectory("stim");
 		final String tmpFileName = inputPath.hashCode() + "_" + dataset1.hashCode() + "_" + dataset2.hashCode() + ".stim.tmp";
@@ -147,7 +147,7 @@ public class InteractiveAlignment implements Callable<Void> {
 
 		if ( tmp.exists() )
 		{
-			logger.debug( "Attempting to load cached sorted result: " + tmp.getAbsolutePath() );
+			logger.debug("Attempting to load cached sorted result: {}", tmp.getAbsolutePath());
 			try
 			{
 				final BufferedReader in = TextFileAccess.openFileReadEx( tmp );
@@ -169,7 +169,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		{
 			allGenes.addAll( Pairwise.allGenes( data1.data(), data2.data(), Threads.numThreads() ) );
 
-			logger.debug( "Attempting to save cached sorted result: " + tmp.getAbsolutePath() );
+			logger.debug("Attempting to save cached sorted result: {}", tmp.getAbsolutePath());
 
 			try
 			{
@@ -184,7 +184,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		}
 
 		if ( numGenes > 0 )
-			logger.debug( "Automatically identified " + allGenes.size() + " genes that can be used for alignment" );
+			logger.debug("Automatically identified {} genes that can be used for alignment", allGenes.size());
 		else
 		{
 			System.err.println( "No common genes between both datasets. stopping.");
@@ -200,7 +200,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		for ( int i = skipFirstNGenes; i < numGenes + skipFirstNGenes; ++i )
 		{
 			final String gene = allGenes.get( i ).getA(); //"Calm2";
-			logger.info( "Rendering gene (each available as its own source): " + gene );
+			logger.info("Rendering gene (each available as its own source): {}", gene);
 
 			final AddedGene addedGene1 = AddedGene.addGene(
 					inputPath,
@@ -270,7 +270,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		[13:23, 11/21/2023] Tobias Pietzsch: etc
 		*/
 		final double medianDistance = (data1.statistics().getMedianDistance() + data2.statistics().getMedianDistance()) / 2.0;
-		logger.debug( "Median distance of spots: " + medianDistance );
+		logger.debug("Median distance of spots: {}", medianDistance);
 
 		// the side panel
 		final SplitPanel splitPanel = lastSource.getBdvHandle().getSplitPanel();

@@ -30,6 +30,7 @@ import util.LoggerUtil;
 public class ViewPairwiseAlignment implements Callable<Void> {
 	
 	private static final Logger logger = LoggerUtil.getLogger();
+
 	@Option(names = {"-c", "--container"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")
 	private String containerPath = null;
 
@@ -51,12 +52,12 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 		if (!(new File(containerPath)).exists()) {
-			logger.error("Container '" + containerPath + "' does not exist. Stopping.");
+			logger.error("Container '{}' does not exist. Stopping.", containerPath);
 			return null;
 		}
 
 		if (!SpatialDataContainer.isCompatibleContainer(containerPath)) {
-			logger.error("Pairwise visualization does not work for single dataset '" + containerPath + "'. Stopping.");
+			logger.error("Pairwise visualization does not work for single dataset '{}'. Stopping.", containerPath);
 			return null;
 		}
 
@@ -70,13 +71,13 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 					.collect(Collectors.toList());
 		}
 		else {
-			logger.warn("No input datasets specified. Trying to open all datasets in '" + containerPath + "' ...");
+			logger.warn("No input datasets specified. Trying to open all datasets in '{}' ...", containerPath);
 			datasetNames = container.getDatasets();
 		}
 
 		final List<STData> dataToVisualize = new ArrayList<>();
 		for (final String dataset : datasetNames) {
-			logger.info("Opening dataset '" + dataset + "' in '" + containerPath + "' ...");
+			logger.info("Opening dataset '{}' in '{}' ...", dataset, containerPath);
 			dataToVisualize.add(container.openDatasetReadOnly(dataset).readData().data());
 		}
 

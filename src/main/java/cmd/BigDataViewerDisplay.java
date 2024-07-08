@@ -97,7 +97,7 @@ public class BigDataViewerDisplay implements Callable<Void>
 		final boolean useTransform = true;
 
 		if (!(new File(inputPath)).exists()) {
-			logger.error("Container / dataset '" + inputPath + "' does not exist. Stopping.");
+			logger.error("Container / dataset '{}' does not exist. Stopping.", inputPath);
 			return null;
 		}
 
@@ -110,7 +110,7 @@ public class BigDataViewerDisplay implements Callable<Void>
 			final SpatialDataContainer container = SpatialDataContainer.openForReading(inputPath, service);
 
 			if (dataset != null && !dataset.trim().isEmpty()) {
-					logger.debug("Opening dataset '" + dataset + "' in '" + inputPath + "' ...");
+				logger.debug("Opening dataset '{}' in '{}' ...", dataset, inputPath);
 					iodata = container.openDatasetReadOnly(dataset.trim());
 			}
 			else
@@ -120,7 +120,7 @@ public class BigDataViewerDisplay implements Callable<Void>
 			}
 		}
 		else {
-			logger.debug("Opening dataset '" + inputPath + "' ...");
+			logger.debug("Opening dataset '{}' ...", inputPath);
 			iodata = SpatialDataIO.openReadOnly(inputPath, service);
 		}
 
@@ -165,7 +165,7 @@ public class BigDataViewerDisplay implements Callable<Void>
 
 			if ( ffSingleSpot != null && ffSingleSpot > 0  )
 			{
-				logger.debug( "Using single-spot filtering, effective radius="  + (dataToVisualize.statistics().getMedianDistance() * ffSingleSpot) );
+				logger.debug("Using single-spot filtering, effective radius={}", dataToVisualize.statistics().getMedianDistance() * ffSingleSpot);
 				filterFactorysInt.add( new SingleSpotRemovingFilterFactory<>( outofboundsInt, dataToVisualize.statistics().getMedianDistance() * ffSingleSpot ) );
 			}
 
@@ -212,7 +212,7 @@ public class BigDataViewerDisplay implements Callable<Void>
 		for ( int i = 0; i < genesToShow.size(); ++i )
 		{
 			final String gene = genesToShow.get( i );
-			logger.debug( "Rendering gene: " + gene );
+			logger.debug("Rendering gene: {}", gene);
 
 			final ARGBType col = getColor(genesToShow, i, rnd);
 

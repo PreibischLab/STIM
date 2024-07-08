@@ -53,6 +53,7 @@ import util.LoggerUtil;
 public class PairwiseSIFT
 {
 	private static final Logger logger = LoggerUtil.getLogger();
+
 	static public void matchFeatures(
 			final Collection< Feature > fs1,
 			final Collection< Feature > fs2,
@@ -173,7 +174,7 @@ public class PairwiseSIFT
 
 	public static void visualizeInliers( final ImagePlus imp1, final ImagePlus imp2, final List< PointMatch > inliers )
 	{
-		if ( inliers.size() > 0 )
+		if (!inliers.isEmpty())
 		{
 			final ArrayList< Point > p1 = new ArrayList<>();
 			final ArrayList< Point > p2 = new ArrayList<>();
@@ -311,7 +312,7 @@ public class PairwiseSIFT
 					//System.out.println( gene + " = " + matchesAB.size() );
 					//System.out.println( gene + " = " + matchesBA.size() );
 
-					if ( matchesAB.size() == 0 && matchesBA.size() == 0 )
+					if (matchesAB.isEmpty() && matchesBA.isEmpty())
 						return allPerGeneInliers;
 	
 					if ( matchesBA.size() > matchesAB.size() )
@@ -321,7 +322,7 @@ public class PairwiseSIFT
 				}
 				else
 				{
-					if ( matchesAB.size() == 0 )
+					if (matchesAB.isEmpty())
 						return allPerGeneInliers;
 
 					candidatesTmp.addAll( matchesAB );
@@ -349,7 +350,7 @@ public class PairwiseSIFT
 
 				// reset world coordinates & compute error
 				double error = Double.NaN, maxError = Double.NaN, minError = Double.NaN;
-				if ( inliers.size() > 0 )
+				if (!inliers.isEmpty())
 				{
 					error = 0;
 					minError = Double.MAX_VALUE;
@@ -378,10 +379,11 @@ public class PairwiseSIFT
 					}
 				}
 
-				if ( inliers.size() > 0 )
+				if (!inliers.isEmpty())
 				{
 					allPerGeneInliers.addAll( inliers );
-					logger.debug( stDataAname + "-" + stDataBname + ": " + inliers.size() + "/" + candidatesTmp.size() + ", " + minError + "/" + error + "/" + maxError + ", " + ((PointST)inliers.get( 0 ).getP1()).getGene() );
+					logger.debug("{}-{}: {}/{}, {}/{}/{}, {}",
+								 stDataAname, stDataBname, inliers.size(), candidatesTmp.size(), minError, error, maxError, ((PointST) inliers.get(0).getP1()).getGene());
 					//System.out.println( ki + "-" + kj + ": " + inliers.size() + "/" + candidatesTmp.size() + ", " + ((PointST)inliers.get( 0 ).getP1()).getGene() + ", " );
 					//GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() ).setTitle( gene +"_" + inliers.size() );;
 				}
@@ -406,14 +408,15 @@ public class PairwiseSIFT
 
 		//service.shutdown();
 
-		logger.debug( "Running consensus across all genes ... ");
+		logger.debug("Running consensus across all genes ... ");
 
 		//final InterpolatedAffineModel2D<AffineModel2D, RigidModel2D> model = new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), 0.1 );//new RigidModel2D();
 		//final RigidModel2D model = new RigidModel2D();
 		final ArrayList< PointMatch > inliers = consensus( allCandidates, modelGlobal, p.minInliersTotal, p.iterations, p.minInlierRatio, p.maxError );
 
 		// the model that maps J to I
-		logger.debug( stDataAname + "<>" + stDataBname + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + AlignTools.modelToAffineTransform2D( (Affine2D<?>)modelGlobal ).inverse() );
+		logger.debug("{}<>{}\t{}\t{}\t{}",
+					 stDataAname, stDataBname, inliers.size(), allCandidates.size(), AlignTools.modelToAffineTransform2D((Affine2D<?>) modelGlobal).inverse());
 
 		if ( visualizeResult && inliers.size() >= p.minInliersTotal )
 		{
@@ -443,7 +446,7 @@ public class PairwiseSIFT
 		// compute errors
 		// reset world coordinates & compute error
 		double error = Double.NaN, maxError = Double.NaN, minError = Double.NaN;
-		if ( inliers.size() > 0 )
+		if (!inliers.isEmpty())
 		{
 			error = 0;
 			minError = Double.MAX_VALUE;
@@ -461,10 +464,11 @@ public class PairwiseSIFT
 			error /= (double)inliers.size();
 		}
 
-		logger.debug( "errors: " + minError + "/" + error + "/" + maxError );
+		logger.debug("errors: {}/{}/{}", minError, error, maxError);
 
 		progressBar.accept( 10.0 );
-		logger.info( stDataAname + "<>" + stDataBname + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + AlignTools.modelToAffineTransform2D( (Affine2D<?>)modelGlobal ).inverse() );
+		logger.info("{}<>{}\t{}\t{}\t{}",
+					stDataAname, stDataBname, inliers.size(), allCandidates.size(), AlignTools.modelToAffineTransform2D((Affine2D<?>) modelGlobal).inverse());
 		return new SiftMatch(stDataAname, stDataBname, allCandidates.size(), inliers);
 	}
 
