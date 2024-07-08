@@ -35,6 +35,7 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import org.apache.logging.log4j.Logger;
 import util.LoggerUtil;
+import util.Threads;
 
 public class GlobalOpt
 {
@@ -424,7 +425,7 @@ public class GlobalOpt
 				50,
 				tileToIndex,
 				quality,
-				util.Threads.numThreads() );
+				Threads.numThreads());
 
 		for ( final Pair< Tile< ? >, Tile< ? > > removed : removedInconsistentPairs )
 			logger.info( "Removed " + tileToIndex.get( removed.getA() ) + " to " + tileToIndex.get( removed.getB() ) + " (" + tileToData.get( removed.getA() ) + " to " + tileToData.get( removed.getB() ) + ")" );
