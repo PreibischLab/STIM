@@ -118,7 +118,7 @@ public class RenderImage implements Callable<Void> {
 			SpatialDataContainer container = SpatialDataContainer.openForReading(inputPath, service);
 
 			final List<String> datasetNames;
-			if (datasets != null && datasets.length() != 0)
+			if (datasets != null && !datasets.isEmpty())
 				datasetNames = Arrays.asList(datasets.split(","));
 			else {
 				logger.info("Opening all datasets in '" + inputPath + "':");
@@ -135,7 +135,7 @@ public class RenderImage implements Callable<Void> {
 			iodata.put(inputPath, SpatialDataIO.openReadOnly(inputPath, service));
 		}
 
-		if (genes == null || genes.length() == 0) {
+		if (genes == null || genes.isEmpty()) {
 			logger.error("No genes available. stopping.");
 			return null;
 		}
@@ -153,7 +153,7 @@ public class RenderImage implements Callable<Void> {
 			}
 		}
 
-		if ( dataToVisualize.size() == 0 )
+		if (dataToVisualize.isEmpty())
 		{
 			logger.error( "No datasets that contain sequencing data. stopping." );
 			return null;
@@ -345,7 +345,8 @@ public class RenderImage implements Callable<Void> {
 		return Views.interval( RealViews.affine( renderRRA, coordinateTransform ), renderInterval );
 	}
 
-	public static final void main(final String... args) {
-		CommandLine.call(new RenderImage(), args);
+	public static void main(final String... args) {
+		final CommandLine cmd = new CommandLine(new RenderImage());
+		cmd.execute(args);
 	}
 }

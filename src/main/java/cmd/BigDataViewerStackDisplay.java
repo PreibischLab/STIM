@@ -103,7 +103,7 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 		if (SpatialDataContainer.isCompatibleContainer(inputPath)) {
 			SpatialDataContainer container = SpatialDataContainer.openForReading(inputPath, service);
 
-			if (datasets != null && datasets.length() != 0) {
+			if (datasets != null && !datasets.isEmpty()) {
 				for (String dataset : datasets.split(",")) {
 					logger.info("Opening dataset '" + dataset + "' in '" + inputPath + "' ...");
 					iodata.add(container.openDatasetReadOnly(dataset.trim()));
@@ -125,13 +125,13 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 			return null;
 		}
 
-		if (genes == null || genes.length() == 0) {
+		if (genes == null || genes.isEmpty()) {
 			logger.error("No genes available. stopping.");
 			return null;
 		}
 
 		List<String> genesToShow = Arrays.stream(genes.split(",")).map(String::trim).collect(Collectors.toList());
-		if (genesToShow.size() == 0) {
+		if (genesToShow.isEmpty()) {
 			logger.error("No genes available. stopping.");
 			return null;
 		}
@@ -145,13 +145,13 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 				data.transform().set(new AffineTransform2D());
 		}
 
-		if (dataToVisualize.size() == 0) {
+		if (dataToVisualize.isEmpty()) {
 			logger.error("No datasets that contain sequencing data. stopping.");
 			return null;
 		}
 
 		List< String > annotationList;
-		if ( annotations != null && annotations.length() > 0 )
+		if ( annotations != null && !annotations.isEmpty())
 			annotationList = Arrays.asList(annotations.split("," ) );
 		else
 			annotationList = new ArrayList<>();
@@ -245,8 +245,9 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 		return null;
 	}
 
-	public static final void main(final String... args) {
-		CommandLine.call(new BigDataViewerStackDisplay(), args);
+	public static void main(final String... args) {
+		final CommandLine cmd = new CommandLine(new BigDataViewerStackDisplay());
+		cmd.execute(args);
 	}
 
 }

@@ -70,6 +70,7 @@ public class AddSlice implements Callable<Void> {
 	}
 
 	public static void main(final String... args) {
-		CommandLine.call(new AddSlice(), args);
+		final CommandLine cmd = new CommandLine(new AddSlice());
+		cmd.execute(args);
 	}
 }

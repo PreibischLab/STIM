@@ -94,7 +94,8 @@ public class Normalize implements Callable<Void> {
 			return null;
 		}
 
-		public static final void main(final String... args) {
-			CommandLine.call(new Normalize(), args);
+		public static void main(final String... args) {
+			final CommandLine cmd = new CommandLine(new Normalize());
+			cmd.execute(args);
 		}
 }

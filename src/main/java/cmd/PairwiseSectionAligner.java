@@ -291,7 +291,8 @@ public class PairwiseSectionAligner implements Callable<Void> {
 	}
 
 	public static void main(final String... args) {
-		CommandLine.call(new PairwiseSectionAligner(), args);
+		final CommandLine cmd = new CommandLine(new PairwiseSectionAligner());
+		cmd.execute(args);
 	}
 
 }

@@ -176,7 +176,8 @@ public class AddPairwiseMatch implements Callable<Void> {
 	}
 
 	public static void main(final String... args) {
-		CommandLine.call(new AddPairwiseMatch(), args);
+		final CommandLine cmd = new CommandLine(new AddPairwiseMatch());
+		cmd.execute(args);
 	}
 
 }

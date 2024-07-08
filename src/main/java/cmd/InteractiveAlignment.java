@@ -340,6 +340,7 @@ public class InteractiveAlignment implements Callable<Void> {
 	}
 
 	public static void main(final String... args) {
-		CommandLine.call(new InteractiveAlignment(), args);
+		final CommandLine cmd = new CommandLine(new InteractiveAlignment());
+		cmd.execute(args);
 	}
 }

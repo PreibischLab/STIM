@@ -39,7 +39,7 @@ public class View implements Callable<Void> {
 		if (SpatialDataContainer.isCompatibleContainer(inputPath)) {
 			SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath, service);
 
-			if (datasets != null && datasets.trim().length() != 0) {
+			if (datasets != null && !datasets.trim().isEmpty()) {
 				for (String dataset : datasets.split(",")) {
 					logger.info("Opening dataset '" + dataset + "' in '" + inputPath + "' ...");
 					dataToVisualize.add(container.openDataset(dataset.trim()).readData());
@@ -62,7 +62,8 @@ public class View implements Callable<Void> {
 		return null;
 	}
 
-	public static final void main(final String... args) {
-		CommandLine.call(new View(), args);
+	public static void main(final String... args) {
+		final CommandLine cmd = new CommandLine(new View());
+		cmd.execute(args);
 	}
 }

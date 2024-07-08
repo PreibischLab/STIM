@@ -55,7 +55,7 @@ public class AddAnnotations implements Callable<Void> {
 		else
 			labelList = Arrays.stream(labels.split(",")).map(String::trim).collect(Collectors.toList());
 
-		if (annotationList.size() == 0) {
+		if (annotationList.isEmpty()) {
 			logger.error( "no annotation files specified. stopping.");
 			return null;
 		}
@@ -95,7 +95,7 @@ public class AddAnnotations implements Callable<Void> {
 			}
 
 			final int[] ids;
-			final boolean barcodesUnavailable = stData.data().getBarcodes().get(0).equals("");
+			final boolean barcodesUnavailable = stData.data().getBarcodes().get(0).isEmpty();
 			if (barcodesUnavailable)
 				ids = TextFileIO.readAnnotations(readsIn, (int) stData.data().numLocations());
 			else
@@ -114,7 +114,8 @@ public class AddAnnotations implements Callable<Void> {
 		return null;
 	}
 
-	public static final void main(final String... args) {
-		CommandLine.call(new AddAnnotations(), args);
+	public static void main(final String... args) {
+		final CommandLine cmd = new CommandLine(new AddAnnotations());
+		cmd.execute(args);
 	}
 }

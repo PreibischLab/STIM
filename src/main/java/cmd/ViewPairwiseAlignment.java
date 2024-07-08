@@ -64,7 +64,7 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 		SpatialDataContainer container = SpatialDataContainer.openExisting(containerPath, service);
 
 		final List<String> datasetNames;
-		if (datasets != null && datasets.trim().length() != 0) {
+		if (datasets != null && !datasets.trim().isEmpty()) {
 			datasetNames = Arrays.stream(datasets.split(","))
 					.map(String::trim)
 					.collect(Collectors.toList());
@@ -80,7 +80,7 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 			dataToVisualize.add(container.openDatasetReadOnly(dataset).readData().data());
 		}
 
-		if ( gene != null && gene.length() > 0 )
+		if ( gene != null && !gene.isEmpty())
 			AlignTools.defaultGene = gene;
 
 		new ImageJ();
@@ -128,7 +128,8 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 	}
 
 	public static void main(final String... args) {
-		CommandLine.call(new ViewPairwiseAlignment(), args);
+		final CommandLine cmd = new CommandLine(new ViewPairwiseAlignment());
+		cmd.execute(args);
 	}
 
 }

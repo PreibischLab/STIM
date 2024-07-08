@@ -157,7 +157,8 @@ public class GlobalOpt implements Callable<Void> {
 	}
 
 	public static void main(final String... args) {
-		CommandLine.call(new GlobalOpt(), args);
+		final CommandLine cmd = new CommandLine(new GlobalOpt());
+		cmd.execute(args);
 	}
 
 }

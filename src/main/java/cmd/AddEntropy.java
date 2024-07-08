@@ -60,6 +60,7 @@ public class AddEntropy implements Callable<Void> {
 	}
 
 	public static void main(final String... args) {
-		CommandLine.call(new AddEntropy(), args);
+		final CommandLine cmd = new CommandLine(new AddEntropy());
+		cmd.execute(args);
 	}
 }
