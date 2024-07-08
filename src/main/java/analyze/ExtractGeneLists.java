@@ -28,7 +28,8 @@ public class ExtractGeneLists
 	public static ArrayList< Pair< String, Double > > sortByStDevIntensity( final STData data, final int numThreads )
 	{
 		final ArrayList< Pair< String, Double > > stDev = computeStdev(data, numThreads);
-		stDev.sort(Comparator.comparing(Pair::getB));
+		final Comparator<Pair<String, Double>> byStdDev = Comparator.comparing(Pair::getB);
+		stDev.sort(byStdDev.reversed());
 		return stDev;
 	}
 
@@ -131,7 +132,8 @@ public class ExtractGeneLists
 			avgs.add( new ValuePair<>( gene, sum.getSum() / data.numLocations() ) );
 		}
 
-		avgs.sort(Comparator.comparing(Pair::getB));
+		final Comparator<Pair<String, Double>> byAvg = Comparator.comparing(Pair::getB);
+		avgs.sort(byAvg.reversed());
 
 		return avgs;
 	}

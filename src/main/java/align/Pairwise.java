@@ -261,8 +261,9 @@ public class Pairwise
 			
 		// now we want to find the combination of genes where both have high variance
 		// we therefore sort them by the sum of ranks of both lists
-		listA.sort(Comparator.comparing(Pair::getB));
-		listB.sort(Comparator.comparing(Pair::getB));
+		final Comparator<Pair<String, Double>> byEntropy = Comparator.comparing(Pair::getB);
+		listA.sort(byEntropy.reversed());
+		listB.sort(byEntropy.reversed());
 
 		final HashMap<String, Integer > geneToIndexB = new HashMap<>();
 
