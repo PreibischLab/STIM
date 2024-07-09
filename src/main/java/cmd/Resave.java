@@ -112,7 +112,7 @@ public class Resave implements Callable<Void> {
 
 		final ExecutorService service = Executors.newFixedThreadPool(8);
 		SpatialDataIO sdio = SpatialDataIO.open(outputFile.getAbsolutePath(), service);
-		logger.info("\nSaving in file='{}'", outputFile.getPath());
+		logger.info("Saving in file '{}'", outputFile.getPath());
 		sdio.writeData(new STDataAssembly(data));
 
 		if (containerPath != null) {
@@ -123,7 +123,7 @@ public class Resave implements Callable<Void> {
 			else
 				container = SpatialDataContainer.createNew(containerPath, service);
 
-			logger.info("\nMoving file to '{}'", containerPath);
+			logger.info("Moving file to '{}'", containerPath);
 			container.addExistingDataset(outputFile.getAbsolutePath());
 		}
 

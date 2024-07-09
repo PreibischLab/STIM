@@ -52,6 +52,7 @@ import util.LoggerUtil;
 public class BigDataViewerDisplay implements Callable<Void>
 {
 	private static final Logger logger = LoggerUtil.getLogger();
+
 	@Option(names = {"-i", "--input"}, required = true, description = "input file (AnnData) or N5 container, e.g. -i /home/ssq.n5")
 	private String inputPath = null;
 

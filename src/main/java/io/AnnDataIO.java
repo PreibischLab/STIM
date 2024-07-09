@@ -2,14 +2,13 @@ package io;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
+import org.apache.logging.log4j.Logger;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
@@ -24,9 +23,7 @@ import filter.FilterFactory;
 import gui.STDataAssembly;
 import gui.STDataExplorer;
 import io.AnnDataDetails.AnnDataFieldType;
-import net.imglib2.Cursor;
 import net.imglib2.Interval;
-import net.imglib2.IterableInterval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
@@ -38,14 +35,15 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
-import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import render.Render;
+import util.LoggerUtil;
 
 
 public class AnnDataIO extends SpatialDataIO {
+
+	private static final Logger logger = LoggerUtil.getLogger();
 
 	public AnnDataIO(final Supplier<? extends N5Reader> ioSupplier, final String basePath, final boolean readOnly, final ExecutorService service) {
 		super(ioSupplier, basePath, readOnly, service);
@@ -63,7 +61,7 @@ public class AnnDataIO extends SpatialDataIO {
 		super(ioSupplier, basePath, readOnly, vectorBlockSize, matrixBlockSize, compression, service);
 
 		// TODO: remove this check once the issue is fixed
-		if (!N5HDF5Reader.class.isInstance(ioSupplier.get()))
+		if (!(ioSupplier.get() instanceof N5HDF5Reader))
 			throw new IllegalArgumentException("IO for AnnData currently only supports hdf5.");
 	}
 
@@ -107,7 +105,7 @@ public class AnnDataIO extends SpatialDataIO {
 	public STDataAssembly readData() throws IOException {
 		N5Reader reader = ioSupplier.get();
 		if (!AnnDataDetails.isValidAnnData(reader))
-			System.out.println("Anndata file seems to be missing some metadata. Trying to read it anyways...");
+			logger.warn("Anndata file seems to be missing some metadata. Trying to read it anyways...");
 		return super.readData();
 	}
 

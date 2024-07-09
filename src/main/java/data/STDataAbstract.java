@@ -224,7 +224,7 @@ public abstract class STDataAbstract implements STData
 	public String toString()
 	{
 		return "STData, #dim: " + numDimensions() + ", #genes: " + numGenes() + ", #locations: " + numLocations() + "\n" +
-				"Interval: " + ImgLib2Util.printRealInterval( getLocationRealInterval() ) + "\n" +
-				"RenderInterval: " + ImgLib2Util.printRealInterval( getRenderInterval() );
+				"\tInterval: " + ImgLib2Util.printRealInterval( getLocationRealInterval() ) + "\n" +
+				"\tRenderInterval: " + ImgLib2Util.printRealInterval( getRenderInterval() );
 	}
 }
