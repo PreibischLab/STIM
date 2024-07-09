@@ -1,7 +1,9 @@
 package cmd;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -16,6 +18,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import org.apache.logging.log4j.Logger;
 import util.LoggerUtil;
+import util.Threads;
 
 @Command(name = "st-explorer", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - interactive viewer for ST data")
 public class View implements Callable<Void> {
@@ -29,37 +32,40 @@ public class View implements Callable<Void> {
 	private String datasets = null;
 
 	@Override
-	public Void call() throws Exception {
+	public Void call() throws IOException {
 		if (!(new File(inputPath)).exists()) {
 			logger.error("Container / dataset '{}' does not exist. Stopping.", inputPath);
 			return null;
 		}
 
-		final ExecutorService service = Executors.newFixedThreadPool(8);
+		final ExecutorService service = Executors.newFixedThreadPool(Threads.numThreads());
 		final List<STDataAssembly> dataToVisualize = new ArrayList<>();
+		final List<String> datasetNames = new ArrayList<>();
 		if (SpatialDataContainer.isCompatibleContainer(inputPath)) {
 			SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath, service);
 
 			if (datasets != null && !datasets.trim().isEmpty()) {
-				for (String dataset : datasets.split(",")) {
-					logger.info("Opening dataset '{}' in '{}' ...", dataset, inputPath);
-					dataToVisualize.add(container.openDataset(dataset.trim()).readData());
-				}
+				Arrays.stream(datasets.split(","))
+						.map(String::trim)
+						.forEach(datasetNames::add);
+			} else {
+				datasetNames.addAll(container.getDatasets());
 			}
-			else {
-				logger.info("Opening all datasets in '{}' ...", inputPath);
-				for (SpatialDataIO sdio : container.openAllDatasets())
-					dataToVisualize.add(sdio.readData());
+
+			for (final String dataset : datasetNames) {
+				logger.info("Opening dataset '{}' in '{}' ...", dataset, inputPath);
+				dataToVisualize.add(container.openDataset(dataset).readData());
 			}
 		}
 		else {
 			logger.info("Opening dataset '{}' ...", inputPath);
 			dataToVisualize.add(SpatialDataIO.openReadOnly(inputPath, service).readData());
+			datasetNames.add(inputPath);
 		}
 
-		new STDataExplorer( dataToVisualize, inputPath, SpatialDataContainer.openExisting(inputPath, service).getDatasets() );
+		new STDataExplorer(dataToVisualize, inputPath, datasetNames);
 
-		//service.shutdown();
+		service.shutdown();
 		return null;
 	}
 

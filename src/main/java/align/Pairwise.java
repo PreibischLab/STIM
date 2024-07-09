@@ -32,7 +32,6 @@ import io.SpatialDataContainer;
 import mpicbg.models.AffineModel2D;
 import net.imglib2.Cursor;
 import net.imglib2.Interval;
-import net.imglib2.IterableInterval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealLocalizable;
 import net.imglib2.RealPoint;
@@ -43,6 +42,7 @@ import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.complex.ComplexDoubleType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Intervals;
@@ -223,40 +223,35 @@ public class Pairwise
 		return toTest;
 	}
 
-	public static ArrayList<Pair<String, Double>> getGenesEntropy( final STData stData, final String geneLabel ) throws IllegalArgumentException {
+	public static ArrayList<Pair<String, Double>> getGenesEntropy(final STData stData, final String entropyLabel)
+			throws IllegalArgumentException {
 		Map< String, RandomAccessibleInterval< ? extends NativeType< ? > > > geneAnnotation = stData.getGeneAnnotations();
-		if (!geneAnnotation.containsKey(geneLabel)) {
-			throw new IllegalArgumentException("The property '" + geneLabel + "' was not found as gene annotation");
+		if (!geneAnnotation.containsKey(entropyLabel)) {
+			throw new IllegalArgumentException("The property '" + entropyLabel + "' was not found as gene annotation");
 		}
 
-		final RandomAccessibleInterval entropy = geneAnnotation.get(geneLabel);
+		final RandomAccessibleInterval<? extends NativeType<?>> entropyValues = geneAnnotation.get(entropyLabel);
 		List<String> geneNames = stData.getGeneNames();
 
 		ArrayList<Pair<String, Double>> list = new ArrayList<>();
-		final IterableInterval< DoubleType > entropyValue = Views.flatIterable(entropy);
-		final double[] entropyValueCopy = new double[ (int)entropyValue.size() ];
-		final Cursor< DoubleType > cursor = entropyValue.localizingCursor();
-
-		while ( cursor.hasNext() )
-		{
-			final DoubleType t = cursor.next();
-			entropyValueCopy[ cursor.getIntPosition( 0 ) ] = t.get();
-		}
+		// TODO: this will blow up if the annotation is not doubles; fix this!
+		final Cursor<DoubleType> cursor = (Cursor<DoubleType>) Views.flatIterable(entropyValues).cursor();
 
 		for (String geneName : geneNames) {
-			list.add(new ValuePair<>(geneName, cursor.next().get()));
+			list.add(new ValuePair<>(geneName, cursor.next().getRealDouble()));
 		}
 		return list;
 	}
 
-	public static List< String > genesToTest( final STData stdataA, final STData stdataB, final String geneLabel, final int numGenes ) throws IllegalArgumentException
-	{
+	public static List<String> genesToTest(final STData stdataA, final STData stdataB, final String entropyLabel, final int numGenes)
+			throws IllegalArgumentException {
+
 		if ( numGenes <= 0 )
 			return new ArrayList<>();
 
 		// this assumes that the "stdev" or similar has been computed
-		final ArrayList<Pair<String, Double>> listA = getGenesEntropy( stdataA, geneLabel );
-		final ArrayList<Pair<String, Double>> listB = getGenesEntropy( stdataB, geneLabel );
+		final ArrayList<Pair<String, Double>> listA = getGenesEntropy(stdataA, entropyLabel);
+		final ArrayList<Pair<String, Double>> listB = getGenesEntropy(stdataB, entropyLabel);
 			
 		// now we want to find the combination of genes where both have high variance
 		// we therefore sort them by the sum of ranks of both lists
@@ -597,7 +592,7 @@ public class Pairwise
 		//final String[] pucks = new String[] { "Puck_180531_18", "Puck_180531_17" };
 		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18" };
 
-		final ExecutorService service = Executors.newFixedThreadPool(8);
+		final ExecutorService service = Executors.newFixedThreadPool(Threads.numThreads());
 		final SpatialDataContainer container = SpatialDataContainer.openExisting(path + "slide-seq-normalized-gzip3.n5", service);
 		final List<String> pucks = container.getDatasets();
 
@@ -615,7 +610,7 @@ public class Pairwise
 		
 				logger.info( "Finding genes" );
 
-				final List< String > genesToTest = genesToTest( stDataA, stDataB, "stdev", 50 );
+				final List< String > genesToTest = genesToTest(stDataA, stDataB, Entropy.STDEV.label(), 50);
 		
 				/*
 				final List< String > genesToTest = new ArrayList<>();

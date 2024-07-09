@@ -11,6 +11,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+import align.Entropy;
 import org.joml.Math;
 
 import align.AlignTools;
@@ -198,29 +199,30 @@ public class PairwiseSectionAligner implements Callable<Void> {
 
 		if (numGenes > 0 && entropyPath == null) {
 			logger.info( "Retrieving standard deviation of genes for all sections" );
+			final String stdevLabel = Entropy.STDEV.label();
+			entropyPath = stdevLabel;
+
 			for ( int i = 0; i < dataToAlign.size(); ++i ) {
 				final String dataset_name = datasetNames.get( i );
 				
 				final ArrayImg<DoubleType, DoubleArray> entropy_values_rai;
 				final STDataAssembly stData = dataToAlign.get( i );
-				if (stData.data().getGeneAnnotations().containsKey("stdev")) {
-					logger.debug("Gene annotation 'stdev' was found for {}. Omitting.", dataset_name);
+				if (stData.data().getGeneAnnotations().containsKey(stdevLabel)) {
+					logger.debug("Gene annotation '{}' was found for {}. Omitting.", stdevLabel, dataset_name);
 					continue;
 				}
 				logger.debug("Computing standard deviation of genes for {} (may take a while)", dataset_name);
-				final double[] entropy_values = ExtractGeneLists.computeEntropy("stdev", stData.data(), numThreads);
+				final double[] entropy_values = ExtractGeneLists.computeEntropy(Entropy.STDEV, stData.data(), numThreads);
 	
 				entropy_values_rai = ArrayImgs.doubles(entropy_values, stData.data().numGenes());
-				stData.data().getGeneAnnotations().put("stdev", entropy_values_rai);
+				stData.data().getGeneAnnotations().put(stdevLabel, entropy_values_rai);
 				try {
 					container.openDataset(dataset_name).updateStoredGeneAnnotations(stData.data().getGeneAnnotations());
-				} 
+				}
 				catch (IOException e) {
 					logger.error("Cannot write gene annotations to file", e);
 				}
-				
 			}
-			entropyPath = "stdev";
 		} else if (entropyPath != null) {
 			logger.debug("Will take genes from '{}' property in gene annotation", entropyPath);
 		}
