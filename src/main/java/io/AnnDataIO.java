@@ -125,59 +125,6 @@ public class AnnDataIO extends SpatialDataIO {
 		return Converters.convert(expressionVals, (i, o) -> o.set(i.getRealDouble()), new DoubleType());
 	}
 
-	@Override
-	protected List<Pair<String,Double>> readExpressionStd(N5Reader reader, String exprValuePath) throws IOException {
-		// TODO: refactor and use the functions from the N5IO and others
-		// TODO: this will be more or less efficient depending on the underlying data structure
-		// final AnnDataFieldType type = AnnDataDetails.getFieldType(reader, path);
-
-		// TODO: implement if it is sparse, else it is the same as the N5IO function
-		// switch (type) {
-		// 	case CSR_MATRIX:
-        //         return AnnDataDetails.readArray(reader, exprValuePath);
-        //     case CSC_MATRIX:
-        //         return AnnDataDetails.readArray(reader, exprValuePath);
-        //     default:
-        //         throw new UnsupportedOperationException("This AnnData does not support sparse matrix");
-		// }
-
-		final AtomicInteger nextGene = new AtomicInteger();
-		final List< Pair< String, Double > > exprStd = new ArrayList<>();
-		final List<String> gene_names = this.readGeneNames(reader);
-
-		RandomAccessibleInterval<DoubleType> allExprValues = readExpressionValues(reader);
-		long[] exprDims = allExprValues.dimensionsAsLongArray();
-		final double numLocations = exprDims[1];
-
-		for ( int g = nextGene.getAndIncrement(); g < gene_names.size(); g = nextGene.getAndIncrement() )
-		{
-			final String gene = gene_names.get( g );
-			final IterableInterval< DoubleType > exprValues = Views.flatIterable(Views.hyperSlice( allExprValues, 1, g ));
-			final double[] exprValuesCopy = new double[ (int)exprValues.size() ];
-
-			final Cursor< DoubleType > cursor = exprValues.localizingCursor();
-
-			while ( cursor.hasNext() )
-			{
-				final DoubleType t = cursor.next();
-				exprValuesCopy[ cursor.getIntPosition( 0 ) ] = t.get();
-			}
-
-			double sum = Arrays.stream(exprValuesCopy).sum();
-			double sumOfSquares = Arrays.stream(exprValuesCopy).map(x -> x*x).sum();
-
-			double avg = sum / numLocations;
-			double variance = (sumOfSquares / numLocations) - (avg * avg);
-			double stdev = Math.sqrt(variance);
-
-			exprStd.add(new ValuePair<>(gene, stdev));
-		}
-
-		return exprStd;
-	}
-
-
-
 	protected <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(N5Reader reader, AffineSet transform, String name) throws IOException {
 		if (!reader.exists("/uns/" + name))
 			return;

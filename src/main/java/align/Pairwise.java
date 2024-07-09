@@ -235,7 +235,7 @@ public class Pairwise
 
 		ArrayList<Pair<String, Double>> list = new ArrayList<>();
 		// TODO: this will blow up if the annotation is not doubles; fix this!
-		final Cursor<RealType<?>> cursor = (Cursor<RealType<?>>) Views.flatIterable(entropyValues).cursor();
+		final Cursor<DoubleType> cursor = (Cursor<DoubleType>) Views.flatIterable(entropyValues).cursor();
 
 		for (String geneName : geneNames) {
 			list.add(new ValuePair<>(geneName, cursor.next().getRealDouble()));

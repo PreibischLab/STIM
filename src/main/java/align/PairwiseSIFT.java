@@ -536,7 +536,7 @@ public class PairwiseSIFT
 
 				//System.out.println( new Date( System.currentTimeMillis() ) + ": Finding genes" );
 
-				final List< String > genesToTest = Pairwise.genesToTest( stDataA, stDataB, Entropy.STDEV, 2000 );
+				final List< String > genesToTest = Pairwise.genesToTest( stDataA, stDataB, Entropy.STDEV.label(), 2000 );
 				//for ( final String gene : genesToTest )
 				//	System.out.println( gene );
 				/*final List< String > genesToTest = new ArrayList<>();
