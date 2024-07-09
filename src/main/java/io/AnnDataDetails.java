@@ -103,8 +103,13 @@ class AnnDataDetails {
     public static List<String> getExistingDataFrameDatasets(N5Reader reader, String dataFrame) throws IOException {
         if (!reader.exists(dataFrame))
             return new ArrayList<>();
-
-        String[] rawArray = reader.getAttribute(dataFrame, "column-order", String[].class);
+        
+        String[] rawArray = null;
+        try {
+            rawArray = reader.getAttribute(dataFrame, "column-order", String[].class);
+        } catch (Exception e) {
+            System.out.println("Cannot parse 'column-order'. Skipping..."); // TODO: adapt in logging branch
+        }
         rawArray = (rawArray == null) ? reader.list(dataFrame) : rawArray;
 
         if (rawArray == null || rawArray.length == 0)
