@@ -59,10 +59,6 @@ public abstract class SpatialDataIO {
 			return instance.readExpressionValues(reader);
 		}
 
-		public List<Pair<String,Double>> readExpressionStd(N5Reader reader) throws IOException {
-			return instance.readExpressionStd(reader);
-		}
-
 		public List<String> readBarcodes(N5Reader reader) throws IOException {
 			return instance.readBarcodes(reader);
 		}
@@ -283,12 +279,6 @@ public abstract class SpatialDataIO {
 	}
 
 	protected abstract RandomAccessibleInterval<DoubleType> readExpressionValues(N5Reader reader, String exprValuesPath) throws IOException; // size: [numGenes x numLocations]
-
-	protected List<Pair<String,Double>> readExpressionStd(N5Reader reader) throws IOException {
-		return readExpressionStd(reader, exprValuePath);
-	}
-
-	protected abstract List<Pair<String,Double>> readExpressionStd(N5Reader reader, String exprValuesPath) throws IOException; // size: [numGenes x numLocations]
 
 	protected abstract List<String> readBarcodes(N5Reader reader) throws IOException;
 
