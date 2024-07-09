@@ -1,5 +1,6 @@
 package cmd;
 
+import java.io.IOException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -54,8 +55,13 @@ public class AddEntropy implements Callable<Void> {
 
 		final String actualLabel = (geneLabels == null) ? entropy.label() : geneLabels;
 		stData.data().getGeneAnnotations().put(actualLabel, entropyValuesRai);
-		sdio.updateStoredGeneAnnotations(stData.data().getGeneAnnotations());
-	
+		try {
+			sdio.updateStoredGeneAnnotations(stData.data().getGeneAnnotations());
+		}
+		catch (IOException e) {
+			throw new IllegalStateException("Trying to write to read-only file.");
+		}
+
 		logger.debug( "Done." );
 
 		service.shutdown();

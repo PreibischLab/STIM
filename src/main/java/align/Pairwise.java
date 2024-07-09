@@ -243,15 +243,15 @@ public class Pairwise
 		return list;
 	}
 
-	public static List<String> genesToTest(final STData stdataA, final STData stdataB, final Entropy entropy, final int numGenes)
+	public static List<String> genesToTest(final STData stdataA, final STData stdataB, final String entropyLabel, final int numGenes)
 			throws IllegalArgumentException {
 
 		if ( numGenes <= 0 )
 			return new ArrayList<>();
 
 		// this assumes that the "stdev" or similar has been computed
-		final ArrayList<Pair<String, Double>> listA = getGenesEntropy(stdataA, entropy.label());
-		final ArrayList<Pair<String, Double>> listB = getGenesEntropy(stdataB, entropy.label());
+		final ArrayList<Pair<String, Double>> listA = getGenesEntropy(stdataA, entropyLabel);
+		final ArrayList<Pair<String, Double>> listB = getGenesEntropy(stdataB, entropyLabel);
 			
 		// now we want to find the combination of genes where both have high variance
 		// we therefore sort them by the sum of ranks of both lists
@@ -610,7 +610,7 @@ public class Pairwise
 		
 				logger.info( "Finding genes" );
 
-				final List< String > genesToTest = genesToTest( stDataA, stDataB, Entropy.STDEV, 50 );
+				final List< String > genesToTest = genesToTest(stDataA, stDataB, Entropy.STDEV.label(), 50);
 		
 				/*
 				final List< String > genesToTest = new ArrayList<>();
