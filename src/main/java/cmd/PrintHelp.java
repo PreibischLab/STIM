@@ -15,16 +15,20 @@ public class PrintHelp implements Callable<Void> {
 	public Void call() throws Exception {
 
 		final List<Callable<Void>> commands = Arrays.asList(
-				new View(),
-				new RenderImage(),
-				new BigDataViewerStackDisplay(),
-				new Resave(),
-				new AddSlice(),
-				new Normalize(),
-				new AddAnnotations(),
-				new PairwiseSectionAligner(),
-				new ViewPairwiseAlignment(),
-				new GlobalOpt()
+			new AddAnnotations(),
+			new AddEntropy(),
+			new AddPairwiseMatch(),
+			new AddSlice(),
+			new BigDataViewerDisplay(),
+			new BigDataViewerStackDisplay(),
+			new GlobalOpt(),
+			new InteractiveAlignment(),
+			new Normalize(),
+			new PairwiseSectionAligner(),
+			new RenderImage(),
+			new Resave(),
+			new View(),
+			new ViewPairwiseAlignment()
 		);
 
 		Iterator<Callable<Void>> it = commands.iterator();
