@@ -7,6 +7,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -59,7 +61,7 @@ public class Resave implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 		if (inputPaths == null) {
-			logger.error("No input paths defined: " + inputPaths + ". Stopping.");
+			logger.error("No input paths defined: {}. Stopping.", inputPaths);
 			return null;
 		}
 
@@ -71,15 +73,15 @@ public class Resave implements Callable<Void> {
 			return null;
 		}
 		if (outputFile.exists()) {
-			logger.error("File " + outputFile.getAbsolutePath() + " already exists, stopping." );
+			logger.error("File {} already exists, stopping.", outputFile.getAbsolutePath());
 			return null;
 		}
 
 		final File locationsFile = new File(elements[0].trim());
 		final File readsFile = new File(elements[1].trim());
 
-		logger.debug("Locations='" + locationsFile.getAbsolutePath() + "'");
-		logger.debug("Reads='" + readsFile.getAbsolutePath() + "'");
+		logger.debug("Locations='{}'", locationsFile.getAbsolutePath());
+		logger.debug("Reads='{}'", readsFile.getAbsolutePath());
 
 		BufferedReader locationsIn, readsIn = null;
 		Map<String, BufferedReader> annotationsInMap = new HashMap<>();
@@ -89,11 +91,11 @@ public class Resave implements Callable<Void> {
 			for (String annotationPath : annotations) {
 				final File annotationFile = new File(annotationPath.trim());
 				final String annotationLabel = Paths.get(annotationFile.getAbsolutePath()).getFileName().toString().split("\\.")[0];
-				logger.debug("Loading annotation file '" + annotationPath + "' as label '" + annotationLabel + "'.");
+				logger.debug("Loading annotation file '{}' as label '{}'.", annotationPath, annotationLabel);
 				annotationsInMap.put(annotationLabel, openCsvInput(annotationFile, annotationLabel));
 			}
 		} catch (IOException e) {
-			logger.error(e.getMessage());
+			logger.error(e);
 			return null;
 		}
 
@@ -110,7 +112,7 @@ public class Resave implements Callable<Void> {
 
 		final ExecutorService service = Executors.newFixedThreadPool(8);
 		SpatialDataIO sdio = SpatialDataIO.open(outputFile.getAbsolutePath(), service);
-		logger.info("\nSaving in file='" + outputFile.getPath() + "'");
+		logger.info("\nSaving in file='{}'", outputFile.getPath());
 		sdio.writeData(new STDataAssembly(data));
 
 		if (containerPath != null) {
@@ -121,7 +123,7 @@ public class Resave implements Callable<Void> {
 			else
 				container = SpatialDataContainer.createNew(containerPath, service);
 
-			logger.info("\nMoving file to '" + containerPath + "'");
+			logger.info("\nMoving file to '{}'", containerPath);
 			container.addExistingDataset(outputFile.getAbsolutePath());
 		}
 
@@ -148,8 +150,7 @@ public class Resave implements Callable<Void> {
 		return reader;
 	}
 
-	public static BufferedReader openCompressedFile( final File file ) throws IOException, ArchiveException
-	{
+	public static BufferedReader openCompressedFile( final File file ) {
 		String path = file.getAbsolutePath();
 
 		int index = -1;
@@ -184,11 +185,10 @@ public class Resave implements Callable<Void> {
 			if ( index + length >= path.length() )
 				pathInCompressed = null; // no path inside the archive specified, open first file that comes along
 			else
-				pathInCompressed = path.substring( index + length + 1, path.length() );
+				pathInCompressed = path.substring( index + length + 1);
 
 			try
 			{
-				@SuppressWarnings("resource")
 				ZipFile zipFile = new ZipFile( compressedFile );
 				Enumeration<? extends ZipEntry> entries = zipFile.entries();
 				String baseDir = null;
@@ -198,13 +198,13 @@ public class Resave implements Callable<Void> {
 					ZipEntry entry = entries.nextElement();
 
 					if ( pathInCompressed == null )
-						return new BufferedReader( new InputStreamReader( zipFile.getInputStream( entry ), "UTF-8") );
+						return new BufferedReader(new InputStreamReader(zipFile.getInputStream(entry), StandardCharsets.UTF_8) );
 
 					if ( baseDir == null )
 						baseDir = entry.getName();
 
 					if ( entry.getName().equals( baseDir + pathInCompressed ) || entry.getName().equals( pathInCompressed ) )
-						return new BufferedReader( new InputStreamReader( zipFile.getInputStream( entry ), "UTF-8") );
+						return new BufferedReader(new InputStreamReader(zipFile.getInputStream(entry), StandardCharsets.UTF_8) );
 				}
 
 				zipFile.close();
@@ -213,7 +213,7 @@ public class Resave implements Callable<Void> {
 			try
 			{
 				final File input = new File(compressedFile);
-				final InputStream is = new FileInputStream(input);
+				final InputStream is = Files.newInputStream(input.toPath());
 				final CompressorInputStream in = new GzipCompressorInputStream(is, true);
 				final TarArchiveInputStream tin = new TarArchiveInputStream(in);
 	
@@ -221,12 +221,12 @@ public class Resave implements Callable<Void> {
 				String baseDir = entry.getName();
 
 				if ( pathInCompressed == null )
-					return new BufferedReader( new InputStreamReader( tin, "UTF-8") );
+					return new BufferedReader(new InputStreamReader(tin, StandardCharsets.UTF_8));
 
 				while (entry != null)
 				{
 					if ( entry.getName().equals( baseDir + pathInCompressed ) || entry.getName().equals( pathInCompressed ) )
-						return new BufferedReader( new InputStreamReader( tin, "UTF-8") );
+						return new BufferedReader(new InputStreamReader(tin, StandardCharsets.UTF_8));
 
 					entry = tin.getNextTarEntry();
 				}
@@ -237,19 +237,19 @@ public class Resave implements Callable<Void> {
 			try
 			{
 				final File input = new File(compressedFile);
-				final InputStream is = new FileInputStream(input);
+				final InputStream is = Files.newInputStream(input.toPath());
 				final TarArchiveInputStream tin = new TarArchiveInputStream(is);
 	
 				TarArchiveEntry entry = tin.getNextTarEntry();
 				String baseDir = entry.getName();
 
 				if ( pathInCompressed == null )
-					return new BufferedReader( new InputStreamReader( tin, "UTF-8") );
+					return new BufferedReader(new InputStreamReader(tin, StandardCharsets.UTF_8));
 
 				while (entry != null)
 				{
 					if ( entry.getName().equals( baseDir + pathInCompressed ) || entry.getName().equals( pathInCompressed ) )
-						return new BufferedReader( new InputStreamReader( tin, "UTF-8") );
+						return new BufferedReader(new InputStreamReader(tin, StandardCharsets.UTF_8));
 
 					entry = tin.getNextTarEntry();
 				}
@@ -260,17 +260,17 @@ public class Resave implements Callable<Void> {
 			try
 			{
 				final File input = new File(compressedFile);
-				final InputStream is = new FileInputStream(input);
+				final InputStream is = Files.newInputStream(input.toPath());
 				final CompressorInputStream gzip = new CompressorStreamFactory().createCompressorInputStream(new BufferedInputStream(is));
 				//final GzipCompressorInputStream gzip = new GzipCompressorInputStream( is, true );
 
 				//final GzipParameters metaData = gzip.getMetaData();
 				//System.out.println( metaData.getFilename() );
 
-				return new BufferedReader( new InputStreamReader( gzip, "UTF-8") );
+				return new BufferedReader(new InputStreamReader(gzip, StandardCharsets.UTF_8));
 			} catch ( Exception e ) { /* not a gzipped file*/ }
 
-			logger.error( "File '" + compressedFile + "' could not be read as archive." );
+			logger.error("File '{}' could not be read as archive.", compressedFile);
 
 			return null;
 		}
@@ -278,7 +278,8 @@ public class Resave implements Callable<Void> {
 		return null;
 	}
 
-	public static final void main(final String... args) throws ZipException, IOException, ArchiveException {
-		CommandLine.call(new Resave(), args);
+	public static void main(final String... args) throws IOException, ArchiveException {
+		final CommandLine cmd = new CommandLine(new Resave());
+		cmd.execute(args);
 	}
 }

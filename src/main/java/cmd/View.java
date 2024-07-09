@@ -21,6 +21,7 @@ import util.LoggerUtil;
 public class View implements Callable<Void> {
 	
 	private static final Logger logger = LoggerUtil.getLogger();
+
 	@Option(names = {"-i", "--input"}, required = true, description = "input file or N5 container path, e.g. -i /home/ssq.n5.")
 	private String inputPath = null;
 
@@ -30,7 +31,7 @@ public class View implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 		if (!(new File(inputPath)).exists()) {
-			logger.error("Container / dataset '" + inputPath + "' does not exist. Stopping.");
+			logger.error("Container / dataset '{}' does not exist. Stopping.", inputPath);
 			return null;
 		}
 
@@ -39,20 +40,20 @@ public class View implements Callable<Void> {
 		if (SpatialDataContainer.isCompatibleContainer(inputPath)) {
 			SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath, service);
 
-			if (datasets != null && datasets.trim().length() != 0) {
+			if (datasets != null && !datasets.trim().isEmpty()) {
 				for (String dataset : datasets.split(",")) {
-					logger.info("Opening dataset '" + dataset + "' in '" + inputPath + "' ...");
+					logger.info("Opening dataset '{}' in '{}' ...", dataset, inputPath);
 					dataToVisualize.add(container.openDataset(dataset.trim()).readData());
 				}
 			}
 			else {
-				logger.info("Opening all datasets in '" + inputPath + "' ...");
+				logger.info("Opening all datasets in '{}' ...", inputPath);
 				for (SpatialDataIO sdio : container.openAllDatasets())
 					dataToVisualize.add(sdio.readData());
 			}
 		}
 		else {
-			logger.info("Opening dataset '" + inputPath + "' ...");
+			logger.info("Opening dataset '{}' ...", inputPath);
 			dataToVisualize.add(SpatialDataIO.openReadOnly(inputPath, service).readData());
 		}
 
@@ -62,7 +63,8 @@ public class View implements Callable<Void> {
 		return null;
 	}
 
-	public static final void main(final String... args) {
-		CommandLine.call(new View(), args);
+	public static void main(final String... args) {
+		final CommandLine cmd = new CommandLine(new View());
+		cmd.execute(args);
 	}
 }

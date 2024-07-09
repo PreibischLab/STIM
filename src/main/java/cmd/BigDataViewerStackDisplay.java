@@ -93,7 +93,7 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 		final boolean useTransform = true;
 
 		if (!(new File(inputPath)).exists()) {
-			logger.error("Container / dataset '" + inputPath + "' does not exist. Stopping.");
+			logger.error("Container / dataset '{}' does not exist. Stopping.", inputPath);
 			return null;
 		}
 
@@ -103,19 +103,19 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 		if (SpatialDataContainer.isCompatibleContainer(inputPath)) {
 			SpatialDataContainer container = SpatialDataContainer.openForReading(inputPath, service);
 
-			if (datasets != null && datasets.length() != 0) {
+			if (datasets != null && !datasets.isEmpty()) {
 				for (String dataset : datasets.split(",")) {
-					logger.info("Opening dataset '" + dataset + "' in '" + inputPath + "' ...");
+					logger.info("Opening dataset '{}' in '{}' ...", dataset, inputPath);
 					iodata.add(container.openDatasetReadOnly(dataset.trim()));
 				}
 			}
 			else {
-				logger.info("Opening all datasets in '" + inputPath + "' ...");
+				logger.info("Opening all datasets in '{}' ...", inputPath);
 				iodata.addAll(container.openAllDatasets());
 			}
 		}
 		else {
-			logger.info("Opening dataset '" + inputPath + "' ...");
+			logger.info("Opening dataset '{}' ...", inputPath);
 			iodata.add(SpatialDataIO.openReadOnly(inputPath, service));
 		}
 
@@ -125,13 +125,13 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 			return null;
 		}
 
-		if (genes == null || genes.length() == 0) {
+		if (genes == null || genes.isEmpty()) {
 			logger.error("No genes available. stopping.");
 			return null;
 		}
 
 		List<String> genesToShow = Arrays.stream(genes.split(",")).map(String::trim).collect(Collectors.toList());
-		if (genesToShow.size() == 0) {
+		if (genesToShow.isEmpty()) {
 			logger.error("No genes available. stopping.");
 			return null;
 		}
@@ -145,13 +145,13 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 				data.transform().set(new AffineTransform2D());
 		}
 
-		if (dataToVisualize.size() == 0) {
+		if (dataToVisualize.isEmpty()) {
 			logger.error("No datasets that contain sequencing data. stopping.");
 			return null;
 		}
 
 		List< String > annotationList;
-		if ( annotations != null && annotations.length() > 0 )
+		if ( annotations != null && !annotations.isEmpty())
 			annotationList = Arrays.asList(annotations.split("," ) );
 		else
 			annotationList = new ArrayList<>();
@@ -171,7 +171,7 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 
 			if ( ffSingleSpot != null && ffSingleSpot > 0  )
 			{
-				logger.debug( "Using single-spot filtering, effective radius=" + (dataToVisualize.get( 0 ).statistics().getMedianDistance() * ffSingleSpot) );
+				logger.debug("Using single-spot filtering, effective radius={}", dataToVisualize.get(0).statistics().getMedianDistance() * ffSingleSpot);
 				filterFactorysInt.add( new SingleSpotRemovingFilterFactory<>( outofboundsInt, dataToVisualize.get( 0 ).statistics().getMedianDistance() * ffSingleSpot ) );
 			}
 
@@ -212,7 +212,7 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 		for ( int i = 0; i < genesToShow.size(); ++i )
 		{
 			final String gene = genesToShow.get( i );
-			logger.debug( "Rendering gene: " + gene );
+			logger.debug("Rendering gene: {}", gene);
 
 			final STIMStack stack =
 					VisualizeStack.createStack(
@@ -245,8 +245,9 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 		return null;
 	}
 
-	public static final void main(final String... args) {
-		CommandLine.call(new BigDataViewerStackDisplay(), args);
+	public static void main(final String... args) {
+		final CommandLine cmd = new CommandLine(new BigDataViewerStackDisplay());
+		cmd.execute(args);
 	}
 
 }

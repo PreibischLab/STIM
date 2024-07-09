@@ -42,6 +42,7 @@ public class PrintHelp implements Callable<Void> {
 	}
 
 	public static void main(final String[] args) {
-		CommandLine.call(new PrintHelp(), args);
+		final CommandLine cmd = new CommandLine(new PrintHelp());
+		cmd.execute(args);
 	}
 }

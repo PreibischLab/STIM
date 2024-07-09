@@ -23,6 +23,7 @@ import util.LoggerUtil;
 public class Normalize implements Callable<Void> {
 	
 		private static final Logger logger = LoggerUtil.getLogger();
+
 		@Option(names = {"-c", "--container"}, required = false, description = "N5 container; if given, all datasets are taken from and added to that container")
 		private String containerPath = null;
 
@@ -37,7 +38,7 @@ public class Normalize implements Callable<Void> {
 			List<String> inputDatasets = (input == null) ? new ArrayList<>() :
 					Arrays.stream(input.split(",")).map(String::trim).collect(Collectors.toList());
 			if (inputDatasets.isEmpty()) {
-				logger.error("No input paths defined: " + input + ". Stopping.");
+				logger.error("No input paths defined: {}. Stopping.", input);
 				return null;
 			}
 
@@ -57,7 +58,7 @@ public class Normalize implements Callable<Void> {
 			}
 
 			if (outputDatasets.size() != inputDatasets.size()) {
-				logger.error("Size of input datasets " + inputDatasets + " not equal to size of output datasets " + outputDatasets + ". Stopping.");
+				logger.error("Size of input datasets {} not equal to size of output datasets {}. Stopping.", inputDatasets, outputDatasets);
 				return null;
 			}
 
@@ -74,7 +75,7 @@ public class Normalize implements Callable<Void> {
 				STDataAssembly stData = sdin.readData();
 
 				if (stData == null) {
-					logger.error("Could not load dataset '" + inputPath + "'. Stopping.");
+					logger.error("Could not load dataset '{}'. Stopping.", inputPath);
 					return null;
 				}
 
@@ -94,7 +95,8 @@ public class Normalize implements Callable<Void> {
 			return null;
 		}
 
-		public static final void main(final String... args) {
-			CommandLine.call(new Normalize(), args);
+		public static void main(final String... args) {
+			final CommandLine cmd = new CommandLine(new Normalize());
+			cmd.execute(args);
 		}
 }

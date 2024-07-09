@@ -3,6 +3,7 @@ package analyze;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,11 +28,12 @@ public class ExtractGeneLists
 	public static ArrayList< Pair< String, Double > > sortByStDevIntensity( final STData data, final int numThreads )
 	{
 		final ArrayList< Pair< String, Double > > stDev = computeStdev(data, numThreads);
-		Collections.sort( stDev, (o1, o2) -> o2.getB().compareTo( o1.getB() ));
+		final Comparator<Pair<String, Double>> byStdDev = Comparator.comparing(Pair::getB);
+		stDev.sort(byStdDev.reversed());
 		return stDev;
 	}
 
-	public static double[] computeEntropy(final String method, final STData stData, final int numThreads) throws IOException {
+	public static double[] computeEntropy(final String method, final STData stData, final int numThreads) {
 		final ArrayList<Pair<String, Double>> entropy;
 		final double[] entropyValues;
 
@@ -40,7 +42,7 @@ public class ExtractGeneLists
 				entropy = ExtractGeneLists.computeStdev(stData, Math.min(Threads.numThreads(), numThreads) );
 				break;
 			default:
-				logger.error("Method " + method + " not supported");
+				logger.error("Method {} not supported", method);
 				return null;
 		}
 
@@ -57,7 +59,7 @@ public class ExtractGeneLists
 		}
 
 		entropyValues = reorderedEntropy.stream()
-								.mapToDouble(pair -> pair.getB())
+								.mapToDouble(Pair::getB)
 								.toArray();
 		return entropyValues;
 	}
@@ -130,7 +132,8 @@ public class ExtractGeneLists
 			avgs.add( new ValuePair<>( gene, sum.getSum() / data.numLocations() ) );
 		}
 
-		Collections.sort( avgs, (o1, o2) -> o2.getB().compareTo( o1.getB() ));
+		final Comparator<Pair<String, Double>> byAvg = Comparator.comparing(Pair::getB);
+		avgs.sort(byAvg.reversed());
 
 		return avgs;
 	}

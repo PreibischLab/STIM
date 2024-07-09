@@ -61,12 +61,12 @@ public class AddPairwiseMatch implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 		if (!(new File(containerPath)).exists()) {
-			logger.error("Container '" + containerPath + "' does not exist. Stopping.");
+			logger.error("Container '{}' does not exist. Stopping.", containerPath);
 			return null;
 		}
 
 		if (!SpatialDataContainer.isCompatibleContainer(containerPath)) {
-			logger.error("Pairwise alignment does not work for single dataset '" + containerPath + "'. Stopping.");
+			logger.error("Pairwise alignment does not work for single dataset '{}'. Stopping.", containerPath);
 			return null;
 		}
 
@@ -75,7 +75,7 @@ public class AddPairwiseMatch implements Callable<Void> {
 
 		final String[] datasetAB = datasets.split(",");
 		if (datasetAB.length != 2) {
-			logger.error("Exactly two datasets must be specified, separated by a comma. Instead, '" + datasets + "' was given. Stopping.");
+			logger.error("Exactly two datasets must be specified, separated by a comma. Instead, '{}' was given. Stopping.", datasets);
 			return null;
 		}
 		final String datasetA = datasetAB[0].trim();
@@ -84,7 +84,7 @@ public class AddPairwiseMatch implements Callable<Void> {
 
 		for (final String dataset : datasetAB) {
 			if (!container.getDatasets().contains(dataset)) {
-				logger.error("Container does not contain dataset '" + dataset + "'. Stopping.");
+				logger.error("Container does not contain dataset '{}'. Stopping.", dataset);
 				return null;
 			}
 		}
@@ -95,7 +95,7 @@ public class AddPairwiseMatch implements Callable<Void> {
 			while ((line = reader.readLine()) != null) {
 				final String[] coords = line.split(",");
 				if (coords.length != 5) {
-					logger.error("Line '" + line + "' does not contain exactly 5 comma-separated coordinates. Stopping.");
+					logger.error("Line '{}' does not contain exactly 5 comma-separated coordinates. Stopping.", line);
 					return null;
 				}
 
@@ -106,7 +106,7 @@ public class AddPairwiseMatch implements Callable<Void> {
 								new PointST(new double[]{Double.parseDouble(coords[3]), Double.parseDouble(coords[4])}, gene)));
 			}
 		} catch (final Exception e) {
-			logger.error("Could not read csv file '" + csvPath + "':\n" + e.getMessage() + "\nStopping.");
+			logger.error("Could not read csv file '{}':\n{}\nStopping.", csvPath, e.getMessage());
 			return null;
 		}
 
@@ -144,13 +144,13 @@ public class AddPairwiseMatch implements Callable<Void> {
 					.setTitle(matchName + "-inliers-" + match.getNumInliers());
 		}
 
-		logger.info("Adding pairwise match '" + matchName + "' to container '" + containerPath + "'...");
+		logger.info("Adding pairwise match '{}' to container '{}'...", matchName, containerPath);
 		if (container.getMatches().contains(matchName)) {
 			if (overwrite) {
-				logger.warn("Overwriting existing pairwise match '" + matchName + "'...");
+				logger.warn("Overwriting existing pairwise match '{}'...", matchName);
 				container.deleteMatch(matchName);
 			} else {
-				logger.error("Pairwise match '" + matchName + "' already exists. Stopping.");
+				logger.error("Pairwise match '{}' already exists. Stopping.", matchName);
 				return null;
 			}
 		}
@@ -176,7 +176,8 @@ public class AddPairwiseMatch implements Callable<Void> {
 	}
 
 	public static void main(final String... args) {
-		CommandLine.call(new AddPairwiseMatch(), args);
+		final CommandLine cmd = new CommandLine(new AddPairwiseMatch());
+		cmd.execute(args);
 	}
 
 }

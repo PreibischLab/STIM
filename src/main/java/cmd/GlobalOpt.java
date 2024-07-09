@@ -23,6 +23,7 @@ import util.LoggerUtil;
 public class GlobalOpt implements Callable<Void> {
 	
 	private static final Logger logger = LoggerUtil.getLogger();
+
 	@Option(names = {"-c", "--container"}, required = true, description = "input N5 container path, e.g. -i /home/ssq.n5.")
 	private String containerPath = null;
 
@@ -83,12 +84,12 @@ public class GlobalOpt implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 		if (!(new File(containerPath)).exists()) {
-			logger.error("Container '" + containerPath + "' does not exist. Stopping.");
+			logger.error("Container '{}' does not exist. Stopping.", containerPath);
 			return null;
 		}
 
 		if (!SpatialDataContainer.isCompatibleContainer(containerPath)) {
-			logger.error("Global alignment does not work for single dataset '" + containerPath + "'. Stopping.");
+			logger.error("Global alignment does not work for single dataset '{}'. Stopping.", containerPath);
 			return null;
 		}
 
@@ -102,13 +103,13 @@ public class GlobalOpt implements Callable<Void> {
 					.collect(Collectors.toList());
 		}
 		else {
-			logger.warn("No input datasets specified. Trying to open all datasets in '" + containerPath + "' ...");
+			logger.warn("No input datasets specified. Trying to open all datasets in '{}' ...", containerPath);
 			datasetNames = container.getDatasets();
 		}
 
 		for (final String dataset : datasetNames) {
 			if (!container.getDatasets().contains(dataset)) {
-				logger.error("Container does not contain dataset '" + dataset + "' in '" + containerPath + "'. Stopping.");
+				logger.error("Container does not contain dataset '{}' in '{}'. Stopping.", dataset, containerPath);
 				return null;
 			}
 		}
@@ -157,7 +158,8 @@ public class GlobalOpt implements Callable<Void> {
 	}
 
 	public static void main(final String... args) {
-		CommandLine.call(new GlobalOpt(), args);
+		final CommandLine cmd = new CommandLine(new GlobalOpt());
+		cmd.execute(args);
 	}
 
 }
