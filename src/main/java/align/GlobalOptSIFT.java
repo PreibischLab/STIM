@@ -50,7 +50,7 @@ public class GlobalOptSIFT
 		}
 		catch (Exception e) {
 			final String matchName = container.constructMatchName(datasetA, datasetB);
-			logger.error("error reading: " + matchName + ": ", e);
+			logger.warn("could not read match: " + matchName + ": ", e);
 			match = new SiftMatch();
 		}
 
