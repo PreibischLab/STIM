@@ -216,7 +216,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 					container.openDataset(dataset_name).updateStoredGeneAnnotations(stData.data().getGeneAnnotations());
 				} 
 				catch (IOException e) {
-					System.out.println("Cannot write gene annotations to file");
+					logger.error("Cannot write gene annotations to file", e);
 				}
 				
 			}

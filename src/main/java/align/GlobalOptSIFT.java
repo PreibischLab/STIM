@@ -56,7 +56,7 @@ public class GlobalOptSIFT
 			return match;
 		}
 		catch (Exception e) {
-			System.out.println("error: " + e);
+			logger.error("Error during global alignment: " + e);
 			e.printStackTrace();
 			return null;
 		}

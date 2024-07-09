@@ -108,7 +108,7 @@ class AnnDataDetails {
         try {
             rawArray = reader.getAttribute(dataFrame, "column-order", String[].class);
         } catch (Exception e) {
-            System.out.println("Cannot parse 'column-order'. Skipping..."); // TODO: adapt in logging branch
+            // TODO: adapt in logging branch
         }
         rawArray = (rawArray == null) ? reader.list(dataFrame) : rawArray;
 
