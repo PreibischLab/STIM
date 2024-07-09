@@ -1,8 +1,6 @@
 package analyze;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -13,6 +11,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import align.Entropy;
 import data.STData;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
@@ -25,6 +24,7 @@ import util.LoggerUtil;
 public class ExtractGeneLists
 {
 	private static final Logger logger = LoggerUtil.getLogger();
+
 	public static ArrayList< Pair< String, Double > > sortByStDevIntensity( final STData data, final int numThreads )
 	{
 		final ArrayList< Pair< String, Double > > stDev = computeStdev(data, numThreads);
@@ -33,22 +33,21 @@ public class ExtractGeneLists
 		return stDev;
 	}
 
-	public static double[] computeEntropy(final String method, final STData stData, final int numThreads) {
-		final ArrayList<Pair<String, Double>> entropy;
-		final double[] entropyValues;
+	public static double[] computeEntropy(final Entropy entropy, final STData stData, final int numThreads) {
+		final ArrayList<Pair<String, Double>> geneToEntropy;
 
-		switch (method) {
-			case "stdev":
-				entropy = ExtractGeneLists.computeStdev(stData, Math.min(Threads.numThreads(), numThreads) );
+		switch (entropy) {
+			case STDEV:
+				geneToEntropy = ExtractGeneLists.computeStdev(stData, Math.min(Threads.numThreads(), numThreads) );
 				break;
 			default:
-				logger.error("Method {} not supported", method);
+				logger.error("Method {} not supported", entropy.label());
 				return null;
 		}
 
 		// We resort given the current order of genes by creating a hashmap of genes
 		Map<String, Pair<String, Double>> pairMap = new HashMap<>();
-		for (Pair<String, Double> pair : entropy) {
+		for (Pair<String, Double> pair : geneToEntropy) {
 			pairMap.put(pair.getA(), pair);
 		}
 
@@ -58,10 +57,9 @@ public class ExtractGeneLists
 			reorderedEntropy.add(pairMap.get(key));
 		}
 
-		entropyValues = reorderedEntropy.stream()
+		return reorderedEntropy.stream()
 								.mapToDouble(Pair::getB)
 								.toArray();
-		return entropyValues;
 	}
 
 	public static ArrayList< Pair< String, Double > > computeStdev( final STData data, final int numThreads )

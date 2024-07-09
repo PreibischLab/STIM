@@ -3,6 +3,7 @@ package io;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -99,7 +100,7 @@ public class AnnDataIO extends SpatialDataIO {
 		bdv.setDisplayRangeBounds( 0, 200 );
 		bdv.setDisplayRange( 0, 5 );
 
-		new STDataExplorer(Arrays.asList(data), path, new ArrayList<>( Arrays.asList( "" ) ) );
+		new STDataExplorer(Collections.singletonList(data), path, Collections.singletonList(""));
 	}
 
 	@Override

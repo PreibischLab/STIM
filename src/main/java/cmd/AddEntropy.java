@@ -4,6 +4,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import align.Entropy;
 import analyze.ExtractGeneLists;
 import gui.STDataAssembly;
 import io.SpatialDataIO;
@@ -27,10 +28,10 @@ public class AddEntropy implements Callable<Void> {
 	private String inputPath = null;
 
 	@Option(names = {"-m", "--method"}, required = false, description = "method to compute gene entropy")
-	private String method = "stdev";
+	private Entropy entropy = Entropy.STDEV;
 
-	@Option(names = {"-gl", "--geneLabel"}, required = false, description = "custom label where to save the computed entropy")
-	private String geneLabels = "stdev";
+	@Option(names = {"-gl", "--geneLabel"}, required = false, description = "custom label where to save the computed entropy (if not given: name of the method)")
+	private String geneLabels = null;
 
 	@Option(names = {"--numThreads"}, required = false, description = "number of threads for parallel processing")
 	private int numThreads = 8;
@@ -45,12 +46,14 @@ public class AddEntropy implements Callable<Void> {
 		final ExecutorService service = Executors.newFixedThreadPool(numThreads);
 		final SpatialDataIO sdio = SpatialDataIO.open(inputPath, service);
 		final STDataAssembly stData = sdio.readData();
-		final ArrayImg<DoubleType, DoubleArray> entropy_values_rai;
+		final ArrayImg<DoubleType, DoubleArray> entropyValuesRai;
 
-		logger.info("Computing gene variability with method '{}' (might take a while)", method);
-		final double[] entropy_values = ExtractGeneLists.computeEntropy(method, stData.data(), numThreads);
-		entropy_values_rai = ArrayImgs.doubles(entropy_values, stData.data().numGenes());
-		stData.data().getGeneAnnotations().put(geneLabels, entropy_values_rai);
+		logger.info("Computing gene variability with method '{}' (might take a while)", entropy.label());
+		final double[] entropyValues = ExtractGeneLists.computeEntropy(entropy, stData.data(), numThreads);
+		entropyValuesRai = ArrayImgs.doubles(entropyValues, stData.data().numGenes());
+
+		final String actualLabel = (geneLabels == null) ? entropy.label() : geneLabels;
+		stData.data().getGeneAnnotations().put(actualLabel, entropyValuesRai);
 		sdio.updateStoredGeneAnnotations(stData.data().getGeneAnnotations());
 	
 		logger.debug( "Done." );

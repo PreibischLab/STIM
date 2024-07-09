@@ -227,12 +227,6 @@ public class PairwiseSIFT
 		final Interval finalInterval = Intervals.expand( interval, 100 );
 
 		return finalInterval;
-		/*
-		final Interval interval = STDataUtils.getCommonInterval( stDataA, stDataB );
-		final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tS ), 100 );
-
-		return finalInterval;
-		*/
 	}
 
 	public static SiftMatch pairwiseSIFT(
@@ -542,7 +536,7 @@ public class PairwiseSIFT
 
 				//System.out.println( new Date( System.currentTimeMillis() ) + ": Finding genes" );
 
-				final List< String > genesToTest = Pairwise.genesToTest( stDataA, stDataB, "stdev", 2000 );
+				final List< String > genesToTest = Pairwise.genesToTest( stDataA, stDataB, Entropy.STDEV, 2000 );
 				//for ( final String gene : genesToTest )
 				//	System.out.println( gene );
 				/*final List< String > genesToTest = new ArrayList<>();
