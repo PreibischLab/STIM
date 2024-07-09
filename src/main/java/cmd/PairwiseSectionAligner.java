@@ -1,6 +1,7 @@
 package cmd;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -211,7 +212,13 @@ public class PairwiseSectionAligner implements Callable<Void> {
 	
 				entropy_values_rai = ArrayImgs.doubles(entropy_values, stData.data().numGenes());
 				stData.data().getGeneAnnotations().put("stdev", entropy_values_rai);
-				container.openDataset(dataset_name).updateStoredGeneAnnotations(stData.data().getGeneAnnotations());
+				try {
+					container.openDataset(dataset_name).updateStoredGeneAnnotations(stData.data().getGeneAnnotations());
+				} 
+				catch (IOException e) {
+					System.out.println("Cannot write gene annotations to file");
+				}
+				
 			}
 			entropyPath = "stdev";
 		} else if (entropyPath != null) {

@@ -15,6 +15,7 @@ import gui.bdv.AddedGene.Rendering;
 import ij.ImageJ;
 import io.Path;
 import io.SpatialDataContainer;
+import io.SpatialDataException;
 import io.SpatialDataIO;
 import mpicbg.models.AffineModel2D;
 import mpicbg.models.ErrorStatistic;
@@ -48,10 +49,16 @@ public class GlobalOptSIFT
 				}
 			}
 		}
-		catch (Exception e) {
+		catch (SpatialDataException e) {
 			final String matchName = container.constructMatchName(datasetA, datasetB);
 			logger.warn("error reading: {}: ", matchName, e);
 			match = new SiftMatch();
+			return match;
+		}
+		catch (Exception e) {
+			System.out.println("error: " + e);
+			e.printStackTrace();
+			return null;
 		}
 
 		return match;
@@ -126,7 +133,7 @@ public class GlobalOptSIFT
 				tileToIndex.putIfAbsent( tileB, j );
 
 				final List< PointMatch > inliers = match.getInliers();
-				if (!inliers.isEmpty())
+				if (inliers != null && !inliers.isEmpty())
 				{
 					logger.debug("Connecting {} to {} ... ", i, j);
 					tileA.connect( tileB, inliers );
