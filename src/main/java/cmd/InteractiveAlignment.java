@@ -195,7 +195,7 @@ public class InteractiveAlignment implements Callable<Void> {
 		final HashMap< String, List< AddedGene > > sourceData = new HashMap<>();
 
 		logger.info( "Starting BDV ... " );
-		logger.info( "Starting with the top " + numGenes + " genes after skipping the first " + skipFirstNGenes +" genes (you find them in the 'groups' panel, you can add/remove genes in the GUI." );
+		logger.info("Starting with the top {} genes after skipping the first {} genes (you find them in the 'groups' panel, you can add/remove genes in the GUI.", numGenes, skipFirstNGenes);
 
 		for ( int i = skipFirstNGenes; i < numGenes + skipFirstNGenes; ++i )
 		{

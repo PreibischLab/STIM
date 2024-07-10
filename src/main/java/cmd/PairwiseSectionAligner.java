@@ -167,7 +167,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 			logger.warn("Parameter maxEpsilon is unset or negative; using 10 * average distance between sequenced locations = {}", maxEpsilon);
 		}
 
-		// iterate once just to be sure we will not crash half way through because something exists
+		// iterate once just to be sure we will not crash halfway through because something exists
 		List<String> matches = container.getMatches();
 		for ( int i = 0; i < dataToAlign.size() - 1; ++i ) {
 			for ( int j = i + 1; j < dataToAlign.size(); ++j ) {
@@ -209,7 +209,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 					logger.debug("Gene annotation '{}' was found for {}. Omitting.", stdevLabel, dataset_name);
 					continue;
 				}
-				logger.debug("Computing standard deviation of genes for {} (may take a while)", dataset_name);
+				logger.info("Computing standard deviation of genes for {} (may take a while)", dataset_name);
 				final double[] entropy_values = ExtractGeneLists.computeEntropy(Entropy.STDEV, stData.data(), numThreads);
 	
 				entropy_values_rai = ArrayImgs.doubles(entropy_values, stData.data().numGenes());
@@ -218,7 +218,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 					container.openDataset(dataset_name).updateStoredGeneAnnotations(stData.data().getGeneAnnotations());
 				}
 				catch (IOException e) {
-					logger.error("Cannot write gene annotations to file", e);
+					logger.warn("Cannot write gene annotations to file", e);
 				}
 			}
 		} else if (entropyPath != null) {
