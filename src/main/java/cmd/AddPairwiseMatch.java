@@ -48,8 +48,8 @@ public class AddPairwiseMatch implements Callable<Void> {
 	@Option(names = {"-s", "--scale"}, required = false, description = "scaling factor rendering the coordinates into images, which is highly sample-dependent (default: 0.05 for slideseq data)")
 	private double scale = 0.05;
 
-	@Option(names = {"-sf", "--smoothnessFactor"}, required = false, description = "factor for the sigma of the gaussian used for rendering, corresponds to smoothness, e.g -sf 2.0 (default: 4.0)")
-	private double smoothnessFactor = 4.0;
+	@Option(names = {"-rf", "--renderingFactor"}, required = false, description = "factor for the amount of filtering or radius used for rendering, corresponds to smoothness for Gauss, e.g -rf 2.0 (default: 1.0)")
+	private double smoothnessFactor = 1.0;
 
 	@Option(names = {"-l", "--lambda"}, required = false, description = "for rendering we use a 2D interpolated model (affine/rigid). The number defines the degree of rigidity, fully affine is 0.0, fully rigid is 1.0 (default: 1.0 - rigid)")
 	private double lambda = 1.0;

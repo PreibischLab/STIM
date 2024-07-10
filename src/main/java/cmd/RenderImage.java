@@ -56,7 +56,7 @@ import render.Render;
 public class RenderImage implements Callable<Void> {
 
 	// st-render -i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d Puck_180531_22.n5,Puck_180531_23.n5 -g Malat1
-	// -dm Gauss -bMin 0.0 -bMax 0.1579 -sf 2.0922  --ffSingleSpot 1.25 --scale 0.10557775847089489
+	// -dm Gauss -bMin 0.0 -bMax 0.1579 -rf 2.0922  --ffSingleSpot 1.25 --scale 0.10557775847089489
 	@Option(names = {"-i", "--input"}, required = true, description = "input file or N5 container path, e.g. -i /home/ssq.n5.")
 	private String inputPath = null;
 
