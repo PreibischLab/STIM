@@ -7,9 +7,11 @@ import java.io.File;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -786,15 +788,21 @@ public class STIMCardAlignSIFT
 
 	protected Pair<Model<?>, Model<?>> extractParametersFromGUI(final SIFTParam param )
 	{
+		double parsedInitialSigma = parseDoubleWithDefault(initialSigma.getText(), 1.0);
+		double parsedrod = parseDoubleWithDefault(rod.getText(), 0.90f);
+		double parsedilr = parseDoubleWithDefault(ilr.getText(), 0.05); // minInlierRatio
+		double parsedtfRANSAC = parseDoubleWithDefault(tfRANSAC.getText(), 0.1);
+		double parsedtfFinal = parseDoubleWithDefault(tfFinal.getText(), 0.1);
+			
 		param.setIntrinsicParameters(
 				Integer.parseInt( fdSize.getText().trim() ),
 				Integer.parseInt( fdBins.getText().trim() ),
 				Integer.parseInt( minOS.getText().trim() ),
 				Integer.parseInt( steps.getText().trim() ),
-				Double.parseDouble( initialSigma.getText().trim() ),
+				parsedInitialSigma,
 				biDirectional.isSelected(),
-				Double.parseDouble( rod.getText().trim() ),
-				Double.parseDouble( ilr.getText().trim() ),
+				parsedrod,
+				parsedilr,
 				(int)Math.round( inliersPerGeneSlider.getValue().getValue() ),
 				(int)Math.round( inliersSlider.getValue().getValue() ),
 				Integer.parseInt( it.getText().trim() ));
@@ -806,13 +814,22 @@ public class STIMCardAlignSIFT
 				stimcardFilter.filterFactories(),
 				stimcard.currentDisplayMode(), stimcard.currentRenderingFactor(), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
 
-		final double lambda1 = Double.parseDouble( tfRANSAC.getText().trim() );
-		final double lambda2 = Double.parseDouble( tfFinal.getText().trim() );
-
+		final double lambda1 = parsedtfRANSAC;
+		final double lambda2 = parsedtfFinal;
 		final Model model1 = getModelFor( boxModelRANSAC1.getSelectedIndex(), boxModelRANSAC2.getSelectedIndex(), lambda1 );
 		final Model model2 = getModelFor( boxModelFinal1.getSelectedIndex(), boxModelFinal2.getSelectedIndex(), lambda2 );
 
 		return new ValuePair<>( model1, model2 );
+	}
+
+	private double parseDoubleWithDefault(String text, double defaultValue) {
+		NumberFormat format = NumberFormat.getInstance(Locale.getDefault());
+		try {
+			return format.parse(text.trim()).doubleValue();
+		} catch (ParseException e) {
+			logger.warn("Cannot parse from GUI -> setting default to {}", e);
+			return defaultValue;
+		}
 	}
 
 	protected void reEnableControls()
