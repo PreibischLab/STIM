@@ -194,8 +194,6 @@ public class PairwiseSectionAligner implements Callable<Void> {
 
 		final boolean saveResult = true;
 		final boolean visualizeResult = !hidePairwiseRendering;
-		if (visualizeResult)
-			new ImageJ();
 
 		if (numGenes > 0 && entropyPath == null) {
 			logger.info( "Retrieving standard deviation of genes for all sections" );
