@@ -187,7 +187,7 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 	
 	@Override
-	protected void writeGeneAnnotations(N5Writer writer, String annotationPath, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
+	protected void writeGeneAnnotations(N5Writer writer, String geneAnnotationPath, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
 		AnnDataDetails.addToDataFrame(writer,  geneAnnotationPath, label, (RandomAccessibleInterval<DoubleType>) data, options1d);
 	}
 

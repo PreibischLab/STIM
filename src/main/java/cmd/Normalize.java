@@ -24,7 +24,7 @@ public class Normalize implements Callable<Void> {
 	
 		private static final Logger logger = LoggerUtil.getLogger();
 
-		@Option(names = {"-c", "--container"}, required = false, description = "N5 container; if given, all datasets are taken from and added to that container")
+		@Option(names = {"-c", "--container"}, required = false, description = "N5 container; if given, datasets are taken from and added to that container")
 		private String containerPath = null;
 
 		@Option(names = {"-o", "--output"}, required = false, description = "comma separated list of output datasets (default: same as input)")

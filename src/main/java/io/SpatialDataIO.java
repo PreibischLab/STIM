@@ -354,7 +354,7 @@ public abstract class SpatialDataIO {
 
 		for (Entry<String, RandomAccessibleInterval<? extends NativeType<?>>> newEntry : metadata.entrySet()) {
 			if (existingAnnotations.contains(newEntry.getKey()))
-				logger.warn("Existing metadata '{}' was not updated.", newEntry.getKey());
+				logger.warn("Metadata '{}' already exists. Skip writing.", newEntry.getKey());
 			else
 				writeAnnotations(writer, newEntry.getKey(), newEntry.getValue());
 		}
@@ -375,7 +375,7 @@ public abstract class SpatialDataIO {
 
 		for (Entry<String, RandomAccessibleInterval<? extends NativeType<?>>> newEntry : metadata.entrySet()) {
 			if (existingGeneAnnotations.contains(newEntry.getKey()))
-				logger.warn("Existing metadata '{}' was not updated.", newEntry.getKey());
+				logger.warn("Metadata '{}' already exists. Skip writing.", newEntry.getKey());
 			else
 				writeGeneAnnotations(writer, newEntry.getKey(), newEntry.getValue());
 		}
@@ -406,7 +406,7 @@ public abstract class SpatialDataIO {
 	}
 
 	protected void writeGeneAnnotations(N5Writer writer, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
-		writeGeneAnnotations(writer, annotationPath, label, data);
+		writeGeneAnnotations(writer, geneAnnotationPath, label, data);
 	}
 
 	protected abstract void writeAnnotations(N5Writer writer, String annotationsPath, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException;
@@ -418,7 +418,7 @@ public abstract class SpatialDataIO {
 	 *
 	 * @param transform the new transformation
 	 * @param name the name of the transformation
-	 * @throws IOException
+	 * @throws IOException if trying to write to a read-only file
 	 */
 	public void updateTransformation(AffineGet transform, String name) throws IOException {
 		if (readOnly)
