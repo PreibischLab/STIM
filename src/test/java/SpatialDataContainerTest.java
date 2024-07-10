@@ -127,17 +127,33 @@ public class SpatialDataContainerTest extends AbstractIOTest {
 		String fullPath = getPlaygroundPath(datasetName);
 
 		try (N5HDF5Writer writer = new N5HDF5Writer(fullPath)) {
-			container.addExistingDataset(fullPath);
+			container.linkExistingDataset(fullPath);
 			assertThrows(SpatialDataException.class, () -> container.addExistingDataset(fullPath));
 
 			container.deleteDataset(datasetName);
 			(new File(fullPath)).delete();
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			fail("Could not write / read file: ", e);
 		}
 	}
 
+	@Test
+	public void adding_non_existing_dataset_fails() throws IOException {
+		SpatialDataContainer container = SpatialDataContainer.createNew(getPlaygroundPath("container.n5"), executorService);
+
+		String datasetName = "tmp.h5ad";
+		String fullPath = getPlaygroundPath(datasetName);
+
+		try (N5HDF5Writer writer = new N5HDF5Writer(fullPath)) {
+			container.addExistingDataset(fullPath);
+			assertThrows(IllegalArgumentException.class, () -> container.addExistingDataset(fullPath));
+
+			container.deleteDataset(datasetName);
+			(new File(fullPath)).delete();
+		} catch (Exception e) {
+			fail("Could not write / read file: ", e);
+		}
+	}
 	protected STDataAssembly createAndWriteData(String path) throws IOException {
 		SpatialDataIO sdio = SpatialDataIO.open(getPlaygroundPath(path), executorService);
 		STDataAssembly data = new STDataAssembly(TestUtils.createTestDataSet());

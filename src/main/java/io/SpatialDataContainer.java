@@ -132,6 +132,9 @@ public class SpatialDataContainer {
 	) throws IOException {
 
 		Path oldPath = Paths.get(path);
+		if (!oldPath.toFile().exists()) {
+			throw new IllegalArgumentException("Dataset '" + oldPath + "' does not exist.");
+		}
 		String datasetName = oldPath.getFileName().toString();
 
 		if (readOnly)
