@@ -96,12 +96,11 @@ public class IOTest extends AbstractIOTest {
 		}
 	}
 
-	protected static List<Named<String>> provideDatasetPaths() throws IOException {
+	protected static List<Named<String>> provideDatasetPaths() {
 		return Arrays.asList(
 				named("AnnData HDF5", "data.h5ad"),
-				// TODO: make these work!
-//				named("AnnData Zarr", "data.zarrad"),
-//				named("AnnData N5", "data.n5ad"),
+				named("AnnData Zarr", "data.zarrad"),
+				named("AnnData N5", "data.n5ad"),
 				named("N5 HDF5", "data.h5"),
 				named("N5 Zarr", "data.zarr"),
 				named("N5 FS", "data.n5")
