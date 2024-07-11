@@ -20,9 +20,8 @@ public class STDataAssembly
 		this.transform = transform;
 	}
 
-	public STDataAssembly( final STData data )
-	{
-		this( data, new STDataStatistics( data ), new AffineTransform2D() );
+	public STDataAssembly(final STData data) {
+		this(data, new STDataStatistics(data), new AffineTransform2D());
 	}
 
 	public STData data() { return data; }

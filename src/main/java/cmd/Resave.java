@@ -127,7 +127,7 @@ public class Resave implements Callable<Void> {
 			container.addExistingDataset(outputFile.getAbsolutePath());
 		}
 
-		logger.debug("Done.");
+		logger.info("Done.");
 		service.shutdown();
 		return null;
 	}

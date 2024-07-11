@@ -247,8 +247,6 @@ public abstract class SpatialDataIO {
 
 		STData stData = new STDataImgLib2(locations, exprValues, geneNames, barcodes, geneLookup);
 
-		//AffineTransform intensityTransform = new AffineTransform(1);
-		//readAndSetTransformation(reader, intensityTransform, "intensity_transform");
 		AffineTransform2D transform = new AffineTransform2D();
 		readAndSetTransformation(reader, transform, transformFieldName);
 
