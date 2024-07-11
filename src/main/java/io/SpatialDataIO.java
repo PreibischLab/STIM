@@ -239,7 +239,7 @@ public abstract class SpatialDataIO {
 
 		writeExpressionValues(writer, stData.getAllExprValues());
 		writeLocations(writer, stData.getLocations());
-		writeTransformation(writer, data.transform(), transformFieldName);
+		updateTransformation(writer, data.transform(), transformFieldName);
 		//writeTransformation(writer, data.intensityTransform(), "intensity_transform");
 
 		updateStoredAnnotations(stData.getAnnotations());
@@ -302,7 +302,7 @@ public abstract class SpatialDataIO {
 	protected abstract void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues, String exprValuesPath) throws IOException;
 
 	// public to be able to only write the transformation to a dataset
-	public abstract void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException;
+	public abstract void updateTransformation(N5Writer writer, AffineGet transform, String name) throws IOException;
 
 	protected void writeAnnotations(N5Writer writer, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
 		writeAnnotations(writer, annotationPath, label, data);
@@ -328,7 +328,7 @@ public abstract class SpatialDataIO {
 			throw new IllegalStateException("Trying to modify a read-only file.");
 
 		N5Writer writer = (N5Writer) ioSupplier.get();
-		writeTransformation(writer, transform, name);
+		updateTransformation(writer, transform, name);
 	}
 
 	/**

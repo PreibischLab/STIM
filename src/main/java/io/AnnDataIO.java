@@ -175,9 +175,13 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	@Override
-	public void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException {
+	public void updateTransformation(N5Writer writer, AffineGet transform, String name) throws IOException {
+		final String path = "/uns/" + name;
+		if (writer.exists(path)) {
+			writer.remove(path);
+		}
 		double[] trafoValues = transform.getRowPackedCopy();
-		AnnDataUtils.writeNumericalArray(ArrayImgs.doubles(trafoValues, trafoValues.length), writer, "/uns/" + name, options1d, AnnDataFieldType.DENSE_ARRAY);
+		AnnDataUtils.writeNumericalArray(ArrayImgs.doubles(trafoValues, trafoValues.length), writer, path, options1d, AnnDataFieldType.DENSE_ARRAY);
 	}
 
 	@Override

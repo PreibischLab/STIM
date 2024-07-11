@@ -2,7 +2,6 @@ package imglib2;
 
 import java.util.Iterator;
 
-import com.sun.istack.internal.NotNull;
 import net.imglib2.IterableInterval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RandomAccessibleInterval;

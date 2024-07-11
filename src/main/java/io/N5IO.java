@@ -138,7 +138,7 @@ public class N5IO extends SpatialDataIO {
 	}
 	
 	@Override
-	public void writeTransformation(N5Writer writer, AffineGet transform, String name) {
+	public void updateTransformation(N5Writer writer, AffineGet transform, String name) {
 		writer.setAttribute("/", name, transform.getRowPackedCopy());
 	}
 
