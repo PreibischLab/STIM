@@ -175,6 +175,11 @@
 			<artifactId>n5-zarr</artifactId>
 			<version>1.3.4</version>
 		</dependency>
+		<dependency>
+			<groupId>org.janelia.n5anndata</groupId>
+			<artifactId>n5-anndata</artifactId>
+			<version>0.1</version>
+		</dependency>
 
 		<!-- JUnit framework -->
 		<dependency>
