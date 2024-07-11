@@ -3,7 +3,6 @@ package cmd;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -19,7 +18,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
 import gui.STDataAssembly;
@@ -132,7 +130,7 @@ public class Resave implements Callable<Void> {
 		return null;
 	}
 
-	private static BufferedReader openCsvInput(File file, String contentDescriptor) throws IOException, ArchiveException {
+	private static BufferedReader openCsvInput(File file, String contentDescriptor) throws IOException {
 		final BufferedReader reader;
 
 		if (!file.exists()
@@ -217,7 +215,7 @@ public class Resave implements Callable<Void> {
 				final CompressorInputStream in = new GzipCompressorInputStream(is, true);
 				final TarArchiveInputStream tin = new TarArchiveInputStream(in);
 	
-				TarArchiveEntry entry = tin.getNextTarEntry();
+				TarArchiveEntry entry = tin.getNextEntry();
 				String baseDir = entry.getName();
 
 				if ( pathInCompressed == null )
@@ -228,7 +226,7 @@ public class Resave implements Callable<Void> {
 					if ( entry.getName().equals( baseDir + pathInCompressed ) || entry.getName().equals( pathInCompressed ) )
 						return new BufferedReader(new InputStreamReader(tin, StandardCharsets.UTF_8));
 
-					entry = tin.getNextTarEntry();
+					entry = tin.getNextEntry();
 				}
 
 				tin.close();
@@ -240,7 +238,7 @@ public class Resave implements Callable<Void> {
 				final InputStream is = Files.newInputStream(input.toPath());
 				final TarArchiveInputStream tin = new TarArchiveInputStream(is);
 	
-				TarArchiveEntry entry = tin.getNextTarEntry();
+				TarArchiveEntry entry = tin.getNextEntry();
 				String baseDir = entry.getName();
 
 				if ( pathInCompressed == null )
@@ -251,7 +249,7 @@ public class Resave implements Callable<Void> {
 					if ( entry.getName().equals( baseDir + pathInCompressed ) || entry.getName().equals( pathInCompressed ) )
 						return new BufferedReader(new InputStreamReader(tin, StandardCharsets.UTF_8));
 
-					entry = tin.getNextTarEntry();
+					entry = tin.getNextEntry();
 				}
 
 				tin.close();

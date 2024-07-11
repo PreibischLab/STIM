@@ -65,7 +65,7 @@ public class Normalize implements Callable<Void> {
 			final boolean isStandaloneDataset = (containerPath == null || containerPath.trim().isEmpty());
 			final ExecutorService service = Executors.newFixedThreadPool(8);
 			SpatialDataContainer container = isStandaloneDataset ? null : SpatialDataContainer.openExisting(containerPath, service);
-			SpatialDataIO sdin = null;
+			SpatialDataIO sdin;
 
 			for (int i = 0; i < inputDatasets.size(); i++) {
 				final String inputPath = inputDatasets.get(i);

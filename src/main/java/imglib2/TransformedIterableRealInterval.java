@@ -69,7 +69,7 @@ public class TransformedIterableRealInterval< T > implements IterableRealInterva
 	}
 
 	@Override
-	public RealCursor<T> localizingCursor() { return new TransformedIterableRealIntervalRealCursor< T >( irt, transform ); }
+	public RealCursor<T> localizingCursor() { return new TransformedIterableRealIntervalRealCursor<>(irt, transform); }
 
 	@Override
 	public int numDimensions() { return transform.numTargetDimensions(); }

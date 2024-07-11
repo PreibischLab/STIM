@@ -4,6 +4,7 @@ import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -239,15 +240,14 @@ public class VisualizeStack
 		double minDisplay = Double.MAX_VALUE;
 		double maxDisplay = -Double.MAX_VALUE;
 
-		for ( int i = 0; i < stdata.size(); ++i )
-		{
-			final IterableRealInterval<DoubleType> data = Render.getRealIterable( stdata.get( i ), gene, filterFactorys );
+		for (STDataAssembly stdatum : stdata) {
+			final IterableRealInterval<DoubleType> data = Render.getRealIterable(stdatum, gene, filterFactorys);
 
-			final double[] minmax = AddedGene.minmax( data );
-			minDisplay = Math.min( minDisplay, AddedGene.getDisplayMin( minmax[ 0 ], minmax[ 1 ], brightnessMin ) );
-			maxDisplay = Math.max( maxDisplay, AddedGene.getDisplayMax( minmax[ 1 ], brightnessMax ) );
+			final double[] minmax = AddedGene.minmax(data);
+			minDisplay = Math.min(minDisplay, AddedGene.getDisplayMin(minmax[0], minmax[1], brightnessMin));
+			maxDisplay = Math.max(maxDisplay, AddedGene.getDisplayMax(minmax[1], brightnessMax));
 
-			slices.add( data );
+			slices.add(data);
 		}
 
 		// we need to re-compute the statistics because the transformation might have changed it
@@ -256,8 +256,9 @@ public class VisualizeStack
 		final double spacing = medianDistance * spacingFactor;
 
 		final Interval interval2d = STDataUtils.getCommonIterableInterval( slices );
-		final long[] minI = new long[] { interval2d.min( 0 ), interval2d.min( 1 ), 0 - Math.round( Math.ceil( medianDistance * 3 ) ) };
-		final long[] maxI = new long[] { interval2d.max( 0 ), interval2d.max( 1 ), Math.round( ( stdata.size() - 1 ) * spacing ) + Math.round( Math.ceil( medianDistance * 3 ) ) };
+		final long padding = Math.round(Math.ceil(medianDistance * 3));
+		final long[] minI = new long[] { interval2d.min(0 ), interval2d.min(1 ), -padding};
+		final long[] maxI = new long[] { interval2d.max( 0 ), interval2d.max( 1 ), Math.round( ( stdata.size() - 1 ) * spacing ) + padding};
 		final Interval interval = new FinalInterval( minI, maxI );
 
 		final StackedIterableRealInterval< DoubleType > stack = new StackedIterableRealInterval<>( slices, spacing );
@@ -279,10 +280,9 @@ public class VisualizeStack
 		// default input trigger config, disables "control button1" drag in bdv
 		// (collides with default of "move annotation")
 		final InputTriggerConfig config = new InputTriggerConfig(
-				Arrays.asList(
-						new InputTriggerDescription[]{
-								new InputTriggerDescription(
-										new String[]{"not mapped"}, "drag rotate slow", "bdv")}));
+				Collections.singletonList(
+						new InputTriggerDescription(
+								new String[]{"not mapped"}, "drag rotate slow", "bdv")));
 
 		final KeyStrokeAdder ksKeyStrokeAdder = config.keyStrokeAdder(ksInputMap, "persistence");
 

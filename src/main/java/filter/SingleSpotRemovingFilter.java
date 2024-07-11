@@ -6,13 +6,13 @@ import net.imglib2.type.numeric.RealType;
 
 public class SingleSpotRemovingFilter< T extends RealType< T > > extends RadiusSearchFilter< T, T, SingleSpotRemovingFilterFactory< T > >
 {
-	final T outofbounds;
+	final T outOfBounds;
 
-	public SingleSpotRemovingFilter( final RadiusNeighborSearch< T > search, final SingleSpotRemovingFilterFactory< T > factory, final T outofbounds )
+	public SingleSpotRemovingFilter(final RadiusNeighborSearch<T> search, final SingleSpotRemovingFilterFactory<T> factory, final T outOfBounds)
 	{
 		super( search, factory );
 
-		this.outofbounds = outofbounds;
+		this.outOfBounds = outOfBounds;
 	}
 
 	@Override
@@ -23,6 +23,6 @@ public class SingleSpotRemovingFilter< T extends RealType< T > > extends RadiusS
 		if ( search.numNeighbors() > 1 )
 			output.setReal( search.getSampler( 0 ).get().getRealDouble() );
 		else 
-			output.set( outofbounds );
+			output.set(outOfBounds);
 	}
 }

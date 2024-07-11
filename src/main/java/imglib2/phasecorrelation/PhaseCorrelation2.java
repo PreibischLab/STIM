@@ -30,27 +30,16 @@ import java.util.concurrent.Executors;
 
 import ij.ImageJ;
 import imglib2.ImgLib2Util;
-import net.imglib2.Cursor;
 import net.imglib2.Dimensions;
 import net.imglib2.FinalInterval;
-import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.RealRandomAccess;
-import net.imglib2.algorithm.fft.FFTFunctions;
 import net.imglib2.algorithm.fft2.FFT;
 import net.imglib2.algorithm.fft2.FFTMethods;
-import net.imglib2.converter.ComplexPowerGLogFloatConverter;
 import net.imglib2.converter.Converter;
-import net.imglib2.converter.Converters;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
-import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.interpolation.randomaccess.NLinearInterpolatorFactory;
-import net.imglib2.multithreading.SimpleMultiThreading;
-import net.imglib2.realtransform.PolarToCartesianTransform2D;
-import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.ComplexType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.complex.ComplexFloatType;
@@ -199,9 +188,9 @@ public class PhaseCorrelation2 {
 
 		PhaseCorrelation2Util.calculateCrossCorrParallel(peaks, img1, img2, minOverlap, service, interpolateSubpixel);
 
-		Collections.sort(peaks, Collections.reverseOrder(new PhaseCorrelationPeak2.ComparatorByCrossCorrelation()));
+		peaks.sort(Collections.reverseOrder(new PhaseCorrelationPeak2.ComparatorByCrossCorrelation()));
 
-		if (peaks.size() > 0)
+		if (!peaks.isEmpty())
 			return peaks.get(0);
 		else
 			return null;
@@ -273,8 +262,8 @@ public class PhaseCorrelation2 {
 
 		RandomAccessibleInterval<FloatType> pcm = calculatePCM(
 				img1, img2,
-				new ArrayImgFactory<FloatType>( new FloatType() ),
-				new ArrayImgFactory<ComplexFloatType>( new ComplexFloatType() ),
+				new ArrayImgFactory<>(new FloatType()),
+				new ArrayImgFactory<>(new ComplexFloatType()),
 				service );
 
 		PhaseCorrelationPeak2 shiftPeak = getShift(pcm, img1, img2);

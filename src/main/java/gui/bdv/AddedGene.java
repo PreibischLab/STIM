@@ -41,7 +41,7 @@ import util.LoggerUtil;
 
 public class AddedGene
 {
-	public static enum Rendering { Gauss, Mean, NN, Linear };
+	public enum Rendering { Gauss, Mean, NN, Linear }
 
 	private static final Logger logger = LoggerUtil.getLogger();
 

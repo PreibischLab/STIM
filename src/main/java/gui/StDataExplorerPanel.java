@@ -209,7 +209,7 @@ public class StDataExplorerPanel extends JPanel
 
 				final String search = input;
 
-				if ( search.length() == 0 )
+				if (search.isEmpty())
 					return;
 
 				for ( final String s : allGenesLowerCase )

@@ -2,6 +2,7 @@ package imglib2;
 
 import java.util.Iterator;
 
+import com.sun.istack.internal.NotNull;
 import net.imglib2.IterableInterval;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RandomAccessibleInterval;
@@ -48,9 +49,9 @@ public class ExpValueRealIterable< T > implements IterableRealInterval< T >
 	@Override
 	public RealCursor< T > localizingCursor()
 	{
-		return new ExpValueRealCursor< T >(
+		return new ExpValueRealCursor<>(
 				locations,
-				iterableValues );
+				iterableValues);
 	}
 
 	@Override

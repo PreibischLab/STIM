@@ -6,18 +6,18 @@ import net.imglib2.type.numeric.real.DoubleType;
 
 public class DoubleUnsignedShortConverter implements Converter< DoubleType, UnsignedShortType >
 {
-	final double min, maxMmin;
+	final double min, range;
 
 	public DoubleUnsignedShortConverter( final double min, final double max )
 	{
 		this.min = min;
-		this.maxMmin = max - min;
+		this.range = max - min;
 	}
 
 	@Override
 	public void convert( final DoubleType input, final UnsignedShortType output )
 	{
-		output.set( (int)Math.round( 65535 * ( input.get() - min) / maxMmin ) );
+		output.set( (int)Math.round( 65535 * ( input.get() - min) / range) );
 	}
 
 }

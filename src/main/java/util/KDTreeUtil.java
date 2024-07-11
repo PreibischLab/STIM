@@ -18,11 +18,11 @@ public class KDTreeUtil
 		RealCursor<T> cursor = data.localizingCursor();
 		while (cursor.hasNext()) {
 			cursor.next();
-			positions.add(cursor.copyCursor());
+			positions.add(cursor.copy());
 			values.add(cursor.get().copy());
 		}
 
-		return new KDTree<T>(values, positions);
+		return new KDTree<>(values, positions);
 	}
 
 }

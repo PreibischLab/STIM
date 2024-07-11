@@ -8,34 +8,34 @@ public class GaussianFilterFactory< S extends RealType< S >, T extends RealType<
 {
 	public enum WeightType { NONE, BY_SUM_OF_WEIGHTS, BY_SUM_OF_SAMPLES, PARTIAL_BY_SUM_OF_WEIGHTS }
 
-	final T outofbounds;
+	final T outOfBounds;
 	double sigma, two_sq_sigma;
 	final WeightType normalize;
 
 	public GaussianFilterFactory(
-			final T outofbounds,
+			final T outOfBounds,
 			final double sigma )
 	{
-		this( outofbounds, sigma, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS );
+		this( outOfBounds, sigma, WeightType.PARTIAL_BY_SUM_OF_WEIGHTS );
 	}
 
 	public GaussianFilterFactory(
-			final T outofbounds,
+			final T outOfBounds,
 			final double sigma,
 			final WeightType normalize )
 	{
-		this( outofbounds, 5 * sigma, sigma, normalize );
+		this(outOfBounds, 5 * sigma, sigma, normalize );
 	}
 
 	public GaussianFilterFactory(
-			final T outofbounds,
+			final T outOfBounds,
 			final double radius,
 			final double sigma,
 			final WeightType normalize )
 	{
 		super( radius );
 
-		this.outofbounds = outofbounds;
+		this.outOfBounds = outOfBounds;
 		this.sigma = sigma;
 		this.normalize = normalize;
 		this.two_sq_sigma =  2 * sigma * sigma;
@@ -44,10 +44,10 @@ public class GaussianFilterFactory< S extends RealType< S >, T extends RealType<
 	@Override
 	public Filter< T > createFilter( final KDTree< S > tree )
 	{
-		return new GaussianFilter< S, T >(
-				new RadiusNeighborSearchOnKDTree<>( tree ), // TODO: is this copied?
+		return new GaussianFilter<>(
+				new RadiusNeighborSearchOnKDTree<>(tree), // TODO: is this copied?
 				this,
-				outofbounds.copy() );
+				outOfBounds.copy());
 				/*radius,
 				sigma,
 				normalize );*/
@@ -84,6 +84,6 @@ public class GaussianFilterFactory< S extends RealType< S >, T extends RealType<
 	@Override
 	public T create()
 	{
-		return outofbounds.createVariable();
+		return outOfBounds.createVariable();
 	}
 }

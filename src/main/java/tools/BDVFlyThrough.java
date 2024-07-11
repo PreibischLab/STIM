@@ -88,7 +88,7 @@ public class BDVFlyThrough
 
 	public interface CallbackBDV
 	{
-		public BdvStackSource< ? > updateBDV( final int frame, final BdvStackSource< ? > currentStackSource );
+		BdvStackSource< ? > updateBDV(final int frame, final BdvStackSource<?> currentStackSource);
 	}
 
 	public static void addCurrentViewerTransform( final ViewerPanel viewer )
@@ -101,7 +101,7 @@ public class BDVFlyThrough
 
 	public static void deleteLastViewerTransform()
 	{
-		if ( viewerTransforms.size() > 0 )
+		if (!viewerTransforms.isEmpty())
 		{
 			viewerTransforms.remove( viewerTransforms.size() - 1 );
 			System.out.println( "removed last transform, #transforms=" + viewerTransforms.size() );
@@ -110,7 +110,7 @@ public class BDVFlyThrough
 
 	public static void jumpToLastViewerTransform( final ViewerPanel viewer )
 	{
-		if ( viewerTransforms.size() > 0 )
+		if (!viewerTransforms.isEmpty())
 		{
 			viewer.state().setViewerTransform( viewerTransforms.get( viewerTransforms.size() - 1 ) );
 			System.out.println( "Jumped to transform " + viewerTransforms.get( viewerTransforms.size() - 1 )  + ", #transforms=" + viewerTransforms.size() );
@@ -488,7 +488,7 @@ public class BDVFlyThrough
 			{
 				System.out.println( "Smoothing " + interpolated.size() + " transforms with sigma=" + sigma );
 
-				final ListImg< NumericAffineTransform3D > transformImg = new ListImg< NumericAffineTransform3D >( new long[]{ interpolated.size() }, new NumericAffineTransform3D( new AffineTransform3D() ) );
+				final ListImg< NumericAffineTransform3D > transformImg = new ListImg<>(new long[]{interpolated.size()}, new NumericAffineTransform3D(new AffineTransform3D()));
 				final ListLocalizingCursor< NumericAffineTransform3D > it = transformImg.localizingCursor();
 
 				for ( final AffineTransform3D model : interpolated )

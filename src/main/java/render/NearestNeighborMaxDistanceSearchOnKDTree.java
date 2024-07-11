@@ -11,7 +11,7 @@ import util.SimpleSampler;
 
 public class NearestNeighborMaxDistanceSearchOnKDTree< T > extends NearestNeighborSearchOnKDTree< T >
 {
-	final Supplier<T> outofbounds;
+	final Supplier<T> outOfBounds;
 	final SimpleSampler< T > oobsSampler;
 	final SimpleRealLocalizable position;
 	final MaxDistanceParam param;
@@ -20,13 +20,13 @@ public class NearestNeighborMaxDistanceSearchOnKDTree< T > extends NearestNeighb
 	RealLocalizable point;
 	double newbestSquDistance;
 
-	public NearestNeighborMaxDistanceSearchOnKDTree( final KDTree< T > tree, final Supplier<T> outofbounds, final MaxDistanceParam param )
+	public NearestNeighborMaxDistanceSearchOnKDTree(final KDTree< T > tree, final Supplier<T> outOfBounds, final MaxDistanceParam param )
 	{
 		super( tree );
 
-		this.oobsSampler = new SimpleSampler< T >( outofbounds );
+		this.oobsSampler = new SimpleSampler<>(outOfBounds);
 		this.position = new SimpleRealLocalizable( pos );
-		this.outofbounds = outofbounds;
+		this.outOfBounds = outOfBounds;
 		this.param = param;
 	}
 
@@ -76,7 +76,7 @@ public class NearestNeighborMaxDistanceSearchOnKDTree< T > extends NearestNeighb
 	@Override
 	public NearestNeighborMaxDistanceSearchOnKDTree< T > copy()
 	{
-		final NearestNeighborMaxDistanceSearchOnKDTree< T > copy = new NearestNeighborMaxDistanceSearchOnKDTree< T >( tree, outofbounds, param );
+		final NearestNeighborMaxDistanceSearchOnKDTree< T > copy = new NearestNeighborMaxDistanceSearchOnKDTree<>(tree, outOfBounds, param);
 		System.arraycopy( pos, 0, copy.pos, 0, pos.length );
 		copy.bestPoint = bestPoint;
 		copy.bestSquDistance = bestSquDistance;

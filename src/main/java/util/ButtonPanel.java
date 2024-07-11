@@ -27,10 +27,10 @@ public class ButtonPanel extends JPanel {
 		setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
 		add(Box.createHorizontalGlue());
 
-		for (int i = 0; i < numButtons; i++) {
+		for (String buttonLabel : buttonLabels) {
 			final List<Runnable> runnables = new ArrayList<>();
 			runOnButton.add(runnables);
-			final JButton button = new JButton(buttonLabels[i]);
+			final JButton button = new JButton(buttonLabel);
 			button.addActionListener(e -> runnables.forEach(Runnable::run));
 			buttons.add(button);
 			add(button);

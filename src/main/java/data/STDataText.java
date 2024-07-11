@@ -17,7 +17,7 @@ import net.imglib2.util.Pair;
 
 /**
  * A text-input based implementation that can be used to convert to e.g. N5.
- * 
+ * <p>
  * Computes the ImgLib2 datastructures on demand from a list of locations and a HashMap of geneName to expression values
  * 
  * 

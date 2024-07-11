@@ -9,7 +9,7 @@ import net.imglib2.type.numeric.real.DoubleType;
 
 public class SIFTParam
 {
-	public static enum SIFTPreset { FAST, NORMAL, THOROUGH, VERYTHOROUGH };
+	public enum SIFTPreset { FAST, NORMAL, THOROUGH, VERY_THOROUGH}
 
 	/* defaults from FloatArray2DSIFT.Param:
 	 * 
@@ -142,7 +142,7 @@ public class SIFTParam
 			this.iterations = 10000;
 
 			break;
-		case VERYTHOROUGH:
+		case VERY_THOROUGH:
 			this.sift.fdSize = 8;
 			this.sift.fdBins = 8;
 			this.sift.steps = 10;

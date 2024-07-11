@@ -22,7 +22,7 @@ public class FilteredRealRandomAccessible< S, T > implements RealRandomAccessibl
 	@Override
 	public RealRandomAccess< T > realRandomAccess()
 	{
-		return new FilteredRealRandomAccess< S, T >( data, filterFactory );
+		return new FilteredRealRandomAccess<>(data, filterFactory);
 	}
 
 	@Override

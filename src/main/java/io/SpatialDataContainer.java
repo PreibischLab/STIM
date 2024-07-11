@@ -101,7 +101,7 @@ public class SpatialDataContainer {
 		writer.setAttribute("/", datasetsKey, datasets.toArray());
 	}
 
-	public void addExistingDataset(String path) throws IOException {
+	public void addExistingDataset(String path) {
 		addExistingDataset(path, null, null, null, null);
 	}
 
@@ -112,7 +112,7 @@ public class SpatialDataContainer {
 		}, locationPath, exprValuePath, annotationPath, geneAnnotationPath);
 	}
 
-	public void linkExistingDataset(String path) throws IOException {
+	public void linkExistingDataset(String path) {
 		linkExistingDataset(path, null, null, null, null);
 	}
 

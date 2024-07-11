@@ -30,5 +30,5 @@ import net.imglib2.RealLocalizable;
 
 public interface PointMatchIdentification < P extends RealLocalizable >
 {
-	public List< PointMatch > assignPointMatches( final List< LinkedPoint< P > > target, final List< LinkedPoint< P > > reference ) throws NoSuitablePointsException;
+	List<PointMatch> assignPointMatches(final List<LinkedPoint<P>> target, final List<LinkedPoint<P>> reference) throws NoSuitablePointsException;
 }

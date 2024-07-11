@@ -79,7 +79,7 @@ public class BlendedExtendedMirroredRandomAccessible2<T extends RealType<T>>impl
 
 	/**
 	 * TODO: For efficiency reasons we should implement it as a RandomAccess that actually updates the underlying
-	 * imgRA for every move. This way, the outofbounds can work very efficiently when it is iterated through Views.iterable().cursor()
+	 * imgRA for every move. This way, the outOfBounds can work very efficiently when it is iterated through Views.iterable().cursor()
 	 */
 	public class BlendedRandomAccess extends Point implements RandomAccess<T>
 	{

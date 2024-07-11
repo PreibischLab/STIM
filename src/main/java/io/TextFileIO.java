@@ -166,7 +166,7 @@ public class TextFileIO
 		boolean[] assigned = new boolean[ barcodes.size() ];
 
 		i = 0;
-		String nextLine = null;
+		String nextLine;
 
 		while ( (nextLine = annotationFile.readLine()) != null )
 		{
@@ -214,7 +214,7 @@ public class TextFileIO
 		int[] ids = new int[ numLocations ];
 
 		int i = 0;
-		String nextLine = null;
+		String nextLine;
 
 		while ( (nextLine = annotationFile.readLine()) != null )
 		{
@@ -245,7 +245,7 @@ public class TextFileIO
 		{
 			int line = 0;
 
-			String nextLine = null;
+			String nextLine;
 
 			while ( (nextLine = in.readLine()) != null ) 
 			{
@@ -301,7 +301,7 @@ public class TextFileIO
 			int line = 0;
 			int dim = -1;
 
-			String nextLine = null;
+			String nextLine;
 
 			while ( (nextLine = in.readLine()) != null ) 
 			{
@@ -353,7 +353,7 @@ public class TextFileIO
 
 		ArrayList< String > genes = new ArrayList<>();
 
-		String nextLine = null;
+		String nextLine;
 
 		while ( (nextLine = in.readLine()) != null ) 
 		{

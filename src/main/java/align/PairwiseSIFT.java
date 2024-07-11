@@ -508,7 +508,7 @@ public class PairwiseSIFT
 		final double smoothnessFactor = 4.0;
 
 		final SIFTParam p = new SIFTParam();
-		p.setIntrinsicParameters( SIFTPreset.VERYTHOROUGH );
+		p.setIntrinsicParameters( SIFTPreset.VERY_THOROUGH);
 		p.minInliersGene = 10;
 		p.minInliersTotal = 12;
 		p.setDatasetParameters( 300, 0.1, 1024, null, Rendering.Gauss, smoothnessFactor, 0.0, 1.0 );

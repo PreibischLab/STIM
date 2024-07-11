@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 import data.STData;
-import data.STDataStatistics;
 import filter.Filters;
 import filter.GaussianFilterFactory;
 import filter.SingleSpotRemovingFilterFactory;
@@ -62,7 +61,7 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 
 	//final HashMap< String, NearestNeighborSearchOnKDTree< DoubleType > > searchTarget, searchReference;
 
-	double distanceThresold;
+	double distanceThreshold;
 
 	public StDataPointMatchIdentification(
 			final STData stDataTarget,
@@ -78,7 +77,7 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 		this.stDataTarget = stDataTarget;
 		this.stDataReference = stDataReference;
 		this.genes = genes;
-		this.distanceThresold = distanceThreshold;
+		this.distanceThreshold = distanceThreshold;
 
 		//this.searchTarget = new HashMap<>();
 		//this.searchReference = new HashMap<>();
@@ -198,8 +197,8 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 		SimpleMultiThreading.threadHaltUnClean();*/
 	}
 
-	public void setDistanceThreshold( final double distanceThreshold ) { this.distanceThresold = distanceThreshold; }
-	public double getDistanceThreshold() { return this.distanceThresold; }
+	public void setDistanceThreshold( final double distanceThreshold ) { this.distanceThreshold = distanceThreshold; }
+	public double getDistanceThreshold() { return this.distanceThreshold; }
 
 	/*
 	protected double difference( final RealLocalizable target, final RealLocalizable reference )
@@ -229,9 +228,7 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 		searchTarget.search( target );
 		searchReference.search( reference );
 
-		final double diff = Math.abs( searchTarget.getSampler().get().get() - searchReference.getSampler().get().get() );
-
-		return diff;
+		return Math.abs(searchTarget.getSampler().get().get() - searchReference.getSampler().get().get() );
 	}
 
 	@Override
@@ -254,7 +251,7 @@ public class StDataPointMatchIdentification < P extends RealLocalizable > implem
 			// am I the brightest dot in the local neighborhood?
 			// this way we make sure it is a relative measure, map brightest point in the local neighborhood to the brightest point in the corresponding area
 			
-			nnSearchTarget.search( referencePoint, distanceThresold, false );
+			nnSearchTarget.search(referencePoint, distanceThreshold, false );
 
 			double minDiff = Double.MAX_VALUE;
 			LinkedPoint< P > bestTargetPoint = null;

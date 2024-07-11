@@ -47,16 +47,9 @@ public class NormalizingRandomAccess implements RandomAccess< DoubleType >
 	}
 
 	@Override
-	public NormalizingRandomAccess copy()
-	{
-		return copyRandomAccess();
-	}
-
-	@Override
-	public NormalizingRandomAccess copyRandomAccess()
-	{
-		final NormalizingRandomAccess r = new NormalizingRandomAccess( inputRandomAccess.copyRandomAccess(), sumsPerLocationRandomAccess.copyRandomAccess() );
-		r.setPosition( this );
+	public NormalizingRandomAccess copy() {
+		final NormalizingRandomAccess r = new NormalizingRandomAccess(inputRandomAccess.copy(), sumsPerLocationRandomAccess.copy());
+		r.setPosition(this);
 		return r;
 	}
 

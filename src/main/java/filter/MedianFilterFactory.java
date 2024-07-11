@@ -6,28 +6,28 @@ import net.imglib2.type.numeric.RealType;
 
 public class MedianFilterFactory< T extends RealType< T > > extends RadiusSearchFilterFactory< T, T >
 {
-	final T outofbounds;
+	final T outOfBounds;
 
 	public MedianFilterFactory(
-			final T outofbounds,
+			final T outOfBounds,
 			final double radius )
 	{
 		super( radius );
-		this.outofbounds = outofbounds;
+		this.outOfBounds = outOfBounds;
 	}
 
 	@Override
 	public Filter< T > createFilter( final KDTree< T > tree )
 	{
-		return new MedianFilter< T >(
-				new RadiusNeighborSearchOnKDTree<>( tree ),
+		return new MedianFilter<>(
+				new RadiusNeighborSearchOnKDTree<>(tree),
 				this,
-				outofbounds );
+				outOfBounds);
 	}
 
 	@Override
 	public T create()
 	{
-		return outofbounds.createVariable();
+		return outOfBounds.createVariable();
 	}
 }

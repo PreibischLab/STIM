@@ -14,6 +14,6 @@ public class MedianRealRandomAccessible< T extends RealType< T > > extends Filte
 	@Override
 	public MedianRealRandomAccess< T > realRandomAccess()
 	{
-		return new MedianRealRandomAccess< T >( data, (MedianFilterFactory< T >)filterFactory );
+		return new MedianRealRandomAccess<>(data, (MedianFilterFactory<T>) filterFactory);
 	}
 }

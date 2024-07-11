@@ -58,8 +58,8 @@ public class LinkedPoint< P > extends Point implements RealLocalizable
 	{
 		final int prime = 31;
 		int result = 1;
-		for ( int d = 0; d < w.length; ++d )
-			result *= w[ d ] % prime;
+		for (double v : w)
+			result *= (int) (v % prime);
 		result = prime * result + ( ( link == null ) ? 0 : link.hashCode() );
 		return result;
 	}
@@ -74,13 +74,11 @@ public class LinkedPoint< P > extends Point implements RealLocalizable
 		if ( getClass() != obj.getClass() )
 			return false;
 		LinkedPoint< ? > other = (LinkedPoint< ? >) obj;
-		if ( link == null )
-		{
-			if ( other.link != null )
-				return false;
-		} else if ( !link.equals( other.link ) )
-			return false;
-		return true;
+		if (link == null) {
+			return other.link == null;
+		} else {
+			return link.equals(other.link);
+		}
 	}
 
 }

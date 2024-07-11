@@ -17,9 +17,9 @@ public class DensityFilterFactory< T extends RealType< T > > extends RadiusSearc
 	@Override
 	public Filter< T > createFilter( final KDTree< T > tree )
 	{
-		return new DensityFilter< T >(
-				new RadiusNeighborSearchOnKDTree<>( tree ),
-				this );
+		return new DensityFilter<>(
+				new RadiusNeighborSearchOnKDTree<>(tree),
+				this);
 	}
 
 	@Override

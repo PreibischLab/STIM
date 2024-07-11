@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 
 import imglib2.ExpValueRealIterable;
-import imglib2.ImgLib2Util;
 import net.imglib2.Cursor;
 import net.imglib2.FinalRealInterval;
 import net.imglib2.Interval;
@@ -60,11 +59,11 @@ public class NormalizingSTData implements STData
 	public IterableRealInterval< DoubleType > getExprData( String geneName )
 	{
 		// TODO: use the entire values array so that the gene can be switched virtually
-		return new ExpValueRealIterable< DoubleType >(
+		return new ExpValueRealIterable<>(
 				getLocations(),
 				getAllExprValues(),
-				data.getIndexForGene( geneName ),
-				new FinalRealInterval( this ) );
+				data.getIndexForGene(geneName),
+				new FinalRealInterval(this));
 	}
 
 	@Override
@@ -231,11 +230,5 @@ public class NormalizingSTData implements STData
 	public int getIndexForGene( String geneName )
 	{
 		return data.getIndexForGene( geneName );
-	}
-
-	@Override
-	public STData copy()
-	{
-		return ImgLib2Util.copy( this );
 	}
 }
