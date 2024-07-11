@@ -171,7 +171,7 @@ public class AnnDataIO extends SpatialDataIO {
 
 	@Override
 	protected void initializeDataset(N5Writer writer, STData data) {
-		AnnDataUtils.initializeAnnData(data.getBarcodes(), data.getGeneNames(), writer, options);
+		AnnDataUtils.initializeAnnData(data.getBarcodes(), data.getGeneNames(), writer, options1d);
 	}
 
 	@Override

@@ -85,8 +85,8 @@ public class SpatialDataContainerTest extends AbstractIOTest {
 		SpatialDataContainer container = SpatialDataContainer.createNew(path, executorService);
 		final String datasetName = "tmp.h5ad";
 
-		final String locationPath = "/obs/test";
-		final String expressionPath = "/obs/exprTest";
+		final String locationPath = "/obsm/test";
+		final String expressionPath = "/layers/exprTest";
 		final String annotationPath = "/obs/anotherTest";
 		final String geneAnnotationPath = "/var/anotherGeneTest";
 

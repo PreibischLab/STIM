@@ -4,7 +4,6 @@ import gui.STDataAssembly;
 import io.AnnDataIO;
 import io.SpatialDataIO;
 import net.imglib2.img.array.ArrayImgs;
-import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.junit.jupiter.api.DisplayNameGeneration;
