@@ -11,6 +11,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
+import org.janelia.n5anndata.io.N5Options;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5FSReader;
@@ -90,7 +91,7 @@ public abstract class SpatialDataIO {
 		}
 
 		public void writeHeader(N5Writer writer, STData data) throws IOException {
-			instance.writeHeader(writer, data);
+			instance.initializeDataset(writer, data);
 		}
 
 		public void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations) throws IOException {
@@ -320,7 +321,7 @@ public abstract class SpatialDataIO {
 		logger.debug( "Saving spatial data ... " );
 		long time = System.currentTimeMillis();
 
-		writeHeader(writer, stData);
+		initializeDataset(writer, stData);
 		writeBarcodes(writer, stData.getBarcodes());
 		writeGeneNames(writer, stData.getGeneNames());
 
@@ -374,7 +375,7 @@ public abstract class SpatialDataIO {
 		}
 	}
 
-	protected abstract void writeHeader(N5Writer writer, STData data) throws IOException;
+	protected abstract void initializeDataset(N5Writer writer, STData data) throws IOException;
 
 	protected void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations) throws IOException {
 		writeLocations(writer, locations, locationPath);
@@ -477,19 +478,5 @@ public abstract class SpatialDataIO {
 			return new AnnDataIO(readerSupplier, path, true, service);
 		else
 			return new N5IO(readerSupplier, path, true, service);
-	}
-
-	// TODO: refactor when pulling out AnnData stuff
-	static class N5Options {
-
-		int[] blockSize;
-		Compression compression;
-		ExecutorService exec;
-
-		public N5Options(int[] blockSize, Compression compression, ExecutorService exec) {
-			this.blockSize = blockSize;
-			this.compression = compression;
-			this.exec = exec;
-		}
 	}
 }

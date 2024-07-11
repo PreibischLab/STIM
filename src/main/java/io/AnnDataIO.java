@@ -9,6 +9,7 @@ import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
 import org.apache.logging.log4j.Logger;
+import org.janelia.n5anndata.io.AnnDataUtils;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
@@ -22,7 +23,7 @@ import data.STData;
 import filter.FilterFactory;
 import gui.STDataAssembly;
 import gui.STDataExplorer;
-import io.AnnDataDetails.AnnDataFieldType;
+import org.janelia.n5anndata.io.AnnDataFieldType;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
@@ -104,30 +105,31 @@ public class AnnDataIO extends SpatialDataIO {
 	@Override
 	public STDataAssembly readData() throws IOException {
 		N5Reader reader = ioSupplier.get();
-		if (!AnnDataDetails.isValidAnnData(reader))
+		if (!AnnDataUtils.isValidAnnData(reader))
 			logger.warn("Anndata file seems to be missing some metadata. Trying to read it anyways...");
 		return super.readData();
 	}
 
 	@Override
-	protected RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader, String locationPath) throws IOException {
+	protected RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader, String locationPath) {
 		// transpose locations, since AnnData stores them as columns
 		RandomAccessibleInterval<? extends RealType<?>> locations = Views.permute(
-				(RandomAccessibleInterval<? extends RealType<?>>) AnnDataDetails.readArray(reader, locationPath), 0, 1);
+				(RandomAccessibleInterval<? extends RealType<?>>) AnnDataUtils.readNumericalArray(reader, locationPath), 0, 1);
 		return Converters.convert(locations, (i, o) -> o.set(i.getRealDouble()), new DoubleType());
 	}
 
 	@Override
-	protected RandomAccessibleInterval<DoubleType> readExpressionValues(N5Reader reader, String exprValuePath) throws IOException {
-		RandomAccessibleInterval<? extends RealType<?>> expressionVals = (RandomAccessibleInterval<? extends RealType<?>>) AnnDataDetails.readArray(reader, exprValuePath);
+	protected RandomAccessibleInterval<DoubleType> readExpressionValues(N5Reader reader, String exprValuePath) {
+		// the cast here is necessary, there is a compiler error without it
+		RandomAccessibleInterval<? extends RealType<?>> expressionVals = (RandomAccessibleInterval<? extends RealType<?>>) AnnDataUtils.readNumericalArray(reader, exprValuePath);
 		return Converters.convert(expressionVals, (i, o) -> o.set(i.getRealDouble()), new DoubleType());
 	}
 
-	protected <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(N5Reader reader, AffineSet transform, String name) throws IOException {
+	protected <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(N5Reader reader, AffineSet transform, String name) {
 		if (!reader.exists("/uns/" + name))
 			return;
 
-		RandomAccessibleInterval<T> trafoValues = AnnDataDetails.readArray(reader, "/uns/" + name);
+		RandomAccessibleInterval<T> trafoValues = AnnDataUtils.readNumericalArray(reader, "/uns/" + name);
 		RandomAccess<T> ra = trafoValues.randomAccess();
 		int n = (int) trafoValues.dimension(0);
 		double[] convertedValues = new double[n];
@@ -138,37 +140,37 @@ public class AnnDataIO extends SpatialDataIO {
 	}
 
 	@Override
-	protected List<String> detectAnnotations(N5Reader reader, String annotationPath) throws IOException {
-		return AnnDataDetails.getExistingDataFrameDatasets(reader, annotationPath);
+	protected List<String> detectAnnotations(N5Reader reader, String annotationPath) {
+		return new ArrayList<>(AnnDataUtils.getDataFrameDatasetNames(reader, annotationPath));
 	}
 
 	@Override
-	protected List<String> detectGeneAnnotations(N5Reader reader, String geneAnnotationPath) throws IOException {
-		return AnnDataDetails.getExistingDataFrameDatasets(reader, geneAnnotationPath);
+	protected List<String> detectGeneAnnotations(N5Reader reader, String geneAnnotationPath) {
+		return new ArrayList<>(AnnDataUtils.getDataFrameDatasetNames(reader, geneAnnotationPath));
 	}
 
-	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readAnnotations(N5Reader reader, String annotationPath, String label) throws IOException {
-		return AnnDataDetails.readFromDataFrame(reader, annotationPath, label);
+	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readAnnotations(N5Reader reader, String annotationPath, String label) {
+		return AnnDataUtils.readNumericalArray(reader, annotationPath + "/" + label);
 	}
 
-	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readGeneAnnotations(N5Reader reader, String geneAnnotationPath, String label) throws IOException {
-		return AnnDataDetails.readFromDataFrame(reader, geneAnnotationPath, label);
+	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readGeneAnnotations(N5Reader reader, String geneAnnotationPath, String label) {
+		return AnnDataUtils.readNumericalArray(reader, geneAnnotationPath + "/" + label);
 	}
 
 	@Override
-	protected List<String> readBarcodes(N5Reader reader) throws IOException {
+	protected List<String> readBarcodes(N5Reader reader) {
 		final String index_path = reader.getAttribute("obs", "_index", String.class);
-		return AnnDataDetails.readStringAnnotation(reader, "/obs/" + index_path);
+		return AnnDataUtils.readStringArray(reader, "/obs/" + index_path);
 	}
 
 	@Override
-	protected List<String> readGeneNames(N5Reader reader) throws IOException {
+	protected List<String> readGeneNames(N5Reader reader) {
 		final String index_path = reader.getAttribute("var", "_index", String.class);
-		return AnnDataDetails.readStringAnnotation(reader, "/var/" + index_path);
+		return AnnDataUtils.readStringArray(reader, "/var/" + index_path);
 	}
 
 	@Override
-	protected void writeHeader(N5Writer writer, STData data) throws IOException {
+	protected void initializeDataset(N5Writer writer, STData data) {
 		AnnDataDetails.writeEncoding(writer, "/", AnnDataFieldType.ANNDATA);
 		AnnDataDetails.createMapping(writer, "/obsm");
 		AnnDataDetails.createMapping(writer, "/uns");
@@ -177,37 +179,38 @@ public class AnnDataIO extends SpatialDataIO {
 	@Override
 	public void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException {
 		double[] trafoValues = transform.getRowPackedCopy();
-		AnnDataDetails.writeArray(writer, "/uns/" + name, ArrayImgs.doubles(trafoValues, trafoValues.length), options1d);
+		AnnDataUtils.writeNumericalArray(ArrayImgs.doubles(trafoValues, trafoValues.length), writer, "/uns/" + name, options1d, AnnDataFieldType.DENSE_ARRAY);
 	}
 
 	@Override
 	@SuppressWarnings("unchecked")
 	protected void writeAnnotations(N5Writer writer, String annotationPath, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
-		AnnDataDetails.addToDataFrame(writer, annotationPath, label, (RandomAccessibleInterval<IntType>) data, options1d);
+		AnnDataUtils.writeNumericalArray((RandomAccessibleInterval<IntType>) data, writer, annotationPath + "/" + label, options1d, AnnDataFieldType.DENSE_ARRAY);
 	}
 	
 	@Override
+	@SuppressWarnings("unchecked")
 	protected void writeGeneAnnotations(N5Writer writer, String geneAnnotationPath, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
-		AnnDataDetails.addToDataFrame(writer,  geneAnnotationPath, label, (RandomAccessibleInterval<DoubleType>) data, options1d);
+		AnnDataUtils.writeNumericalArray((RandomAccessibleInterval<DoubleType>) data, writer,  geneAnnotationPath + "/" + label, options1d, AnnDataFieldType.DENSE_ARRAY);
 	}
 
 	@Override
-	protected void writeBarcodes(N5Writer writer, List<String> barcodes) throws IOException {
-		AnnDataDetails.createDataFrame(writer, "/obs", barcodes);
+	protected void writeBarcodes(N5Writer writer, List<String> barcodes) {
+		AnnDataUtils.createDataFrame(barcodes, writer, "/obs", options1d);
 	}
 
 	@Override
-	protected void writeGeneNames(N5Writer writer, List<String> geneNames) throws IOException {
-		AnnDataDetails.createDataFrame(writer, "/var", geneNames);
+	protected void writeGeneNames(N5Writer writer, List<String> geneNames) {
+		AnnDataUtils.createDataFrame(geneNames, writer, "/var", options1d);
 	}
 
 	@Override
 	protected void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations, String locationPath) throws IOException {
-		AnnDataDetails.writeArray(writer, locationPath, Views.permute(locations, 0, 1), options);
+		AnnDataUtils.writeNumericalArray(Views.permute(locations, 0, 1), writer, locationPath, options, AnnDataFieldType.DENSE_ARRAY);
 	}
 
 	@Override
 	protected void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues, String exprValuePath) throws IOException {
-		AnnDataDetails.writeArray(writer, exprValuePath, exprValues, options, AnnDataFieldType.CSR_MATRIX);
+		AnnDataUtils.writeNumericalArray(exprValues, writer, exprValuePath, options, AnnDataFieldType.CSR_MATRIX);
 	}
 }

@@ -85,13 +85,18 @@ public class SpatialDataContainerTest extends AbstractIOTest {
 		SpatialDataContainer container = SpatialDataContainer.createNew(path, executorService);
 		final String datasetName = "tmp.h5ad";
 
+		final String locationPath = "/obs/test";
+		final String expressionPath = "/obs/exprTest";
+		final String annotationPath = "/obs/anotherTest";
+		final String geneAnnotationPath = "/var/anotherGeneTest";
+
 		SpatialDataIO sdio = SpatialDataIO.open(getPlaygroundPath(datasetName), executorService);
-		sdio.setDataPaths("/test", null, "/anotherTest", "/anotherGeneTest");
+		sdio.setDataPaths(locationPath, expressionPath, annotationPath, geneAnnotationPath);
 		STDataAssembly expected = new STDataAssembly(TestUtils.createTestDataSet());
 		sdio.writeData(expected);
 
 		String fullPath = getPlaygroundPath(datasetName);
-		container.addExistingDataset(fullPath, "/test", null, "/anotherTest", "/anotherGeneTest");
+		container.addExistingDataset(fullPath, locationPath, expressionPath, annotationPath, geneAnnotationPath);
 
 		STDataAssembly actual = container.openDatasetReadOnly(datasetName).readData();
 		TestUtils.compareSTDataAssemblies(actual, expected);
