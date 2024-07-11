@@ -4,7 +4,6 @@ import net.imglib2.Cursor;
 import net.imglib2.IterableInterval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealCursor;
-import net.imglib2.Sampler;
 import net.imglib2.type.numeric.real.DoubleType;
 
 public class ExpValueRealCursor< T > implements RealCursor< T >
@@ -26,8 +25,8 @@ public class ExpValueRealCursor< T > implements RealCursor< T >
 
 	protected ExpValueRealCursor( final ExpValueRealCursor< T > realCursor )
 	{
-		this.locationCursor = realCursor.locationCursor.copyCursor();
-		this.valueCursor = realCursor.valueCursor.copyCursor();
+		this.locationCursor = new LocationRealCursor(realCursor.locationCursor);
+		this.valueCursor = realCursor.valueCursor.copy();
 		this.values = realCursor.values;
 	}
 
@@ -102,14 +101,7 @@ public class ExpValueRealCursor< T > implements RealCursor< T >
 	}
 
 	@Override
-	public Sampler< T > copy()
-	{
-		return copyCursor();
-	}
-
-	@Override
-	public RealCursor< T > copyCursor()
-	{
-		return new ExpValueRealCursor< T >( this );
+	public RealCursor<T> copy() {
+		return new ExpValueRealCursor<>(this);
 	}
 }

@@ -33,7 +33,6 @@ import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
 import org.apache.logging.log4j.Logger;
 import util.LoggerUtil;
@@ -212,7 +211,6 @@ public abstract class SpatialDataIO {
 	 * Read data (locations, expression values, barcodes, gene names, and transformations) from the given instance.
 	 *
 	 * @return {@link STDataAssembly} containing the data
-	 * @throws IOException
 	 */
 	public STDataAssembly readData() throws IOException {
 		long time = System.currentTimeMillis();
@@ -313,7 +311,6 @@ public abstract class SpatialDataIO {
 	 * Write data (locations, expression values, barcodes, gene names, and transformations) for the given instance.
 	 *
 	 * @param data {@link STDataAssembly} containing the data
-	 * @throws IOException
 	 */
 	public void writeData(STDataAssembly data) throws IOException {
 		if (readOnly)
@@ -343,7 +340,6 @@ public abstract class SpatialDataIO {
 	 * Write the given annotations to the underlying file; existing annotations are not updated.
 	 *
 	 * @param metadata map of annotations
-	 * @throws IOException
 	 */
 	public void updateStoredAnnotations(Map<String, RandomAccessibleInterval<? extends NativeType<?>>> metadata) throws IOException {
 		if (readOnly)
@@ -364,7 +360,6 @@ public abstract class SpatialDataIO {
 	 * Write the given annotations to the underlying file; existing annotations are not updated.
 	 *
 	 * @param metadata map of annotations
-	 * @throws IOException
 	 */
 	public void updateStoredGeneAnnotations(Map<String, RandomAccessibleInterval<? extends NativeType<?>>> metadata) throws IOException {
 		if (readOnly)
@@ -433,7 +428,6 @@ public abstract class SpatialDataIO {
 	 *
 	 * @param path the path to the file
 	 * @param service {@link ExecutorService} to use for parallel IO
-	 * @throws IOException
 	 */
 	public static SpatialDataIO open(final String path, final ExecutorService service) throws IOException {
 		Path absolutePath = Paths.get(path).toAbsolutePath();
@@ -443,20 +437,11 @@ public abstract class SpatialDataIO {
 
 		Supplier<N5Writer> writerSupplier;
 		if (extension.startsWith("h5")) {
-			writerSupplier = () -> {
-				try {return new N5HDF5Writer(path);}
-				catch (IOException e) {throw new SpatialDataException("Supplier cannot open '" + path + "'.", e);}
-			};
+			writerSupplier = () -> new N5HDF5Writer(path);
 		} else if (extension.startsWith("n5")) {
-			writerSupplier = () -> {
-				try {return new N5FSWriter(path);}
-				catch (IOException e) {throw new SpatialDataException("Supplier cannot open '" + path + "'.", e);}
-			};
+			writerSupplier = () -> new N5FSWriter(path);
 		} else if (extension.startsWith("zarr")) {
-			writerSupplier = () -> {
-				try {return new N5ZarrWriter(path);}
-				catch (IOException e) {throw new SpatialDataException("Supplier cannot open '" + path + "'.", e);}
-			};
+			writerSupplier = () -> new N5ZarrWriter(path);
 		} else {
 			throw new UnsupportedOperationException("Cannot find N5 backend for extension'" + extension + "'.");
 		}
@@ -472,9 +457,8 @@ public abstract class SpatialDataIO {
 	 *
 	 * @param path the path to the file
 	 * @param service {@link ExecutorService} to use for parallel IO
-	 * @throws IOException
 	 */
-	public static SpatialDataIO openReadOnly(final String path, final ExecutorService service) throws IOException {
+	public static SpatialDataIO openReadOnly(final String path, final ExecutorService service) {
 		Path absolutePath = Paths.get(path).toAbsolutePath();
 		String fileName = absolutePath.getFileName().toString();
 		String[] components = fileName.split("\\.");
@@ -482,20 +466,11 @@ public abstract class SpatialDataIO {
 
 		Supplier<N5Reader> readerSupplier;
 		if (extension.startsWith("h5")) {
-			readerSupplier = () -> {
-				try {return new N5HDF5Reader(path);}
-				catch (IOException e) {throw new SpatialDataException("Supplier cannot open '" + path + "'.", e);}
-			};
+			readerSupplier = () -> new N5HDF5Reader(path);
 		} else if (extension.startsWith("n5")) {
-			readerSupplier = () -> {
-				try {return new N5FSReader(path);}
-				catch (IOException e) {throw new SpatialDataException("Supplier cannot open '" + path + "'.", e);}
-			};
+			readerSupplier = () -> new N5FSReader(path);
 		} else if (extension.startsWith("zarr")) {
-			readerSupplier = () -> {
-				try {return new N5ZarrReader(path);}
-				catch (IOException e) {throw new SpatialDataException("Supplier cannot open '" + path + "'.", e);}
-			};
+			readerSupplier = () -> new N5ZarrReader(path);
 		} else {
 			throw new UnsupportedOperationException("Cannot find N5 backend for extension'" + extension + "'.");
 		}

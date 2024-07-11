@@ -4,7 +4,6 @@ import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealCursor;
 import net.imglib2.RealLocalizable;
-import net.imglib2.Sampler;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.view.Views;
 
@@ -36,7 +35,7 @@ public class LocationRealCursor implements RealCursor< RealLocalizable >
 
 	protected LocationRealCursor( final LocationRealCursor l )
 	{
-		this.ra = l.ra.copyRandomAccess();
+		this.ra = l.ra.copy();
 		this.ra.setPosition( l.ra );
 		this.n = l.numDimensions();
 		this.pos = l.pos.clone();
@@ -141,14 +140,8 @@ public class LocationRealCursor implements RealCursor< RealLocalizable >
 	}
 
 	@Override
-	public Sampler< RealLocalizable > copy()
-	{
-		return copyCursor();
+	public RealCursor<RealLocalizable> copy() {
+		return new LocationRealCursor(this);
 	}
 
-	@Override
-	public LocationRealCursor copyCursor()
-	{
-		return new LocationRealCursor( this );
-	}
 }

@@ -6,7 +6,6 @@ import net.imglib2.IterableRealInterval;
 import net.imglib2.Localizable;
 import net.imglib2.RealLocalizable;
 import net.imglib2.RealRandomAccess;
-import net.imglib2.Sampler;
 import util.SimpleRealLocalizable;
 
 public class FilteredRealRandomAccess< S, T > implements RealRandomAccess< T >
@@ -36,15 +35,6 @@ public class FilteredRealRandomAccess< S, T > implements RealRandomAccess< T >
 		filter.filter( loc, output );
 
 		return output;
-	}
-
-	@Override
-	public RealRandomAccess< T > copyRealRandomAccess()
-	{
-		final FilteredRealRandomAccess< S, T > mrr = new FilteredRealRandomAccess< S, T >( data, filterFactory );
-		mrr.setPosition( this );
-
-		return mrr;
 	}
 
 	@Override
@@ -198,9 +188,11 @@ public class FilteredRealRandomAccess< S, T > implements RealRandomAccess< T >
 	}
 
 	@Override
-	public Sampler< T > copy()
-	{
-		return copyRealRandomAccess();
+	public RealRandomAccess<T> copy() {
+		final FilteredRealRandomAccess<S, T> mrr = new FilteredRealRandomAccess<>(data, filterFactory);
+		mrr.setPosition(this);
+
+		return mrr;
 	}
 
 	@Override

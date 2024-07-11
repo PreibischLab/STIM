@@ -13,7 +13,6 @@ public class MedianRealRandomAccess< T extends RealType< T > > extends FilteredR
 		super( data, filterFactory );
 	}
 
-	@Override
 	public MedianRealRandomAccess< T > copyRealRandomAccess()
 	{
 		final MedianRealRandomAccess< T > mrr = new MedianRealRandomAccess< T >( data, (MedianFilterFactory< T >)filterFactory );

@@ -22,6 +22,7 @@ import java.util.function.BinaryOperator;
 
 
 import align.SiftMatch;
+import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 
 public class SpatialDataContainer {
@@ -29,7 +30,7 @@ public class SpatialDataContainer {
 	final private String rootPath;
 	final private boolean readOnly;
 	final private ExecutorService service;
-	final private N5FSReader n5;
+	final private N5Reader n5;
 	private List<String> datasets = new ArrayList<>();
 	private List<String> matches = new ArrayList<>();
 	final private static String version = "0.1.0";
@@ -74,14 +75,14 @@ public class SpatialDataContainer {
 		return container;
 	}
 
-	protected void initializeContainer() throws IOException {
+	protected void initializeContainer() {
 		N5FSWriter writer = (N5FSWriter) n5;
 		writer.setAttribute("/", versionKey, version);
 		writer.createGroup("/matches");
 		updateDatasetMetadata();
 	}
 
-	protected void readFromDisk() throws IOException {
+	protected void readFromDisk() {
 		String actualVersion = n5.getAttribute("/", versionKey, String.class);
 		if (!version.equals(actualVersion))
 			throw new SpatialDataException("Incompatible spatial data container version: expected " + version + ", got " + actualVersion + ".");
@@ -94,7 +95,7 @@ public class SpatialDataContainer {
 		matches = new ArrayList<>(Arrays.asList(n5.list(n5.groupPath("matches"))));
 	}
 
-	protected void updateDatasetMetadata() throws IOException {
+	protected void updateDatasetMetadata() {
 		N5FSWriter writer = (N5FSWriter) n5;
 		writer.setAttribute("/", numDatasetsKey, datasets.size());
 		writer.setAttribute("/", datasetsKey, datasets.toArray());
@@ -104,7 +105,7 @@ public class SpatialDataContainer {
 		addExistingDataset(path, null, null, null, null);
 	}
 
-	public void addExistingDataset(String path, String locationPath, String exprValuePath, String annotationPath, String geneAnnotationPath) throws IOException {
+	public void addExistingDataset(String path, String locationPath, String exprValuePath, String annotationPath, String geneAnnotationPath) {
 		associateDataset(path, (src, dest) -> {
 			try {return Files.move(src, dest);}
 			catch (IOException e) {throw new SpatialDataException("Could not move dataset to container.", e);}
@@ -115,7 +116,7 @@ public class SpatialDataContainer {
 		linkExistingDataset(path, null, null, null, null);
 	}
 
-	public void linkExistingDataset(String path, String locationPath, String exprValuePath, String annotationPath, String geneAnnotationPath) throws IOException {
+	public void linkExistingDataset(String path, String locationPath, String exprValuePath, String annotationPath, String geneAnnotationPath) {
 		associateDataset(path, (target, link) -> {
 			try {return Files.createSymbolicLink(link, target);}
 			catch (IOException e) {throw new SpatialDataException("Could not link dataset to container.", e);}
@@ -128,8 +129,7 @@ public class SpatialDataContainer {
 			String locationPath,
 			String exprValuePath,
 			String annotationPath,
-			String geneAnnotationPath
-	) throws IOException {
+			String geneAnnotationPath) {
 
 		Path oldPath = Paths.get(path);
 		if (!oldPath.toFile().exists()) {
@@ -204,8 +204,7 @@ public class SpatialDataContainer {
 	}
 
 	public static boolean isCompatibleContainer(String path) {
-		try {
-			N5FSReader reader = new N5FSReader(path);
+		try (N5FSReader reader = new N5FSReader(path)) {
 			String actualVersion = reader.getAttribute("/", versionKey, String.class);
 			return (actualVersion.equals(version));
 		} catch (Exception e) {
@@ -242,7 +241,7 @@ public class SpatialDataContainer {
 		}
 	}
 
-	public void savePairwiseMatch(final SiftMatch results) throws IOException {
+	public void savePairwiseMatch(final SiftMatch results) {
 		N5FSWriter writer = (N5FSWriter) n5;
 		final String matchName = constructMatchName(results.getStDataAName(), results.getStDataBName());
 		final String pairwiseGroupName = writer.groupPath("/", "matches", matchName);
@@ -276,7 +275,7 @@ public class SpatialDataContainer {
 		matches.add(matchName);
 	}
 
-	public SiftMatch loadPairwiseMatch(final String stDataAName, final String stDataBName) throws IOException, ClassNotFoundException {
+	public SiftMatch loadPairwiseMatch(final String stDataAName, final String stDataBName) throws ClassNotFoundException {
 		final String matchName = constructMatchName(stDataAName, stDataBName);
 		final String pairwiseGroupName = n5.groupPath("/", "matches", matchName);
 

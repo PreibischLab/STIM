@@ -166,7 +166,7 @@ public class PhaseCorrelation2Util {
 		for (int i = 0; i <img.numDimensions(); i++){
 			extEachSide[i] = (int) (img.dimension(i) < extension[i] ? img.dimension(i) : extension[i]);	
 		}
-		return new BlendedExtendedMirroredRandomAccesible2<T>(img, extEachSide);
+		return new BlendedExtendedMirroredRandomAccessible2<T>(img, extEachSide);
 	}
 	
 	/*
@@ -196,7 +196,7 @@ public class PhaseCorrelation2Util {
 		for (int i = 0; i< img.numDimensions(); i++){
 			extEachSide[i] /= 2;
 		}
-		return new BlendedExtendedMirroredRandomAccesible2<T>(img, extEachSide);
+		return new BlendedExtendedMirroredRandomAccessible2<T>(img, extEachSide);
 	}
 
 
