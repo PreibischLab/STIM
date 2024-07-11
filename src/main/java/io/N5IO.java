@@ -57,6 +57,8 @@ public class N5IO extends SpatialDataIO {
 		writer.setAttribute("/", "dim", data.numDimensions());
 		writer.setAttribute("/", "numLocations", data.numLocations());
 		writer.setAttribute("/", "numGenes", data.numGenes());
+		writeBarcodes(writer, data.getBarcodes());
+		writeGeneNames(writer, data.getGeneNames());
 	}
 
 	@Override
@@ -127,12 +129,10 @@ public class N5IO extends SpatialDataIO {
 		}
 	}
 	
-	@Override
 	protected void writeBarcodes(N5Writer writer, List<String> barcodes) {
 		writer.setAttribute("/", "barcodeList", barcodes);
 	}
 	
-	@Override
 	protected void writeGeneNames(N5Writer writer, List<String> geneNames) {
 		writer.setAttribute("/", "geneList", geneNames);
 	}

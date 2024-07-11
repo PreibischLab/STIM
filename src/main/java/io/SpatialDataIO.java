@@ -102,14 +102,6 @@ public abstract class SpatialDataIO {
 			instance.writeExpressionValues(writer, exprValues);
 		}
 
-		public void writeBarcodes(N5Writer writer, List<String> barcodes) throws IOException {
-			instance.writeBarcodes(writer, barcodes);
-		}
-
-		public void writeGeneNames(N5Writer writer, List<String> geneNames) throws IOException {
-			instance.writeGeneNames(writer, geneNames);
-		}
-
 		public void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException {
 			instance.writeTransformation(writer, transform, name);
 		}
@@ -322,8 +314,6 @@ public abstract class SpatialDataIO {
 		long time = System.currentTimeMillis();
 
 		initializeDataset(writer, stData);
-		writeBarcodes(writer, stData.getBarcodes());
-		writeGeneNames(writer, stData.getGeneNames());
 
 		writeExpressionValues(writer, stData.getAllExprValues());
 		writeLocations(writer, stData.getLocations());
@@ -389,9 +379,6 @@ public abstract class SpatialDataIO {
 
 	protected abstract void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues, String exprValuesPath) throws IOException;
 
-	protected abstract void writeBarcodes(N5Writer writer, List<String> barcodes) throws IOException;
-
-	protected abstract void writeGeneNames(N5Writer writer, List<String> geneNames) throws IOException;
 	// public to be able to only write the transformation to a dataset
 	public abstract void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException;
 

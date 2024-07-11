@@ -171,9 +171,7 @@ public class AnnDataIO extends SpatialDataIO {
 
 	@Override
 	protected void initializeDataset(N5Writer writer, STData data) {
-		AnnDataDetails.writeEncoding(writer, "/", AnnDataFieldType.ANNDATA);
-		AnnDataDetails.createMapping(writer, "/obsm");
-		AnnDataDetails.createMapping(writer, "/uns");
+		AnnDataUtils.initializeAnnData(data.getBarcodes(), data.getGeneNames(), writer, options);
 	}
 
 	@Override
@@ -192,16 +190,6 @@ public class AnnDataIO extends SpatialDataIO {
 	@SuppressWarnings("unchecked")
 	protected void writeGeneAnnotations(N5Writer writer, String geneAnnotationPath, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
 		AnnDataUtils.writeNumericalArray((RandomAccessibleInterval<DoubleType>) data, writer,  geneAnnotationPath + "/" + label, options1d, AnnDataFieldType.DENSE_ARRAY);
-	}
-
-	@Override
-	protected void writeBarcodes(N5Writer writer, List<String> barcodes) {
-		AnnDataUtils.createDataFrame(barcodes, writer, "/obs", options1d);
-	}
-
-	@Override
-	protected void writeGeneNames(N5Writer writer, List<String> geneNames) {
-		AnnDataUtils.createDataFrame(geneNames, writer, "/var", options1d);
 	}
 
 	@Override
