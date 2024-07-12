@@ -49,7 +49,7 @@ public class AddEntropy implements Callable<Void> {
 		final Img<DoubleType> entropyValuesRai;
 
 		logger.info("Computing gene variability with method '{}' (might take a while)", entropy.label());
-		final double[] entropyValues = ExtractGeneLists.computeEntropy(entropy, stData.data(), numThreads);
+		final double[] entropyValues = ExtractGeneLists.computeOrderedEntropy(stData.data(), entropy, numThreads);
 		entropyValuesRai = ArrayImgs.doubles(entropyValues, stData.data().numGenes());
 
 		final String actualLabel = (geneLabels == null) ? entropy.label() : geneLabels;

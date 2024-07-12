@@ -1,7 +1,6 @@
 package analyze;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,10 +10,14 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import data.STData;
+import net.imglib2.Cursor;
 import net.imglib2.IterableRealInterval;
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
+import net.imglib2.view.Views;
 import util.Threads;
 import org.apache.logging.log4j.Logger;
 import util.LoggerUtil;
@@ -31,7 +34,7 @@ public class ExtractGeneLists
 	 * @param numThreads the number of threads to use
 	 * @return a list of pairs with the gene name and the entropy value
 	 */
-	public static List<Pair<String, Double>> computeEntropyNew(final STData data, final Entropy entropy, final int numThreads) {
+	public static List<Pair<String, Double>> computeEntropy(final STData data, final Entropy entropy, final int numThreads) {
 
 		final ExecutorService service = Threads.createFixedExecutorService(numThreads);
 		final List<Future<Pair<String, Double>>> futures = data.getGeneNames().stream()
@@ -59,20 +62,16 @@ public class ExtractGeneLists
 		return new ValuePair<>(gene, entropyValue);
 	}
 
-	public static List<Pair<String, Double>> sortByEntropy(final STData data, final Entropy entropy, final int numThreads) {
-		final List<Pair<String, Double>> geneToEntropy = computeEntropyNew(data, entropy, numThreads);
-		final Comparator<Pair<String, Double>> byEntropy = Comparator.comparing(Pair::getB);
-		geneToEntropy.sort(byEntropy.reversed());
-		return geneToEntropy;
-	}
-
-	public static ArrayList< Pair< String, Double > > sortByStDevIntensity( final STData data, final int numThreads )
-	{
-		return new ArrayList<>(sortByEntropy(data, Entropy.STDEV, numThreads));
-	}
-
-	public static double[] computeEntropy(final Entropy entropy, final STData stData, final int numThreads) {
-		final List<Pair<String, Double>> geneToEntropy = computeEntropyNew(stData, entropy, numThreads);
+	/**
+	 * Compute the entropy of each gene in the dataset and return the values in the order of the genes in the dataset.
+	 *
+	 * @param stData     the dataset
+	 * @param entropy    the method to compute the entropy
+	 * @param numThreads the number of threads to use
+	 * @return the entropy values in the order of the genes in the dataset
+	 */
+	public static double[] computeOrderedEntropy(final STData stData, final Entropy entropy, final int numThreads) {
+		final List<Pair<String, Double>> geneToEntropy = computeEntropy(stData, entropy, numThreads);
 
 		// We resort given the current order of genes by creating a hashmap of genes
 		Map<String, Pair<String, Double>> pairMap = new HashMap<>();
@@ -89,5 +88,26 @@ public class ExtractGeneLists
 		return reorderedEntropy.stream()
 								.mapToDouble(Pair::getB)
 								.toArray();
+	}
+
+	public static ArrayList<Pair<String, Double>> loadGeneEntropy(final STData stData, final String entropyLabel)
+			throws IllegalArgumentException {
+
+		Map<String, RandomAccessibleInterval<? extends NativeType<?>>> geneAnnotation = stData.getGeneAnnotations();
+		if (!geneAnnotation.containsKey(entropyLabel)) {
+			throw new IllegalArgumentException("The property '" + entropyLabel + "' was not found as gene annotation");
+		}
+
+		final RandomAccessibleInterval<? extends NativeType<?>> entropyValues = geneAnnotation.get(entropyLabel);
+		List<String> geneNames = stData.getGeneNames();
+
+		ArrayList<Pair<String, Double>> list = new ArrayList<>();
+		// TODO: this will blow up if the annotation is not doubles; fix this!
+		final Cursor<DoubleType> cursor = (Cursor<DoubleType>) Views.flatIterable(entropyValues).cursor();
+
+		for (String geneName : geneNames) {
+			list.add(new ValuePair<>(geneName, cursor.next().getRealDouble()));
+		}
+		return list;
 	}
 }

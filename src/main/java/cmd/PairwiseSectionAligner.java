@@ -200,21 +200,21 @@ public class PairwiseSectionAligner implements Callable<Void> {
 			entropyPath = stdevLabel;
 
 			for ( int i = 0; i < dataToAlign.size(); ++i ) {
-				final String dataset_name = datasetNames.get( i );
+				final String datasetName = datasetNames.get(i);
 				
-				final ArrayImg<DoubleType, DoubleArray> entropy_values_rai;
-				final STDataAssembly stData = dataToAlign.get( i );
+				final ArrayImg<DoubleType, DoubleArray> entropyValuesRai;
+				final STDataAssembly stData = dataToAlign.get(i);
 				if (stData.data().getGeneAnnotations().containsKey(stdevLabel)) {
-					logger.debug("Gene annotation '{}' was found for {}. Omitting.", stdevLabel, dataset_name);
+					logger.debug("Gene annotation '{}' was found for {}. Omitting.", stdevLabel, datasetName);
 					continue;
 				}
-				logger.info("Computing standard deviation of genes for {} (may take a while)", dataset_name);
-				final double[] entropy_values = ExtractGeneLists.computeEntropy(Entropy.STDEV, stData.data(), numThreads);
+				logger.info("Computing standard deviation of genes for {} (may take a while)", datasetName);
+				final double[] entropyValues = ExtractGeneLists.computeOrderedEntropy(stData.data(), Entropy.STDEV, numThreads);
 	
-				entropy_values_rai = ArrayImgs.doubles(entropy_values, stData.data().numGenes());
-				stData.data().getGeneAnnotations().put(stdevLabel, entropy_values_rai);
+				entropyValuesRai = ArrayImgs.doubles(entropyValues, stData.data().numGenes());
+				stData.data().getGeneAnnotations().put(stdevLabel, entropyValuesRai);
 				try {
-					container.openDataset(dataset_name).updateStoredGeneAnnotations(stData.data().getGeneAnnotations());
+					container.openDataset(datasetName).updateStoredGeneAnnotations(stData.data().getGeneAnnotations());
 				}
 				catch (IOException e) {
 					logger.warn("Cannot write gene annotations to file", e);

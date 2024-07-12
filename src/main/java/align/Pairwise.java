@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -31,7 +30,6 @@ import imglib2.phasecorrelation.PhaseCorrelationPeak2;
 import io.Path;
 import io.SpatialDataContainer;
 import mpicbg.models.AffineModel2D;
-import net.imglib2.Cursor;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealLocalizable;
@@ -42,7 +40,6 @@ import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.realtransform.AffineTransform2D;
-import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.complex.ComplexDoubleType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Intervals;
@@ -182,8 +179,11 @@ public class Pairwise
 		long time = System.currentTimeMillis();
 
 		// from big to small
-		final ArrayList< Pair< String, Double > > listA = ExtractGeneLists.sortByStDevIntensity( stdataA, numThreads );
-		final ArrayList< Pair< String, Double > > listB = ExtractGeneLists.sortByStDevIntensity( stdataB, numThreads );
+		final List<Pair<String, Double>> listA = ExtractGeneLists.computeEntropy(stdataA, Entropy.STDEV, numThreads);
+		final List<Pair<String, Double>> listB = ExtractGeneLists.computeEntropy(stdataB, Entropy.STDEV, numThreads);
+		final Comparator<Pair<String, Double>> byEntropy = Comparator.comparing(Pair::getB);
+		listA.sort(byEntropy.reversed());
+		listB.sort(byEntropy.reversed());
 
 		logger.info("Took {} ms.", System.currentTimeMillis() - time);
 
@@ -223,26 +223,6 @@ public class Pairwise
 		return toTest;
 	}
 
-	public static ArrayList<Pair<String, Double>> getGenesEntropy(final STData stData, final String entropyLabel)
-			throws IllegalArgumentException {
-		Map< String, RandomAccessibleInterval< ? extends NativeType< ? > > > geneAnnotation = stData.getGeneAnnotations();
-		if (!geneAnnotation.containsKey(entropyLabel)) {
-			throw new IllegalArgumentException("The property '" + entropyLabel + "' was not found as gene annotation");
-		}
-
-		final RandomAccessibleInterval<? extends NativeType<?>> entropyValues = geneAnnotation.get(entropyLabel);
-		List<String> geneNames = stData.getGeneNames();
-
-		ArrayList<Pair<String, Double>> list = new ArrayList<>();
-		// TODO: this will blow up if the annotation is not doubles; fix this!
-		final Cursor<DoubleType> cursor = (Cursor<DoubleType>) Views.flatIterable(entropyValues).cursor();
-
-		for (String geneName : geneNames) {
-			list.add(new ValuePair<>(geneName, cursor.next().getRealDouble()));
-		}
-		return list;
-	}
-
 	public static List<String> genesToTest(final STData stdataA, final STData stdataB, final String entropyLabel, final int numGenes)
 			throws IllegalArgumentException {
 
@@ -250,8 +230,8 @@ public class Pairwise
 			return new ArrayList<>();
 
 		// this assumes that the "stdev" or similar has been computed
-		final ArrayList<Pair<String, Double>> listA = getGenesEntropy(stdataA, entropyLabel);
-		final ArrayList<Pair<String, Double>> listB = getGenesEntropy(stdataB, entropyLabel);
+		final ArrayList<Pair<String, Double>> listA = ExtractGeneLists.loadGeneEntropy(stdataA, entropyLabel);
+		final ArrayList<Pair<String, Double>> listB = ExtractGeneLists.loadGeneEntropy(stdataB, entropyLabel);
 			
 		// now we want to find the combination of genes where both have high variance
 		// we therefore sort them by the sum of ranks of both lists
