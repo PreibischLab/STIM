@@ -141,12 +141,22 @@ public class AnnDataIO extends SpatialDataIO {
 
 	@Override
 	protected List<String> detectAnnotations(N5Reader reader, String annotationPath) {
-		return new ArrayList<>(AnnDataUtils.getDataFrameDatasetNames(reader, annotationPath));
+		return readColumnOrder(reader, annotationPath);
 	}
 
 	@Override
 	protected List<String> detectGeneAnnotations(N5Reader reader, String geneAnnotationPath) {
-		return new ArrayList<>(AnnDataUtils.getDataFrameDatasetNames(reader, geneAnnotationPath));
+		return readColumnOrder(reader, geneAnnotationPath);
+	}
+
+	private static List<String> readColumnOrder(N5Reader reader, String annotationPath) {
+		List<String> annotations = new ArrayList<>();
+		try {
+			annotations = new ArrayList<>(AnnDataUtils.getDataFrameDatasetNames(reader, annotationPath));
+		} catch (Exception e) {
+			logger.warn("Could not read column names from {}", annotationPath);
+		}
+		return annotations;
 	}
 
 	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readAnnotations(N5Reader reader, String annotationPath, String label) {
