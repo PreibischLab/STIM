@@ -229,22 +229,21 @@ public abstract class SpatialDataIO {
 		if (readOnly)
 			throw new IllegalStateException("Trying to write to read-only file.");
 
-		N5Writer writer = (N5Writer) ioSupplier.get();
-		STData stData = data.data();
+		try (N5Writer writer = (N5Writer) ioSupplier.get()) {
+			STData stData = data.data();
 
-		logger.debug( "Saving spatial data ... " );
-		long time = System.currentTimeMillis();
+			logger.debug("Saving spatial data ... ");
+			long time = System.currentTimeMillis();
 
-		initializeDataset(writer, stData);
+			initializeDataset(writer, stData);
 
-		writeExpressionValues(writer, stData.getAllExprValues());
-		writeLocations(writer, stData.getLocations());
-		updateTransformation(writer, data.transform(), transformFieldName);
-		//writeTransformation(writer, data.intensityTransform(), "intensity_transform");
+			writeExpressionValues(writer, stData.getAllExprValues());
+			writeLocations(writer, stData.getLocations());
+			updateTransformation(writer, data.transform(), transformFieldName);
 
-		updateStoredAnnotations(stData.getAnnotations());
-
-		logger.debug("Saving took {} ms.", System.currentTimeMillis() - time);
+			updateStoredAnnotations(stData.getAnnotations());
+			logger.debug("Saving took {} ms.", System.currentTimeMillis() - time);
+		}
 	}
 
 	/**
@@ -256,14 +255,15 @@ public abstract class SpatialDataIO {
 		if (readOnly)
 			throw new IllegalStateException("Trying to write to read-only file.");
 
-		N5Writer writer = (N5Writer) ioSupplier.get();
-		List<String> existingAnnotations = detectAnnotations(writer);
+		try (N5Writer writer = (N5Writer) ioSupplier.get()) {
+			List<String> existingAnnotations = detectAnnotations(writer);
 
-		for (Entry<String, RandomAccessibleInterval<? extends NativeType<?>>> newEntry : metadata.entrySet()) {
-			if (existingAnnotations.contains(newEntry.getKey()))
-				logger.warn("Metadata '{}' already exists. Skip writing.", newEntry.getKey());
-			else
-				writeAnnotations(writer, newEntry.getKey(), newEntry.getValue());
+			for (Entry<String, RandomAccessibleInterval<? extends NativeType<?>>> newEntry : metadata.entrySet()) {
+				if (existingAnnotations.contains(newEntry.getKey()))
+					logger.warn("Metadata '{}' already exists. Skip writing.", newEntry.getKey());
+				else
+					writeAnnotations(writer, newEntry.getKey(), newEntry.getValue());
+			}
 		}
 	}
 
@@ -276,14 +276,15 @@ public abstract class SpatialDataIO {
 		if (readOnly)
 			throw new IllegalStateException("Trying to write to read-only file.");
 
-		N5Writer writer = (N5Writer) ioSupplier.get();
-		List<String> existingGeneAnnotations = detectGeneAnnotations(writer);
+		try (N5Writer writer = (N5Writer) ioSupplier.get()) {
+			List<String> existingGeneAnnotations = detectGeneAnnotations(writer);
 
-		for (Entry<String, RandomAccessibleInterval<? extends NativeType<?>>> newEntry : metadata.entrySet()) {
-			if (existingGeneAnnotations.contains(newEntry.getKey()))
-				logger.warn("Metadata '{}' already exists. Skip writing.", newEntry.getKey());
-			else
-				writeGeneAnnotations(writer, newEntry.getKey(), newEntry.getValue());
+			for (Entry<String, RandomAccessibleInterval<? extends NativeType<?>>> newEntry : metadata.entrySet()) {
+				if (existingGeneAnnotations.contains(newEntry.getKey()))
+					logger.warn("Metadata '{}' already exists. Skip writing.", newEntry.getKey());
+				else
+					writeGeneAnnotations(writer, newEntry.getKey(), newEntry.getValue());
+			}
 		}
 	}
 
@@ -327,8 +328,9 @@ public abstract class SpatialDataIO {
 		if (readOnly)
 			throw new IllegalStateException("Trying to modify a read-only file.");
 
-		N5Writer writer = (N5Writer) ioSupplier.get();
-		updateTransformation(writer, transform, name);
+		try (N5Writer writer = (N5Writer) ioSupplier.get()) {
+			updateTransformation(writer, transform, name);
+		}
 	}
 
 	/**
