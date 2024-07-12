@@ -9,8 +9,7 @@ import analyze.Entropy;
 import analyze.ExtractGeneLists;
 import gui.STDataAssembly;
 import io.SpatialDataIO;
-import net.imglib2.img.Img;
-import net.imglib2.img.array.ArrayImgs;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.real.DoubleType;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -46,14 +45,12 @@ public class AddEntropy implements Callable<Void> {
 		final ExecutorService service = Executors.newFixedThreadPool(numThreads);
 		final SpatialDataIO sdio = SpatialDataIO.open(inputPath, service);
 		final STDataAssembly stData = sdio.readData();
-		final Img<DoubleType> entropyValuesRai;
 
 		logger.info("Computing gene variability with method '{}' (might take a while)", entropy.label());
-		final double[] entropyValues = ExtractGeneLists.computeOrderedEntropy(stData.data(), entropy, numThreads);
-		entropyValuesRai = ArrayImgs.doubles(entropyValues, stData.data().numGenes());
+		final RandomAccessibleInterval<DoubleType> entropyValues = ExtractGeneLists.computeOrderedEntropy(stData.data(), entropy, numThreads);
 
 		final String actualLabel = (geneLabels == null) ? entropy.label() : geneLabels;
-		stData.data().getGeneAnnotations().put(actualLabel, entropyValuesRai);
+		stData.data().getGeneAnnotations().put(actualLabel, entropyValues);
 		try {
 			sdio.updateStoredGeneAnnotations(stData.data().getGeneAnnotations());
 		}

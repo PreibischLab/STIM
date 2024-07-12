@@ -178,7 +178,7 @@ public class Pairwise
 		logger.info( "Sorting all genes of both datasets by stdev (this takes a bit) ... ");
 		long time = System.currentTimeMillis();
 
-		// from big to small
+		// sort by standard deviation, from big to small
 		final List<Pair<String, Double>> listA = ExtractGeneLists.computeEntropy(stdataA, Entropy.STDEV, numThreads);
 		final List<Pair<String, Double>> listB = ExtractGeneLists.computeEntropy(stdataB, Entropy.STDEV, numThreads);
 		final Comparator<Pair<String, Double>> byEntropy = Comparator.comparing(Pair::getB);
@@ -190,7 +190,7 @@ public class Pairwise
 		// now we want to find the combination of genes where both have high variance
 		// we therefore sort them by the sum of ranks of both lists
 
-		final HashMap<String, Integer > geneToIndexB = new HashMap<>();
+		final HashMap<String, Integer> geneToIndexB = new HashMap<>();
 
 		for ( int i = 0; i < listB.size(); ++i )
 			geneToIndexB.put( listB.get( i ).getA(), i );
@@ -230,8 +230,8 @@ public class Pairwise
 			return new ArrayList<>();
 
 		// this assumes that the "stdev" or similar has been computed
-		final ArrayList<Pair<String, Double>> listA = ExtractGeneLists.loadGeneEntropy(stdataA, entropyLabel);
-		final ArrayList<Pair<String, Double>> listB = ExtractGeneLists.loadGeneEntropy(stdataB, entropyLabel);
+		final List<Pair<String, Double>> listA = ExtractGeneLists.zipNamesAndValues(stdataA, entropyLabel);
+		final List<Pair<String, Double>> listB = ExtractGeneLists.zipNamesAndValues(stdataB, entropyLabel);
 			
 		// now we want to find the combination of genes where both have high variance
 		// we therefore sort them by the sum of ranks of both lists

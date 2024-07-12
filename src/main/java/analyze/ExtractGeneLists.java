@@ -13,6 +13,7 @@ import data.STData;
 import net.imglib2.Cursor;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
@@ -70,7 +71,7 @@ public class ExtractGeneLists
 	 * @param numThreads the number of threads to use
 	 * @return the entropy values in the order of the genes in the dataset
 	 */
-	public static double[] computeOrderedEntropy(final STData stData, final Entropy entropy, final int numThreads) {
+	public static RandomAccessibleInterval<DoubleType> computeOrderedEntropy(final STData stData, final Entropy entropy, final int numThreads) {
 		final List<Pair<String, Double>> geneToEntropy = computeEntropy(stData, entropy, numThreads);
 
 		// We resort given the current order of genes by creating a hashmap of genes
@@ -85,12 +86,13 @@ public class ExtractGeneLists
 			reorderedEntropy.add(pairMap.get(key));
 		}
 
-		return reorderedEntropy.stream()
-								.mapToDouble(Pair::getB)
-								.toArray();
+		final double[] entropyValues = reorderedEntropy.stream()
+				.mapToDouble(Pair::getB)
+				.toArray();
+		return ArrayImgs.doubles(entropyValues, stData.numGenes());
 	}
 
-	public static ArrayList<Pair<String, Double>> loadGeneEntropy(final STData stData, final String entropyLabel)
+	public static RandomAccessibleInterval<DoubleType> loadGeneEntropy(final STData stData, final String entropyLabel)
 			throws IllegalArgumentException {
 
 		Map<String, RandomAccessibleInterval<? extends NativeType<?>>> geneAnnotation = stData.getGeneAnnotations();
@@ -99,12 +101,22 @@ public class ExtractGeneLists
 		}
 
 		final RandomAccessibleInterval<? extends NativeType<?>> entropyValues = geneAnnotation.get(entropyLabel);
-		List<String> geneNames = stData.getGeneNames();
-
-		ArrayList<Pair<String, Double>> list = new ArrayList<>();
 		// TODO: this will blow up if the annotation is not doubles; fix this!
-		final Cursor<DoubleType> cursor = (Cursor<DoubleType>) Views.flatIterable(entropyValues).cursor();
+		return (RandomAccessibleInterval<DoubleType>) entropyValues;
+	}
 
+	/**
+	 * Combine gene names and entropy values into a list of pairs.
+	 *
+	 * @param stData       the dataset
+	 * @param entropyLabel the label of the entropy values
+	 * @return a list of pairs with the gene name and the entropy value
+	 */
+	public static List<Pair<String, Double>> zipNamesAndValues(final STData stData, final String entropyLabel) {
+		final List<String> geneNames = stData.getGeneNames();
+		RandomAccessibleInterval<DoubleType> entropy = (RandomAccessibleInterval<DoubleType>) stData.getGeneAnnotations().get(entropyLabel);
+		final Cursor<DoubleType> cursor = Views.flatIterable(entropy).cursor();
+		final List<Pair<String, Double>> list = new ArrayList<>();
 		for (String geneName : geneNames) {
 			list.add(new ValuePair<>(geneName, cursor.next().getRealDouble()));
 		}

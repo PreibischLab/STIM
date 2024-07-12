@@ -12,6 +12,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import analyze.Entropy;
+import net.imglib2.RandomAccessibleInterval;
 import org.joml.Math;
 
 import align.AlignTools;
@@ -29,9 +30,6 @@ import io.SpatialDataContainer;
 import mpicbg.models.RigidModel2D;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.img.array.ArrayImg;
-import net.imglib2.img.array.ArrayImgs;
-import net.imglib2.img.basictypeaccess.array.DoubleArray;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -193,35 +191,37 @@ public class PairwiseSectionAligner implements Callable<Void> {
 
 		final boolean saveResult = true;
 		final boolean visualizeResult = !hidePairwiseRendering;
+		final String stdevLabel = Entropy.STDEV.label();
 
-		if (numGenes > 0 && entropyPath == null) {
-			logger.info( "Retrieving standard deviation of genes for all sections" );
-			final String stdevLabel = Entropy.STDEV.label();
-			entropyPath = stdevLabel;
+		// ensure that the standard deviation of genes is present for all datasets
+		logger.info("Retrieving standard deviation of genes for all sections");
+		for (int i = 0; i < dataToAlign.size(); ++i) {
+			final String datasetName = datasetNames.get(i);
+			final STDataAssembly stData = dataToAlign.get(i);
 
-			for ( int i = 0; i < dataToAlign.size(); ++i ) {
-				final String datasetName = datasetNames.get(i);
-				
-				final ArrayImg<DoubleType, DoubleArray> entropyValuesRai;
-				final STDataAssembly stData = dataToAlign.get(i);
-				if (stData.data().getGeneAnnotations().containsKey(stdevLabel)) {
-					logger.debug("Gene annotation '{}' was found for {}. Omitting.", stdevLabel, datasetName);
-					continue;
-				}
+			if (stData.data().getGeneAnnotations().containsKey(stdevLabel)) {
+				logger.debug("Gene annotation '{}' was found for {}. Omitting.", stdevLabel, datasetName);
+				continue;
+			}
+
+			final boolean computeStdev = (numGenes > 0 && entropyPath == null);
+			final RandomAccessibleInterval<DoubleType> entropyValues;
+			if (computeStdev) {
 				logger.info("Computing standard deviation of genes for {} (may take a while)", datasetName);
-				final double[] entropyValues = ExtractGeneLists.computeOrderedEntropy(stData.data(), Entropy.STDEV, numThreads);
-	
-				entropyValuesRai = ArrayImgs.doubles(entropyValues, stData.data().numGenes());
-				stData.data().getGeneAnnotations().put(stdevLabel, entropyValuesRai);
+				entropyValues = ExtractGeneLists.computeOrderedEntropy(stData.data(), Entropy.STDEV, numThreads);
+			} else {
+				logger.info("Loading standard deviation of genes for {} from {}", datasetName, entropyPath);
+				entropyValues = ExtractGeneLists.loadGeneEntropy(stData.data(), entropyPath);
+			}
+			stData.data().getGeneAnnotations().put(stdevLabel, entropyValues);
+
+			if (computeStdev) {
 				try {
 					container.openDataset(datasetName).updateStoredGeneAnnotations(stData.data().getGeneAnnotations());
-				}
-				catch (IOException e) {
+				} catch (IOException e) {
 					logger.warn("Cannot write gene annotations to file", e);
 				}
 			}
-		} else if (entropyPath != null) {
-			logger.debug("Will take genes from '{}' property in gene annotation", entropyPath);
 		}
 
 		for ( int i = 0; i < dataToAlign.size() - 1; ++i ) {
@@ -237,7 +237,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 				final String dataset2 = datasetNames.get( j );
 
 				// assemble gene set for alignment
-				final HashSet< String > genesToTest = new HashSet<>( Pairwise.genesToTest( stData1, stData2, entropyPath, numGenes ) );
+				final HashSet<String> genesToTest = new HashSet<>(Pairwise.genesToTest(stData1, stData2, stdevLabel, numGenes));
 		
 				if ( genes != null && !genes.isEmpty())
 				{
