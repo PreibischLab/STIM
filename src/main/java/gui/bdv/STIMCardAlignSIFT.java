@@ -735,10 +735,9 @@ public class STIMCardAlignSIFT
 
 		try {
 			final SpatialDataIO sdout = SpatialDataIO.open( path, service);
-			final N5Writer writer = (N5Writer) sdout.ioSupplier().get();
-			
-			sdout.updateTransformation(writer, finalTransform, SpatialDataIO.transformFieldName);
-
+			try (final N5Writer writer = (N5Writer) sdout.ioSupplier().get()) {
+				sdout.updateTransformation(writer, finalTransform, SpatialDataIO.transformFieldName);
+			}
 			logger.info("Written final transformation to: '{}'", path);
 		} catch (IOException e) {
 			logger.error("ERROR writing transformation to: '{}': {}", path, e);
