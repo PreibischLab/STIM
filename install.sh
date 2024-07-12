@@ -15,7 +15,7 @@ display_usage () {
   exit
 }
 
-VERSION="0.3.0-SNAPSHOT"
+VERSION="0.3.0"
 
 while getopts :hi:r: flag
 do

@@ -10,7 +10,7 @@
 	</parent>
 
 	<artifactId>imglib2-st</artifactId>
-	<version>0.3.0-SNAPSHOT</version>
+	<version>0.3.0</version>
 
 	<name>ImgLib2 Spatial Transcriptiomics</name>
 	<description>This project shows the application of imglib2 to spatial transcriptomics</description>
