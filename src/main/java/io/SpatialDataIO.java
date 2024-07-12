@@ -165,11 +165,21 @@ public abstract class SpatialDataIO {
 		AffineTransform2D transform = new AffineTransform2D();
 		readAndSetTransformation(reader, transform, transformFieldName);
 
-		for (final String annotationLabel : detectAnnotations(reader))
-			stData.getAnnotations().put(annotationLabel, readAnnotations(reader, annotationLabel));
+		for (final String annotationLabel : detectAnnotations(reader)) {
+			try {
+				stData.getAnnotations().put(annotationLabel, readAnnotations(reader, annotationLabel));
+			} catch (Exception e) {
+				logger.warn("Could not read annotation '{}'. Skipping", annotationLabel);
+			}
+		}
 
-		for (final String geneAnnotationLabel : detectGeneAnnotations(reader))
-			stData.getGeneAnnotations().put(geneAnnotationLabel, readGeneAnnotations(reader, geneAnnotationLabel));
+		for (final String geneAnnotationLabel : detectGeneAnnotations(reader)) {
+			try {
+				stData.getGeneAnnotations().put(geneAnnotationLabel, readGeneAnnotations(reader, geneAnnotationLabel));
+			} catch (Exception e) {
+				logger.warn("Could not read annotation '{}'. Skipping", geneAnnotationLabel);
+			}
+		}
 
 		logger.debug("Loading took {} ms.", System.currentTimeMillis() - time);
 		logger.debug("Metadata: dims={}, numLocations={}, numGenes={}, size(locations)={}, size(exprValues)={}",

@@ -203,10 +203,12 @@ public class PairwiseSectionAligner implements Callable<Void> {
 				logger.debug("Gene annotation '{}' was found for {}. Omitting.", stdevLabel, datasetName);
 				continue;
 			}
+			if (numGenes == 0) {
+				continue;
+			}
 
-			final boolean computeStdev = (numGenes > 0 && entropyPath == null);
 			final RandomAccessibleInterval<DoubleType> entropyValues;
-			if (computeStdev) {
+			if (entropyPath == null) {
 				logger.info("Computing standard deviation of genes for {} (may take a while)", datasetName);
 				entropyValues = ExtractGeneLists.computeOrderedEntropy(stData.data(), Entropy.STDEV, numThreads);
 			} else {
@@ -215,7 +217,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 			}
 			stData.data().getGeneAnnotations().put(stdevLabel, entropyValues);
 
-			if (computeStdev) {
+			if (entropyPath == null) {
 				try {
 					container.openDataset(datasetName).updateStoredGeneAnnotations(stData.data().getGeneAnnotations());
 				} catch (IOException e) {
