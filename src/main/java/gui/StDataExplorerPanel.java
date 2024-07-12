@@ -241,7 +241,7 @@ public class StDataExplorerPanel extends JPanel
 
 		/*
 		this.visualization = new JCheckBox( "Visualization Options" );
-		this.visualization.addActionListener(
+		this.visualization.addItemListener(
 				e ->
 				{
 					if ( this.visualization.isSelected() )

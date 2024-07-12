@@ -93,7 +93,7 @@ public class STIMCardAlignSIFT
 	private Affine2D<?> previousModel = null;
 	private final SIFTParam param;
 	final static String[] optionsSIFT = { "Fast", "Normal", "Thorough", "Very thorough", "Custom ..." };
-	private boolean customModeSIFT = false; // we always start with "normal" for 
+	private AtomicBoolean customModeSIFT = new AtomicBoolean(false); // we always start with "normal" for
 
 	private final ExecutorService service;
 	private final HashSet<String> genesWithInliers = new HashSet<>();
@@ -353,50 +353,52 @@ public class STIMCardAlignSIFT
 		// set sift preset box to custom once one of the values is manually changed
 		//
 		final AtomicBoolean triggedChange = new AtomicBoolean( false );
+		final int customIndex = 4;
 
 		customComponents.forEach( c -> {
-			if (c instanceof JFormattedTextField)
+			if (c instanceof JFormattedTextField) {
 				c.addPropertyChangeListener(e -> {
-					if ( !triggedChange.get() && e.getOldValue() != null && e.getNewValue() != null && e.getOldValue() != e.getNewValue() && box.getSelectedIndex() != 4 )
-					{
-						box.setSelectedIndex( 4 );
+					if (!triggedChange.get()
+							&& box.getSelectedIndex() != customIndex
+							&& e.getOldValue() != null
+							&& e.getNewValue() != null
+							&& e.getOldValue() != e.getNewValue()) {
+						box.setSelectedIndex(customIndex);
 					}
-				} );
-			else if (c instanceof JCheckBox)
-				((JCheckBox)c).addChangeListener( e -> { if ( !triggedChange.get() && box.getSelectedIndex() != 4 ) box.setSelectedIndex( 4 ); } );
-			else if (c instanceof BoundedValuePanel)
-				((BoundedValuePanel)c).changeListeners().add( () -> { if ( !triggedChange.get() && box.getSelectedIndex() != 4 ) box.setSelectedIndex( 4 ); } );
+				});
+			} else if (c instanceof JCheckBox) {
+				((JCheckBox) c).addItemListener(e -> {if (!triggedChange.get() && box.getSelectedIndex() != customIndex) box.setSelectedIndex(customIndex);});
+			} else if (c instanceof BoundedValuePanel) {
+				((BoundedValuePanel) c).changeListeners().add(() -> {if (!triggedChange.get() && box.getSelectedIndex() != customIndex) box.setSelectedIndex(customIndex);});
+			}
 		});
 
 		// transform listener for max octave size
 		stimcard.bdvhandle().getViewerPanel().transformListeners().add(l -> SwingUtilities.invokeLater(this::updateMaxOctaveSize));
 
 		// advanced options listener (changes menu)
-		advancedOptions.addChangeListener( e -> SwingUtilities.invokeLater( () -> {
-			if ( !customModeSIFT )
-			{
+		advancedOptions.addItemListener(e -> SwingUtilities.invokeLater(() -> {
+			if (!customModeSIFT.get()) {
 				// change to advanced mode
 				AtomicInteger cc = new AtomicInteger(componentCount);
 				triggedChange.set(true);
-				advancedSIFTComponents.forEach( c -> panel.add(c, "span,growx,pushy", cc.getAndIncrement() ));
+				advancedSIFTComponents.forEach(c -> panel.add(c, "span,growx,pushy", cc.getAndIncrement()));
 				panel.updateUI();
 
-				triggedChange.set( false );
-				customModeSIFT = true;
-			}
-			else
-			{
+				triggedChange.set(false);
+				customModeSIFT.set(true);
+			} else {
 				// change to simple mode
 				advancedSIFTComponents.forEach(panel::remove);
-				customModeSIFT = false;
+				panel.updateUI();
+				customModeSIFT.set(false);
 			}
 		}));
 
 		// advanced menu listener (changes menu)
 		box.addActionListener( e -> {
 
-			if ( box.getSelectedIndex() < 4 )
-			{
+			if (box.getSelectedIndex() != customIndex) {
 				SwingUtilities.invokeLater( () ->
 				{
 					// update all values to the specific preset
@@ -436,7 +438,7 @@ public class STIMCardAlignSIFT
 		});
 
 		// overlay listener
-		overlayInliers.addChangeListener( e ->
+		overlayInliers.addItemListener(e ->
 		{
 			if ( !overlayInliers.isSelected() )
 			{
@@ -700,7 +702,7 @@ public class STIMCardAlignSIFT
 		});
 
 		//
-		// Return command line paramters for the last SIFT align run ...
+		// Return command line parameters for the last SIFT align run ...
 		//
 		cmdLine.addActionListener( l -> 
 		{
@@ -827,7 +829,7 @@ public class STIMCardAlignSIFT
 		try {
 			return format.parse(text.trim()).doubleValue();
 		} catch (ParseException e) {
-			logger.warn("Cannot parse from GUI -> setting default to {}", e);
+			logger.warn("Cannot parse from GUI -> setting default to {}", defaultValue, e);
 			return defaultValue;
 		}
 	}

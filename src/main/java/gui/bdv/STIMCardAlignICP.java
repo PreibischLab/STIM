@@ -222,7 +222,7 @@ public class STIMCardAlignICP
 		panel.add(panelbuttons, "span,growx,pushy");
 
 		// disable RANSAC slider if not used
-		useRANSAC.addActionListener( e -> SwingUtilities.invokeLater( () -> maxErrorRANSACSlider.setEnabled( useRANSAC.isSelected() ) ) );
+		useRANSAC.addItemListener(e -> SwingUtilities.invokeLater(() -> maxErrorRANSACSlider.setEnabled(useRANSAC.isSelected())));
 
 		// disable lambdas if no regularization is selected
 		boxModelFinal2.addActionListener(e -> SwingUtilities.invokeLater(() -> {
