@@ -76,7 +76,7 @@ public abstract class SpatialDataIO {
 			final boolean readOnly,
 			final ExecutorService service )
 	{
-		this(ioSupplier, basePath, readOnly, 512*512, new int[]{512, 512}, new GzipCompression(3), service);
+		this(ioSupplier, basePath, readOnly, 128*128, new int[]{512, 512}, new GzipCompression(3), service);
 	}
 
 	/**
