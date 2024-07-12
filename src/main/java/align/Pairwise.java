@@ -14,6 +14,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import analyze.Entropy;
 import analyze.ExtractGeneLists;
 import data.STData;
 import data.STDataStatistics;

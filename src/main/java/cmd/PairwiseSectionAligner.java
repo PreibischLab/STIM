@@ -11,7 +11,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-import align.Entropy;
+import analyze.Entropy;
 import org.joml.Math;
 
 import align.AlignTools;

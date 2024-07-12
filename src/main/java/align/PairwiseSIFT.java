@@ -13,6 +13,7 @@ import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import analyze.Entropy;
 import org.joml.Math;
 
 import align.SIFTParam.SIFTPreset;

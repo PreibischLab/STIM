@@ -5,18 +5,16 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
-import align.Entropy;
 import data.STData;
+import net.imglib2.IterableRealInterval;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
-import util.CompensatedSum;
 import util.Threads;
 import org.apache.logging.log4j.Logger;
 import util.LoggerUtil;
@@ -25,25 +23,56 @@ public class ExtractGeneLists
 {
 	private static final Logger logger = LoggerUtil.getLogger();
 
+	/**
+	 * Compute the entropy of each gene in the dataset using a given method.
+	 *
+	 * @param data       the dataset
+	 * @param entropy    the method to compute the entropy
+	 * @param numThreads the number of threads to use
+	 * @return a list of pairs with the gene name and the entropy value
+	 */
+	public static List<Pair<String, Double>> computeEntropyNew(final STData data, final Entropy entropy, final int numThreads) {
+
+		final ExecutorService service = Threads.createFixedExecutorService(numThreads);
+		final List<Future<Pair<String, Double>>> futures = data.getGeneNames().stream()
+				.map(gene -> service.submit(() -> computeSingleGeneEntropy(data, gene, entropy)))
+				.collect(Collectors.toList());
+
+		final List<Pair<String, Double>> geneToEntropy = new ArrayList<>();
+		try {
+			for (final Future<Pair<String, Double>> future : futures) {
+				geneToEntropy.add(future.get());
+			}
+		} catch (final InterruptedException | ExecutionException e) {
+			logger.error("Error computing standard deviation", e);
+			throw new RuntimeException(e);
+		} finally {
+			service.shutdown();
+		}
+
+		return geneToEntropy;
+	}
+
+	private static Pair<String, Double> computeSingleGeneEntropy(final STData data, final String gene, final Entropy entropy) {
+		final IterableRealInterval<DoubleType> expressionData = data.getExprData(gene);
+		final double entropyValue = entropy.computeFor(expressionData);
+		return new ValuePair<>(gene, entropyValue);
+	}
+
+	public static List<Pair<String, Double>> sortByEntropy(final STData data, final Entropy entropy, final int numThreads) {
+		final List<Pair<String, Double>> geneToEntropy = computeEntropyNew(data, entropy, numThreads);
+		final Comparator<Pair<String, Double>> byEntropy = Comparator.comparing(Pair::getB);
+		geneToEntropy.sort(byEntropy.reversed());
+		return geneToEntropy;
+	}
+
 	public static ArrayList< Pair< String, Double > > sortByStDevIntensity( final STData data, final int numThreads )
 	{
-		final ArrayList< Pair< String, Double > > stDev = computeStdev(data, numThreads);
-		final Comparator<Pair<String, Double>> byStdDev = Comparator.comparing(Pair::getB);
-		stDev.sort(byStdDev.reversed());
-		return stDev;
+		return new ArrayList<>(sortByEntropy(data, Entropy.STDEV, numThreads));
 	}
 
 	public static double[] computeEntropy(final Entropy entropy, final STData stData, final int numThreads) {
-		final ArrayList<Pair<String, Double>> geneToEntropy;
-
-		switch (entropy) {
-			case STDEV:
-				geneToEntropy = ExtractGeneLists.computeStdev(stData, Math.min(Threads.numThreads(), numThreads) );
-				break;
-			default:
-				logger.error("Method {} not supported", entropy.label());
-				return null;
-		}
+		final List<Pair<String, Double>> geneToEntropy = computeEntropyNew(stData, entropy, numThreads);
 
 		// We resort given the current order of genes by creating a hashmap of genes
 		Map<String, Pair<String, Double>> pairMap = new HashMap<>();
@@ -60,79 +89,5 @@ public class ExtractGeneLists
 		return reorderedEntropy.stream()
 								.mapToDouble(Pair::getB)
 								.toArray();
-	}
-
-	public static ArrayList< Pair< String, Double > > computeStdev( final STData data, final int numThreads )
-	{
-		final ArrayList< Pair< String, Double > > stDev = new ArrayList<>();
-
-		final AtomicInteger nextGene = new AtomicInteger();
-		final List< Callable< List< Pair< String, Double > > > > tasks = new ArrayList<>();
-
-		for ( int threadNum = 0; threadNum < numThreads; ++threadNum )
-		{
-			tasks.add( () ->
-			{
-				final List< Pair< String, Double > > stDevLocal = new ArrayList<>();
-
-				for ( int g = nextGene.getAndIncrement(); g < data.getGeneNames().size(); g = nextGene.getAndIncrement() )
-				{
-					final String gene = data.getGeneNames().get( g );
-					final CompensatedSum sum = new CompensatedSum();
-					for ( final DoubleType t : data.getExprData( gene ) )
-						sum.add( t.get() );
-	
-					final double avg = sum.getSum() / data.numLocations();
-	
-					final CompensatedSum stdev = new CompensatedSum();
-					for ( final DoubleType t : data.getExprData( gene ) )
-						stdev.add( Math.pow( t.get() - avg , 2));
-
-					stDevLocal.add( new ValuePair<>( gene, Math.sqrt( stdev.getSum() / data.numLocations() ) ) );
-					// if (g % 1000 == 0){
-					// 	System.out.println("Processed " + g + " genes");
-					// }
-				}
-
-				return stDevLocal;
-			});
-		}
-
-		final ExecutorService service = Threads.createFixedExecutorService( numThreads );
-
-		try
-		{
-			final List< Future< List< Pair< String, Double > > > > futures = service.invokeAll( tasks );
-			for ( final Future< List< Pair< String, Double > > > future : futures )
-				stDev.addAll( future.get() );
-		}
-		catch ( final InterruptedException | ExecutionException e )
-		{
-			logger.error("Error computing standard deviation", e);
-			throw new RuntimeException( e );
-		}
-
-		service.shutdown();
-
-		return stDev;
-	}
-
-	public static ArrayList< Pair< String, Double > > sortByAvgIntensity( final STData data )
-	{
-		final ArrayList< Pair< String, Double > > avgs = new ArrayList<>();
-
-		for ( final String gene : data.getGeneNames() )
-		{
-			final CompensatedSum sum = new CompensatedSum();
-			for ( final DoubleType t : data.getExprData( gene ) )
-				sum.add( t.get() );
-
-			avgs.add( new ValuePair<>( gene, sum.getSum() / data.numLocations() ) );
-		}
-
-		final Comparator<Pair<String, Double>> byAvg = Comparator.comparing(Pair::getB);
-		avgs.sort(byAvg.reversed());
-
-		return avgs;
 	}
 }
