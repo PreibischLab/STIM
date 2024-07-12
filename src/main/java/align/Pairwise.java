@@ -173,14 +173,15 @@ public class Pairwise
 		}
 	}
 
-	public static List< Pair< String, Double > > allGenes( final STData stdataA, final STData stdataB, final int numThreads )
+	public static List<Pair<String, Double>> allGenes(final STData stdataA, final STData stdataB, final String entropyLabel)
 	{
 		logger.info( "Sorting all genes of both datasets by stdev (this takes a bit) ... ");
 		long time = System.currentTimeMillis();
 
+		// this assumes that the "stdev" or similar has been computed
 		// sort by standard deviation, from big to small
-		final List<Pair<String, Double>> listA = ExtractGeneLists.computeEntropy(stdataA, Entropy.STDEV, numThreads);
-		final List<Pair<String, Double>> listB = ExtractGeneLists.computeEntropy(stdataB, Entropy.STDEV, numThreads);
+		final List<Pair<String, Double>> listA = ExtractGeneLists.zipNamesAndValues(stdataA, entropyLabel);
+		final List<Pair<String, Double>> listB = ExtractGeneLists.zipNamesAndValues(stdataB, entropyLabel);
 		final Comparator<Pair<String, Double>> byEntropy = Comparator.comparing(Pair::getB);
 		listA.sort(byEntropy.reversed());
 		listB.sort(byEntropy.reversed());

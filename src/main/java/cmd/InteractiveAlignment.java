@@ -17,6 +17,8 @@ import java.util.concurrent.Executors;
 import javax.swing.SwingUtilities;
 
 import align.Pairwise;
+import analyze.Entropy;
+import analyze.ExtractGeneLists;
 import bdv.ui.splitpanel.SplitPanel;
 import bdv.util.BdvStackSource;
 import bdv.viewer.DisplayMode;
@@ -34,7 +36,9 @@ import gui.bdv.STIMCardManualAlign;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
 import io.TextFileAccess;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.ARGBType;
+import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import picocli.CommandLine;
@@ -105,6 +109,9 @@ public class InteractiveAlignment implements Callable<Void> {
 	@Option(names = {"--ffMean"}, required = false, description = "mean/avg-filter all spots using a given radius, e.g --ffMean 2.5 (default: no filtering)")
 	private Double ffMean = null;
 
+	@Option(names = {"--entropyPath"}, required = false, description = "path where the entropy is stored as gene annotations (if no path given: compute standard deviation from scratch)")
+	private String entropyPath = null;
+
 	@Override
 	public Void call() throws Exception
 	{
@@ -140,48 +147,42 @@ public class InteractiveAlignment implements Callable<Void> {
 		//
 		logger.info("Assembling initial genes for alignment ({} genes)...", numGenes);
 
-		final Path tmpDir = Files.createTempDirectory("stim");
-		final String tmpFileName = inputPath.hashCode() + "_" + dataset1.hashCode() + "_" + dataset2.hashCode() + ".stim.tmp";
-		final File tmp = new File(tmpDir.toString(), tmpFileName);
-		final List< Pair< String, Double > > allGenes = new ArrayList<>();
+		final String stdevLabel = Entropy.STDEV.label();
+		final List<STDataAssembly> dataToAlign = Arrays.asList(data1, data2);
+		final List<String> datasetNames = Arrays.asList(dataset1, dataset2);
 
-		if ( tmp.exists() )
-		{
-			logger.debug("Attempting to load cached sorted result: {}", tmp.getAbsolutePath());
-			try
-			{
-				final BufferedReader in = TextFileAccess.openFileReadEx( tmp );
-				in.lines().forEach( s -> {
-					String[] entries = s.split( "\t" );
-					allGenes.add( new ValuePair<>( entries[ 0 ], Double.parseDouble( entries[1] ) ) );
-				});
-				in.close();
+		// ensure that the standard deviation of genes is present for all datasets
+		logger.info("Retrieving standard deviation of genes for all sections");
+		for (int i = 0; i < dataToAlign.size(); ++i) {
+			final STDataAssembly stData = dataToAlign.get(i);
+			final String datasetName = datasetNames.get(i);
+
+			if (stData.data().getGeneAnnotations().containsKey(stdevLabel)) {
+				logger.debug("Gene annotation '{}' was found for {}. Omitting.", stdevLabel, datasetName);
+				continue;
 			}
-			catch (IOException e )
-			{
-				logger.error( "Couldn't load tmp file: ", e);
-				allGenes.clear();
+
+			final boolean computeStdev = (numGenes > 0 && entropyPath == null);
+			final RandomAccessibleInterval<DoubleType> entropyValues;
+			if (computeStdev) {
+				logger.info("Computing standard deviation of genes for {} (may take a while)", datasetName);
+				entropyValues = ExtractGeneLists.computeOrderedEntropy(stData.data(), Entropy.STDEV, Threads.numThreads());
+			} else {
+				logger.info("Loading standard deviation of genes for {} from {}", datasetName, entropyPath);
+				entropyValues = ExtractGeneLists.loadGeneEntropy(stData.data(), entropyPath);
 			}
-		}
+			stData.data().getGeneAnnotations().put(stdevLabel, entropyValues);
 
-		// get all genes sorted (so we can pick quickly later)
-		if (allGenes.isEmpty())
-		{
-			allGenes.addAll( Pairwise.allGenes( data1.data(), data2.data(), Threads.numThreads() ) );
-
-			logger.debug("Attempting to save cached sorted result: {}", tmp.getAbsolutePath());
-
-			try
-			{
-				final PrintWriter out = TextFileAccess.openFileWriteEx( tmp );
-				allGenes.forEach( s -> out.println( s.getA() + "\t" + s.getB() ) );
-				out.close();
-			}
-			catch (IOException e )
-			{
-				logger.error( "Couldn't save tmp file: ", e);
+			if (computeStdev) {
+				try {
+					container.openDataset(datasetName).updateStoredGeneAnnotations(stData.data().getGeneAnnotations());
+				} catch (IOException e) {
+					logger.warn("Cannot write gene annotations to file", e);
+				}
 			}
 		}
+
+		final List<Pair<String, Double>> allGenes = Pairwise.allGenes(data1.data(), data2.data(), stdevLabel);
 
 		if ( numGenes > 0 )
 			logger.debug("Automatically identified {} genes that can be used for alignment", allGenes.size());
