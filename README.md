@@ -43,6 +43,11 @@ If you use STIM in your research, please cite our [publication](https://www.bior
 ## Wrapping in Python
 
 The [stimwrap package](https://github.com/rajewsky-lab/stimwrap) from the Rajewsky lab provides an interface to extract datasets and their attributes from an N5-container created by STIM.
+The package can be easily installed via pip:
+
+```bash
+pip install stimwrap
+```
 
 
 ## Java code examples
