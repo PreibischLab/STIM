@@ -159,14 +159,12 @@ public class AnnDataIO extends SpatialDataIO {
 
 	@Override
 	protected List<String> readBarcodes(N5Reader reader) {
-		final String index_path = reader.getAttribute("obs", "_index", String.class);
-		return AnnDataUtils.readStringArray(reader, "/obs/" + index_path);
+		return AnnDataUtils.readDataFrameIndex(reader, "/obs");
 	}
 
 	@Override
 	protected List<String> readGeneNames(N5Reader reader) {
-		final String index_path = reader.getAttribute("var", "_index", String.class);
-		return AnnDataUtils.readStringArray(reader, "/var/" + index_path);
+		return AnnDataUtils.readDataFrameIndex(reader, "/var");
 	}
 
 	@Override
