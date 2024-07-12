@@ -47,7 +47,7 @@ public class GeneSelectionTableModel extends AbstractTableModel
 		this.data = data;
 		this.hasStDev = data.get( 0 ).getB() != null;
 
-		this.columnNames = new ArrayList< String >();
+		this.columnNames = new ArrayList<>();
 		this.columnNames.add( "Gene name" );
 
 		if ( hasStDev )
@@ -74,9 +74,6 @@ public class GeneSelectionTableModel extends AbstractTableModel
 	{
 		return false;//(column == 5);
 	}
-
-	@Override
-	public void setValueAt( final Object value, final int row, final int column ) {}
 
 	@Override
 	public Object getValueAt( final int row, final int column )

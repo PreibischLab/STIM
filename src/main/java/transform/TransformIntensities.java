@@ -41,14 +41,14 @@ public class TransformIntensities
 	{
 		final Pair< DoubleType, DoubleType > minmax = ImgLib2Util.minmax( Views.iterable( data.getAllExprValues() ) );
 
-		return new ValuePair< Double, Double >( minmax.getA().get(), minmax.getB().get() );
+		return new ValuePair<>(minmax.getA().get(), minmax.getB().get());
 	}
 
 	public static Pair< Double, Double > minmax( final STData data, final String geneName )
 	{
 		final Pair< DoubleType, DoubleType > minmax = ImgLib2Util.minmax( Views.iterable( data.getExprValues( geneName ) ) );
 
-		return new ValuePair< Double, Double >( minmax.getA().get(), minmax.getB().get() );
+		return new ValuePair<>(minmax.getA().get(), minmax.getB().get());
 	}
 
 }

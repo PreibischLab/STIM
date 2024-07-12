@@ -86,7 +86,7 @@ public class ConvertingIterableRealInterval< S, T > implements IterableRealInter
 		public void jumpFwd( final long steps )
 		{
 			underlyingCursor.jumpFwd( steps );
-			index += steps;
+			index += (int) steps;
 		}
 
 		@Override
@@ -125,7 +125,7 @@ public class ConvertingIterableRealInterval< S, T > implements IterableRealInter
 	}
 
 	@FunctionalInterface
-	public static interface TriConsumer<T, U, V> {
+	public interface TriConsumer<T, U, V> {
 
 	    /**
 	     * Performs this operation on the given arguments.

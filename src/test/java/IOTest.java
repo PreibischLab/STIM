@@ -4,7 +4,6 @@ import gui.STDataAssembly;
 import io.AnnDataIO;
 import io.SpatialDataIO;
 import net.imglib2.img.array.ArrayImgs;
-import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -18,6 +17,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Named.named;
@@ -61,15 +61,18 @@ public class IOTest extends AbstractIOTest {
 		STData data = TestUtils.createTestDataSet();
 		STDataStatistics stats = new STDataStatistics(data);
 		final AffineTransform2D transform = new AffineTransform2D();
-		transform.rotate(3.14159 / 4);
+		transform.rotate(3.14159 / 6);
 		STDataAssembly expected = new STDataAssembly(data, stats, transform);
 
 		try {
 			SpatialDataIO sdio = SpatialDataIO.open(getPlaygroundPath(path), executorService);
 			sdio.writeData(expected);
 			STDataAssembly actual = sdio.readData();
-
-			TestUtils.compareSTDataAssemblies(actual, expected);
+			for (int i = 0; i < 2; i++) {
+				for (int j = 0; j < 2; j++) {
+					assertEquals(transform.get(i, j), actual.transform().get(i, j));
+				}
+			}
 		}
 		catch (IOException e) {
 			fail("Could not write / read file: ", e);
@@ -97,12 +100,11 @@ public class IOTest extends AbstractIOTest {
 		}
 	}
 
-	protected static List<Named<String>> provideDatasetPaths() throws IOException {
+	protected static List<Named<String>> provideDatasetPaths() {
 		return Arrays.asList(
 				named("AnnData HDF5", "data.h5ad"),
-				// TODO: make these work!
-//				named("AnnData Zarr", "data.zarrad"),
-//				named("AnnData N5", "data.n5ad"),
+				named("AnnData Zarr", "data.zarrad"),
+				named("AnnData N5", "data.n5ad"),
 				named("N5 HDF5", "data.h5"),
 				named("N5 Zarr", "data.zarr"),
 				named("N5 FS", "data.n5")

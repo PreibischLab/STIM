@@ -7,16 +7,16 @@ import net.imglib2.util.Util;
 
 public class MedianFilter< T extends RealType< T > > extends RadiusSearchFilter< T, T, MedianFilterFactory< T > >
 {
-	final T outofbounds;
+	final T outOfBounds;
 
 	public MedianFilter(
 			final RadiusNeighborSearch< T > search,
 			final MedianFilterFactory< T > factory,
-			final T outofbounds )
+			final T outOfBounds)
 	{
 		super( search, factory );
 
-		this.outofbounds = outofbounds;
+		this.outOfBounds = outOfBounds;
 	}
 
 	@Override
@@ -39,7 +39,7 @@ public class MedianFilter< T extends RealType< T > > extends RadiusSearchFilter<
 		}
 		else
 		{
-			output.set( outofbounds );
+			output.set(outOfBounds);
 		}
 	}
 }

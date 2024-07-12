@@ -22,9 +22,13 @@ import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 public class ICPAlign
 {
+	private static final Logger logger = LoggerUtil.getLogger();
+
 	public static double computeSum( final RealLocalizable q, final HashMap< String, NearestNeighborSearchOnKDTree< DoubleType > > searchReference )
 	{
 		double sum = 0;
@@ -98,7 +102,7 @@ public class ICPAlign
 			final Consumer< M > updateBDV,
 			final ExecutorService service )
 	{
-		System.out.println( "Setting up Pointmatch identification: " );
+		logger.debug( "Setting up Pointmatch identification: " );
 
 		final PointMatchIdentification<RealPoint> pmi;
 		try
@@ -114,7 +118,7 @@ public class ICPAlign
 		}
 		catch (NotEnoughDataPointsException e)
 		{
-			System.out.println( e.getMessage() );
+			logger.error(e);
 			return null;
 		}
 
@@ -142,7 +146,7 @@ public class ICPAlign
 
 		final M model = initialModel.copy();
 
-		System.out.println( "Setting up ICP" );
+		logger.debug( "Setting up ICP" );
 		final ICP< RealPoint > icp = new ICP<>( listB, listA, pmi, ransacDistance );
 
 		progressBar.accept( 2.0 );
@@ -157,7 +161,7 @@ public class ICPAlign
 
 		do
 		{
-			System.out.println( "Iteration: " + i );
+			logger.info("Iteration: {}", i);
 			try
 			{
 				icp.runICPIteration( model, model );
@@ -166,7 +170,7 @@ public class ICPAlign
 			catch ( Exception e )
 			{
 				//System.out.println( "Failed with e: " + e );
-				e.printStackTrace();
+				logger.error("Error during ICP alignment", e);
 				return null;
 			}
 
@@ -178,7 +182,7 @@ public class ICPAlign
 
 			progressBar.accept( progressPerIteration );
 
-			System.out.println( i + ": " + icp.getNumPointMatches() + " matches found by ICP." );
+			logger.info("{}: {} matches found by ICP.", i, icp.getNumPointMatches());
 		}
 		while ( !converged && ++i < maxIterations.get() );
 

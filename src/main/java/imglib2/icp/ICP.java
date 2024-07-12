@@ -58,7 +58,7 @@ public class ICP < P extends RealLocalizable >
 	/**
 	 * Instantiates a new {@link ICP} object with the {@link List} of target and reference points as well as the {@link PointMatchIdentification} interface that defines
 	 * how corresponding points are identified. <br>
-	 * Note that the elements of the {@link List}s have to implement {@link Point}(for compatibility with {@link Model}) and {@link Leaf}(for compatibility with {@link KDTree}). 
+	 * Note that the elements of the {@link List}s have to implement {@link Point}(for compatibility with {@link Model}) and {@link net.imglib2.KDTreeNode}(for compatibility with {@link KDTree}).
 	 * 
 	 * @param target - the {@link List} of target points
 	 * @param reference - the {@link List} of reference points
@@ -76,14 +76,14 @@ public class ICP < P extends RealLocalizable >
 		for ( final P p : reference )
 		{
 			p.localize( l );
-			this.reference.add( new LinkedPoint< P >( l, p ) );
+			this.reference.add(new LinkedPoint<>(l, p) );
 		}
 
 		// the LinkedInterestPoint always clones the location array
 		for ( final P p : target )
 		{
 			p.localize( l );
-			this.target.add( new LinkedPoint< P >( l, p ) );
+			this.target.add(new LinkedPoint<>(l, p) );
 		}
 
 		this.ambigousMatches = null;
@@ -262,8 +262,8 @@ public class ICP < P extends RealLocalizable >
 	 */
 	public static < P extends Point & RealLocalizable > ArrayList<PointMatch> removeAmbigousMatches( final List<PointMatch > matches )
 	{
-		final ArrayList<Integer> inconsistentCorrespondences = new ArrayList<Integer>();
-		final ArrayList<PointMatch> ambigousMatches = new ArrayList<PointMatch>();
+		final ArrayList<Integer> inconsistentCorrespondences = new ArrayList<>();
+		final ArrayList<PointMatch> ambigousMatches = new ArrayList<>();
 		
 		for ( int i = 0; i < matches.size(); i++ )
 		{
@@ -272,13 +272,13 @@ public class ICP < P extends RealLocalizable >
 
 			final ArrayList<Integer> inconsistent = getOccurences( pointTarget, pointReference, matches );
 			
-			if ( inconsistent.size() > 0 )
+			if (!inconsistent.isEmpty())
 				for ( int index : inconsistent )
 					if ( !inconsistentCorrespondences.contains( index ) )
 						inconsistentCorrespondences.add( index );
 		}
 	
-		if ( inconsistentCorrespondences.size() > 0 )
+		if (!inconsistentCorrespondences.isEmpty())
 		{
 			Collections.sort( inconsistentCorrespondences );
 
@@ -307,7 +307,7 @@ public class ICP < P extends RealLocalizable >
 	 */
 	protected static < P extends Point & RealLocalizable > ArrayList<Integer> getOccurences( final Point pointTarget, final Point pointReference, List< PointMatch > list )
 	{
-		final ArrayList<Integer> occurences = new ArrayList<Integer>();
+		final ArrayList<Integer> occurences = new ArrayList<>();
 		
 		boolean differentOccurence = false;
 				

@@ -1,36 +1,10 @@
 package tools;
 
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.imageio.ImageIO;
-
-import bdv.cache.CacheControl;
-import bdv.util.BdvStackSource;
-import bdv.viewer.ViewerPanel;
-import bdv.viewer.overlay.MultiBoxOverlayRenderer;
-import bdv.viewer.overlay.ScaleBarOverlayRenderer;
-import bdv.viewer.render.MultiResolutionRenderer;
-import bdv.viewer.state.ViewerState;
-import ij.IJ;
-import ij.ImagePlus;
-import ij.gui.GenericDialog;
-import ij.process.ColorProcessor;
-import imglib2.NumericAffineTransform3D;
 import net.imglib2.RealLocalizable;
-import net.imglib2.RealPoint;
 import net.imglib2.RealPositionable;
-import net.imglib2.algorithm.gauss3.Gauss3;
-import net.imglib2.img.list.ListImg;
-import net.imglib2.img.list.ListLocalizingCursor;
-import net.imglib2.realtransform.AffineTransform3D;
-import net.imglib2.ui.PainterThread;
-import net.imglib2.ui.RenderTarget;
-import net.imglib2.view.Views;
 
 public class BDVFlyThroughOld
 {

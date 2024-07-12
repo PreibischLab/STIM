@@ -78,11 +78,11 @@ public abstract class STDataAbstract implements STData
 	public ExpValueRealIterable< DoubleType > getExprData( final String geneName )
 	{
 		// TODO: use the entire values array so that the gene can be switched virtually
-		return new ExpValueRealIterable< DoubleType >(
+		return new ExpValueRealIterable<>(
 				getLocations(),
 				getAllExprValues(),
-				getIndexForGene( geneName ),
-				new FinalRealInterval( this ) );
+				getIndexForGene(geneName),
+				new FinalRealInterval(this));
 	}
 
 	@Override
@@ -224,7 +224,7 @@ public abstract class STDataAbstract implements STData
 	public String toString()
 	{
 		return "STData, #dim: " + numDimensions() + ", #genes: " + numGenes() + ", #locations: " + numLocations() + "\n" +
-				"Interval: " + ImgLib2Util.printRealInterval( getLocationRealInterval() ) + "\n" +
-				"RenderInterval: " + ImgLib2Util.printRealInterval( getRenderInterval() );
+				"\tInterval: " + ImgLib2Util.printRealInterval( getLocationRealInterval() ) + "\n" +
+				"\tRenderInterval: " + ImgLib2Util.printRealInterval( getRenderInterval() );
 	}
 }

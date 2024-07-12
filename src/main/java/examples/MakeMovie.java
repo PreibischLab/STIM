@@ -56,7 +56,7 @@ public class MakeMovie
 		final ImagePlusImg< ARGBType, ?> imgStack = ImagePlusImgs.from( new ImagePlus( "/Users/spreibi/Documents/BIMSB/Publications/imglib2-st/3D vis/Projection low-res-rgb.tif") );
 		final ImagePlusImg< ARGBType, ?> imgStack2 = ImagePlusImgs.from( new ImagePlus( "/Users/spreibi/Documents/BIMSB/Publications/imglib2-st/3D vis/Projection high-res-rgb.tif") );
 
-		final Interval outputInterval = new FinalInterval( new long[] { imgStack.dimension( 0 ) / 2, imgStack.dimension( 1 ) / 2 } );
+		final Interval outputInterval = new FinalInterval(imgStack.dimension(0 ) / 2, imgStack.dimension(1 ) / 2);
 		final ImageStack stack = new ImageStack( (int)outputInterval.dimension( 0 ), (int)outputInterval.dimension( 1 ) );
 
 		/*
@@ -160,8 +160,7 @@ public class MakeMovie
 		int count = 0;
 
 		// add every second slice only
-		for ( ; count < imgStack.dimension( 2 ) - 114; )
-		{
+		while (count < imgStack.dimension(2 ) - 114) {
 			System.out.println( count );
 			stack.addSlice( ImageJFunctions.wrapRGB( scale( Views.hyperSlice( imgStack2, 2, count ), outputInterval, 0.5 / 2.0 ), "" ).getProcessor() );
 			count += 2;

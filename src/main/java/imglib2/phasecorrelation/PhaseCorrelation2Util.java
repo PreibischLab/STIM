@@ -82,39 +82,33 @@ public class PhaseCorrelation2Util {
 	public static <T extends RealType<T>, S extends RealType<S>> void copyRealImage(final IterableInterval<T> source, final RandomAccessibleInterval<S> dest, ExecutorService service) {
 		
 		final Vector<ImagePortion> portions = Threads.divideIntoPortions( source.size() );
-		ArrayList<Future<?>> futures = new ArrayList<Future<?>>();
+		ArrayList<Future<?>> futures = new ArrayList<>();
 		final AtomicInteger ai = new AtomicInteger(-1);
 
 		for (int i = 0; i < portions.size(); i++){
-			futures.add(service.submit(new Runnable() {
-				@Override
-				public void run() {
-					RandomAccess<S> destRA = dest.randomAccess();
-					Cursor<T> srcC = source.localizingCursor();
+			futures.add(service.submit(() -> {
+				RandomAccess<S> destRA = dest.randomAccess();
+				Cursor<T> srcC = source.localizingCursor();
 
-					ImagePortion ip = portions.get(ai.incrementAndGet());
+				ImagePortion ip = portions.get(ai.incrementAndGet());
 
-					long loopSize = ip.getLoopSize();
+				long loopSize = ip.getLoopSize();
 
-					srcC.jumpFwd(ip.getStartPosition());
+				srcC.jumpFwd(ip.getStartPosition());
 
-					for (long l = 0; l < loopSize; l++){
-						srcC.fwd();
-						destRA.setPosition(srcC);
-						destRA.get().setReal(srcC.get().getRealDouble());
-					}
-
+				for (long l = 0; l < loopSize; l++){
+					srcC.fwd();
+					destRA.setPosition(srcC);
+					destRA.get().setReal(srcC.get().getRealDouble());
 				}
+
 			}));
 		}
 
 		for (Future<?> f : futures){
 			try {
 				f.get();
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (ExecutionException e) {
+			} catch (InterruptedException | ExecutionException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
@@ -147,8 +141,8 @@ public class PhaseCorrelation2Util {
 	public static FinalDimensions getExtendedSize(Dimensions dim1, Dimensions dim2, int [] extension) {
 		long[] extDims = new long[dim1.numDimensions()];
 		for (int i = 0; i <dim1.numDimensions(); i++){
-			extDims[i] = dim1.dimension(i) > dim2.dimension(i) ? dim1.dimension(i) : dim2.dimension(i);
-			long extBothSides = extDims[i] < extension[i] ? extDims[i] * 2 : extension[i] * 2;
+			extDims[i] = Math.max(dim1.dimension(i), dim2.dimension(i));
+			long extBothSides = extDims[i] < extension[i] ? extDims[i] * 2 : extension[i] * 2L;
 			extDims[i] += extBothSides;
 		}
 		return new FinalDimensions(extDims);		
@@ -166,7 +160,7 @@ public class PhaseCorrelation2Util {
 		for (int i = 0; i <img.numDimensions(); i++){
 			extEachSide[i] = (int) (img.dimension(i) < extension[i] ? img.dimension(i) : extension[i]);	
 		}
-		return new BlendedExtendedMirroredRandomAccesible2<T>(img, extEachSide);
+		return new BlendedExtendedMirroredRandomAccessible2<>(img, extEachSide);
 	}
 	
 	/*
@@ -196,7 +190,7 @@ public class PhaseCorrelation2Util {
 		for (int i = 0; i< img.numDimensions(); i++){
 			extEachSide[i] /= 2;
 		}
-		return new BlendedExtendedMirroredRandomAccesible2<T>(img, extEachSide);
+		return new BlendedExtendedMirroredRandomAccessible2<>(img, extEachSide);
 	}
 
 
@@ -220,24 +214,16 @@ public class PhaseCorrelation2Util {
 			List<PhaseCorrelationPeak2> peaks, final RandomAccessibleInterval<T> img1, final RandomAccessibleInterval<S> img2,
 			final long minOverlapPx, ExecutorService service, boolean interpolateSubpixel)
 	{
-		List<Future<?>> futures = new ArrayList<Future<?>>();
+		List<Future<?>> futures = new ArrayList<>();
 
 		for (final PhaseCorrelationPeak2 p : peaks){
-			futures.add(service.submit(new Runnable() {
-				@Override
-				public void run() {
-					p.calculateCrossCorr(img1, img2, minOverlapPx, interpolateSubpixel);
-				}
-			}));
+			futures.add(service.submit(() -> p.calculateCrossCorr(img1, img2, minOverlapPx, interpolateSubpixel)));
 		}
 
 		for (Future<?> f: futures){
 			try {
 				f.get();
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (ExecutionException e) {
+			} catch (InterruptedException | ExecutionException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
@@ -253,7 +239,7 @@ public class PhaseCorrelation2Util {
 	 */
 	public static <T extends RealType<T>> List<PhaseCorrelationPeak2> getPCMMaxima(RandomAccessibleInterval<T> pcm, ExecutorService service, int maxN, boolean subpixelAccuracy){
 		
-		List<PhaseCorrelationPeak2> res = new ArrayList<PhaseCorrelationPeak2>();
+		List<PhaseCorrelationPeak2> res = new ArrayList<>();
 		
 		ArrayList<Pair<Localizable, Double>> maxima = FourNeighborhoodExtrema.findMaxMT(Views.extendPeriodic(pcm), pcm, maxN, service);
 		//ArrayList<Pair<Localizable, Double>> maxima = FourNeighborhoodExtrema.findMax(Views.extendPeriodic(pcm), pcm, maxN);
@@ -291,8 +277,8 @@ public class PhaseCorrelation2Util {
 	 */
 	@Deprecated
 	public static List<PhaseCorrelationPeak2> getHighestPCMMaxima(List<PhaseCorrelationPeak2> rawPeaks, long nToKeep){
-		Collections.sort(rawPeaks, Collections.reverseOrder( new PhaseCorrelationPeak2.ComparatorByPhaseCorrelation()));
-		List<PhaseCorrelationPeak2> res = new ArrayList<PhaseCorrelationPeak2>();
+		rawPeaks.sort(Collections.reverseOrder(new PhaseCorrelationPeak2.ComparatorByPhaseCorrelation()));
+		List<PhaseCorrelationPeak2> res = new ArrayList<>();
 		for (int i = 0; i < nToKeep; i++){
 			res.add(new PhaseCorrelationPeak2(rawPeaks.get(i)));
 		}
@@ -308,7 +294,7 @@ public class PhaseCorrelation2Util {
 	public static void expandPeakListToPossibleShifts(List<PhaseCorrelationPeak2> peaks,
 			Dimensions pcmDims, Dimensions img1Dims, Dimensions img2Dims)
 	{
-		List<PhaseCorrelationPeak2> res = new ArrayList<PhaseCorrelationPeak2>();
+		List<PhaseCorrelationPeak2> res = new ArrayList<>();
 		for (PhaseCorrelationPeak2 p : peaks){
 			res.addAll(expandPeakToPossibleShifts(p, pcmDims, img1Dims, img2Dims));
 		}
@@ -344,10 +330,10 @@ public class PhaseCorrelation2Util {
 		for(int i = 0; i < offset.length; i++){
 			offset[i] = (extensionImg2[i] - extensionImg1[i] ) / 2;
 			originalPCMPeakWithOffset[i] += offset[i];
-			originalPCMPeakWithOffset[i] %= pcmDims.dimension(i); 
+			originalPCMPeakWithOffset[i] %= (int) pcmDims.dimension(i);
 		}		
 		
-		List<PhaseCorrelationPeak2> shiftedPeaks = new ArrayList<PhaseCorrelationPeak2>();
+		List<PhaseCorrelationPeak2> shiftedPeaks = new ArrayList<>();
 		for (int i = 0; i < Math.pow(2, pcmDims.numDimensions()); i++){
 			int[] possibleShift = originalPCMPeakWithOffset.clone();
 			PhaseCorrelationPeak2 peakWithShift = new PhaseCorrelationPeak2(peak);
@@ -453,9 +439,8 @@ public class PhaseCorrelation2Util {
 		
 		FinalInterval img1Interval = new FinalInterval(offsetImage1, maxImage1);
 		FinalInterval img2Interval = new FinalInterval(offsetImage2, maxImage2);
-		
-		Pair<Interval, Interval> res = new ValuePair<Interval, Interval>(img1Interval, img2Interval);		
-		return res;		
+
+		return new ValuePair<>(img1Interval, img2Interval);
 	}
 	
 	/*
@@ -488,61 +473,54 @@ public class PhaseCorrelation2Util {
 		
 		
 		final Vector<ImagePortion> portions = Threads.divideIntoPortions (Views.iterable(img1).size() );		
-		List<Future<?>> futures = new ArrayList<Future<?>>();
+		List<Future<?>> futures = new ArrayList<>();
 		final AtomicInteger ai = new AtomicInteger(-1);
 		
 		for (int i = 0; i  < portions.size(); i++){
-			futures.add(service.submit(new Runnable() {
-				
-				@Override
-				public void run() {
-					
-					ImagePortion ip = portions.get(ai.incrementAndGet());
-					long loopSize = ip.getLoopSize();
-					
-					if (Views.iterable(img1).iterationOrder().equals(Views.iterable(img2).iterationOrder()) && 
-							Views.iterable(img1).iterationOrder().equals(Views.iterable(res).iterationOrder())){
-						Cursor<T> cRes = Views.iterable(res).cursor();
-						Cursor<R> cSrc1 = Views.iterable(img1).cursor();
-						Cursor<S> cSrc2 = Views.iterable(img2).cursor();
-						
-						cSrc1.jumpFwd(ip.getStartPosition());
-						cSrc2.jumpFwd(ip.getStartPosition());
-						cRes.jumpFwd(ip.getStartPosition());
-						
-						for (long l = 0; l < loopSize; l++){
-							cRes.fwd();
-							cSrc1.fwd();
-							cSrc2.fwd();
-							multiplyComplex(cSrc1.get(), cSrc2.get(), cRes.get());			
-						}
+			futures.add(service.submit(() -> {
+
+				ImagePortion ip = portions.get(ai.incrementAndGet());
+				long loopSize = ip.getLoopSize();
+
+				if (Views.iterable(img1).iterationOrder().equals(Views.iterable(img2).iterationOrder()) &&
+						Views.iterable(img1).iterationOrder().equals(Views.iterable(res).iterationOrder())){
+					Cursor<T> cRes = Views.iterable(res).cursor();
+					Cursor<R> cSrc1 = Views.iterable(img1).cursor();
+					Cursor<S> cSrc2 = Views.iterable(img2).cursor();
+
+					cSrc1.jumpFwd(ip.getStartPosition());
+					cSrc2.jumpFwd(ip.getStartPosition());
+					cRes.jumpFwd(ip.getStartPosition());
+
+					for (long l = 0; l < loopSize; l++){
+						cRes.fwd();
+						cSrc1.fwd();
+						cSrc2.fwd();
+						multiplyComplex(cSrc1.get(), cSrc2.get(), cRes.get());
 					}
-					
-					else {
-						final RandomAccess<R> ra1 = img1.randomAccess();
-						final RandomAccess<S> ra2 = img2.randomAccess();
-						final Cursor<T> cRes = Views.iterable(res).localizingCursor();
-						
-						cRes.jumpFwd(ip.getStartPosition());
-						
-						for (long l = 0; l < loopSize; l++){
-							cRes.fwd();
-							ra1.setPosition(cRes);
-							ra2.setPosition(cRes);							
-							multiplyComplex(ra1.get(), ra2.get(), cRes.get());
-						}
-					}					
-					
 				}
+
+				else {
+					final RandomAccess<R> ra1 = img1.randomAccess();
+					final RandomAccess<S> ra2 = img2.randomAccess();
+					final Cursor<T> cRes = Views.iterable(res).localizingCursor();
+
+					cRes.jumpFwd(ip.getStartPosition());
+
+					for (long l = 0; l < loopSize; l++){
+						cRes.fwd();
+						ra1.setPosition(cRes);
+						ra2.setPosition(cRes);
+						multiplyComplex(ra1.get(), ra2.get(), cRes.get());
+					}
+				}
+
 			}));
 			
 			for (Future<?> f : futures){
 				try {
 					f.get();
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (ExecutionException e) {
+				} catch (InterruptedException | ExecutionException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
@@ -570,55 +548,48 @@ public class PhaseCorrelation2Util {
 	{
 		
 		final Vector<ImagePortion> portions = Threads.divideIntoPortions( Views.iterable(img).size() );		
-		List<Future<?>> futures = new ArrayList<Future<?>>();
+		List<Future<?>> futures = new ArrayList<>();
 		final AtomicInteger ai = new AtomicInteger(-1);
 		
 		for (int i = 0; i  < portions.size(); i++){
-			futures.add(service.submit(new Runnable() {
-				
-				@Override
-				public void run() {
-					
-					ImagePortion ip = portions.get(ai.incrementAndGet());
-					long loopSize = ip.getLoopSize();
-					
-					if (Views.iterable(img).iterationOrder().equals(Views.iterable(res).iterationOrder())){
-						Cursor<S> cRes = Views.iterable(res).cursor();
-						Cursor<R> cSrc = Views.iterable(img).cursor();
-						
-						cSrc.jumpFwd(ip.getStartPosition());
-						cRes.jumpFwd(ip.getStartPosition());
-						
-						for (long l = 0; l < loopSize; l++){
-							cRes.fwd();
-							cSrc.fwd();
-							complexConj(cSrc.get(), cRes.get());			
-						}
+			futures.add(service.submit(() -> {
+
+				ImagePortion ip = portions.get(ai.incrementAndGet());
+				long loopSize = ip.getLoopSize();
+
+				if (Views.iterable(img).iterationOrder().equals(Views.iterable(res).iterationOrder())){
+					Cursor<S> cRes = Views.iterable(res).cursor();
+					Cursor<R> cSrc = Views.iterable(img).cursor();
+
+					cSrc.jumpFwd(ip.getStartPosition());
+					cRes.jumpFwd(ip.getStartPosition());
+
+					for (long l = 0; l < loopSize; l++){
+						cRes.fwd();
+						cSrc.fwd();
+						complexConj(cSrc.get(), cRes.get());
 					}
-					
-					else {
-						Cursor<S> cRes = Views.iterable(res).localizingCursor();
-						RandomAccess<R> raImg = img.randomAccess();
-						
-						cRes.jumpFwd(ip.getStartPosition());
-						
-						for (long l = 0; l < loopSize; l++){
-							cRes.fwd();
-							raImg.setPosition(cRes);
-							complexConj(raImg.get(), cRes.get());			
-						}
-					}					
-					
 				}
+
+				else {
+					Cursor<S> cRes = Views.iterable(res).localizingCursor();
+					RandomAccess<R> raImg = img.randomAccess();
+
+					cRes.jumpFwd(ip.getStartPosition());
+
+					for (long l = 0; l < loopSize; l++){
+						cRes.fwd();
+						raImg.setPosition(cRes);
+						complexConj(raImg.get(), cRes.get());
+					}
+				}
+
 			}));
 			
 			for (Future<?> f : futures){
 				try {
 					f.get();
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (ExecutionException e) {
+				} catch (InterruptedException | ExecutionException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
@@ -668,55 +639,48 @@ public class PhaseCorrelation2Util {
 	{
 		
 		final Vector<ImagePortion> portions = Threads.divideIntoPortions( Views.iterable(img).size() );		
-		List<Future<?>> futures = new ArrayList<Future<?>>();
+		List<Future<?>> futures = new ArrayList<>();
 		final AtomicInteger ai = new AtomicInteger(-1);
 		
 		for (int i = 0; i  < portions.size(); i++){
-			futures.add(service.submit(new Runnable() {
-				
-				@Override
-				public void run() {
-					
-					ImagePortion ip = portions.get(ai.incrementAndGet());
-					long loopSize = ip.getLoopSize();
-					
-					if (Views.iterable(img).iterationOrder().equals(Views.iterable(res).iterationOrder())){
-						Cursor<S> cRes = Views.iterable(res).cursor();
-						Cursor<T> cSrc = Views.iterable(img).cursor();
-						
-						cSrc.jumpFwd(ip.getStartPosition());
-						cRes.jumpFwd(ip.getStartPosition());
-						
-						for (long l = 0; l < loopSize; l++){
-							cRes.fwd();
-							cSrc.fwd();
-							normalize(cSrc.get(), cRes.get(), normalizationThreshold);			
-						}
+			futures.add(service.submit(() -> {
+
+				ImagePortion ip = portions.get(ai.incrementAndGet());
+				long loopSize = ip.getLoopSize();
+
+				if (Views.iterable(img).iterationOrder().equals(Views.iterable(res).iterationOrder())){
+					Cursor<S> cRes = Views.iterable(res).cursor();
+					Cursor<T> cSrc = Views.iterable(img).cursor();
+
+					cSrc.jumpFwd(ip.getStartPosition());
+					cRes.jumpFwd(ip.getStartPosition());
+
+					for (long l = 0; l < loopSize; l++){
+						cRes.fwd();
+						cSrc.fwd();
+						normalize(cSrc.get(), cRes.get(), normalizationThreshold);
 					}
-					
-					else {
-						Cursor<S> cRes = Views.iterable(res).localizingCursor();
-						RandomAccess<T> raImg = img.randomAccess();
-						
-						cRes.jumpFwd(ip.getStartPosition());
-						
-						for (long l = 0; l < loopSize; l++){
-							cRes.fwd();
-							raImg.setPosition(cRes);
-							normalize(raImg.get(), cRes.get(), normalizationThreshold);			
-						}
-					}					
-					
 				}
+
+				else {
+					Cursor<S> cRes = Views.iterable(res).localizingCursor();
+					RandomAccess<T> raImg = img.randomAccess();
+
+					cRes.jumpFwd(ip.getStartPosition());
+
+					for (long l = 0; l < loopSize; l++){
+						cRes.fwd();
+						raImg.setPosition(cRes);
+						normalize(raImg.get(), cRes.get(), normalizationThreshold);
+					}
+				}
+
 			}));
 			
 			for (Future<?> f : futures){
 				try {
 					f.get();
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (ExecutionException e) {
+				} catch (InterruptedException | ExecutionException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
@@ -864,8 +828,8 @@ public class PhaseCorrelation2Util {
 			max[i] = Math.max(maxImg1[i], maxImg2[i]);
 		}
 
-		RandomAccessibleInterval<FloatType> res1 = new ArrayImgFactory<FloatType>(new FloatType()).create(new FinalInterval(min, max));
-		RandomAccessibleInterval<FloatType> res2 = new ArrayImgFactory<FloatType>(new FloatType()).create(new FinalInterval(min, max));
+		RandomAccessibleInterval<FloatType> res1 = new ArrayImgFactory<>(new FloatType()).create(new FinalInterval(min, max));
+		RandomAccessibleInterval<FloatType> res2 = new ArrayImgFactory<>(new FloatType()).create(new FinalInterval(min, max));
 
 		copyRealImage(Views.iterable(img1), Views.translate(res1, min), service);
 		copyRealImage(Views.iterable(Views.translate(img2, shift)), Views.translate(res2, min), service);
@@ -879,7 +843,7 @@ public class PhaseCorrelation2Util {
 
 		final RandomAccessibleInterval< T > power = Converters.convertRAI( fft, new ComplexPowerGLogRealConverter<>(), type );
 
-		final Img< T > polarImg = new ArrayImgFactory< T >( type ).create( 360, Math.min( power.dimension( 0 ), power.dimension( 1 ) ) ); //ArrayImgs.floats( 360, Math.min( power.dimension( 0 ), power.dimension( 1 ) ) );
+		final Img< T > polarImg = new ArrayImgFactory<>(type).create(360, Math.min(power.dimension(0 ), power.dimension(1 ) ) ); //ArrayImgs.floats( 360, Math.min( power.dimension( 0 ), power.dimension( 1 ) ) );
 
 		final PolarToCartesianTransform2D polarTransform = new PolarToCartesianTransform2D();
 
@@ -927,7 +891,7 @@ public class PhaseCorrelation2Util {
 		long[] fftSize = new long[extSize.numDimensions()];
 		FFTMethods.dimensionsRealToComplexFast(extSize, paddedDimensions, fftSize);
 
-		final ImgFactory< ComplexFloatType > fftFactory = new ArrayImgFactory<ComplexFloatType>( new ComplexFloatType() );
+		final ImgFactory<ComplexFloatType> fftFactory = new ArrayImgFactory<>(new ComplexFloatType());
 		RandomAccessibleInterval<ComplexFloatType> fft1 = fftFactory.create(fftSize);
 		RandomAccessibleInterval<ComplexFloatType> fft2 = fftFactory.create(fftSize);
 

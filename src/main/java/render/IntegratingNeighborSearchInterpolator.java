@@ -30,12 +30,6 @@ public class IntegratingNeighborSearchInterpolator < T > extends RealPoint imple
 	@Override
 	public IntegratingNeighborSearchInterpolator< T > copy()
 	{
-		return new IntegratingNeighborSearchInterpolator< T >( search.copy() );
-	}
-
-	@Override
-	public IntegratingNeighborSearchInterpolator< T > copyRealRandomAccess()
-	{
-		return copy();
+		return new IntegratingNeighborSearchInterpolator<>(search.copy());
 	}
 }

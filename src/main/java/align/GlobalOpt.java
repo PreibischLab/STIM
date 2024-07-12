@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -34,9 +33,14 @@ import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
+import util.Threads;
 
 public class GlobalOpt
 {
+	private static final Logger logger = LoggerUtil.getLogger();
+
 	public static double centerOfMassDistance( final STData dataA, final STData dataB, final AffineTransform2D transformA, final AffineTransform2D transformB )
 	{
 		final Interval intervalA = dataA.getRenderInterval();
@@ -115,7 +119,7 @@ public class GlobalOpt
 		}
 		catch (IOException e)
 		{
-			e.printStackTrace();
+			logger.error("Could not load pairwise alignments", e);
 			return null;
 		}
 
@@ -171,26 +175,25 @@ public class GlobalOpt
 			{
 				int unaligned = tc.preAlign().size();
 				if ( unaligned > 0 )
-					System.out.println( "(" + new Date( System.currentTimeMillis() ) + "): pre-aligned all tiles but " + unaligned );
+					logger.info("Pre-aligned all tiles but {}", unaligned);
 				else
-					System.out.println( "(" + new Date( System.currentTimeMillis() ) + "): prealigned all tiles" );
+					logger.info( "Prealigned all tiles" );
 
 				TileUtil.optimizeConcurrently(
 						new ErrorStatistic( maxPlateauwidth + 1 ),  maxAllowedError, maxIterations, maxPlateauwidth, 1.0f,
 						tc, tc.getTiles(), tc.getFixedTiles(), numThreads );
 
-				System.out.println( "(" + new Date( System.currentTimeMillis() ) + "): Global optimization of " + tc.getTiles().size());
-				System.out.println( "(" + new Date( System.currentTimeMillis() ) + "):    Avg Error: " + tc.getError() + "px" );
-				System.out.println( "(" + new Date( System.currentTimeMillis() ) + "):    Min Error: " + tc.getMinError() + "px" );
-				System.out.println( "(" + new Date( System.currentTimeMillis() ) + "):    Max Error: " + tc.getMaxError() + "px" );
+				logger.info("Global optimization of {}", tc.getTiles().size());
+				logger.info("   Avg Error: {}px", tc.getError());
+				logger.info("   Min Error: {}px", tc.getMinError());
+				logger.info("   Max Error: {}px", tc.getMaxError());
 
 				// give some time for the output
-				try { Thread.sleep( 50 ); } catch ( Exception e) {}
+				try { Thread.sleep( 50 ); } catch ( Exception ignored) {}
 			}
 			catch (Exception e)
 			{
-				System.out.println( "Global optimization failed, please report this bug: " + e );
-				e.printStackTrace();
+				logger.error( "Global optimization failed, please report this bug: ", e );
 				return;
 			}
 
@@ -282,7 +285,7 @@ public class GlobalOpt
 		worstTile1.removeConnectedTile( worstTile2 );
 		worstTile2.removeConnectedTile( worstTile1 );
 
-		System.out.println( new Date( System.currentTimeMillis() ) +  ": Removed link from " + tileToIndex.get( worstTile1 ) + " to " + tileToIndex.get( worstTile2 ) );
+		logger.info("Removed link from {} to {}", tileToIndex.get(worstTile1), tileToIndex.get(worstTile2));
 
 		return new ValuePair<>( worstTile1, worstTile2 );
 	}
@@ -291,18 +294,9 @@ public class GlobalOpt
 	{
 		new ImageJ();
 
-		final int debugA = 0;
-		int debugB = 4;
-
 		final String path = Path.getPath();
 
 		final ArrayList< Alignment > alignments = loadPairwiseAlignments( new File( path + "/slide-seq", "alignments2" ).getAbsolutePath(), false );
-
-		// the inverse transformations were stored, upsi
-		//for ( final Alignment al : alignments )
-		//	al.t = al.t.inverse();
-
-		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18", "Puck_180602_17", "Puck_180602_16", "Puck_180602_15", "Puck_180531_23", "Puck_180531_22", "Puck_180531_19", "Puck_180531_18", "Puck_180531_17", "Puck_180531_13", "Puck_180528_22", "Puck_180528_20" };
 
 		final ExecutorService service = Executors.newFixedThreadPool(8);
 		final SpatialDataContainer container = SpatialDataContainer.openForReading(path + "slide-seq-normalized-gzip3.n5", service);
@@ -314,35 +308,13 @@ public class GlobalOpt
 
 		for ( final Alignment align : alignments )
 			if ( align.i < pucks.size() && align.j < pucks.size() )
-				System.out.println( align.i + "-" + align.j + ": " + align.t );
-
-		/*
-i=0: 0=0.0 1=0.024038337709212782 2=0.24492487553469394 3=0.1518118833959881 4=0.7241020145787477 5=0.1306794304704525 6=0.15222925121638156 7=0.15483774054692553 8=0.132491429163626 9=0.17711581870553708 10=0.08701363466375361 11=0.2045784760110544 12=0.20891249466281947 
-i=1: 0=0.024038337709212782 1=0.0 2=0.3330466142561688 3=0.11319724753860656 4=0.10022550806834965 5=0.20877708923578545 6=0.11832271709488193 7=0.07353720095912314 8=0.1713950715270506 9=0.09502724052349071 10=0.23944240649678283 11=0.11694349640166943 12=0.11195066945693335 
-i=2: 0=0.24492487553469394 1=0.3330466142561688 2=0.0 3=0.24969917436088443 4=0.17472813760575273 5=0.9788951614909751 6=0.17426245380946803 7=0.18054806935102374 8=0.09074454325647692 9=0.09496693464673195 10=0.10267048518938668 11=0.1075661352374083 12=0.12349217922514331 
-i=3: 0=0.1518118833959881 1=0.11319724753860656 2=0.24969917436088443 3=0.0 4=0.20776253762129704 5=0.3521493379456508 6=0.19462129769496608 7=0.03320550904928819 8=0.04381501333935987 9=0.02137252255928331 10=0.0 11=0.04980400301525422 12=0.004242569157942368 
-i=4: 0=0.7241020145787477 1=0.10022550806834965 2=0.17472813760575273 3=0.20776253762129704 4=0.0 5=0.2760105640202167 6=0.5531206597483922 7=0.07913515105826611 8=0.15917311091873323 9=0.25045172666096027 10=0.16054736849735818 11=0.06656905561406037 12=0.0763166146516399 
-i=5: 0=0.1306794304704525 1=0.20877708923578545 2=0.9788951614909751 3=0.3521493379456508 4=0.2760105640202167 5=0.0 6=0.6588552463927722 7=0.01900772579346503 8=0.1335874659752252 9=0.1277205212237738 10=0.08614429525971219 11=0.09772324217675286 12=0.01858521788859697 
-i=6: 0=0.15222925121638156 1=0.11832271709488193 2=0.17426245380946803 3=0.19462129769496608 4=0.5531206597483922 5=0.6588552463927722 6=0.0 7=0.026002077904843646 8=0.1409801668617941 9=0.09114859275656546 10=0.31376868024657656 11=0.07260773747676567 12=4.418234511038576E-4 
-i=7: 0=0.15483774054692553 1=0.07353720095912314 2=0.18054806935102374 3=0.03320550904928819 4=0.07913515105826611 5=0.01900772579346503 6=0.026002077904843646 7=0.0 8=0.2876741736681163 9=0.06181190408928276 10=0.10964337542752722 11=0.2132312584540062 12=0.0675333286312243 
-i=8: 0=0.132491429163626 1=0.1713950715270506 2=0.09074454325647692 3=0.04381501333935987 4=0.15917311091873323 5=0.1335874659752252 6=0.1409801668617941 7=0.2876741736681163 8=0.0 9=1.0 10=0.15129672985645543 11=0.28507782241080326 12=0.4203623375451118 
-i=9: 0=0.17711581870553708 1=0.09502724052349071 2=0.09496693464673195 3=0.02137252255928331 4=0.25045172666096027 5=0.1277205212237738 6=0.09114859275656546 7=0.06181190408928276 8=1.0 9=0.0 10=0.09688531350422797 11=0.35687450831352985 12=0.38860932836273004 
-i=10: 0=0.08701363466375361 1=0.23944240649678283 2=0.10267048518938668 3=0.0 4=0.16054736849735818 5=0.08614429525971219 6=0.31376868024657656 7=0.10964337542752722 8=0.15129672985645543 9=0.09688531350422797 10=0.0 11=0.11920034539333373 12=0.2483245130454527 
-i=11: 0=0.2045784760110544 1=0.11694349640166943 2=0.1075661352374083 3=0.04980400301525422 4=0.06656905561406037 5=0.09772324217675286 6=0.07260773747676567 7=0.2132312584540062 8=0.28507782241080326 9=0.35687450831352985 10=0.11920034539333373 11=0.0 12=0.48298694045995 
-i=12: 0=0.20891249466281947 1=0.11195066945693335 2=0.12349217922514331 3=0.004242569157942368 4=0.0763166146516399 5=0.01858521788859697 6=4.418234511038576E-4 7=0.0675333286312243 8=0.4203623375451118 9=0.38860932836273004 10=0.2483245130454527 11=0.48298694045995 12=0.0 
-
-c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=1018.3643858073019 5=1244.0948936063103 6=1918.835171680812 7=1243.2553900055561 8=2550.2704505567276 9=250.05292046699788 10=2050.432852579864 11=755.2194098362946 12=1774.572922744189 
-
-		 */
+				logger.info("{}-{}: {}", align.i, align.j, align.t);
 
 		final List< Pair< STData, AffineTransform2D > > initialdata = new ArrayList<>();
 
-		for ( int i = 0; i < puckData.size(); ++i )
-			initialdata.add(new ValuePair<>(puckData.get(i).data(), new AffineTransform2D()));
-
-//		initialdata.add( new ValuePair<>( puckData.get( debugA ), new AffineTransform2D() ) );
-//		for ( debugB = debugA + 1; debugB < 11; ++debugB )
-//			initialdata.add( new ValuePair<>(puckData.get( debugB ), Alignment.getAlignment( alignments, debugA, debugB ).t ) );
+		for (STDataAssembly puckDatum : puckData) {
+			initialdata.add(new ValuePair<>(puckDatum.data(), new AffineTransform2D()));
+		}
 
 		AlignTools.visualizeList( initialdata );
 		//visualizePair( puckData.get( debugA ), puckData.get( debugB ), new AffineTransform2D(), Alignment.getAlignment( alignments, debugA, debugB ).t );
@@ -365,17 +337,12 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 			{
 				final Alignment align = Alignment.getAlignment( alignments, i, j );
 
-				//if ( align.quality < 0.6 )
-				//	continue;
-
-				//quality[ i ][ j ] = quality[ j ][ i ] = align.quality;
-				
 				quality[i][j] = quality[j][i] = 1.0 / centerOfMassDistance(puckData.get(i).data(), puckData.get(j).data(), new AffineTransform2D(), Alignment.getAlignment(alignments, i, j).t);
 
 				maxQuality = Math.max( maxQuality, quality[ i ][ j ] );
 				minQuality = Math.min( minQuality, quality[ i ][ j ] );
 
-				System.out.println( "Connecting " + i + "-" + j );
+				logger.debug("Connecting {}-{}", i, j);
 
 				final STData stDataA = puckData.get(i).data();
 				final STData stDataB = puckData.get(j).data();
@@ -415,8 +382,8 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 			}
 		}
 
-		System.out.println( "minQ: " + minQuality );
-		System.out.println( "maxQ: " + maxQuality );
+		logger.debug("minQ: {}", minQuality);
+		logger.debug("maxQ: {}", maxQuality);
 
 		for ( int i = 0; i < pucks.size(); ++i )
 		{
@@ -434,13 +401,13 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 			System.out.println();
 		}
 
-		System.out.println( dataToTile.keySet().size() + " / " + pucks.size() );
-		System.out.println( tileToData.keySet().size() + " / " + pucks.size() );
+		logger.debug("{} / {}", dataToTile.keySet().size(), pucks.size());
+		logger.debug("{} / {}", tileToData.keySet().size(), pucks.size());
 
 		//System.exit( 0 );
 
 		for ( int i = 0; i < pucks.size(); ++i )
-			System.out.println( puckData.get( i ) + ": " + dataToTile.get( puckData.get( i ) ) );
+			logger.debug("{}: {}", puckData.get(i), dataToTile.get(puckData.get(i)));
 
 		final TileConfiguration tileConfig = new TileConfiguration();
 
@@ -459,74 +426,24 @@ c(i)=1: 0=302.8970299336632 1=0.0 2=1966.7125790780851 3=1127.5798466482315 4=10
 				50,
 				tileToIndex,
 				quality,
-				util.Threads.numThreads() );
+				Threads.numThreads());
 
 		for ( final Pair< Tile< ? >, Tile< ? > > removed : removedInconsistentPairs )
-			System.out.println( "Removed " + tileToIndex.get( removed.getA() ) + " to " + tileToIndex.get( removed.getB() ) + " (" + tileToData.get( removed.getA() ) + " to " + tileToData.get( removed.getB() ) + ")" );
-
-		/*
-		try
-		{
-			tileConfig.preAlign();
-
-			TileUtil.optimizeConcurrently(
-				new ErrorStatistic( 500 + 1 ),
-				30,
-				3000,
-				500,
-				1.0,
-				tileConfig,
-				tileConfig.getTiles(),
-				tileConfig.getFixedTiles(),
-				30 );
-
-			System.out.println( " avg=" + tileConfig.getError() + ", min=" + tileConfig.getMinError() + ", max=" + tileConfig.getMaxError() );
-		}
-		catch ( Exception e )
-		{
-			System.out.println( ": Could not solve, cause: " + e );
-			e.printStackTrace();
-		}
-		*/
+			logger.info("Removed {} to {} ({} to {})",
+						tileToIndex.get(removed.getA()), tileToIndex.get(removed.getB()), tileToData.get(removed.getA()), tileToData.get(removed.getB()));
 
 		final List< Pair< STData, AffineTransform2D > > data = new ArrayList<>();
 
 		for ( int i = 0; i < pucks.size(); ++i )
 		{
-			System.out.println( puckData.get( i ) + ": " + dataToTile.get( puckData.get( i ) ).getModel() );
+			logger.debug("{}: {}", puckData.get(i), dataToTile.get(puckData.get(i)).getModel());
 
 			final RigidModel2D model = dataToTile.get( puckData.get( i ) ).getModel();
-			/*
-			//  m00, m10, m01, m11, m02, m12
-			final double[] array = new double[ 6 ];
 
-			model.toArray(array);
-
-			final AffineTransform2D t = new AffineTransform2D();
-			t.set( array[ 0 ], array[ 2 ], array[ 4 ], array[ 1 ], array[ 3 ], array[ 5 ] );
-			*/
 			data.add(new ValuePair<>(puckData.get(i).data(), AlignTools.modelToAffineTransform2D(model)));
 		}
 
 		AlignTools.visualizeList( data );
 		service.shutdown();
-		/*
-		final RigidModel2D modelA = dataToTile.get( puckData.get( debugA ) ).getModel();
-		final RigidModel2D modelB = dataToTile.get( puckData.get( debugB ) ).getModel();
-
-		//  m00, m10, m01, m11, m02, m12
-		final double[] dataA = new double[ 6 ];
-		final double[] dataB = new double[ 6 ];
-		
-		modelA.toArray(dataA);
-		modelB.toArray(dataB);
-		
-		final AffineTransform2D tA = new AffineTransform2D();
-		final AffineTransform2D tB = new AffineTransform2D();
-
-		tA.set( dataA[ 0 ], dataA[ 2 ], dataA[ 4 ], dataA[ 1 ], dataA[ 3 ], dataA[ 5 ] );
-		tB.set( dataB[ 0 ], dataB[ 2 ], dataB[ 4 ], dataB[ 1 ], dataB[ 3 ], dataB[ 5 ] );
-
-		visualizePair( puckData.get( debugA ), puckData.get( debugB ), tA.inverse(), tB.inverse() );*/
 	}
 }

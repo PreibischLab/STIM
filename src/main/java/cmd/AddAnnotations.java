@@ -20,9 +20,13 @@ import net.imglib2.type.numeric.integer.IntType;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 @Command(name = "st-add-annotations", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - add annotations to slice-dataset")
 public class AddAnnotations implements Callable<Void> {
+	
+	private static final Logger logger = LoggerUtil.getLogger();
 
 	@Option(names = {"-i", "--input"}, required = true, description = "input dataset, e.g. -i /home/ssq.n5/Puck_180528_20")
 	private String inputPath = null;
@@ -36,14 +40,14 @@ public class AddAnnotations implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 		if (inputPath == null) {
-			System.out.println("No input path defined. Stopping.");
+			logger.error("No input path defined. Stopping.");
 			return null;
 		}
 
 		final List<String> annotationList = Arrays.stream(annotations.split(",")).map(String::trim).collect(Collectors.toList());
 		final List<String> labelList;
 		if (labels == null) {
-			System.out.println("No labels given; using filenames as labels.");
+			logger.error("No labels given; using filenames as labels.");
 			labelList = annotationList.stream()
 					.map(s -> Paths.get(new File(s).getAbsolutePath()).getFileName().toString().split("\\.")[0])
 					.collect(Collectors.toList());
@@ -51,17 +55,17 @@ public class AddAnnotations implements Callable<Void> {
 		else
 			labelList = Arrays.stream(labels.split(",")).map(String::trim).collect(Collectors.toList());
 
-		if (annotationList.size() == 0) {
-			System.out.println( "no annotation files specified. stopping.");
+		if (annotationList.isEmpty()) {
+			logger.error( "no annotation files specified. stopping.");
 			return null;
 		}
 
 		if (annotationList.size() != labelList.size()) {
-			System.out.println("number of annotation files (" + annotationList.size() + ") does not match number of labels (" + labelList.size() + "). stopping.");
+			logger.error("number of annotation files ({}) does not match number of labels ({}). stopping.", annotationList.size(), labelList.size());
 			return null;
 		}
 
-		System.out.println("adding annotations to " + inputPath);
+		logger.info("adding annotations to {}", inputPath);
 		final ExecutorService service = Executors.newFixedThreadPool(8);
 		final SpatialDataIO sdio = SpatialDataIO.open(inputPath, service);
 		final STDataAssembly stData = sdio.readData();
@@ -70,7 +74,7 @@ public class AddAnnotations implements Callable<Void> {
 
 			final String annotationName = annotationList.get(i);
 			final String label = labelList.get(i);
-			System.out.println("\n>>> Processing " + annotationName);
+			logger.debug("\n>>> Processing {}", annotationName);
 
 			final File in = new File(annotationName);
 			final BufferedReader readsIn;
@@ -83,15 +87,15 @@ public class AddAnnotations implements Callable<Void> {
 				readsIn = TextFileAccess.openFileRead( in );
 
 			if (readsIn == null) {
-				System.out.println( "Could not open file '" + in.getAbsolutePath() + "'. Stopping." );
+				logger.error("Could not open file '{}'. Stopping.", in.getAbsolutePath());
 				return null;
 			}
 			else {
-				System.out.println("Loading file '" + in.getAbsolutePath() + "' as label '" + label + "'" );
+				logger.debug("Loading file '{}' as label '{}'", in.getAbsolutePath(), label);
 			}
 
 			final int[] ids;
-			final boolean barcodesUnavailable = stData.data().getBarcodes().get(0).equals("");
+			final boolean barcodesUnavailable = stData.data().getBarcodes().get(0).isEmpty();
 			if (barcodesUnavailable)
 				ids = TextFileIO.readAnnotations(readsIn, (int) stData.data().numLocations());
 			else
@@ -104,13 +108,14 @@ public class AddAnnotations implements Callable<Void> {
 		}
 
 		sdio.updateStoredAnnotations(stData.data().getAnnotations());
-		System.out.println( "Done." );
+		logger.debug( "Done." );
 
 		service.shutdown();
 		return null;
 	}
 
-	public static final void main(final String... args) {
-		CommandLine.call(new AddAnnotations(), args);
+	public static void main(final String... args) {
+		final CommandLine cmd = new CommandLine(new AddAnnotations());
+		cmd.execute(args);
 	}
 }

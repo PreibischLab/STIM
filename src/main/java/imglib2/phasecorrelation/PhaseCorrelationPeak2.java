@@ -105,11 +105,11 @@ public class PhaseCorrelationPeak2 {
 		this.crossCorr = crossCorr;
 	}
 
-	public long getnPixel() {
+	public long getNPixel() {
 		return nPixel;
 	}
 
-	public void setnPixel(long nPixel) {
+	public void setNPixel(long nPixel) {
 		this.nPixel = nPixel;
 	}
 	
@@ -204,7 +204,7 @@ public class PhaseCorrelationPeak2 {
 		// for subpixel move the underlying Img2 by the subpixel offset
 		if ( subpixelShift != null && interpolateSubpixel )
 		{
-			RealRandomAccessible< S > rra = Views.interpolate( Views.extendMirrorSingle( img2 ), new NLinearInterpolatorFactory< S >() );
+			RealRandomAccessible< S > rra = Views.interpolate( Views.extendMirrorSingle( img2 ), new NLinearInterpolatorFactory<>() );
 
 			InvertibleRealTransform transform = null;
 
@@ -245,15 +245,12 @@ public class PhaseCorrelationPeak2 {
 	 */
 	public <T extends RealType<T>> void  calculateSubpixelLocalization(RandomAccessibleInterval<T> pcm){
 		
-		List<Point> peaks = new ArrayList<Point>();
+		List<Point> peaks = new ArrayList<>();
 		peaks.add(new Point(pcmLocation));
 		
 		final int n = pcm.numDimensions();
 
 		boolean[] allowedToMoveInDim = new boolean[ n ];
-		for (int i = 0; i< allowedToMoveInDim.length; i++){
-			allowedToMoveInDim[i]=false;
-		}
 
 		// TODO: It doesnt look like this does anything? Subpixel peaks are just regular peaks as RealPoint - with maxNumMoves == 1 it should now :)
 		// subpixel localization can move on periodic condition outofbounds
@@ -392,7 +389,7 @@ public class PhaseCorrelationPeak2 {
 		int ccCompare = Double.compare(o1, o2);
 		if (ccCompare != 0)
 			System.out.println( ccCompare );
-		else 
+		else
 			System.out.println( (int)(np1 - np2) );
 		
 		System.exit( 0 );

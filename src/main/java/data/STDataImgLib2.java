@@ -31,6 +31,7 @@ public class STDataImgLib2 extends STDataAbstract
 	private final HashMap< String, Integer > geneLookup;
 
 	private final Map<String, RandomAccessibleInterval<? extends NativeType< ? >>> annotations;
+	private final Map<String, RandomAccessibleInterval<? extends NativeType< ? >>> geneAnnotations;
 
 	private RealInterval realInterval;
 
@@ -62,6 +63,7 @@ public class STDataImgLib2 extends STDataAbstract
 		this.geneLookup = geneLookup;
 
 		this.annotations = new HashMap<>();
+		this.geneAnnotations = new HashMap<>();
 
 		this.realInterval = STDataUtils.computeRealInterval( this );
 	}
@@ -70,6 +72,12 @@ public class STDataImgLib2 extends STDataAbstract
 	public Map<String, RandomAccessibleInterval<? extends NativeType< ? >>> getAnnotations()
 	{
 		return annotations;
+	}
+	
+	@Override
+	public Map<String, RandomAccessibleInterval<? extends NativeType< ? >>> getGeneAnnotations()
+	{
+		return geneAnnotations;
 	}
 
 	@Override

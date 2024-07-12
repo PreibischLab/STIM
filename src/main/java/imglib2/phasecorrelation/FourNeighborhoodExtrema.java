@@ -24,7 +24,6 @@ package imglib2.phasecorrelation;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -53,13 +52,13 @@ public class FourNeighborhoodExtrema
 	 * @return merged list with size {@literal < maxN}
 	 */	
 	public static <T> ArrayList<T> merge(List<List<T>> lists, final int maxN, Comparator<T> compare){
-		ArrayList<T> res = new ArrayList<T>();
+		ArrayList<T> res = new ArrayList<>();
 		int[] idxs = new int[lists.size()];
 		boolean[] hasMore = new boolean[lists.size()];
 		boolean allDone = true;
 		
 		for (int i = 0; i < lists.size(); i++){
-			hasMore[i] = lists.get(i).size() > 0;
+			hasMore[i] = !lists.get(i).isEmpty();
 			allDone &= !hasMore[i];
 		}
 		
@@ -104,7 +103,7 @@ public class FourNeighborhoodExtrema
 	 */
 	public static List<Interval> splitAlongLargestDimension(Interval interval, long nSplits){
 		
-		List<Interval> res = new ArrayList<Interval>();
+		List<Interval> res = new ArrayList<>();
 		
 		long[] min = new long[interval.numDimensions()];
 		long[] max = new long[interval.numDimensions()];
@@ -141,41 +140,24 @@ public class FourNeighborhoodExtrema
 		
 		int nTasks = Runtime.getRuntime().availableProcessors() * 4;
 		List<Interval> intervals = splitAlongLargestDimension(region, nTasks);
-		List<Future<ArrayList< Pair< Localizable, Double > >>> futures = new ArrayList<Future<ArrayList<Pair<Localizable,Double>>>>();
+		List<Future<ArrayList< Pair< Localizable, Double > >>> futures = new ArrayList<>();
 		
 		for (final Interval i : intervals){
-			futures.add(service.submit(new Callable<ArrayList< Pair< Localizable, Double > >>() {
-
-				@Override
-				public ArrayList<Pair<Localizable, Double>> call() throws Exception {
-					return findMax(img, i, maxN);
-				}
-			}));
+			futures.add(service.submit(() -> findMax(img, i, maxN)));
 		}
 		
-		List<List< Pair< Localizable, Double > >> toMerge = new ArrayList<List<Pair<Localizable,Double>>>();
+		List<List< Pair< Localizable, Double > >> toMerge = new ArrayList<>();
 		
 		for (Future<ArrayList< Pair< Localizable, Double > >> f : futures){
 			try {
 				toMerge.add(f.get());
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (ExecutionException e) {
+			} catch (InterruptedException | ExecutionException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
-		
-		ArrayList< Pair< Localizable, Double > > res = merge(toMerge, maxN, new Comparator<Pair< Localizable, Double >>() {
 
-			@Override
-			public int compare(Pair<Localizable, Double> o1, Pair<Localizable, Double> o2) {
-				return (int) Math.signum(o1.getB() - o2.getB());
-			}
-		});
-
-		return res;
+		return merge(toMerge, maxN, (o1, o2) -> (int) Math.signum(o1.getB() - o2.getB()));
 	}
 	
 	public static < T extends RealType< T > > ArrayList< Pair< Localizable, Double > > findMax( final RandomAccessible< T > img, final Interval region, final int maxN )
@@ -184,10 +166,10 @@ public class FourNeighborhoodExtrema
 		final RandomAccess< T > r = img.randomAccess();
 		final int n = img.numDimensions();
 
-		final ArrayList< Pair< Localizable, Double > > list = new ArrayList< Pair< Localizable, Double > >();
+		final ArrayList< Pair< Localizable, Double > > list = new ArrayList<>();
 
 		for ( int i = 0; i < maxN; ++i )
-			list.add( new ValuePair< Localizable, Double >( null, -Double.MAX_VALUE ) );
+			list.add(new ValuePair<>(null, -Double.MAX_VALUE) );
 
 A:		while ( c.hasNext() )
 		{
@@ -220,14 +202,14 @@ A:		while ( c.hasNext() )
 					}
 					else
 					{
-						list.add( i + 1, new ValuePair< Localizable, Double >( new Point( c ), type ) );
+						list.add( i + 1, new ValuePair<>(new Point(c), type) );
 						list.remove( maxN );
 						continue A;
 					}
 				}
 			}
 
-			list.add( 0, new ValuePair< Localizable, Double >( new Point( c ), type ) );
+			list.add( 0, new ValuePair<>(new Point(c), type) );
 			list.remove( maxN );
 		}
 

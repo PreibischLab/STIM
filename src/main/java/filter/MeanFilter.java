@@ -6,16 +6,16 @@ import net.imglib2.type.numeric.RealType;
 
 public class MeanFilter< S extends RealType< S >, T extends RealType< T > > extends RadiusSearchFilter< S, T, MeanFilterFactory< S, T > >
 {
-	final T outofbounds;
+	final T outOfBounds;
 
 	public MeanFilter(
 			final RadiusNeighborSearch< S > search,
 			final MeanFilterFactory< S, T > factory,
-			final T outofbounds )
+			final T outOfBounds)
 	{
 		super( search, factory );
 
-		this.outofbounds = outofbounds;
+		this.outOfBounds = outOfBounds;
 	}
 
 	@Override
@@ -25,7 +25,7 @@ public class MeanFilter< S extends RealType< S >, T extends RealType< T > > exte
 
 		if ( search.numNeighbors() == 0 )
 		{
-			output.set( outofbounds );
+			output.set(outOfBounds);
 		}
 		else if ( search.numNeighbors() == 1 )
 		{

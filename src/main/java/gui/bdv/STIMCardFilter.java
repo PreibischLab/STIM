@@ -30,10 +30,14 @@ import net.imglib2.RealCursor;
 import net.imglib2.RealPointSampleList;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.miginfocom.swing.MigLayout;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 import util.Text;
 
 public class STIMCardFilter
 {
+	private static final Logger logger = LoggerUtil.getLogger();
+
 	private final JPanel panel;
 	private final FilterTableModel tableModel;
 	private final STIMCard stimcard;
@@ -94,7 +98,7 @@ public class STIMCardFilter
 		{
 			String cmdLineArgs = createCmdLineArgs( true, true, true );
 			Text.copyToClipboard( cmdLineArgs );
-			System.out.println( cmdLineArgs + " copied to clipboard");
+			logger.info("{} copied to clipboard", cmdLineArgs);
 		});
 	}
 
@@ -305,8 +309,7 @@ public class STIMCardFilter
 						final List< Callable< Void > > tasks = new ArrayList<>();
 
 						data.forEach(d -> tasks.add(() -> {
-							final RealPointSampleList<DoubleType> filteredA =
-									Filters.filter( d.tree(), d.tree().iterator(), filterFactory );
+							final RealPointSampleList<DoubleType> filteredA = Filters.filter(d.tree(), d.tree().cursor(), filterFactory);
 
 							final RealCursor<DoubleType> iAFilt = filteredA.cursor();
 							d.tree().forEach( t -> t.set( iAFilt.next() ) );
@@ -314,7 +317,7 @@ public class STIMCardFilter
 							return null;
 						}));
 
-						try { service.invokeAll( tasks ); } catch (InterruptedException e) { e.printStackTrace(); }
+						try { service.invokeAll( tasks ); } catch (InterruptedException e) { logger.warn(e); }
 					});
 				}
 	

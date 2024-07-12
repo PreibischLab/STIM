@@ -6,28 +6,28 @@ import net.imglib2.type.numeric.RealType;
 
 public class SingleSpotRemovingFilterFactory< T extends RealType< T > > extends RadiusSearchFilterFactory< T, T >
 {
-	final T outofbounds;
+	final T outOfBounds;
 
 	public SingleSpotRemovingFilterFactory(
-			final T outofbounds,
+			final T outOfBounds,
 			final double radius )
 	{
 		super( radius );
-		this.outofbounds = outofbounds;
+		this.outOfBounds = outOfBounds;
 	}
 
 	@Override
 	public Filter< T > createFilter( final KDTree< T > tree )
 	{
-		return new SingleSpotRemovingFilter< T >(
-				new RadiusNeighborSearchOnKDTree<>( tree ),
+		return new SingleSpotRemovingFilter<>(
+				new RadiusNeighborSearchOnKDTree<>(tree),
 				this,
-				outofbounds );
+				outOfBounds);
 	}
 
 	@Override
 	public T create()
 	{
-		return outofbounds.createVariable();
+		return outOfBounds.createVariable();
 	}
 }

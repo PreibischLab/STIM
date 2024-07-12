@@ -7,9 +7,11 @@ import java.io.File;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -32,6 +34,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.border.TitledBorder;
 import javax.swing.text.NumberFormatter;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.logging.log4j.Logger;
 import org.janelia.saalfeldlab.n5.N5Writer;
 
 import align.AlignTools;
@@ -61,9 +65,12 @@ import net.imglib2.util.ValuePair;
 import net.miginfocom.swing.MigLayout;
 import util.BoundedValue;
 import util.BoundedValuePanel;
+import util.LoggerUtil;
 
 public class STIMCardAlignSIFT
 {
+	private static final Logger logger = LoggerUtil.getLogger();
+
 	private final JPanel panel;
 	private final SIFTOverlay siftoverlay;
 	private final STIMCard stimcard;
@@ -86,7 +93,7 @@ public class STIMCardAlignSIFT
 	private Affine2D<?> previousModel = null;
 	private final SIFTParam param;
 	final static String[] optionsSIFT = { "Fast", "Normal", "Thorough", "Very thorough", "Custom ..." };
-	private boolean customModeSIFT = false; // we always start with "normal" for 
+	private AtomicBoolean customModeSIFT = new AtomicBoolean(false); // we always start with "normal" for
 
 	private final ExecutorService service;
 	private final HashSet<String> genesWithInliers = new HashSet<>();
@@ -346,50 +353,52 @@ public class STIMCardAlignSIFT
 		// set sift preset box to custom once one of the values is manually changed
 		//
 		final AtomicBoolean triggedChange = new AtomicBoolean( false );
+		final int customIndex = 4;
 
 		customComponents.forEach( c -> {
-			if (c instanceof JFormattedTextField)
+			if (c instanceof JFormattedTextField) {
 				c.addPropertyChangeListener(e -> {
-					if ( !triggedChange.get() && e.getOldValue() != null && e.getNewValue() != null && e.getOldValue() != e.getNewValue() && box.getSelectedIndex() != 4 )
-					{
-						box.setSelectedIndex( 4 );
+					if (!triggedChange.get()
+							&& box.getSelectedIndex() != customIndex
+							&& e.getOldValue() != null
+							&& e.getNewValue() != null
+							&& e.getOldValue() != e.getNewValue()) {
+						box.setSelectedIndex(customIndex);
 					}
-				} );
-			else if (c instanceof JCheckBox)
-				((JCheckBox)c).addChangeListener( e -> { if ( !triggedChange.get() && box.getSelectedIndex() != 4 ) box.setSelectedIndex( 4 ); } );
-			else if (c instanceof BoundedValuePanel)
-				((BoundedValuePanel)c).changeListeners().add( () -> { if ( !triggedChange.get() && box.getSelectedIndex() != 4 ) box.setSelectedIndex( 4 ); } );
+				});
+			} else if (c instanceof JCheckBox) {
+				((JCheckBox) c).addItemListener(e -> {if (!triggedChange.get() && box.getSelectedIndex() != customIndex) box.setSelectedIndex(customIndex);});
+			} else if (c instanceof BoundedValuePanel) {
+				((BoundedValuePanel) c).changeListeners().add(() -> {if (!triggedChange.get() && box.getSelectedIndex() != customIndex) box.setSelectedIndex(customIndex);});
+			}
 		});
 
 		// transform listener for max octave size
 		stimcard.bdvhandle().getViewerPanel().transformListeners().add(l -> SwingUtilities.invokeLater(this::updateMaxOctaveSize));
 
 		// advanced options listener (changes menu)
-		advancedOptions.addChangeListener( e -> SwingUtilities.invokeLater( () -> {
-			if ( !customModeSIFT )
-			{
+		advancedOptions.addItemListener(e -> SwingUtilities.invokeLater(() -> {
+			if (!customModeSIFT.get()) {
 				// change to advanced mode
 				AtomicInteger cc = new AtomicInteger(componentCount);
 				triggedChange.set(true);
-				advancedSIFTComponents.forEach( c -> panel.add(c, "span,growx,pushy", cc.getAndIncrement() ));
+				advancedSIFTComponents.forEach(c -> panel.add(c, "span,growx,pushy", cc.getAndIncrement()));
 				panel.updateUI();
 
-				triggedChange.set( false );
-				customModeSIFT = true;
-			}
-			else
-			{
+				triggedChange.set(false);
+				customModeSIFT.set(true);
+			} else {
 				// change to simple mode
 				advancedSIFTComponents.forEach(panel::remove);
-				customModeSIFT = false;
+				panel.updateUI();
+				customModeSIFT.set(false);
 			}
 		}));
 
 		// advanced menu listener (changes menu)
 		box.addActionListener( e -> {
 
-			if ( box.getSelectedIndex() < 4 )
-			{
+			if (box.getSelectedIndex() != customIndex) {
 				SwingUtilities.invokeLater( () ->
 				{
 					// update all values to the specific preset
@@ -429,7 +438,7 @@ public class STIMCardAlignSIFT
 		});
 
 		// overlay listener
-		overlayInliers.addChangeListener( e ->
+		overlayInliers.addItemListener(e ->
 		{
 			if ( !overlayInliers.isSelected() )
 			{
@@ -545,12 +554,12 @@ public class STIMCardAlignSIFT
 
 				final Pair<Model<?>, Model<?>> modelPair = extractParametersFromGUI(param );
 
-				System.out.println( "Running SIFT align with the following parameters: \n" + param);
-				System.out.println( "RANSAC model: " + optionsModel[ boxModelRANSAC1.getSelectedIndex() ] + ", regularizer: " + optionsModelReg[ boxModelRANSAC2.getSelectedIndex() ] + ", lambda=" + tfRANSAC.getText() );
-				System.out.println( "FINAL model: " + optionsModel[ boxModelFinal1.getSelectedIndex() ] + ", regularizer: " + optionsModelReg[ boxModelFinal2.getSelectedIndex() ] + ", lambda=" + tfFinal.getText() );
+				logger.info("Running SIFT align with the following parameters: \n\t{}", param);
+				logger.info("RANSAC model: {}, regularizer: {}, lambda={}", optionsModel[boxModelRANSAC1.getSelectedIndex()], optionsModelReg[boxModelRANSAC2.getSelectedIndex()], tfRANSAC.getText());
+				logger.info("FINAL model: {}, regularizer: {}, lambda={}", optionsModel[boxModelFinal1.getSelectedIndex()], optionsModelReg[boxModelFinal2.getSelectedIndex()], tfFinal.getText());
 
-				System.out.println( modelPair.getA().getClass().getSimpleName() );
-				System.out.println( modelPair.getB().getClass().getSimpleName() );
+				logger.debug(modelPair.getA().getClass().getSimpleName());
+				logger.debug(modelPair.getB().getClass().getSimpleName());
 
 				final boolean visResult = false;
 				final double[] progressBarValue = new double[] { 1.0 };
@@ -574,7 +583,7 @@ public class STIMCardAlignSIFT
 							}
 						});
 
-				System.out.println( match.getNumInliers() + "/" + match.getNumCandidates() );
+				logger.info("Found {} inliers of {}", match.getNumInliers(), match.getNumCandidates());
 
 				// 
 				// apply transformations
@@ -588,9 +597,9 @@ public class STIMCardAlignSIFT
 						setModel( (Affine2D)modelPair.getB() );
 						stimcard.applyTransformationToBDV( true );
 
-						System.out.println( "2D model: " + modelPair.getB() );
-						System.out.println( "2D transform: " + stimcard.sourceData().values().iterator().next().get( 0 ).currentModel2D() );
-						System.out.println( "3D viewer transform: " + stimcard.sourceData().values().iterator().next().get( 0 ).currentModel3D() );
+						logger.debug("2D model: {}", modelPair.getB());
+						logger.debug("2D transform: {}", stimcard.sourceData().values().iterator().next().get(0).currentModel2D());
+						logger.debug("3D viewer transform: {}", stimcard.sourceData().values().iterator().next().get(0).currentModel3D());
 
 						SwingUtilities.invokeLater( () ->
 						{
@@ -613,9 +622,8 @@ public class STIMCardAlignSIFT
 
 					lastMaxError = param.maxError;
 
-					System.out.println( "genes with inliers: ");
-					genesWithInliers.forEach( s -> System.out.print( s + " " ) );
-					System.out.println();
+					final String geneNames = StringUtils.join(genesWithInliers, ", ");
+					logger.info("genes with inliers: {}", geneNames);
 
 					SwingUtilities.invokeLater( () ->
 					{
@@ -645,7 +653,6 @@ public class STIMCardAlignSIFT
 				{
 					if ( icpCard != null )
 					{
-						//System.out.println( "Updating ICP to " + genesWithInliers.size() );
 						icpCard.siftResults().setText( STIMCardAlignICP.getSIFTResultLabelText( genesWithInliers.size() ) );
 						icpCard.getPanel().updateUI();
 					}
@@ -684,7 +691,6 @@ public class STIMCardAlignSIFT
 
 			if ( icpCard != null )
 			{
-				//System.out.println( "Updating ICP to " + genesWithInliers.size() );
 				icpCard.siftResults().setText( STIMCardAlignICP.getSIFTResultLabelText( genesWithInliers.size() ) );
 				icpCard.getPanel().updateUI();
 			}
@@ -692,11 +698,11 @@ public class STIMCardAlignSIFT
 			if ( manualCard != null )
 				manualCard.setTransformGUI( AlignTools.modelToAffineTransform2D( new AffineModel2D() ) );
 
-			System.out.println( "reset transformations.");
+			logger.info("reset transformations.");
 		});
 
 		//
-		// Return command line paramters for the last SIFT align run ...
+		// Return command line parameters for the last SIFT align run ...
 		//
 		cmdLine.addActionListener( l -> 
 		{
@@ -720,26 +726,21 @@ public class STIMCardAlignSIFT
 
 		final AffineTransform2D finalTransform = initialTransform.copy().preConcatenate( currentTransform );
 
-		System.out.println( "Initial transformation: " + initialTransform );
-		System.out.println( "SIFT transformation: " + currentTransform );
-		System.out.println( "Final transformation: " + finalTransform );
+		logger.debug("Initial transformation: {}", initialTransform);
+		logger.debug("SIFT transformation: {}", currentTransform);
+		logger.debug("Final transformation: {}", finalTransform);
 
 		// the input path is the same for all AddedGene objects, we can just pick one
 		final String path = new File( stimcard.inputPath(), dataset).getAbsolutePath();
 
-		try
-		{
+		try {
 			final SpatialDataIO sdout = SpatialDataIO.open( path, service);
-			final N5Writer writer = (N5Writer) sdout.ioSupplier().get();
-			
-			sdout.writeTransformation( writer, finalTransform, SpatialDataIO.transformFieldName );
-
-			System.out.println( "Written final transformation to: '" + path + "'");
-		}
-		catch (IOException e1)
-		{
-			System.out.println( "ERROR writing transformation to: '" + path + "': "+ e1);
-			e1.printStackTrace();
+			try (final N5Writer writer = (N5Writer) sdout.ioSupplier().get()) {
+				sdout.updateTransformation(writer, finalTransform, SpatialDataIO.transformFieldName);
+			}
+			logger.info("Written final transformation to: '{}'", path);
+		} catch (IOException e) {
+			logger.error("ERROR writing transformation to: '{}': {}", path, e);
 		}
 	}
 
@@ -788,15 +789,21 @@ public class STIMCardAlignSIFT
 
 	protected Pair<Model<?>, Model<?>> extractParametersFromGUI(final SIFTParam param )
 	{
+		double parsedInitialSigma = parseDoubleWithDefault(initialSigma.getText(), 1.0);
+		double parsedrod = parseDoubleWithDefault(rod.getText(), 0.90f);
+		double parsedilr = parseDoubleWithDefault(ilr.getText(), 0.05); // minInlierRatio
+		double parsedtfRANSAC = parseDoubleWithDefault(tfRANSAC.getText(), 0.1);
+		double parsedtfFinal = parseDoubleWithDefault(tfFinal.getText(), 0.1);
+			
 		param.setIntrinsicParameters(
 				Integer.parseInt( fdSize.getText().trim() ),
 				Integer.parseInt( fdBins.getText().trim() ),
 				Integer.parseInt( minOS.getText().trim() ),
 				Integer.parseInt( steps.getText().trim() ),
-				Double.parseDouble( initialSigma.getText().trim() ),
+				parsedInitialSigma,
 				biDirectional.isSelected(),
-				Double.parseDouble( rod.getText().trim() ),
-				Double.parseDouble( ilr.getText().trim() ),
+				parsedrod,
+				parsedilr,
 				(int)Math.round( inliersPerGeneSlider.getValue().getValue() ),
 				(int)Math.round( inliersSlider.getValue().getValue() ),
 				Integer.parseInt( it.getText().trim() ));
@@ -808,13 +815,22 @@ public class STIMCardAlignSIFT
 				stimcardFilter.filterFactories(),
 				stimcard.currentDisplayMode(), stimcard.currentRenderingFactor(), stimcard.currentBrightnessMin(), stimcard.currentBrightnessMax() );
 
-		final double lambda1 = Double.parseDouble( tfRANSAC.getText().trim() );
-		final double lambda2 = Double.parseDouble( tfFinal.getText().trim() );
-
+		final double lambda1 = parsedtfRANSAC;
+		final double lambda2 = parsedtfFinal;
 		final Model model1 = getModelFor( boxModelRANSAC1.getSelectedIndex(), boxModelRANSAC2.getSelectedIndex(), lambda1 );
 		final Model model2 = getModelFor( boxModelFinal1.getSelectedIndex(), boxModelFinal2.getSelectedIndex(), lambda2 );
 
 		return new ValuePair<>( model1, model2 );
+	}
+
+	private double parseDoubleWithDefault(String text, double defaultValue) {
+		NumberFormat format = NumberFormat.getInstance(Locale.getDefault());
+		try {
+			return format.parse(text.trim()).doubleValue();
+		} catch (ParseException e) {
+			logger.warn("Cannot parse from GUI -> setting default to {}", defaultValue, e);
+			return defaultValue;
+		}
 	}
 
 	protected void reEnableControls()

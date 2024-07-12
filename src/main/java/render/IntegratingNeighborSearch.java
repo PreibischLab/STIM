@@ -18,17 +18,17 @@ public interface IntegratingNeighborSearch< T > extends EuclideanSpace
 	 * 
 	 * @param reference
 	 */
-	public void search( final RealLocalizable reference );
+	void search(final RealLocalizable reference);
 
 	/**
 	 * Access the data of the nearest neighbor. Data is accessed through a
 	 * {@link Sampler} that guarantees write access if the underlying data set
 	 * is writable.
 	 */
-	public Sampler< T > getSampler();
+	Sampler< T > getSampler();
 
 	/**
 	 * Create a copy.
 	 */
-	public IntegratingNeighborSearch< T > copy();
+	IntegratingNeighborSearch< T > copy();
 }

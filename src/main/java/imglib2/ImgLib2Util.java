@@ -45,7 +45,7 @@ public class ImgLib2Util
 	{
 		// copy locations and exprValues
 		final ExecutorService service = Threads.createFixedExecutorService();
-		final CellImgFactory< DoubleType > factory = new CellImgFactory< DoubleType >( new DoubleType() );
+		final CellImgFactory< DoubleType > factory = new CellImgFactory<>(new DoubleType());
 
 		long time = System.currentTimeMillis();
 
@@ -259,34 +259,34 @@ public class ImgLib2Util
 				max.set( value );
 		}
 
-		return new ValuePair< T, T >( min, max );
+		return new ValuePair<>(min, max);
 	}
 
 	public static String printRealInterval( final RealInterval interval )
 	{
-		String out = "(Interval empty)";
+		StringBuilder out = new StringBuilder("(Interval empty)");
 
 		if ( interval == null || interval.numDimensions() == 0 )
-			return out;
+			return out.toString();
 
-		out = "[" + interval.realMin( 0 );
-
-		for ( int i = 1; i < interval.numDimensions(); i++ )
-			out += ", " + interval.realMin( i );
-
-		out += "] -> [" + interval.realMax( 0 );
+		out = new StringBuilder("[" + interval.realMin(0));
 
 		for ( int i = 1; i < interval.numDimensions(); i++ )
-			out += ", " + interval.realMax( i );
+			out.append(", ").append(interval.realMin(i));
 
-		out += "], size (" + (interval.realMax( 0 ) - interval.realMin( 0 ));
+		out.append("] -> [").append(interval.realMax(0));
 
 		for ( int i = 1; i < interval.numDimensions(); i++ )
-			out += ", " + (interval.realMax( i ) - interval.realMin( i ));
+			out.append(", ").append(interval.realMax(i));
 
-		out += ")";
+		out.append("], size (").append(interval.realMax(0) - interval.realMin(0));
 
-		return out;
+		for ( int i = 1; i < interval.numDimensions(); i++ )
+			out.append(", ").append(interval.realMax(i) - interval.realMin(i));
+
+		out.append(")");
+
+		return out.toString();
 	}
 
 	public static long[] dimensions( final Interval ri )
@@ -361,8 +361,7 @@ public class ImgLib2Util
 		else
 			in = Views.zeroMin( input );
 
-		final long[] dim = new long[ in.numDimensions() ];
-		in.dimensions( dim );
+		long[] dim = dimensions(in);
 
 		final Img< T > tImg = factory.create( dim );
 
@@ -380,8 +379,7 @@ public class ImgLib2Util
 		}
 		else
 		{
-			final long[] min = new long[ original.numDimensions() ];
-			original.min( min );
+			long[] min = min(original);
 
 			return Views.translate( copy, min );
 		}
@@ -404,11 +402,11 @@ public class ImgLib2Util
 		Threads.execTasks( tasks, service, "copy image" );
 	}
 
-	public static final < T extends Type< T > > void copyImg(
+	public static < T extends Type< T > > void copyImg(
 			final long start,
 			final long loopSize,
-			final RandomAccessibleInterval< T > source,
-			final RandomAccessibleInterval< T > target )
+			final RandomAccessibleInterval<T> source,
+			final RandomAccessibleInterval<T> target)
 	{
 		final IterableInterval< T > sourceIterable = Views.iterable( source );
 		final IterableInterval< T > targetIterable = Views.iterable( target );

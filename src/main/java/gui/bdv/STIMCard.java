@@ -35,11 +35,15 @@ import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.util.Pair;
 import net.miginfocom.swing.MigLayout;
+import org.apache.logging.log4j.Logger;
 import util.BoundedValue;
 import util.BoundedValuePanel;
+import util.LoggerUtil;
 
 public class STIMCard
 {
+	private static final Logger logger = LoggerUtil.getLogger();
+
 	private final JPanel panel;
 	private GeneSelectionExplorer gse = null;
 	private final List<STDataAssembly> data;
@@ -126,7 +130,7 @@ public class STIMCard
 				if ( Rendering.values()[ box.getSelectedIndex() ] != currentRendering )
 				{
 					currentRendering = Rendering.values()[ box.getSelectedIndex() ];
-					System.out.println( "now rendering as: " + currentRendering );
+					logger.debug("now rendering as: {}", currentRendering);
 
 					final SynchronizedViewerState state = bdvhandle.getViewerPanel().state();
 					AddedGene.updateRemainingSources( state, geneToBDVSource, sourceData );
@@ -136,7 +140,7 @@ public class STIMCard
 					for ( final String gene : geneToBDVSource.keySet() )
 					{
 						// TODO: old sources are not removed from BDV
-						System.out.println( "replacing sources for '" + gene + "'");
+						logger.debug("replacing sources for '{}'", gene);
 	
 						final SourceGroup currentSourceGroup = geneToBDVSource.get( gene );
 						final ArrayList<SourceAndConverter<?>> currentSources = new ArrayList<>( state.getSourcesInGroup( currentSourceGroup ) );
@@ -363,7 +367,7 @@ public class STIMCard
 		menu3.add(runnableItem("set bounds ...", brightnessSliderMax::setBoundsDialog));
 		brightnessSliderMax.setPopup(() -> menu3);
 
-		System.out.println( "Done ... " );
+		logger.debug("Done rendering");
 	}
 
 	public HashMap< String, List< AddedGene > > sourceData() { return sourceData; }
@@ -402,7 +406,7 @@ public class STIMCard
 		{
 			if ( !geneToBDVSource.containsKey( gene ) )
 			{
-				System.out.println( "Gene " + gene + " will be added." );
+				logger.debug("Gene {} will be added.", gene);
 
 				final List<AddedGene> newDatasets = new ArrayList<>();
 
@@ -442,7 +446,7 @@ public class STIMCard
 			}
 			else
 			{
-				System.out.println( "Gene " + gene + " is already being displayed, ignoring." );
+				logger.debug("Gene {} is already being displayed, ignoring.", gene);
 				// TODO: remove gaussFactories? - maybe not necessary
 			}
 		}
@@ -500,14 +504,11 @@ public class STIMCard
 
 		final HashSet< String > genes = new HashSet<>();
 
-		sourceData().forEach((key, value) -> active.forEach(source -> {
-			value.forEach(gene -> {
-				if (gene.soc() == source)
-					genes.add(key);
-			});
-			//if ( set.getValue().getA().soc() == source || set.getValue().getB().soc() == source )
-			//	genes.add( set.getKey() );
-		}));
+		sourceData().forEach((key, value) -> active.forEach(source -> value.forEach(
+				gene -> {
+					if (gene.soc() == source)
+						genes.add(key);
+				})));
 
 		return genes; 
 	}
@@ -519,23 +520,16 @@ public class STIMCard
 
 		final HashSet< String > datasets = new HashSet<>();
 
-		sourceData().forEach((key, value) -> active.forEach(source -> {
-			value.forEach(gene -> {
-				if (gene.soc() == source)
-					datasets.add(gene.dataset());
-			});
-			//if ( set.getValue().getA().soc() == source )
-			//	datasets.add( set.getValue().getA().dataset() );
-
-			//if ( set.getValue().getB().soc() == source )
-			//	datasets.add( set.getValue().getB().dataset() );
-
-		}));
+		sourceData().forEach((key, value) -> active.forEach(source -> value.forEach(
+				gene -> {
+					if (gene.soc() == source)
+						datasets.add(gene.dataset());
+				})));
 
 		return datasets;
 	}
 
-	// not the class, but each AddedGene should has it's own transform
+	// not the class, but each AddedGene should have its own transform
 	public synchronized void applyTransformationToBDV( final boolean requestUpdateBDV )
 	{
 		sourceData.forEach( (gene,data) ->

@@ -2,8 +2,7 @@ package align;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -14,6 +13,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import analyze.Entropy;
 import analyze.ExtractGeneLists;
 import data.STData;
 import data.STDataStatistics;
@@ -47,9 +47,12 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import util.Threads;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 public class Pairwise
 {
+	private static final Logger logger = LoggerUtil.getLogger();
 	// how many peaks to test in the PCM
 	public static final int nHighest = 5;
 
@@ -84,10 +87,6 @@ public class Pairwise
 	 */
 	public static AffineTransform2D alignICP( final STData stdataA, final STData stdataB, final List< String > genesToUse, final AffineTransform2D initialModel, final double maxDistance, final int maxIterations )
 	{
-		// regularly sample the reference dataset
-		final STDataStatistics stStatsDataA = new STDataStatistics( stdataA );
-		final STDataStatistics stStatsDataB = new STDataStatistics( stdataB );
-
 		final ArrayList< RealPoint > listA = new ArrayList<>(); // reference
 		final ArrayList< RealPoint > listB = new ArrayList<>(); // target
 
@@ -97,6 +96,9 @@ public class Pairwise
 		//System.out.println( "listA (reference): " + listA.size() );
 
 		/*
+		// regularly sample the reference dataset
+		final STDataStatistics stStatsDataA = new STDataStatistics( stdataA );
+		final STDataStatistics stStatsDataB = new STDataStatistics( stdataB );
 		// tmp
 		System.out.println( "listB (target) sampling: " + StDataPointMatchIdentification.sampling );
 		StDataPointMatchIdentification.sampling = 4.0;//Math.min( stStatsDataA.getMedianDistance(), stStatsDataB.getMedianDistance() ) / 2.0;
@@ -142,7 +144,7 @@ public class Pairwise
 			catch ( Exception e )
 			{
 				//System.out.println( "Failed with e: " + e );
-				e.printStackTrace();
+				logger.error("Error during ICP alignment", e);
 				return null;
 			}
 
@@ -171,21 +173,25 @@ public class Pairwise
 		}
 	}
 
-	public static List< Pair< String, Double > > allGenes( final STData stdataA, final STData stdataB, final int numThreads )
+	public static List<Pair<String, Double>> allGenes(final STData stdataA, final STData stdataB, final String entropyLabel)
 	{
-		System.out.println( "Sorting all genes of both datasets by stdev (this takes a bit) ... ");
+		logger.info( "Sorting all genes of both datasets by stdev (this takes a bit) ... ");
 		long time = System.currentTimeMillis();
 
-		// from big to small
-		final ArrayList< Pair< String, Double > > listA = ExtractGeneLists.sortByStDevIntensity( stdataA, numThreads );
-		final ArrayList< Pair< String, Double > > listB = ExtractGeneLists.sortByStDevIntensity( stdataB, numThreads );
+		// this assumes that the "stdev" or similar has been computed
+		// sort by standard deviation, from big to small
+		final List<Pair<String, Double>> listA = ExtractGeneLists.zipNamesAndValues(stdataA, entropyLabel);
+		final List<Pair<String, Double>> listB = ExtractGeneLists.zipNamesAndValues(stdataB, entropyLabel);
+		final Comparator<Pair<String, Double>> byEntropy = Comparator.comparing(Pair::getB);
+		listA.sort(byEntropy.reversed());
+		listB.sort(byEntropy.reversed());
 
-		System.out.println( "Took " + (System.currentTimeMillis() - time) + " ms." );
+		logger.info("Took {} ms.", System.currentTimeMillis() - time);
 
 		// now we want to find the combination of genes where both have high variance
 		// we therefore sort them by the sum of ranks of both lists
 
-		final HashMap<String, Integer > geneToIndexB = new HashMap<>();
+		final HashMap<String, Integer> geneToIndexB = new HashMap<>();
 
 		for ( int i = 0; i < listB.size(); ++i )
 			geneToIndexB.put( listB.get( i ).getA(), i );
@@ -196,7 +202,7 @@ public class Pairwise
 			if ( geneToIndexB.containsKey( listA.get( i ).getA() ) )
 				entries.add( new ValuePair<>( i, geneToIndexB.get( listA.get( i ).getA() ) ) );
 
-		Collections.sort( entries, (o1,o2) -> (o1.getA()+o1.getB()) - (o2.getA()+o2.getB()) ); 
+		entries.sort(Comparator.comparingInt(o -> (o.getA() + o.getB())));
 
 		//for ( int i = 0; i < 10; ++i )
 		//	System.out.println( entries.get( i ).getA() + " (" + listA.get( entries.get( i ).getA() ).getA() +"), " + entries.get( i ).getB() + " ("  + listB.get( entries.get( i ).getB() ).getA() + ")" );
@@ -204,37 +210,35 @@ public class Pairwise
 
 		final ArrayList< Pair< String, Double > > toTest = new ArrayList<>();
 
-		for ( int i = 0; i < entries.size(); ++i )
-		{
-			final String geneName = listA.get( entries.get( i ).getA() ).getA(); // gene names are identical in the matched lists
-			if ( !listB.get( entries.get( i ).getB() ).getA().equals( geneName ) )
-				throw new RuntimeException( "gene names do not match, that is a bug." );
+		for (Pair<Integer, Integer> entry : entries) {
+			final String geneName = listA.get(entry.getA()).getA(); // gene names are identical in the matched lists
+			if (!listB.get(entry.getB()).getA().equals(geneName))
+				throw new RuntimeException("gene names do not match, that is a bug.");
 
-			final double stDev1 = listA.get( entries.get( i ).getA() ).getB();
-			final double stDev2 = listB.get( entries.get( i ).getB() ).getB();
+			final double stDev1 = listA.get(entry.getA()).getB();
+			final double stDev2 = listB.get(entry.getB()).getB();
 
-			toTest.add( new ValuePair<String, Double>( geneName, (stDev1 + stDev2) / 2.0 ) ); // gene names are identical in the matched lists
+			toTest.add(new ValuePair<>(geneName, (stDev1 + stDev2) / 2.0)); // gene names are identical in the matched lists
 		}
 
 		return toTest;
 	}
 
-	public static List< String > genesToTest( final STData stdataA, final STData stdataB, final int numGenes, final int numThreads )
-	{
+	public static List<String> genesToTest(final STData stdataA, final STData stdataB, final String entropyLabel, final int numGenes)
+			throws IllegalArgumentException {
+
 		if ( numGenes <= 0 )
 			return new ArrayList<>();
 
-		System.out.println( "Sorting all genes of both datasets by stdev (this takes a bit) ... ");
-		long time = System.currentTimeMillis();
-
-		// from big to small
-		final ArrayList< Pair< String, Double > > listA = ExtractGeneLists.sortByStDevIntensity( stdataA, numThreads );
-		final ArrayList< Pair< String, Double > > listB = ExtractGeneLists.sortByStDevIntensity( stdataB, numThreads );
-
-		System.out.println( "Took " + (System.currentTimeMillis() - time) + " ms." );
-
+		// this assumes that the "stdev" or similar has been computed
+		final List<Pair<String, Double>> listA = ExtractGeneLists.zipNamesAndValues(stdataA, entropyLabel);
+		final List<Pair<String, Double>> listB = ExtractGeneLists.zipNamesAndValues(stdataB, entropyLabel);
+			
 		// now we want to find the combination of genes where both have high variance
 		// we therefore sort them by the sum of ranks of both lists
+		final Comparator<Pair<String, Double>> byEntropy = Comparator.comparing(Pair::getB);
+		listA.sort(byEntropy.reversed());
+		listB.sort(byEntropy.reversed());
 
 		final HashMap<String, Integer > geneToIndexB = new HashMap<>();
 
@@ -247,11 +251,7 @@ public class Pairwise
 			if ( geneToIndexB.containsKey( listA.get( i ).getA() ) )
 				entries.add( new ValuePair<>( i, geneToIndexB.get( listA.get( i ).getA() ) ) );
 
-		Collections.sort( entries, (o1,o2) -> (o1.getA()+o1.getB()) - (o2.getA()+o2.getB()) ); 
-
-		//for ( int i = 0; i < 10; ++i )
-		//	System.out.println( entries.get( i ).getA() + " (" + listA.get( entries.get( i ).getA() ).getA() +"), " + entries.get( i ).getB() + " ("  + listB.get( entries.get( i ).getB() ).getA() + ")" );
-		//System.out.println( entries.get( entries.size() - 1 ).getA() + ", " + entries.get( entries.size() - 1 ).getB() );
+		entries.sort(Comparator.comparingInt(o -> (o.getA() + o.getB())));
 
 		final ArrayList< String > toTest = new ArrayList<>();
 
@@ -333,7 +333,7 @@ public class Pairwise
 		}
 		catch ( final InterruptedException | ExecutionException e )
 		{
-			e.printStackTrace();
+			logger.error("Error during pairwise alignment", e);
 			throw new RuntimeException( e );
 		}
 
@@ -425,7 +425,7 @@ public class Pairwise
 
 		serviceGlobal.shutdown();
 
-		return new ValuePair<AffineTransform2D, Double>( finalTransform, degreeWeightGauss );
+		return new ValuePair<>(finalTransform, degreeWeightGauss);
 	}
 
 	public static List< Pair< PhaseCorrelationPeak2, Double > > alignGenePairwise(
@@ -492,7 +492,7 @@ public class Pairwise
 						updated = true;
 						if ( deg + step >= 360 )
 							deg -= 360;
-						bestPeak = new ValuePair< PhaseCorrelationPeak2, Double >( shiftPeak, deg + step );
+						bestPeak = new ValuePair<>(shiftPeak, deg + step);
 					}
 
 					transformB = scalingTransform.copy();
@@ -506,7 +506,7 @@ public class Pairwise
 						updated = true;
 						if ( deg - step < 0 )
 							deg += 360;
-						bestPeak = new ValuePair< PhaseCorrelationPeak2, Double >( shiftPeak, deg - step );
+						bestPeak = new ValuePair<>(shiftPeak, deg - step);
 					}
 				} while ( updated );
 			}
@@ -523,8 +523,8 @@ public class Pairwise
 
 	protected static void insertIntoList( final List< Pair< PhaseCorrelationPeak2, Double > > topPeaks, final int topN, final PhaseCorrelationPeak2 newPeak, final double deg )
 	{
-		if ( topPeaks.size() == 0 )
-			topPeaks.add( new ValuePair< PhaseCorrelationPeak2, Double >( newPeak, deg ) );
+		if (topPeaks.isEmpty())
+			topPeaks.add(new ValuePair<>(newPeak, deg) );
 		else
 		{
 			boolean inserted = false;
@@ -532,7 +532,7 @@ public class Pairwise
 			{
 				if ( newPeak.getCrossCorr() > topPeaks.get( i ).getA().getCrossCorr() )
 				{
-					topPeaks.add( i, new ValuePair< PhaseCorrelationPeak2, Double >( newPeak, deg ) );
+					topPeaks.add( i, new ValuePair<>(newPeak, deg) );
 
 					if ( topPeaks.size() >= topN )
 						topPeaks.remove( topPeaks.size() - 1 );
@@ -543,7 +543,7 @@ public class Pairwise
 			}
 
 			if ( !inserted && topPeaks.size() < topN )
-				topPeaks.add( new ValuePair< PhaseCorrelationPeak2, Double >( newPeak, deg ) );
+				topPeaks.add(new ValuePair<>(newPeak, deg));
 		}
 	}
 
@@ -551,8 +551,8 @@ public class Pairwise
 	{
 		RandomAccessibleInterval<DoubleType> pcm = PhaseCorrelation2.calculatePCM(
 				imgA, imgB,
-				new ArrayImgFactory<DoubleType>( new DoubleType() ),
-				new ArrayImgFactory<ComplexDoubleType>( new ComplexDoubleType() ),
+				new ArrayImgFactory<>(new DoubleType()),
+				new ArrayImgFactory<>(new ComplexDoubleType()),
 				service );
 
 		//ImageJFunctions.show( pcm );
@@ -573,7 +573,7 @@ public class Pairwise
 		//final String[] pucks = new String[] { "Puck_180531_18", "Puck_180531_17" };
 		//final String[] pucks = new String[] { "Puck_180602_20", "Puck_180602_18" };
 
-		final ExecutorService service = Executors.newFixedThreadPool(8);
+		final ExecutorService service = Executors.newFixedThreadPool(Threads.numThreads());
 		final SpatialDataContainer container = SpatialDataContainer.openExisting(path + "slide-seq-normalized-gzip3.n5", service);
 		final List<String> pucks = container.getDatasets();
 
@@ -589,9 +589,9 @@ public class Pairwise
 				final STData stDataA = puckData.get(i).data();
 				final STData stDataB = puckData.get(j).data();
 		
-				System.out.println( new Date( System.currentTimeMillis() ) + ": Finding genes" );
+				logger.info( "Finding genes" );
 
-				final List< String > genesToTest = genesToTest( stDataA, stDataB, 50, Threads.numThreads() );
+				final List< String > genesToTest = genesToTest(stDataA, stDataB, Entropy.STDEV.label(), 50);
 		
 				/*
 				final List< String > genesToTest = new ArrayList<>();
@@ -603,7 +603,7 @@ public class Pairwise
 				genesToTest.add( "Pcp4" );
 				*/
 
-				System.out.println( new Date( System.currentTimeMillis() ) + ": Running correlation" );
+				logger.info( "Running correlation" );
 				final Pair< AffineTransform2D, Double > result = align( stDataA, stDataB, genesToTest, 0.025, 2, 5, true );
 				final AffineTransform2D pcmTransform = result.getA();
 		
@@ -615,12 +615,13 @@ public class Pairwise
 				//pcmTransform.set( 0.24192189559966745, 0.9702957262759967, -199.37562080565206, -0.9702957262759967, 0.24192189559966745, 4602.7163253270855 );
 				//System.out.println( "PCM transform: " + pcmTransform );
 
-				System.out.println( new Date( System.currentTimeMillis() ) + ": Running ICP" );
+				logger.info( "Running ICP" );
 
 				final AffineTransform2D icpTransform = alignICP( stDataA, stDataB, genesToTest, pcmTransform, 20, 50 );
 				//System.out.println( "ICP transform: " + icpTransform );
-		
-				System.out.println( i + "\t" + j + "\t" + Math.abs( i - j ) + "\t" + genesToTest.size() + "\t" + result.getB() + "\t" + pcmTransform + "\t" + icpTransform );
+
+				logger.info("{}\t{}\t{}\t{}\t{}\t{}\t{}",
+							i, j, Math.abs(i - j), genesToTest.size(), result.getB(), pcmTransform, icpTransform);
 
 				if ( pucks.size() != 2 )
 					continue;

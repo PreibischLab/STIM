@@ -8,7 +8,7 @@ public class IntegratingNeighborSearchInterpolatorFactory< T > implements Interp
 	@Override
 	public IntegratingNeighborSearchInterpolator< T > create( final IntegratingNeighborSearch< T > search )
 	{
-		return new IntegratingNeighborSearchInterpolator< T >( search.copy() );
+		return new IntegratingNeighborSearchInterpolator<>(search.copy());
 	}
 
 	@Override

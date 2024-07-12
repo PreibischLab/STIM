@@ -13,6 +13,7 @@ import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import analyze.Entropy;
 import org.joml.Math;
 
 import align.SIFTParam.SIFTPreset;
@@ -47,9 +48,13 @@ import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Intervals;
 import util.Threads;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 public class PairwiseSIFT
 {
+	private static final Logger logger = LoggerUtil.getLogger();
+
 	static public void matchFeatures(
 			final Collection< Feature > fs1,
 			final Collection< Feature > fs2,
@@ -170,7 +175,7 @@ public class PairwiseSIFT
 
 	public static void visualizeInliers( final ImagePlus imp1, final ImagePlus imp2, final List< PointMatch > inliers )
 	{
-		if ( inliers.size() > 0 )
+		if (!inliers.isEmpty())
 		{
 			final ArrayList< Point > p1 = new ArrayList<>();
 			final ArrayList< Point > p2 = new ArrayList<>();
@@ -195,14 +200,15 @@ public class PairwiseSIFT
 			final List< String > genesToTest,
 			final SIFTParam p,
 			final boolean visualizeResult,
-			final int numThreads )
+			final int numThreads,
+			final Consumer<Double> progressBar )
 	{
 		final ExecutorService service = Threads.createFixedExecutorService( numThreads );
 
 		final SiftMatch s = pairwiseSIFT(
 				stDataA, transformA, stDataAname, stDataB, transformB, stDataBname,
 				modelPairwise, modelGlobal, genesToTest, p,
-				visualizeResult,service, new ArrayList<>(), v -> {} );
+				visualizeResult,service, new ArrayList<>(), progressBar );
 
 		service.shutdown();
 
@@ -222,12 +228,6 @@ public class PairwiseSIFT
 		final Interval finalInterval = Intervals.expand( interval, 100 );
 
 		return finalInterval;
-		/*
-		final Interval interval = STDataUtils.getCommonInterval( stDataA, stDataB );
-		final Interval finalInterval = Intervals.expand( ImgLib2Util.transformInterval( interval, tS ), 100 );
-
-		return finalInterval;
-		*/
 	}
 
 	public static SiftMatch pairwiseSIFT(
@@ -266,7 +266,8 @@ public class PairwiseSIFT
 			tasks.add( () ->
 			{
 				synchronized ( threads ) { threads.add( Thread.currentThread() ); }
-
+				
+				progressBar.accept( progressPerGene / 10.0 );
 				final List< PointMatch > allPerGeneInliers = new ArrayList<>();
 
 				final String gene = genesToTest.get( g );
@@ -306,7 +307,7 @@ public class PairwiseSIFT
 					//System.out.println( gene + " = " + matchesAB.size() );
 					//System.out.println( gene + " = " + matchesBA.size() );
 
-					if ( matchesAB.size() == 0 && matchesBA.size() == 0 )
+					if (matchesAB.isEmpty() && matchesBA.isEmpty())
 						return allPerGeneInliers;
 	
 					if ( matchesBA.size() > matchesAB.size() )
@@ -316,7 +317,7 @@ public class PairwiseSIFT
 				}
 				else
 				{
-					if ( matchesAB.size() == 0 )
+					if (matchesAB.isEmpty())
 						return allPerGeneInliers;
 
 					candidatesTmp.addAll( matchesAB );
@@ -344,7 +345,7 @@ public class PairwiseSIFT
 
 				// reset world coordinates & compute error
 				double error = Double.NaN, maxError = Double.NaN, minError = Double.NaN;
-				if ( inliers.size() > 0 )
+				if (!inliers.isEmpty())
 				{
 					error = 0;
 					minError = Double.MAX_VALUE;
@@ -373,10 +374,11 @@ public class PairwiseSIFT
 					}
 				}
 
-				if ( inliers.size() > 0 )
+				if (!inliers.isEmpty())
 				{
 					allPerGeneInliers.addAll( inliers );
-					System.out.println( stDataAname + "-" + stDataBname + ": " + inliers.size() + "/" + candidatesTmp.size() + ", " + minError + "/" + error + "/" + maxError + ", " + ((PointST)inliers.get( 0 ).getP1()).getGene() );
+					logger.debug("{}-{}: {}/{}, {}/{}/{}, {}",
+								 stDataAname, stDataBname, inliers.size(), candidatesTmp.size(), minError, error, maxError, ((PointST) inliers.get(0).getP1()).getGene());
 					//System.out.println( ki + "-" + kj + ": " + inliers.size() + "/" + candidatesTmp.size() + ", " + ((PointST)inliers.get( 0 ).getP1()).getGene() + ", " );
 					//GlobalOpt.visualizePair(stDataA, stDataB, new AffineTransform2D(), GlobalOpt.modelToAffineTransform2D( model ).inverse() ).setTitle( gene +"_" + inliers.size() );;
 				}
@@ -395,20 +397,21 @@ public class PairwiseSIFT
 		}
 		catch ( final InterruptedException | ExecutionException e )
 		{
-			e.printStackTrace();
+			logger.error("Error during pairwise SIFT alignment", e);
 			throw new RuntimeException( e );
 		}
 
 		//service.shutdown();
 
-		System.out.println( "Running consensus across all genes ... ");
+		logger.debug("Running consensus across all genes ... ");
 
 		//final InterpolatedAffineModel2D<AffineModel2D, RigidModel2D> model = new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), 0.1 );//new RigidModel2D();
 		//final RigidModel2D model = new RigidModel2D();
 		final ArrayList< PointMatch > inliers = consensus( allCandidates, modelGlobal, p.minInliersTotal, p.iterations, p.minInlierRatio, p.maxError );
 
 		// the model that maps J to I
-		System.out.println( stDataAname + "\t" + stDataBname + "\t" + inliers.size() + "\t" + allCandidates.size() + "\t" + AlignTools.modelToAffineTransform2D( (Affine2D<?>)modelGlobal ).inverse() );
+		logger.debug("{}<>{}\t{}\t{}\t{}",
+					 stDataAname, stDataBname, inliers.size(), allCandidates.size(), AlignTools.modelToAffineTransform2D((Affine2D<?>) modelGlobal).inverse());
 
 		if ( visualizeResult && inliers.size() >= p.minInliersTotal )
 		{
@@ -438,7 +441,7 @@ public class PairwiseSIFT
 		// compute errors
 		// reset world coordinates & compute error
 		double error = Double.NaN, maxError = Double.NaN, minError = Double.NaN;
-		if ( inliers.size() > 0 )
+		if (!inliers.isEmpty())
 		{
 			error = 0;
 			minError = Double.MAX_VALUE;
@@ -456,10 +459,11 @@ public class PairwiseSIFT
 			error /= (double)inliers.size();
 		}
 
-		System.out.println( "errors: " + minError + "/" + error + "/" + maxError );
+		logger.debug("errors: {}/{}/{}", minError, error, maxError);
 
 		progressBar.accept( 10.0 );
-
+		logger.info("{}<>{}\t{}\t{}\t{}",
+					stDataAname, stDataBname, inliers.size(), allCandidates.size(), AlignTools.modelToAffineTransform2D((Affine2D<?>) modelGlobal).inverse());
 		return new SiftMatch(stDataAname, stDataBname, allCandidates.size(), inliers);
 	}
 
@@ -505,7 +509,7 @@ public class PairwiseSIFT
 		final double smoothnessFactor = 4.0;
 
 		final SIFTParam p = new SIFTParam();
-		p.setIntrinsicParameters( SIFTPreset.VERYTHOROUGH );
+		p.setIntrinsicParameters( SIFTPreset.VERY_THOROUGH);
 		p.minInliersGene = 10;
 		p.minInliersTotal = 12;
 		p.setDatasetParameters( 300, 0.1, 1024, null, Rendering.Gauss, smoothnessFactor, 0.0, 1.0 );
@@ -533,7 +537,7 @@ public class PairwiseSIFT
 
 				//System.out.println( new Date( System.currentTimeMillis() ) + ": Finding genes" );
 
-				final List< String > genesToTest = Pairwise.genesToTest( stDataA, stDataB, 2000, numThreads );
+				final List< String > genesToTest = Pairwise.genesToTest( stDataA, stDataB, Entropy.STDEV.label(), 2000 );
 				//for ( final String gene : genesToTest )
 				//	System.out.println( gene );
 				/*final List< String > genesToTest = new ArrayList<>();
@@ -551,7 +555,7 @@ public class PairwiseSIFT
 //						minNumInliers, minNumInliersPerGene, saveResult, visualizeResult, numThreads);
 			}
 		}
-		System.out.println("done.");
+		logger.debug("done.");
 		service.shutdown();
 	}
 

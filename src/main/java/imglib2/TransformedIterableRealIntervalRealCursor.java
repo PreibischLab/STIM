@@ -3,7 +3,6 @@ package imglib2;
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RealCursor;
 import net.imglib2.RealPoint;
-import net.imglib2.Sampler;
 import net.imglib2.realtransform.RealTransform;
 
 public class TransformedIterableRealIntervalRealCursor< T > implements RealCursor< T >
@@ -26,7 +25,7 @@ public class TransformedIterableRealIntervalRealCursor< T > implements RealCurso
 
 	public TransformedIterableRealIntervalRealCursor( final TransformedIterableRealIntervalRealCursor< T > cursor )
 	{
-		this.cursor = cursor.cursor.copyCursor();
+		this.cursor = cursor.cursor.copy();
 		this.transform = cursor.transform;
 		this.loc = new RealPoint( cursor.loc );
 	}
@@ -49,7 +48,9 @@ public class TransformedIterableRealIntervalRealCursor< T > implements RealCurso
 	public T get() { return cursor.get(); }
 
 	@Override
-	public Sampler<T> copy() { return copyCursor(); }
+	public RealCursor<T> copy() {
+		return new TransformedIterableRealIntervalRealCursor<>(this);
+	}
 
 	@Override
 	public void jumpFwd( final long steps ) { cursor.jumpFwd( steps ); }
@@ -74,6 +75,4 @@ public class TransformedIterableRealIntervalRealCursor< T > implements RealCurso
 		return get();
 	}
 
-	@Override
-	public TransformedIterableRealIntervalRealCursor< T > copyCursor() { return new TransformedIterableRealIntervalRealCursor< T >( this ); }
 }

@@ -33,13 +33,17 @@ import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
+import org.apache.logging.log4j.Logger;
 import render.MaxDistanceParam;
 import render.Render;
 import util.BDVUtils;
+import util.LoggerUtil;
 
 public class AddedGene
 {
-	public static enum Rendering { Gauss, Mean, NN, Linear };
+	public enum Rendering { Gauss, Mean, NN, Linear }
+
+	private static final Logger logger = LoggerUtil.getLogger();
 
 	final String inputPath, dataset;
 	final STDataAssembly data;
@@ -222,8 +226,8 @@ public class AddedGene
 		final double minDisplay = getDisplayMin( min, max, relativeInitialBrightnessMin );
 		final double maxDisplay = getDisplayMax( max, relativeInitialBrightnessMax );
 
-		System.out.println( "min/max: " + min + "/" + max );
-		System.out.println( "min/max display range: " + minDisplay + "/" + maxDisplay );
+		logger.debug("min/max: {}/{}", min, max);
+		logger.debug("min/max display range: {}/{}", minDisplay, maxDisplay);
 
 		final RealRandomAccessible< DoubleType > rra;
 		final KDTree< DoubleType > tree;

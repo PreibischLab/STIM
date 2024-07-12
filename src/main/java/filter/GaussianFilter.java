@@ -7,7 +7,7 @@ import net.imglib2.type.numeric.RealType;
 
 public class GaussianFilter< S extends RealType< S >, T extends RealType< T > > extends RadiusSearchFilter< S, T, GaussianFilterFactory< S, T > >
 {
-	final T outofbounds;
+	final T outOfBounds;
 	//final WeightType normalize;
 	//final double two_sq_sigma;
 
@@ -17,11 +17,11 @@ public class GaussianFilter< S extends RealType< S >, T extends RealType< T > > 
 	public GaussianFilter(
 			final RadiusNeighborSearch< S > search,
 			final GaussianFilterFactory<S, T> factory,
-			final T outofbounds )
+			final T outOfBounds)
 	{
 		super( search, factory );
 
-		this.outofbounds = outofbounds;
+		this.outOfBounds = outOfBounds;
 		//this.normalize = normalize;
 		//this.two_sq_sigma = 2 * sigma * sigma;
 	}
@@ -33,7 +33,7 @@ public class GaussianFilter< S extends RealType< S >, T extends RealType< T > > 
 
 		if ( search.numNeighbors() == 0 )
 		{
-			output.set( outofbounds );
+			output.set(outOfBounds);
 		}
 		else
 		{

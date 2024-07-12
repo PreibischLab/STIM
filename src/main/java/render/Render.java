@@ -38,9 +38,13 @@ import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 import util.KDTreeUtil;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 public class Render
 {
+	private static final Logger logger = LoggerUtil.getLogger();
+
 	public static IterableRealInterval< DoubleType > getRealIterable(
 			final STDataAssembly stdata,
 			final String gene )
@@ -167,14 +171,14 @@ public class Render
 
 		if ( idsIn == null )
 		{
-			System.out.println( "WARNING: annotation '" + annotation + "' does not exist. skipping.");
+			logger.warn("annotation '{}' does not exist. skipping.", annotation);
 			return null;
 		}
 
 		final Object type = Views.iterable( idsIn ).firstElement();
-		if ( !IntegerType.class.isInstance( type ) )
+		if (!(type instanceof IntegerType))
 		{
-			System.out.println( "WARNING: annotation '" + annotation + "' is not an integer type (but "+ type.getClass().getSimpleName() +". don't know how to render it. skipping.");
+			logger.warn("annotation '{}' is not an integer type (but {}. don't know how to render it. skipping.", annotation, type.getClass().getSimpleName());
 			return null;
 		}
 
@@ -196,10 +200,10 @@ public class Render
 			}
 		}
 
-		System.out.println( "Rendering annotation '" + annotation + "', type="+ type.getClass().getSimpleName() + ", min=" + min + ", max= " + max + " as integers" );
+		logger.debug("Rendering annotation '{}', type={}, min={}, max= {} as integers", annotation, type.getClass().getSimpleName(), min, max);
 
 		final RandomAccessibleInterval< IntType > ids;
-		if ( IntType.class.isInstance( type ) )
+		if (type instanceof IntType)
 			ids = (RandomAccessibleInterval< IntType >)idsIn;
 		else
 			ids = Converters.convert( idsIn, (i,o) -> o.setInt( ((IntegerType)i).getInteger() ), new IntType() );
@@ -225,8 +229,8 @@ public class Render
 	public static < T extends RealType< T > > RealRandomAccessible< T > renderNN( final IterableRealInterval< T > data )
 	{
 		return Views.interpolate(
-				new NearestNeighborSearchOnKDTree< T >(KDTreeUtil.createParallelizableKDTreeFrom(data)),
-				new NearestNeighborSearchInterpolatorFactory< T >() );
+				new NearestNeighborSearchOnKDTree<>(KDTreeUtil.createParallelizableKDTreeFrom(data)),
+				new NearestNeighborSearchInterpolatorFactory<>() );
 	}
 
 	public static < T extends RealType< T > > RealRandomAccessible< T > renderLinear(
@@ -235,8 +239,8 @@ public class Render
 			final double p )
 	{
 		return Views.interpolate(
-				new KNearestNeighborSearchOnKDTree< T >(KDTreeUtil.createParallelizableKDTreeFrom(data), numNeighbors),
-				new InverseDistanceWeightingInterpolatorFactory< T >( p ) );
+				new KNearestNeighborSearchOnKDTree<>(KDTreeUtil.createParallelizableKDTreeFrom(data), numNeighbors),
+				new InverseDistanceWeightingInterpolatorFactory<>(p) );
 	}
 
 	public static < T extends RealType< T > > RealRandomAccessible< T > renderLinear(
@@ -258,13 +262,13 @@ public class Render
 	{
 		final KDTree< T > tree = KDTreeUtil.createParallelizableKDTreeFrom(data);
 
-		return new ValuePair<>( Views.interpolate(
-				new KNearestNeighborMaxDistanceSearchOnKDTree< T >(
+		return new ValuePair<>(Views.interpolate(
+				new KNearestNeighborMaxDistanceSearchOnKDTree<>(
 						tree,
 						numNeighbors,
-						() -> outofbounds.copy(),
-						param ),
-				new InverseDistanceWeightingInterpolatorFactory< T >( p ) ), tree );
+						outofbounds::copy,
+						param),
+				new InverseDistanceWeightingInterpolatorFactory<>(p) ), tree );
 	}
 
 	public static < T extends RealType< T > > RealRandomAccessible< T > renderNN( final IterableRealInterval< T > data, final T outofbounds, final MaxDistanceParam maxRadius )
@@ -275,12 +279,12 @@ public class Render
 	public static < T extends RealType< T > > Pair< RealRandomAccessible< T >, KDTree< T > > renderNN2( final IterableRealInterval< T > data, final T outofbounds, final MaxDistanceParam maxRadius )
 	{
 		final KDTree< T > tree = KDTreeUtil.createParallelizableKDTreeFrom(data);
-		return new ValuePair<>( Views.interpolate(
-				new NearestNeighborMaxDistanceSearchOnKDTree< T >(
+		return new ValuePair<>(Views.interpolate(
+				new NearestNeighborMaxDistanceSearchOnKDTree<>(
 						tree,
-						() -> outofbounds.copy(),
-						maxRadius ),
-				new NearestNeighborSearchInterpolatorFactory< T >() ), tree );
+						outofbounds::copy,
+						maxRadius),
+				new NearestNeighborSearchInterpolatorFactory<>() ), tree );
 	}
 
 	public static < S extends Type<S>, T > RealRandomAccessible< T > render( final IterableRealInterval< S > data, final RadiusSearchFilterFactory< S, T > filterFactory )
@@ -291,11 +295,11 @@ public class Render
 	public static < S extends Type<S>, T > Pair< RealRandomAccessible< T >, KDTree< S > > render2( final IterableRealInterval< S > data, final RadiusSearchFilterFactory< S, T > filterFactory )
 	{
 		final KDTree< S > tree = KDTreeUtil.createParallelizableKDTreeFrom(data);
-		return new ValuePair<>( Views.interpolate(
-				new FilteringRadiusSearchOnKDTree< S, T >( // data source (F)
-						tree,
-						filterFactory ),
-				new IntegratingNeighborSearchInterpolatorFactory< T >() ), tree ); // interpolatorfactory (T,F)
+		return new ValuePair<>(Views.interpolate(
+				new FilteringRadiusSearchOnKDTree<>( // data source (F)
+													 tree,
+													 filterFactory),
+				new IntegratingNeighborSearchInterpolatorFactory<>() ), tree ); // interpolatorfactory (T,F)
 	}
 
 	public static < T extends IntegerType< T > > RealRandomAccessible< ARGBType > convertToRGB( final RealRandomAccessible< T > rra, final T outofbounds, final ARGBType background, final HashMap<Long, ARGBType> lut )

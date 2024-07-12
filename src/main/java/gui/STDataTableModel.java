@@ -44,7 +44,7 @@ public class STDataTableModel extends AbstractTableModel
 			final List< String > allGenes,
 			final List< HashSet< String > > genesPresentPerCol )
 	{
-		this.columnNames = new ArrayList< String >();
+		this.columnNames = new ArrayList<>();
 
 		this.allGenes = allGenes;
 		this.genesPresentPerCol = genesPresentPerCol;
@@ -73,9 +73,6 @@ public class STDataTableModel extends AbstractTableModel
 	{
 		return (column == 5);
 	}
-
-	@Override
-	public void setValueAt( final Object value, final int row, final int column ) {}
 
 	@Override
 	public Object getValueAt( final int row, final int column )

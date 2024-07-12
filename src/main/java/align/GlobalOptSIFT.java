@@ -15,6 +15,7 @@ import gui.bdv.AddedGene.Rendering;
 import ij.ImageJ;
 import io.Path;
 import io.SpatialDataContainer;
+import io.SpatialDataException;
 import io.SpatialDataIO;
 import mpicbg.models.AffineModel2D;
 import mpicbg.models.ErrorStatistic;
@@ -28,9 +29,12 @@ import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import util.Threads;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 public class GlobalOptSIFT
 {
+	private static final Logger logger = LoggerUtil.getLogger();
 	protected static SiftMatch loadMatch(final SpatialDataContainer container, final String datasetA, final String datasetB ) {
 
 		SiftMatch match;
@@ -45,11 +49,15 @@ public class GlobalOptSIFT
 				}
 			}
 		}
-		catch (Exception e) {
+		catch (SpatialDataException e) {
 			final String matchName = container.constructMatchName(datasetA, datasetB);
-			System.out.println("error reading: " + matchName + ": " + e);
-			e.printStackTrace();
+			logger.warn("error reading: {}: ", matchName, e);
 			match = new SiftMatch();
+			return match;
+		}
+		catch (Exception e) {
+			logger.error("Error during global alignment", e);
+			return null;
 		}
 
 		return match;
@@ -94,7 +102,7 @@ public class GlobalOptSIFT
 		double minQuality = Double.MAX_VALUE;
 
 		final double lambda1 = icpRefine ? 1.0 : lambda;
-		System.out.println( "Lambda for SIFT global align (amount of regularization by rigid model): " + lambda1 );
+		logger.debug("Lambda for SIFT global align (amount of regularization by rigid model): {}", lambda1);
 
 		for ( int i = 0; i < datasets.size() - 1; ++i )
 		{
@@ -117,37 +125,16 @@ public class GlobalOptSIFT
 				final STDataAssembly stDataA = data.get(i);
 				final STDataAssembly stDataB = data.get(j);
 
-				final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileA, tileB;
-
-				if ( !dataToTile.containsKey( stDataA ) )
-				{
-					tileA = new Tile<>( new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), lambda1 ) );
-					dataToTile.put( stDataA, tileA );
-					tileToData.put( tileA, stDataA );
-				}
-				else
-				{
-					tileA = dataToTile.get( stDataA );
-				}
-
-				if ( !dataToTile.containsKey( stDataB ) )
-				{
-					tileB = new Tile<>( new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), lambda1 ) );
-					dataToTile.put( stDataB, tileB );
-					tileToData.put( tileB, stDataB );
-				}
-				else
-				{
-					tileB = dataToTile.get( stDataB );
-				}
+				final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileA = getOrComputeTileFor(dataToTile, tileToData, lambda1, stDataA);
+				final Tile<InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>> tileB = getOrComputeTileFor(dataToTile, tileToData, lambda1, stDataB);
 
 				tileToIndex.putIfAbsent( tileA, i );
 				tileToIndex.putIfAbsent( tileB, j );
 
 				final List< PointMatch > inliers = match.getInliers();
-				if (!inliers.isEmpty())
+				if (inliers != null && !inliers.isEmpty())
 				{
-					System.out.println( "Connecting " + i + " to " + j + " ... "); 
+					logger.debug("Connecting {} to {} ... ", i, j);
 					tileA.connect( tileB, inliers );
 				}
 			}
@@ -155,8 +142,8 @@ public class GlobalOptSIFT
 
 		if ( useQuality )
 		{
-			System.out.println( "minQ: " + minQuality );
-			System.out.println( "maxQ: " + maxQuality );
+			logger.debug("minQ: {}", minQuality);
+			logger.debug("maxQ: {}", maxQuality);
 	
 			for ( int i = 0; i < datasets.size(); ++i )
 			{
@@ -175,13 +162,13 @@ public class GlobalOptSIFT
 			}
 		}
 
-		System.out.println( dataToTile.keySet().size() + " / " + datasets.size() );
-		System.out.println( tileToData.keySet().size() + " / " + datasets.size() );
+		logger.debug("{} / {}", dataToTile.keySet().size(), datasets.size());
+		logger.debug("{} / {}", tileToData.keySet().size(), datasets.size());
 
 		//System.exit( 0 );
 
 		for ( int i = 0; i < datasets.size(); ++i )
-			System.out.println( data.get( i ) + ": " + dataToTile.get( data.get( i ) ).getModel() );
+			logger.debug("{}: {}", data.get(i), dataToTile.get(data.get(i)).getModel());
 
 		final TileConfiguration tileConfig = new TileConfiguration();
 
@@ -203,7 +190,7 @@ public class GlobalOptSIFT
 				numThreads );
 
 		for ( final Pair< Tile< ? >, Tile< ? > > removed : removedInconsistentPairs )
-			System.out.println( "Removed " + tileToIndex.get( removed.getA() ) + " to " + tileToIndex.get( removed.getB() ) + " (" + tileToData.get( removed.getA() ) + " to " + tileToData.get( removed.getB() ) + ")" );
+			logger.info("Removed {} to {} ({} to {})", tileToIndex.get(removed.getA()), tileToIndex.get(removed.getB()), tileToData.get(removed.getA()), tileToData.get(removed.getB()));
 
 		final List< Pair< STData, AffineTransform2D > > dataTrafoPair = new ArrayList<>();
 
@@ -214,7 +201,7 @@ public class GlobalOptSIFT
 			ioObjects.get(i).updateTransformation(transform, "model_sift");
 			ioObjects.get(i).updateTransformation(transform, "transform"); // will be overwritten by ICP later
 
-			System.out.println( data.get( i ) + ": " + transform );
+			logger.debug("{}: {}", data.get(i), transform);
 			dataTrafoPair.add(new ValuePair<>(data.get(i).data(), transform));
 		}
 
@@ -224,7 +211,7 @@ public class GlobalOptSIFT
 			AlignTools.visualizeList(dataTrafoPair, AlignTools.defaultScale, Rendering.Gauss, smoothnessFactor, displaygene, true);
 		}
 
-		System.out.println( "Avg error: " + tileConfig.getError() );
+		logger.info("Avg error: {}", tileConfig.getError());
 
 		if ( icpRefine )
 		{
@@ -234,14 +221,12 @@ public class GlobalOptSIFT
 			final TileConfiguration tileConfigICP = new TileConfiguration();
 	
 			final HashMap<STDataAssembly, Tile<InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>>> dataToTileICP = new HashMap<>();
-			final HashMap<Tile<InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>>, STDataAssembly> tileToDataICP = new HashMap<>();
-	
+
 			for ( final STDataAssembly stdata : dataToTile.keySet() )
 			{
 				final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tile =
 						new Tile<>( new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), lambda ) );
 				dataToTileICP.put( stdata, tile );
-				tileToDataICP.put( tile, stdata );
 			}
 	
 			for ( int i = 0; i < datasets.size() - 1; ++i )
@@ -270,7 +255,7 @@ public class GlobalOptSIFT
 	
 						if ( wasRemoved )
 						{
-							System.out.println( i + "<>" + j + " was removed in global opt. Not running ICP." );
+							logger.warn("{}<>{} was removed in global opt. Not running ICP.", i, j);
 						}
 						else
 						{
@@ -299,7 +284,7 @@ public class GlobalOptSIFT
 
 							final double maxDistance = medianDistance * icpErrorFactor;
 
-							final ExecutorService service = Executors.newFixedThreadPool( Threads.numThreads() );
+							final ExecutorService service = Executors.newFixedThreadPool(numThreads);
 
 							final Pair< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D >, List< PointMatch > > icpT =
 									ICPAlign.alignICP(data.get(i).data(), new AffineTransform2D(), data.get(j).data(), new AffineTransform2D(), matches.genes, interpolated, maxDistance, maxDistance / 2.0, new AtomicInteger( icpIterations ), null, null, null, null, service );
@@ -310,22 +295,10 @@ public class GlobalOptSIFT
 							{
 								final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileA = dataToTileICP.get(data.get(i));
 								final Tile< InterpolatedAffineModel2D<AffineModel2D, RigidModel2D > > tileB = dataToTileICP.get(data.get(j));
-	
-								System.out.println( "Connecting " + i + " to " + j + " with " + icpT.getB().size() + " inliers." ); 
+
+								logger.info("Connecting {} to {} with {} inliers.", i, j, icpT.getB().size());
 								tileA.connect( tileB, icpT.getB() );
 							}
-
-							/*
-							List< Pair< STData, AffineTransform2D > > dataTmp = new ArrayList<>();
-	
-							dataTmp.add( new ValuePair<>( data.get( i ), GlobalOpt.modelToAffineTransform2D( modelA ) ) );
-							dataTmp.add( new ValuePair<>( data.get( j ), GlobalOpt.modelToAffineTransform2D( modelB ) ) );
-							dataTmp.add( new ValuePair<>( data.get( j ), GlobalOpt.modelToAffineTransform2D( icpT.getA() ) ) );
-							
-							GlobalOpt.visualizeList( dataTmp ).setTitle( i + "-" + j + "_ICP" );
-	
-							//SimpleMultiThreading.threadHaltUnClean();
-							*/
 						}
 					}
 				}
@@ -348,13 +321,12 @@ public class GlobalOptSIFT
 					tileConfigICP.getTiles(),
 					tileConfigICP.getFixedTiles(),
 					numThreads );
-	
-				System.out.println( " avg=" + tileConfigICP.getError() + ", min=" + tileConfigICP.getMinError() + ", max=" + tileConfigICP.getMaxError() );
+
+				logger.info(" avg={}, min={}, max={}", tileConfigICP.getError(), tileConfigICP.getMinError(), tileConfigICP.getMaxError());
 			}
 			catch ( Exception e )
 			{
-				System.out.println( ": Could not solve, cause: " + e );
-				e.printStackTrace();
+				logger.error( ": Could not solve, cause: ", e );
 			}
 	
 			final List< Pair< STData, AffineTransform2D > > dataICP = new ArrayList<>();
@@ -366,7 +338,7 @@ public class GlobalOptSIFT
 				container.openDataset(datasets.get(i)).updateTransformation(transform, "model_icp");
 				container.openDataset(datasets.get(i)).updateTransformation(transform, "transform");
 
-				System.out.println( data.get( i ) + ": " + transform );
+				logger.debug("{}: {}", data.get(i), transform);
 	
 				dataICP.add(new ValuePair<>(data.get(i).data(), transform));
 			}
@@ -374,8 +346,23 @@ public class GlobalOptSIFT
 			if ( !skipDisplayResults )
 				AlignTools.visualizeList( dataICP, AlignTools.defaultScale, Rendering.Gauss, smoothnessFactor, displaygene, true ).setTitle( "ICP-reg" );
 
-			System.out.println( "Avg error: " + tileConfigICP.getError() );
+			logger.info("Avg error: {}", tileConfigICP.getError());
 		}
+	}
+
+	private static Tile<InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>> getOrComputeTileFor(HashMap<STDataAssembly, Tile<InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>>> dataToTile, HashMap<Tile<InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>>, STDataAssembly> tileToData, double lambda1, STDataAssembly stDataA) {
+		Tile<InterpolatedAffineModel2D<AffineModel2D, RigidModel2D>> tileA;
+		if ( !dataToTile.containsKey(stDataA ) )
+		{
+			tileA = new Tile<>( new InterpolatedAffineModel2D<>( new AffineModel2D(), new RigidModel2D(), lambda1 ) );
+			dataToTile.put( stDataA, tileA );
+			tileToData.put( tileA, stDataA );
+		}
+		else
+		{
+			tileA = dataToTile.get( stDataA );
+		}
+		return tileA;
 	}
 
 	public static void main( String[] args ) throws IOException

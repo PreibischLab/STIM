@@ -48,8 +48,8 @@ public class VisualizeAnnotations
 	{
 		final ArrayList< IterableRealInterval< IntType > > slices = new ArrayList<>();
 
-		for ( int i = 0; i < stdata.size(); ++i )
-			slices.add( Render.getRealIterable( stdata.get( i ).data(), annotation, stdata.get( i ).transform(), filterFactorys, lut ) );
+		for (STDataAssembly stdatum : stdata)
+			slices.add(Render.getRealIterable(stdatum.data(), annotation, stdatum.transform(), filterFactorys, lut));
 
 		final double medianDistance = stdata.get( 0 ).statistics().getMedianDistance();
 
@@ -60,8 +60,9 @@ public class VisualizeAnnotations
 		final double spacing = medianDistance * spacingFactor;
 
 		final Interval interval2d = STDataUtils.getCommonIterableInterval( slices );
-		final long[] minI = new long[] { interval2d.min( 0 ), interval2d.min( 1 ), 0 - Math.round( Math.ceil( gaussRenderSigma * 3 ) ) };
-		final long[] maxI = new long[] { interval2d.max( 0 ), interval2d.max( 1 ), Math.round( ( stdata.size() - 1 ) * spacing ) + Math.round( Math.ceil( gaussRenderSigma * 3 ) ) };
+		final long padding = Math.round(Math.ceil(gaussRenderSigma * 3));
+		final long[] minI = new long[] { interval2d.min(0 ), interval2d.min(1 ), - padding};
+		final long[] maxI = new long[] { interval2d.max( 0 ), interval2d.max( 1 ), Math.round( ( stdata.size() - 1 ) * spacing ) + padding};
 		final Interval interval = new FinalInterval( minI, maxI );
 
 		final StackedIterableRealInterval< IntType > stack = new StackedIterableRealInterval<>( slices, spacing );

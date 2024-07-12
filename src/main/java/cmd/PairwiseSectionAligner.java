@@ -1,6 +1,7 @@
 package cmd;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -10,6 +11,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+import analyze.Entropy;
+import net.imglib2.RandomAccessibleInterval;
 import org.joml.Math;
 
 import align.AlignTools;
@@ -18,11 +21,11 @@ import align.PairwiseSIFT;
 import align.SIFTParam;
 import align.SIFTParam.SIFTPreset;
 import align.SiftMatch;
+import analyze.ExtractGeneLists;
 import data.STData;
 import filter.FilterFactory;
 import gui.STDataAssembly;
 import gui.bdv.AddedGene.Rendering;
-import ij.ImageJ;
 import io.SpatialDataContainer;
 import mpicbg.models.RigidModel2D;
 import net.imglib2.realtransform.AffineTransform2D;
@@ -31,9 +34,13 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import util.Threads;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
+import util.ProgressBar;
 
 @Command(name = "st-align-pairs", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - align pairs of slices")
 public class PairwiseSectionAligner implements Callable<Void> {
+	private static final Logger logger = LoggerUtil.getLogger();
 
 	@Option(names = {"-c", "--container"}, required = true, description = "input N5 container path, e.g. -c /home/ssq.n5.")
 	private String containerPath = null;
@@ -89,6 +96,9 @@ public class PairwiseSectionAligner implements Callable<Void> {
 	@Option(names = {"-n", "--numGenes"}, required = false, description = "initial number of genes for alignment that have the highest entropy (default: 10)")
 	private int numGenes = 10;
 
+	@Option(names = {"--entropyPath"}, required = false, description = "path where the entropy is stored as gene annotations (if no path given: compute standard deviation from scratch)")
+	private String entropyPath = null;
+
 	@Option(names = {"-e", "--maxEpsilon"}, required = false, description = "maximally allowed alignment error (in global space, independent of scaling factor) for SIFT on a 2D rigid model (default: 10 times the average distance between sequenced locations)")
 	private double maxEpsilon = -Double.MAX_VALUE;
 
@@ -101,43 +111,49 @@ public class PairwiseSectionAligner implements Callable<Void> {
 	@Option(names = {"--hidePairwiseRendering"}, required = false, description = "do not show pairwise renderings that apply the 2D rigid models (default: false - showing them)")
 	private boolean hidePairwiseRendering = false;
 
+	@Option(names = {"--numThreads"}, required = false, description = "number of threads for parallel processing")
+	private int numThreads = 8;
+
 	//-c /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d 'Puck_180602_20,Puck_180602_18,Puck_180602_17,Puck_180602_16,Puck_180602_15,Puck_180531_23,Puck_180531_22,Puck_180531_19,Puck_180531_18,Puck_180531_17,Puck_180531_13,Puck_180528_22,Puck_180528_20' -n 100 --overwrite
 
 	@Override
 	public Void call() throws Exception {
 		if (!(new File(containerPath)).exists()) {
-			System.out.println("Container '" + containerPath + "' does not exist. Stopping.");
+			logger.error("Container '{}' does not exist. Stopping.", containerPath);
 			return null;
 		}
 
 		if (!SpatialDataContainer.isCompatibleContainer(containerPath)) {
-			System.out.println("Pairwise alignment does not work for single dataset '" + containerPath + "'. Stopping.");
+			logger.error("Pairwise alignment does not work for single dataset '{}'. Stopping.", containerPath);
 			return null;
 		}
+
+		final int threadsUse = Math.min(Threads.numThreads(), numThreads);
 
 		final ExecutorService service = Executors.newFixedThreadPool(8);
 		SpatialDataContainer container = SpatialDataContainer.openExisting(containerPath, service);
 
 		final List<String> datasetNames;
-		if (datasets != null && datasets.trim().length() != 0) {
+		if (datasets != null && !datasets.trim().isEmpty()) {
 			datasetNames = Arrays.stream(datasets.split(","))
 					.map(String::trim)
 					.collect(Collectors.toList());
 
 			if (datasetNames.size() == 1) {
-				System.out.println("Only one single dataset found (" + datasetNames.get(0) + "). Stopping.");
+				logger.error("Only one single dataset found ({}). Stopping.", datasetNames.get(0));
 				return null;
 			}
 		}
 		else {
 			// TODO: should this really continue? the order of the datasets matters, but getDatasets() returns random order
-			System.out.println("No input datasets specified. Trying to open all datasets in '" + containerPath + "' ...");
+			logger.warn("No input datasets specified. Trying to open all datasets in '{}' ...", containerPath);
 			datasetNames = container.getDatasets();
 		}
 
+		logger.info("Opening {} datasets", datasetNames.size());
 		final List<STDataAssembly> dataToAlign = new ArrayList<>();
 		for (final String dataset : datasetNames) {
-			System.out.println("Opening dataset '" + dataset + "' in '" + containerPath + "' ...");
+			logger.debug("Opening dataset '{}' in '{}' ...", dataset, containerPath);
 			dataToAlign.add(container.openDataset(dataset).readData());
 		}
 
@@ -145,10 +161,10 @@ public class PairwiseSectionAligner implements Callable<Void> {
 			maxEpsilon = 10 * dataToAlign.stream()
 					.mapToDouble((data) -> data.statistics().getMeanDistance())
 					.summaryStatistics().getAverage();
-			System.out.println("Parameter maxEpsilon is unset or negative; using 10 * average distance between sequenced locations = " + maxEpsilon);
+			logger.warn("Parameter maxEpsilon is unset or negative; using 10 * average distance between sequenced locations = {}", maxEpsilon);
 		}
 
-		// iterate once just to be sure we will not crash half way through because something exists
+		// iterate once just to be sure we will not crash halfway through because something exists
 		List<String> matches = container.getMatches();
 		for ( int i = 0; i < dataToAlign.size() - 1; ++i ) {
 			for ( int j = i + 1; j < dataToAlign.size(); ++j ) {
@@ -159,24 +175,56 @@ public class PairwiseSectionAligner implements Callable<Void> {
 				final String pairwiseMatchName = container.constructMatchName(datasetNames.get( i ), datasetNames.get( j ));
 				if (matches.contains(pairwiseMatchName)) {
 					if ( overwrite ) {
-						System.out.println("Overwriting previous results for: " + pairwiseMatchName);
+						logger.info("Overwriting previous results for: {}", pairwiseMatchName);
 						container.deleteMatch(pairwiseMatchName);
 					}
 					else {
-						System.out.println("Previous results exist '" + pairwiseMatchName + "', stopping. [Rerun with --overwrite for automatic deletion of previouse results]");
+						logger.error("Previous results exist '{}', stopping. [Rerun with --overwrite for automatic deletion of previouse results]", pairwiseMatchName);
 						return null;
 					}
 				}
 				else {
-					System.out.println("To align: " + pairwiseMatchName);
+					logger.debug("To align: {}", pairwiseMatchName);
 				}
 			}
 		}
 
 		final boolean saveResult = true;
 		final boolean visualizeResult = !hidePairwiseRendering;
-		if (visualizeResult)
-			new ImageJ();
+		final String stdevLabel = Entropy.STDEV.label();
+
+		// ensure that the standard deviation of genes is present for all datasets
+		logger.info("Retrieving standard deviation of genes for all sections");
+		for (int i = 0; i < dataToAlign.size(); ++i) {
+			final String datasetName = datasetNames.get(i);
+			final STDataAssembly stData = dataToAlign.get(i);
+
+			if (stData.data().getGeneAnnotations().containsKey(stdevLabel)) {
+				logger.debug("Gene annotation '{}' was found for {}. Omitting.", stdevLabel, datasetName);
+				continue;
+			}
+			if (numGenes == 0) {
+				continue;
+			}
+
+			final RandomAccessibleInterval<DoubleType> entropyValues;
+			if (entropyPath == null) {
+				logger.info("Computing standard deviation of genes for {} (may take a while)", datasetName);
+				entropyValues = ExtractGeneLists.computeOrderedEntropy(stData.data(), Entropy.STDEV, numThreads);
+			} else {
+				logger.info("Loading standard deviation of genes for {} from {}", datasetName, entropyPath);
+				entropyValues = ExtractGeneLists.loadGeneEntropy(stData.data(), entropyPath);
+			}
+			stData.data().getGeneAnnotations().put(stdevLabel, entropyValues);
+
+			if (entropyPath == null) {
+				try {
+					container.openDataset(datasetName).updateStoredGeneAnnotations(stData.data().getGeneAnnotations());
+				} catch (IOException e) {
+					logger.warn("Cannot write gene annotations to file", e);
+				}
+			}
+		}
 
 		for ( int i = 0; i < dataToAlign.size() - 1; ++i ) {
 			for ( int j = i + 1; j < dataToAlign.size(); ++j ) {
@@ -190,19 +238,10 @@ public class PairwiseSectionAligner implements Callable<Void> {
 				final String dataset1 = datasetNames.get( i );
 				final String dataset2 = datasetNames.get( j );
 
-				System.out.println( "Processing " + dataset1 + " <> " + dataset2 );
-
-				//
-				// assemble genes to test
-				//
-				System.out.println( "Assembling genes for alignment (" + numGenes + " genes)... ");
+				// assemble gene set for alignment
+				final HashSet<String> genesToTest = new HashSet<>(Pairwise.genesToTest(stData1, stData2, stdevLabel, numGenes));
 		
-				final HashSet< String > genesToTest = new HashSet<>( Pairwise.genesToTest( stData1, stData2, numGenes, Threads.numThreads() ) );
-		
-				if ( numGenes > 0 )
-					System.out.println( "Automatically identified " + genesToTest.size() + " genes for alignment" );
-		
-				if ( genes != null && genes.length() > 0 )
+				if ( genes != null && !genes.isEmpty())
 				{
 					HashSet< String > genes1 = new HashSet<>( stData1.getGeneNames() );
 					HashSet< String > genes2 = new HashSet<>( stData2.getGeneNames() );
@@ -214,61 +253,43 @@ public class PairwiseSectionAligner implements Callable<Void> {
 						if ( genes1.contains( name ) && genes2.contains( name ) )
 							genesToTest.add( name );
 						else
-							System.out.println( "Gene '" + name + "' is not present in both datasets, omitting.");
+							logger.warn("Gene '{}' is not present in both datasets, omitting.", name);
 					}
-		
-					System.out.println( "Added desired genes, number of genes now " + genesToTest.size() + ": " );
 				}
 
-				for ( String g : genesToTest )
-					System.out.print( g + " ");
-				System.out.println();
-
+				logger.debug("Gene set for pairwise alignment: {}", genesToTest.toString());
 				//
 				// start alignment
 				//
+				logger.info("Aligning {} <> {} on {} genes ({} threads)", dataset1, dataset2, genesToTest.size(), threadsUse);
 				final SIFTParam p = new SIFTParam();
-				// TODO: set all parameters
 				final List< FilterFactory< DoubleType, DoubleType > > filterFactories = null;
-				p.setDatasetParameters(maxEpsilon, scale, 1024, filterFactories, Rendering.Gauss, renderingFactor, 0.0, 1.0); 
-				p.setIntrinsicParameters( SIFTPreset.VERYTHOROUGH );
+				p.setDatasetParameters(maxEpsilon, scale, 1024, filterFactories, Rendering.Gauss, renderingFactor, brightnessMin, brightnessMax); 
+				p.setIntrinsicParameters( SIFTPreset.VERY_THOROUGH);
 				p.minInliersGene = minNumInliersGene;
 				p.minInliersTotal = minNumInliers;
 
 				if ( visualizeResult )
 				{
-					String renderingGene;
-
-					if ( genesToTest.contains( "Calm2" ) )
-						renderingGene = "Calm2";
-					else
-						renderingGene = genesToTest.iterator().next();
-
+					String renderingGene = genesToTest.iterator().next();
 					AlignTools.defaultGene = renderingGene;
 					AlignTools.defaultScale = scale;
-
-					System.out.println( "Gene used for rendering: " + renderingGene );
+					logger.info("Gene used for rendering: {}", renderingGene);
 				}
 
-
-				System.out.println( "Aligning ... ");
-
+				logger.debug("Processing SIFT with parameters: {}", p.toString());
 				long time = System.currentTimeMillis();
-
-				// hard case: -c /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d1 Puck_180602_15 -d2 Puck_180602_16 -n 30
-				// even harder: -c /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d1 Puck_180602_20 -d2 Puck_180602_18 -n 100 --overwrite
+				ProgressBar progressBar = new ProgressBar(100);
 				SiftMatch match = PairwiseSIFT.pairwiseSIFT(
 						stData1, t1, dataset1, stData2, t2, dataset2,
 						new RigidModel2D(), new RigidModel2D(),
 						new ArrayList<>( genesToTest ),
-						p, visualizeResult, Threads.numThreads() );
+						p, visualizeResult, threadsUse, progressBar);
 
 				if (saveResult && match.getNumInliers() >= minNumInliers) {
 					container.savePairwiseMatch(match);
 				}
-
-
-				System.out.println( "Took " + (System.currentTimeMillis() - time)/1000 + " sec." );
+				logger.debug("Aligned {} <> {} in {} s", dataset1, dataset2, (System.currentTimeMillis() - time) / 1000);
 
 			}
 		}
@@ -278,7 +299,8 @@ public class PairwiseSectionAligner implements Callable<Void> {
 	}
 
 	public static void main(final String... args) {
-		CommandLine.call(new PairwiseSectionAligner(), args);
+		final CommandLine cmd = new CommandLine(new PairwiseSectionAligner());
+		cmd.execute(args);
 	}
 
 }

@@ -29,7 +29,6 @@ import net.imglib2.Interval;
 import net.imglib2.Localizable;
 import net.imglib2.RealLocalizable;
 import net.imglib2.RealRandomAccess;
-import net.imglib2.Sampler;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.display.imagej.ImageJFunctions;
@@ -45,7 +44,7 @@ public class BlendingRealRandomAccess implements RealRandomAccess< FloatType >
 
 	// static lookup table for the blending function
 	final static private double[] lookUp;
-	private static final int indexFor( final double d ) { return (int)( d * 1000.0 + 0.5 ); }
+	private static int indexFor(final double d) { return (int)( d * 1000.0 + 0.5 ); }
 
 	static
 	{
@@ -92,14 +91,14 @@ public class BlendingRealRandomAccess implements RealRandomAccess< FloatType >
 		return v;
 	}
 
-	final private static float computeWeight(
+	private static float computeWeight(
 			final float[] location,
-			final int[] min, 
+			final int[] min,
 			final int[] dimMinus1,
-			final float[] border, 
+			final float[] border,
 			final float[] blending,
 			final float[] tmp, // holds dist, if any of it is zero we can stop
-			final int n )
+			final int n)
 	{
 		for ( int d = 0; d < n; ++d )
 		{
@@ -123,7 +122,7 @@ public class BlendingRealRandomAccess implements RealRandomAccess< FloatType >
 
 			// within the range where we blend from 0 to 1
 			if ( relDist < 1 )
-				minDistance *= lookUp[ indexFor( relDist ) ]; //( Math.cos( ( 1 - relDist ) * Math.PI ) + 1 ) / 2;
+				minDistance *= (float) lookUp[indexFor(relDist)]; //( Math.cos( ( 1 - relDist ) * Math.PI ) + 1 ) / 2;
 		}
 
 		return minDistance;
@@ -156,7 +155,7 @@ public class BlendingRealRandomAccess implements RealRandomAccess< FloatType >
 	public void move( final float distance, final int d ) { l[ d ] += distance; }
 
 	@Override
-	public void move( final double distance, final int d ) { l[ d ] += distance; }
+	public void move( final double distance, final int d ) { l[ d ] += (float) distance; }
 
 	@Override
 	public void move( final RealLocalizable localizable )
@@ -176,7 +175,7 @@ public class BlendingRealRandomAccess implements RealRandomAccess< FloatType >
 	public void move( final double[] distance )
 	{
 		for ( int d = 0; d < n; ++d )
-			l[ d ] += distance[ d ];
+			l[ d ] += (float) distance[d];
 	}
 
 	@Override
@@ -267,13 +266,9 @@ public class BlendingRealRandomAccess implements RealRandomAccess< FloatType >
 	public void setPosition( final long position, final int d ) { l[ d ] = position; }
 
 	@Override
-	public Sampler<FloatType> copy() { return copyRealRandomAccess(); }
-
-	@Override
-	public RealRandomAccess<FloatType> copyRealRandomAccess()
-	{
-		final BlendingRealRandomAccess r = new BlendingRealRandomAccess( interval, border, blending );
-		r.setPosition( this );
+	public RealRandomAccess<FloatType> copy() {
+		final BlendingRealRandomAccess r = new BlendingRealRandomAccess(interval, border, blending);
+		r.setPosition(this);
 		return r;
 	}
 

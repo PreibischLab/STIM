@@ -5,7 +5,6 @@ import java.util.List;
 
 import net.imglib2.IterableRealInterval;
 import net.imglib2.RealCursor;
-import net.imglib2.Sampler;
 
 public class StackedIterableRealIntervalRealCursor< T > implements RealCursor< T >
 {
@@ -37,7 +36,7 @@ public class StackedIterableRealIntervalRealCursor< T > implements RealCursor< T
 
 		for ( final RealCursor< T > sliceCursor : cursor.cursors )
 		{
-			this.cursors.add( sliceCursor.copyCursor() );
+			this.cursors.add(sliceCursor.copy());
 
 			if ( sliceCursor == cursor.currentCursor )
 				currentCursor = this.cursors.get( this.cursors.size() - 1 );
@@ -113,8 +112,8 @@ public class StackedIterableRealIntervalRealCursor< T > implements RealCursor< T
 	}
 
 	@Override
-	public Sampler<T> copy() { return copyCursor(); }
+	public RealCursor<T> copy() {
+		return new StackedIterableRealIntervalRealCursor<>(this);
+	}
 
-	@Override
-	public RealCursor<T> copyCursor() { return new StackedIterableRealIntervalRealCursor< T >( this ); }
 }

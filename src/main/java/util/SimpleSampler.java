@@ -24,6 +24,6 @@ public class SimpleSampler< T > implements Sampler< T >
 	@Override
 	public Sampler< T > copy()
 	{
-		return new SimpleSampler< T >( supplier );
+		return new SimpleSampler<>(supplier);
 	}
 }

@@ -54,6 +54,7 @@ call :install_command st-resave.bat cmd.Resave
 call :install_command st-add-slice.bat cmd.AddSlice
 call :install_command st-normalize.bat cmd.Normalize
 call :install_command st-add-annotations.bat cmd.AddAnnotations
+call :install_command st-add-entropy.bat cmd.AddEntropy
 call :install_command st-align-pairs.bat cmd.PairwiseSectionAligner
 call :install_command st-align-pairs-view.bat cmd.ViewPairwiseAlignment
 call :install_command st-align-global.bat cmd.GlobalOpt
@@ -73,6 +74,7 @@ if "%CD%"=="%INSTALL_DIR%" (
 	move "st-add-slice.bat" "%INSTALL_DIR%\"
 	move "st-normalize.bat" "%INSTALL_DIR%\"
 	move "st-add-annotations.bat" "%INSTALL_DIR%\"
+	move "st-add-entropy.bat" "%INSTALL_DIR%\"
 	move "st-align-pairs.bat" "%INSTALL_DIR%\"
 	move "st-align-pairs-view.bat" "%INSTALL_DIR%\"
 	move "st-align-global.bat" "%INSTALL_DIR%\"

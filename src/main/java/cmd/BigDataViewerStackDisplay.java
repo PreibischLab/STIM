@@ -38,10 +38,13 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import render.Render;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 @Command(name = "st-bdv-view3d", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - visualize ST data in BigDataViewer")
 public class BigDataViewerStackDisplay implements Callable<Void> {
-
+	
+	private static final Logger logger = LoggerUtil.getLogger();
 	@Option(names = {"-i", "--input"}, required = true, description = "input file or N5 container, e.g. -i /home/ssq.n5")
 	private String inputPath = null;
 
@@ -90,7 +93,7 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 		final boolean useTransform = true;
 
 		if (!(new File(inputPath)).exists()) {
-			System.out.println("Container / dataset '" + inputPath + "' does not exist. Stopping.");
+			logger.error("Container / dataset '{}' does not exist. Stopping.", inputPath);
 			return null;
 		}
 
@@ -100,36 +103,36 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 		if (SpatialDataContainer.isCompatibleContainer(inputPath)) {
 			SpatialDataContainer container = SpatialDataContainer.openForReading(inputPath, service);
 
-			if (datasets != null && datasets.length() != 0) {
+			if (datasets != null && !datasets.isEmpty()) {
 				for (String dataset : datasets.split(",")) {
-					System.out.println("Opening dataset '" + dataset + "' in '" + inputPath + "' ...");
+					logger.info("Opening dataset '{}' in '{}' ...", dataset, inputPath);
 					iodata.add(container.openDatasetReadOnly(dataset.trim()));
 				}
 			}
 			else {
-				System.out.println("Opening all datasets in '" + inputPath + "' ...");
+				logger.info("Opening all datasets in '{}' ...", inputPath);
 				iodata.addAll(container.openAllDatasets());
 			}
 		}
 		else {
-			System.out.println("Opening dataset '" + inputPath + "' ...");
+			logger.info("Opening dataset '{}' ...", inputPath);
 			iodata.add(SpatialDataIO.openReadOnly(inputPath, service));
 		}
 
 		if ( iodata.size() <= 1 )
 		{
-			System.out.println("Only one dataset selected, cannot be displayed in 3D. Please use 'st-bdv-view' instead for 2D. Stopping.");
+			logger.error("Only one dataset selected, cannot be displayed in 3D. Please use 'st-bdv-view' instead for 2D. Stopping.");
 			return null;
 		}
 
-		if (genes == null || genes.length() == 0) {
-			System.out.println("No genes available. stopping.");
+		if (genes == null || genes.isEmpty()) {
+			logger.error("No genes available. stopping.");
 			return null;
 		}
 
 		List<String> genesToShow = Arrays.stream(genes.split(",")).map(String::trim).collect(Collectors.toList());
-		if (genesToShow.size() == 0) {
-			System.out.println("No genes available. stopping.");
+		if (genesToShow.isEmpty()) {
+			logger.error("No genes available. stopping.");
 			return null;
 		}
 
@@ -142,13 +145,13 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 				data.transform().set(new AffineTransform2D());
 		}
 
-		if (dataToVisualize.size() == 0) {
-			System.out.println("No datasets that contain sequencing data. stopping.");
+		if (dataToVisualize.isEmpty()) {
+			logger.error("No datasets that contain sequencing data. stopping.");
 			return null;
 		}
 
 		List< String > annotationList;
-		if ( annotations != null && annotations.length() > 0 )
+		if ( annotations != null && !annotations.isEmpty())
 			annotationList = Arrays.asList(annotations.split("," ) );
 		else
 			annotationList = new ArrayList<>();
@@ -168,7 +171,7 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 
 			if ( ffSingleSpot != null && ffSingleSpot > 0  )
 			{
-				System.out.println( "Using single-spot filtering, effective radius=" + (dataToVisualize.get( 0 ).statistics().getMedianDistance() * ffSingleSpot) );
+				logger.debug("Using single-spot filtering, effective radius={}", dataToVisualize.get(0).statistics().getMedianDistance() * ffSingleSpot);
 				filterFactorysInt.add( new SingleSpotRemovingFilterFactory<>( outofboundsInt, dataToVisualize.get( 0 ).statistics().getMedianDistance() * ffSingleSpot ) );
 			}
 
@@ -209,7 +212,7 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 		for ( int i = 0; i < genesToShow.size(); ++i )
 		{
 			final String gene = genesToShow.get( i );
-			System.out.println( "Rendering gene: " + gene );
+			logger.debug("Rendering gene: {}", gene);
 
 			final STIMStack stack =
 					VisualizeStack.createStack(
@@ -242,8 +245,9 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 		return null;
 	}
 
-	public static final void main(final String... args) {
-		CommandLine.call(new BigDataViewerStackDisplay(), args);
+	public static void main(final String... args) {
+		final CommandLine cmd = new CommandLine(new BigDataViewerStackDisplay());
+		cmd.execute(args);
 	}
 
 }

@@ -2,7 +2,6 @@ package data;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
@@ -16,9 +15,7 @@ import net.imglib2.RealInterval;
 import net.imglib2.RealLocalizable;
 import net.imglib2.neighborsearch.KNearestNeighborSearch;
 import net.imglib2.neighborsearch.KNearestNeighborSearchOnKDTree;
-import net.imglib2.util.Pair;
 import net.imglib2.util.Util;
-import net.imglib2.util.ValuePair;
 
 public class STDataUtils
 {

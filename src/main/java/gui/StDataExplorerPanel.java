@@ -51,10 +51,13 @@ import data.STData;
 import data.STDataStatistics;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 public class StDataExplorerPanel extends JPanel
 {
 	private static final long serialVersionUID = -3767947154096099774L;
+	private static final Logger logger = LoggerUtil.getLogger();
 
 	protected final List< STDataAssembly > slides;
 	protected final List< String > allGenes, allGenesLowerCase;
@@ -206,7 +209,7 @@ public class StDataExplorerPanel extends JPanel
 
 				final String search = input;
 
-				if ( search.length() == 0 )
+				if (search.isEmpty())
 					return;
 
 				for ( final String s : allGenesLowerCase )
@@ -214,7 +217,7 @@ public class StDataExplorerPanel extends JPanel
 					if ( searchFromBeginning ? s.toLowerCase().startsWith( search ) : s.toLowerCase().contains( search ) )
 					{
 						final int row = geneToLocation.get( s );
-						System.out.println( search  + " >> " + s + " @ " + row  );
+						logger.debug("{} >> {} @ {}", search, s, row);
 
 						final int col;
 
@@ -238,7 +241,7 @@ public class StDataExplorerPanel extends JPanel
 
 		/*
 		this.visualization = new JCheckBox( "Visualization Options" );
-		this.visualization.addActionListener(
+		this.visualization.addItemListener(
 				e ->
 				{
 					if ( this.visualization.isSelected() )
@@ -333,7 +336,7 @@ public class StDataExplorerPanel extends JPanel
 		final JPopupMenu popupMenu = new JPopupMenu();
 		final JMenuItem deleteItem = new JMenuItem( "Delete" );
 
-		deleteItem.addActionListener(e -> System.out.println( "Right-click performed on table and choose DELETE" ));
+		deleteItem.addActionListener(e -> logger.debug( "Right-click performed on table and choose DELETE" ));
 
 		popupMenu.add( deleteItem );
 

@@ -94,8 +94,8 @@ public class GeneSelectionExplorer
 		final List< Pair< String, Double > > genes = new ArrayList<>();
 
 		for ( int i = 100; i >=0; --i )
-			genes.add( new ValuePair<String, Double>("gene " + i, (double)i ) );
+			genes.add(new ValuePair<>("gene " + i, (double) i) );
 
-		new GeneSelectionExplorer( genes, list -> list.forEach( l -> System.out.println( l ) ) );
+		new GeneSelectionExplorer( genes, list -> list.forEach(System.out::println) );
 	}
 }

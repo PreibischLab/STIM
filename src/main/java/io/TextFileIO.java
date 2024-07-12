@@ -19,12 +19,16 @@ import data.STDataText;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 public class TextFileIO
 {
+	private static final Logger logger = LoggerUtil.getLogger();
+
 	public static STData readSlideSeq( final File beadLocations, final File reads )
 	{
-		System.out.println( "Parsing " + beadLocations.getName() + ", " + reads.getName() );
+		logger.debug("Parsing {}, {}", beadLocations.getName(), reads.getName());
 
 		final BufferedReader beadLocationsIn = TextFileAccess.openFileRead( beadLocations );
 		final BufferedReader readsIn = TextFileAccess.openFileRead( reads );
@@ -34,9 +38,9 @@ public class TextFileIO
 		try {
 			beadLocationsIn.close();
 			readsIn.close();
-		} catch (IOException e) {}
+		} catch (IOException ignored) {}
 
-		System.out.println( data );
+		logger.debug( data );
 
 		return data;
 	}
@@ -46,15 +50,15 @@ public class TextFileIO
 		long time = System.currentTimeMillis();
 
 		final HashMap< String, double[] > coordinateMap = readSlideSeqCoordinates( beadLocations );
-		System.out.println( "Read " + coordinateMap.keySet().size() + " coordinates." );
+		logger.debug("Read {} coordinates.", coordinateMap.keySet().size());
 
 		final Pair< List< Pair< double[], String > >, HashMap< String, double[] > > geneData = readSlideSeqGenes( reads, coordinateMap );
-		System.out.println( "Read data for " + geneData.getB().keySet().size() + " genes." );
+		logger.debug("Read data for {} genes.", geneData.getB().keySet().size());
 
 		final STData data = new STDataText( geneData.getA(), geneData.getB() );
-		//System.out.println( data );
+		//logger.debug( data );
 
-		System.out.println( "Parsing took " + ( System.currentTimeMillis() - time ) + " ms." );
+		logger.debug("Parsing took {} ms.", System.currentTimeMillis() - time);
 
 		return data;
 	}
@@ -64,11 +68,11 @@ public class TextFileIO
 		long time = System.currentTimeMillis();
 
 		final HashMap< String, double[] > coordinateMap = readSlideSeqCoordinates( beadLocations );
-		System.out.println( "Read " + coordinateMap.keySet().size() + " coordinates." );
+		logger.debug("Read {} coordinates.", coordinateMap.keySet().size());
 
 		// coordinates, geneMap
 		final Pair< List< Pair< double[], String > >, HashMap< String, double[] > > geneData = readSlideSeqGenes( reads, coordinateMap );
-		System.out.println( "Read data for " + geneData.getB().keySet().size() + " genes." );
+		logger.debug("Read data for {} genes.", geneData.getB().keySet().size());
 
 		final HashSet< Integer > notAssigned = new HashSet<>();
 		final List< String > barcodes = geneData.getA().stream().map(Pair::getB).collect(Collectors.toList() );
@@ -81,12 +85,12 @@ public class TextFileIO
 					notAssigned);
 			annotationIds.put(entry.getKey(), ids);
 			if (!notAssigned.isEmpty())
-				System.out.println( "not assigned after reading '" + entry.getKey() + "': " + notAssigned.size() );
+				logger.warn("not assigned after reading '{}': {}", entry.getKey(), notAssigned.size());
 		}
 
 		final STData data;
 
-		if ( notAssigned.size() > 0 )
+		if (!notAssigned.isEmpty())
 		{
 			// reduce celltypes
 			final Map<String, int[]> annotationIdsRed = new HashMap<>();
@@ -136,7 +140,7 @@ public class TextFileIO
 				data.getAnnotations().put(entry.getKey(), ArrayImgs.ints(entry.getValue(), (int)data.numLocations()));
 		}
 
-		System.out.println( "Parsing took " + ( System.currentTimeMillis() - time ) + " ms." );
+		logger.debug("Parsing took {} ms.", System.currentTimeMillis() - time);
 
 		return data;
 	}
@@ -162,20 +166,20 @@ public class TextFileIO
 		boolean[] assigned = new boolean[ barcodes.size() ];
 
 		i = 0;
-		String nextLine = null;
+		String nextLine;
 
 		while ( (nextLine = annotationFile.readLine()) != null )
 		{
 			String[] barcodeWithId = nextLine.split( "," );
 
-			if ( barcodeWithId.length != 2 || barcodeWithId[ 0 ].trim().length() == 0 )
+			if ( barcodeWithId.length != 2 || barcodeWithId[0].trim().isEmpty())
 				continue;
 
 			final Integer index = barcodeMap.get( barcodeWithId[ 0 ] );
 
 			if ( index == null )
 			{
-				System.out.println( "barcode '" + barcodeWithId[ 0 ] + "' defined in annotation not found in the location/expression data. Ignoring.");
+				logger.debug("barcode '{}' defined in annotation not found in the location/expression data. Ignoring.", barcodeWithId[0]);
 				continue;
 			}
 	
@@ -185,7 +189,7 @@ public class TextFileIO
 		}
 
 		if ( i != barcodes.size() )
-			System.out.println( "WARNING: Not all ids could be assigned (only " + i + " out of " + barcodes.size() + ")." );
+			logger.warn("Not all ids could be assigned (only {} out of {}).", i, barcodes.size());
 
 		if ( notAssigned != null )
 		{
@@ -210,20 +214,20 @@ public class TextFileIO
 		int[] ids = new int[ numLocations ];
 
 		int i = 0;
-		String nextLine = null;
+		String nextLine;
 
 		while ( (nextLine = annotationFile.readLine()) != null )
 		{
 			String[] val = nextLine.split( "," );
 
-			if ( val.length != 2 || val[ 0 ].trim().length() == 0 )
+			if ( val.length != 2 || val[0].trim().isEmpty())
 				continue;
 
 			ids[ i++ ] = Integer.parseInt( val[ 1 ].trim() );
 		}
 
 		if ( i != numLocations )
-			System.out.println( "WARNING: Not all ids could be assigned (only " + i + " out of " + numLocations + "). Assigning label 0 to all other locations." );
+			logger.warn("Not all ids could be assigned (only {} out of {}). Assigning label 0 to all other locations.", i, numLocations);
 
 		return ids;
 	}
@@ -241,7 +245,7 @@ public class TextFileIO
 		{
 			int line = 0;
 
-			String nextLine = null;
+			String nextLine;
 
 			while ( (nextLine = in.readLine()) != null ) 
 			{
@@ -279,7 +283,7 @@ public class TextFileIO
 		}
 		catch (Exception e )
 		{
-			e.printStackTrace();
+			logger.error("Error parsing gene expression from text file", e);
 			return null;
 		}
 
@@ -297,7 +301,7 @@ public class TextFileIO
 			int line = 0;
 			int dim = -1;
 
-			String nextLine = null;
+			String nextLine;
 
 			while ( (nextLine = in.readLine()) != null ) 
 			{
@@ -327,15 +331,14 @@ public class TextFileIO
 		catch ( Exception e )
 		{
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error("Error parsing locations from text file", e);
 			return null;
 		}
 
 		return coordinates;
 	}
 
-	public static void saveGenes( final File file, final Collection< String > genes ) throws IOException
-	{
+	public static void saveGenes( final File file, final Collection< String > genes ) {
 		PrintWriter out = TextFileAccess.openFileWrite( file );
 
 		for ( final String gene : genes )
@@ -350,7 +353,7 @@ public class TextFileIO
 
 		ArrayList< String > genes = new ArrayList<>();
 
-		String nextLine = null;
+		String nextLine;
 
 		while ( (nextLine = in.readLine()) != null ) 
 		{
@@ -359,7 +362,7 @@ public class TextFileIO
 			if ( existingGenes1.contains( trimmed ) && existingGenes2.contains( trimmed ) )
 				genes.add( trimmed );
 			else
-				System.out.println( "Gene '" + trimmed + "' does not exist in both datasets, skipping.");
+				logger.warn("Gene '{}' does not exist in both datasets, skipping.", trimmed);
 		}
 
 		in.close();

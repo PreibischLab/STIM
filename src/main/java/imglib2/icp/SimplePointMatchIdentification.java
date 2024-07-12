@@ -33,20 +33,20 @@ import net.imglib2.neighborsearch.NearestNeighborSearchOnKDTree;
 
 public class SimplePointMatchIdentification < P extends RealLocalizable > implements PointMatchIdentification< P >
 {
-	double distanceThresold;
+	double distanceThreshold;
 
 	public SimplePointMatchIdentification( final double distanceThreshold )
 	{
-		this.distanceThresold = distanceThreshold;
+		this.distanceThreshold = distanceThreshold;
 	}
 
 	public SimplePointMatchIdentification()
 	{
-		this.distanceThresold = Double.MAX_VALUE;
+		this.distanceThreshold = Double.MAX_VALUE;
 	}
 
-	public void setDistanceThreshold( final double distanceThreshold ) { this.distanceThresold = distanceThreshold; }
-	public double getDistanceThreshold() { return this.distanceThresold; }
+	public void setDistanceThreshold( final double distanceThreshold ) { this.distanceThreshold = distanceThreshold; }
+	public double getDistanceThreshold() { return this.distanceThreshold; }
 
 	@Override
 	public ArrayList< PointMatch > assignPointMatches( final List< LinkedPoint< P > > target, final List< LinkedPoint< P > > reference )
@@ -62,7 +62,7 @@ public class SimplePointMatchIdentification < P extends RealLocalizable > implem
 			final LinkedPoint< P > correspondingPoint = nnSearchTarget.getSampler().get();
 
 			// world coordinates of point
-			if ( Point.distance( correspondingPoint, point ) <= distanceThresold )
+			if ( Point.distance( correspondingPoint, point ) <= distanceThreshold)
 				pointMatches.add( new PointMatch( correspondingPoint, point ) );
 		}
 

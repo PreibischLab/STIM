@@ -22,6 +22,7 @@ import java.util.function.BinaryOperator;
 
 
 import align.SiftMatch;
+import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 
 public class SpatialDataContainer {
@@ -29,7 +30,7 @@ public class SpatialDataContainer {
 	final private String rootPath;
 	final private boolean readOnly;
 	final private ExecutorService service;
-	final private N5FSReader n5;
+	final private N5Reader n5;
 	private List<String> datasets = new ArrayList<>();
 	private List<String> matches = new ArrayList<>();
 	final private static String version = "0.1.0";
@@ -39,6 +40,7 @@ public class SpatialDataContainer {
 	final private static String locationPathKey = "-locations";
 	final private static String exprValuePathKey = "-exprValues";
 	final private static String annotationPathKey = "-annotations";
+	final private static String geneAnnotationPathKey = "-geneAnnotations";
 
 
 	protected SpatialDataContainer(final String path, final ExecutorService service, final boolean readOnly) throws IOException {
@@ -73,14 +75,14 @@ public class SpatialDataContainer {
 		return container;
 	}
 
-	protected void initializeContainer() throws IOException {
+	protected void initializeContainer() {
 		N5FSWriter writer = (N5FSWriter) n5;
 		writer.setAttribute("/", versionKey, version);
 		writer.createGroup("/matches");
 		updateDatasetMetadata();
 	}
 
-	protected void readFromDisk() throws IOException {
+	protected void readFromDisk() {
 		String actualVersion = n5.getAttribute("/", versionKey, String.class);
 		if (!version.equals(actualVersion))
 			throw new SpatialDataException("Incompatible spatial data container version: expected " + version + ", got " + actualVersion + ".");
@@ -93,32 +95,32 @@ public class SpatialDataContainer {
 		matches = new ArrayList<>(Arrays.asList(n5.list(n5.groupPath("matches"))));
 	}
 
-	protected void updateDatasetMetadata() throws IOException {
+	protected void updateDatasetMetadata() {
 		N5FSWriter writer = (N5FSWriter) n5;
 		writer.setAttribute("/", numDatasetsKey, datasets.size());
 		writer.setAttribute("/", datasetsKey, datasets.toArray());
 	}
 
-	public void addExistingDataset(String path) throws IOException {
-		addExistingDataset(path, null, null, null);
+	public void addExistingDataset(String path) {
+		addExistingDataset(path, null, null, null, null);
 	}
 
-	public void addExistingDataset(String path, String locationPath, String exprValuePath, String annotationPath) throws IOException {
+	public void addExistingDataset(String path, String locationPath, String exprValuePath, String annotationPath, String geneAnnotationPath) {
 		associateDataset(path, (src, dest) -> {
 			try {return Files.move(src, dest);}
 			catch (IOException e) {throw new SpatialDataException("Could not move dataset to container.", e);}
-		}, locationPath, exprValuePath, annotationPath);
+		}, locationPath, exprValuePath, annotationPath, geneAnnotationPath);
 	}
 
-	public void linkExistingDataset(String path) throws IOException {
-		linkExistingDataset(path, null, null, null);
+	public void linkExistingDataset(String path) {
+		linkExistingDataset(path, null, null, null, null);
 	}
 
-	public void linkExistingDataset(String path, String locationPath, String exprValuePath, String annotationPath) throws IOException {
+	public void linkExistingDataset(String path, String locationPath, String exprValuePath, String annotationPath, String geneAnnotationPath) {
 		associateDataset(path, (target, link) -> {
 			try {return Files.createSymbolicLink(link, target);}
 			catch (IOException e) {throw new SpatialDataException("Could not link dataset to container.", e);}
-		}, locationPath, exprValuePath, annotationPath);
+		}, locationPath, exprValuePath, annotationPath, geneAnnotationPath);
 	}
 
 	protected void associateDataset(
@@ -126,10 +128,13 @@ public class SpatialDataContainer {
 			BinaryOperator<Path> associationOperation,
 			String locationPath,
 			String exprValuePath,
-			String annotationPath
-	) throws IOException {
+			String annotationPath,
+			String geneAnnotationPath) {
 
 		Path oldPath = Paths.get(path);
+		if (!oldPath.toFile().exists()) {
+			throw new IllegalArgumentException("Dataset '" + oldPath + "' does not exist.");
+		}
 		String datasetName = oldPath.getFileName().toString();
 
 		if (readOnly)
@@ -148,6 +153,8 @@ public class SpatialDataContainer {
 			writer.setAttribute("/", datasetName + exprValuePathKey, exprValuePath);
 		if (annotationPath != null)
 			writer.setAttribute("/", datasetName + annotationPathKey, annotationPath);
+		if (geneAnnotationPath != null)
+			writer.setAttribute("/", datasetName + geneAnnotationPathKey, geneAnnotationPath);
 	}
 
 	public void deleteDataset(String datasetName) throws IOException {
@@ -167,8 +174,9 @@ public class SpatialDataContainer {
 		String path1 = n5.getAttribute("/", datasetName + locationPathKey, String.class);
 		String path2 = n5.getAttribute("/", datasetName + exprValuePathKey, String.class);
 		String path3 = n5.getAttribute("/", datasetName + annotationPathKey, String.class);
+		String path4 = n5.getAttribute("/", datasetName + geneAnnotationPathKey, String.class);
 		SpatialDataIO sdio = SpatialDataIO.open(Paths.get(rootPath, datasetName).toRealPath().toString(), service);
-		sdio.setDataPaths(path1, path2, path3);
+		sdio.setDataPaths(path1, path2, path3, path4);
 		return sdio;
 	}
 
@@ -178,8 +186,9 @@ public class SpatialDataContainer {
 		String path1 = n5.getAttribute("/", datasetName + locationPathKey, String.class);
 		String path2 = n5.getAttribute("/", datasetName + exprValuePathKey, String.class);
 		String path3 = n5.getAttribute("/", datasetName + annotationPathKey, String.class);
+		String path4 = n5.getAttribute("/", datasetName + geneAnnotationPathKey, String.class);
 		SpatialDataIO sdio = SpatialDataIO.openReadOnly(Paths.get(rootPath, datasetName).toRealPath().toString(), service);
-		sdio.setDataPaths(path1, path2, path3);
+		sdio.setDataPaths(path1, path2, path3, path4);
 		return sdio;
 	}
 
@@ -195,8 +204,7 @@ public class SpatialDataContainer {
 	}
 
 	public static boolean isCompatibleContainer(String path) {
-		try {
-			N5FSReader reader = new N5FSReader(path);
+		try (N5FSReader reader = new N5FSReader(path)) {
 			String actualVersion = reader.getAttribute("/", versionKey, String.class);
 			return (actualVersion.equals(version));
 		} catch (Exception e) {
@@ -233,7 +241,7 @@ public class SpatialDataContainer {
 		}
 	}
 
-	public void savePairwiseMatch(final SiftMatch results) throws IOException {
+	public void savePairwiseMatch(final SiftMatch results) {
 		N5FSWriter writer = (N5FSWriter) n5;
 		final String matchName = constructMatchName(results.getStDataAName(), results.getStDataBName());
 		final String pairwiseGroupName = writer.groupPath("/", "matches", matchName);
@@ -267,7 +275,7 @@ public class SpatialDataContainer {
 		matches.add(matchName);
 	}
 
-	public SiftMatch loadPairwiseMatch(final String stDataAName, final String stDataBName) throws IOException, ClassNotFoundException {
+	public SiftMatch loadPairwiseMatch(final String stDataAName, final String stDataBName) throws ClassNotFoundException {
 		final String matchName = constructMatchName(stDataAName, stDataBName);
 		final String pairwiseGroupName = n5.groupPath("/", "matches", matchName);
 

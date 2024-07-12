@@ -1,7 +1,7 @@
 package gui;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Queue;
@@ -34,9 +34,13 @@ import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 public class RenderThread implements Runnable
 {
+	private static final Logger logger = LoggerUtil.getLogger();
+
 	protected final BdvOptions options;
 	protected BdvStackSource< ? > bdv;
 	protected final Interval interval;
@@ -132,9 +136,9 @@ public class RenderThread implements Runnable
 				final String gene = lastElement.getA();
 				final STDataAssembly slide = slides.get( lastElement.getB() );
 
-				System.out.println( "rendering gene: " + gene + " of slide: " + slide.data().toString() );
+				logger.info("rendering gene: {} of slide: {}", gene, slide.data().toString());
 
-				// not initalized
+				// not initialized
 				if ( card == null )
 				{
 					final BdvStackSource<?> old = bdv;
@@ -156,7 +160,7 @@ public class RenderThread implements Runnable
 					bdv.setCurrent();
 					old.removeFromBdv();
 
-					sourceData.put( gene, new ArrayList<>( Arrays.asList( addedGene ) ) );
+					sourceData.put(gene, new ArrayList<>(Collections.singletonList(addedGene)));
 
 					final SynchronizedViewerState state = bdv.getBdvHandle().getViewerPanel().state();
 					final ArrayList< SourceGroup > oldGroups = new ArrayList<>( state.getGroups() );
@@ -174,7 +178,7 @@ public class RenderThread implements Runnable
 
 					// add STIMCard panel
 					card = new STIMCard(
-							new ArrayList<>( Arrays.asList( addedGene.data() ) ),
+							new ArrayList<>(Collections.singletonList(addedGene.data())),
 							addedGene.data().data().getGeneNames().stream().map( s -> new ValuePair<String, Double>(s, null) ).collect( Collectors.toList() ),
 							sourceData,
 							geneToBDVSource,
@@ -200,11 +204,11 @@ public class RenderThread implements Runnable
 				}
 				else
 				{
-					final List< String > geneList = new ArrayList<>( Arrays.asList( gene ) );
-					final List< String > inputPaths = new ArrayList<>( Arrays.asList( inputContainer ) );
-					final List< String > datasets = new ArrayList<>( Arrays.asList( this.datasets.get( lastElement.getB() ) ) );
-					final List< AffineTransform3D > transforms = new ArrayList<>( Arrays.asList( new AffineTransform3D() ) );
-					final List< ARGBType > colors = new ArrayList<>( Arrays.asList( new ARGBType( ARGBType.rgba(255, 255, 255, 0) ) ) );
+					final List< String > geneList = new ArrayList<>(Collections.singletonList(gene));
+					final List< String > inputPaths = new ArrayList<>(Collections.singletonList(inputContainer));
+					final List< String > datasets = new ArrayList<>(Collections.singletonList(this.datasets.get(lastElement.getB())));
+					final List< AffineTransform3D > transforms = new ArrayList<>(Collections.singletonList(new AffineTransform3D()));
+					final List< ARGBType > colors = new ArrayList<>(Collections.singletonList(new ARGBType(ARGBType.rgba(255, 255, 255, 0))));
 
 					final SynchronizedViewerState state = bdv.getBdvHandle().getViewerPanel().state();
 					final ArrayList< SourceGroup > oldGroups = new ArrayList<>( state.getGroups() );
@@ -217,10 +221,8 @@ public class RenderThread implements Runnable
 					bdv = added.values().iterator().next().get( 0 ).source();
 					state.removeGroups( oldGroups );
 				}
-			}
-			else
-			{
-				//System.out.println( "queue empty." );
+			} else {
+				logger.debug("queue empty.");
 			}
 		}
 		while ( keepRunning.get() );

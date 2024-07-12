@@ -19,9 +19,12 @@ import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.view.Views;
 import util.CompensatedSum;
 import util.Threads;
+import org.apache.logging.log4j.Logger;
+import util.LoggerUtil;
 
 public class NormalizingRandomAccessibleInterval implements RandomAccessibleInterval< DoubleType >
 {
+	private static final Logger logger = LoggerUtil.getLogger();
 	final int n;
 
 	/*
@@ -46,26 +49,9 @@ public class NormalizingRandomAccessibleInterval implements RandomAccessibleInte
 
 	final protected void init()
 	{
-		final long numGenes = input.dimension( 0 );
 		final long numLocations = input.dimension( 1 );
 
-		System.out.println( "Computing normalization sums for all genes (" + input.dimension( 0 ) + ") and locations (" + input.dimension( 1 ) + ") ... " );
-
-		/*
-		final Cursor< DoubleType > cursor = this.sumsPerLocation.cursor();
-
-		// for each location do
-		for ( long i = 0; i < numLocations; ++i )
-		{
-			final CompensatedSum realSum = new CompensatedSum( (int)numGenes );
-
-			// iterate and sum all gene expression values of that location
-			for ( final DoubleType t : Views.iterable( Views.hyperSlice( input, 1, i ) ) )
-				realSum.add( t.get() );
-
-			cursor.next().set( realSum.getSum() );
-		}
-		*/
+		logger.info("Computing normalization sums for all genes ({}) and locations ({}) ... ", input.dimension(0), input.dimension(1));
 
 		final List< Callable< Void > > tasks = new ArrayList<>();
 		final AtomicLong nextLocation = new AtomicLong();
@@ -103,7 +89,7 @@ public class NormalizingRandomAccessibleInterval implements RandomAccessibleInte
 		}
 		catch ( final InterruptedException | ExecutionException e )
 		{
-			e.printStackTrace();
+			logger.error("Error during dataset normalization", e);
 			throw new RuntimeException( e );
 		}
 

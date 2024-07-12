@@ -41,66 +41,80 @@ public class N5IO extends SpatialDataIO {
 	}
 
 	@Override
-	public void setDataPaths(String locationPath, String exprValuePath, String annotationPath) {
+	public void setDataPaths(String locationPath, String exprValuePath, String annotationPath, String geneAnnotationPath) {
 		this.locationPath = (locationPath == null) ? "/locations" : locationPath;
 		this.exprValuePath = (exprValuePath == null) ? "/expressionValues" : exprValuePath;
 		this.annotationPath = (annotationPath == null) ? "/annotations" : annotationPath;
+		this.geneAnnotationPath = (geneAnnotationPath == null) ? "/geneAnnotations" : geneAnnotationPath;
 	}
 
 	@Override
-	protected void writeHeader(N5Writer writer, STData data) throws IOException {
+	protected void initializeDataset(N5Writer writer, STData data) {
 		writer.createGroup(locationPath);
 		writer.createGroup(exprValuePath);
 		writer.createGroup(annotationPath);
+		writer.createGroup(geneAnnotationPath);
 		writer.setAttribute("/", "dim", data.numDimensions());
 		writer.setAttribute("/", "numLocations", data.numLocations());
 		writer.setAttribute("/", "numGenes", data.numGenes());
+		writeBarcodes(writer, data.getBarcodes());
+		writeGeneNames(writer, data.getGeneNames());
 	}
 
 	@Override
-	protected RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader, String locationsPath) throws IOException {
+	protected RandomAccessibleInterval<DoubleType> readLocations(N5Reader reader, String locationsPath) {
 		return N5Utils.open(reader, locationsPath);
 	}
 
 	@Override
-	protected RandomAccessibleInterval<DoubleType> readExpressionValues(N5Reader reader, String exprValuesPath) throws IOException {
+	protected RandomAccessibleInterval<DoubleType> readExpressionValues(N5Reader reader, String exprValuesPath) {
 		return N5Utils.open(reader, exprValuesPath);
 	}
 
 	@Override
 	@SuppressWarnings("unchecked")
-	protected List<String> readBarcodes(N5Reader reader) throws IOException {
+	protected List<String> readBarcodes(N5Reader reader) {
 		return reader.getAttribute("/", "barcodeList", List.class);
 	}
 
 	@Override
 	@SuppressWarnings("unchecked")
-	protected List<String> readGeneNames(N5Reader reader) throws IOException {
+	protected List<String> readGeneNames(N5Reader reader) {
 		return reader.getAttribute("/", "geneList", List.class);
 	}
 
 	@Override
-	protected <T extends NativeType<T> & RealType<T>> void readAndSetTransformation(N5Reader reader, AffineSet transform, String name) throws IOException {
+	protected void readAndSetTransformation(N5Reader reader, AffineSet transform, String name) {
 		final Set<String> attributes = reader.listAttributes("/").keySet();
 		if (attributes.contains(name))
 			transform.set(reader.getAttribute("/", name, double[].class ) );
 	}
 
 	@Override
-	protected List<String> detectAnnotations(N5Reader reader, String annotationsGroup) throws IOException {
+	protected List<String> detectAnnotations(N5Reader reader, String annotationsGroup) {
 		return Arrays.asList(reader.list(annotationsGroup));
 	}
 
 	@Override
-	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readAnnotations(N5Reader reader, String annotationsGroup, String label) throws IOException {
+	protected List<String> detectGeneAnnotations(N5Reader reader, String geneAnnotationsGroup) {
+		return Arrays.asList(reader.list(geneAnnotationsGroup));
+	}
+
+	@Override
+	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readAnnotations(N5Reader reader, String annotationsGroup, String label) {
 		return N5Utils.open(reader, reader.groupPath(annotationsGroup, label));
+	}
+
+	@Override
+	protected <T extends NativeType<T> & RealType<T>> RandomAccessibleInterval<T> readGeneAnnotations(N5Reader reader, String geneAnnotationsGroup, String label) {
+		return N5Utils.open(reader, reader.groupPath(geneAnnotationsGroup, label));
 	}
 
 	@Override
 	protected void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations, String locationsPath) throws IOException {
 		try {
-			int[] blockSize = new int[]{options1d.blockSize[0], (int) locations.dimension(1)};
-			N5Utils.save(locations, writer, locationsPath, blockSize, options.compression, options.exec);
+			int[] blockSize = new int[]{options1d.blockSize()[0], (int) locations.dimension(1)};
+			N5Utils.save(locations, writer, locationsPath, blockSize, options.compression(), options.executorService());
 		} catch (InterruptedException | ExecutionException e) {
 			throw new IOException("Could not write locations.", e);
 		}
@@ -109,24 +123,22 @@ public class N5IO extends SpatialDataIO {
 	@Override
 	protected void writeExpressionValues(N5Writer writer, RandomAccessibleInterval<DoubleType> exprValues, String exprValuesPath) throws IOException {
 		try {
-			N5Utils.save(exprValues, writer, exprValuesPath, options.blockSize, options.compression, options.exec);
+			N5Utils.save(exprValues, writer, exprValuesPath, options.blockSize(), options.compression(), options.executorService());
 		} catch (InterruptedException | ExecutionException e) {
 			throw new IOException("Could not write expression values.", e);
 		}
 	}
-
-	@Override
-	protected void writeBarcodes(N5Writer writer, List<String> barcodes) throws IOException {
+	
+	protected void writeBarcodes(N5Writer writer, List<String> barcodes) {
 		writer.setAttribute("/", "barcodeList", barcodes);
 	}
-
-	@Override
-	protected void writeGeneNames(N5Writer writer, List<String> geneNames) throws IOException {
+	
+	protected void writeGeneNames(N5Writer writer, List<String> geneNames) {
 		writer.setAttribute("/", "geneList", geneNames);
 	}
-
+	
 	@Override
-	public void writeTransformation(N5Writer writer, AffineGet transform, String name) throws IOException {
+	public void updateTransformation(N5Writer writer, AffineGet transform, String name) {
 		writer.setAttribute("/", name, transform.getRowPackedCopy());
 	}
 
@@ -136,9 +148,21 @@ public class N5IO extends SpatialDataIO {
 		String datasetName = writer.groupPath(annotationsGroup, label);
 		writer.createGroup(datasetName);
 		try {
-			N5Utils.save((RandomAccessibleInterval<IntType>) data, writer, datasetName, options1d.blockSize, options.compression, options.exec);
+			N5Utils.save((RandomAccessibleInterval<IntType>) data, writer, datasetName, options1d.blockSize(), options.compression(), options.executorService());
 		} catch (InterruptedException | ExecutionException e) {
 			throw new IOException("Could not write expression values.", e);
+		}
+	}
+	
+	@Override
+	@SuppressWarnings("unchecked")
+	protected void writeGeneAnnotations(N5Writer writer, String geneAnnotationsGroup, String label, RandomAccessibleInterval<? extends NativeType<?>> data) throws IOException {
+		String datasetName = writer.groupPath(geneAnnotationsGroup, label);
+		writer.createGroup(datasetName);
+		try {
+			N5Utils.save((RandomAccessibleInterval<IntType>) data, writer, datasetName, options1d.blockSize(), options.compression(), options.executorService());
+		} catch (InterruptedException | ExecutionException e) {
+			throw new IOException("Could not write gene stdev values.", e);
 		}
 	}
 }

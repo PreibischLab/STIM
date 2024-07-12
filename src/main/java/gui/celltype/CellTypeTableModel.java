@@ -81,15 +81,6 @@ public class CellTypeTableModel extends AbstractTableModel
 	}
 
 	@Override
-	public boolean isCellEditable( final int row, final int column )
-	{
-		return false;
-	}
-
-	@Override
-	public void setValueAt( final Object value, final int row, final int column ) {}
-
-	@Override
 	public Object getValueAt( final int row, final int column )
 	{
 		return entries.get( row );

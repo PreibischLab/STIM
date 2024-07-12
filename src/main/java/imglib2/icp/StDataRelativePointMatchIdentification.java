@@ -75,7 +75,7 @@ public class StDataRelativePointMatchIdentification < P extends RealLocalizable 
 	final RealPointSampleList< DoubleType > rankRef, rankTarget;
 	final double rankThreshold;
 
-	double distanceThresold;
+	double distanceThreshold;
 
 	public StDataRelativePointMatchIdentification(
 			final STData stDataTarget,
@@ -94,7 +94,7 @@ public class StDataRelativePointMatchIdentification < P extends RealLocalizable 
 		this.stDataTarget = stDataTarget;
 		this.stDataReference = stDataReference;
 		this.genes = genes;
-		this.distanceThresold = distanceThreshold;
+		this.distanceThreshold = distanceThreshold;
 		this.rankThreshold = rankThreshold;
 
 		RealPointSampleList< DoubleType > sumReference = null;
@@ -208,8 +208,8 @@ public class StDataRelativePointMatchIdentification < P extends RealLocalizable 
 		return new ValuePair<>(imgA, imgB);
 	}
 
-	public void setDistanceThreshold( final double distanceThreshold ) { this.distanceThresold = distanceThreshold; }
-	public double getDistanceThreshold() { return this.distanceThresold; }
+	public void setDistanceThreshold( final double distanceThreshold ) { this.distanceThreshold = distanceThreshold; }
+	public double getDistanceThreshold() { return this.distanceThreshold; }
 
 	/*
 	 * target is transformed by last model, reference is not transformed
@@ -232,7 +232,7 @@ public class StDataRelativePointMatchIdentification < P extends RealLocalizable 
 		{
 			// of all points in the search area, find the one with the most similar relative rank
 			// TODO: we need a threshold for rank difference I think
-			radiusSearchTransformedTarget.search( referencePoint, distanceThresold, false );
+			radiusSearchTransformedTarget.search(referencePoint, distanceThreshold, false );
 
 			double minDiff = Double.MAX_VALUE;
 			LinkedPoint< P > bestTargetPoint = null;
@@ -293,7 +293,7 @@ public class StDataRelativePointMatchIdentification < P extends RealLocalizable 
 
 			if ( value.get() > 0 ) // we ignore 0-values
 			{
-				radiusSearch.search( c, distanceThresold, false );
+				radiusSearch.search(c, distanceThreshold, false );
 
 				double v;
 				values.clear();

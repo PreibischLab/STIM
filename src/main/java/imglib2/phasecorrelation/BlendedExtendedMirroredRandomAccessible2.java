@@ -34,7 +34,6 @@ import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccess;
-import net.imglib2.Sampler;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.display.imagej.ImageJFunctions;
@@ -43,14 +42,14 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Intervals;
 import net.imglib2.view.Views;
 
-public class BlendedExtendedMirroredRandomAccesible2 <T extends RealType<T>>implements RandomAccessible<T> {
+public class BlendedExtendedMirroredRandomAccessible2<T extends RealType<T>>implements RandomAccessible<T> {
 
-	private RandomAccessibleInterval<T> img;
+	private final RandomAccessibleInterval<T> img;
 	BlendingRealRandomAccessible blending;
-	private int numDimensions;
+	private final int numDimensions;
 	private FinalInterval extDims;
 	
-	public BlendedExtendedMirroredRandomAccesible2(RandomAccessibleInterval<T> img, int[] border) {
+	public BlendedExtendedMirroredRandomAccessible2(RandomAccessibleInterval<T> img, int[] border) {
 		this.img = img;
 		this.numDimensions = img.numDimensions();
 		
@@ -80,7 +79,7 @@ public class BlendedExtendedMirroredRandomAccesible2 <T extends RealType<T>>impl
 
 	/**
 	 * TODO: For efficiency reasons we should implement it as a RandomAccess that actually updates the underlying
-	 * imgRA for every move. This way, the outofbounds can work very efficiently when it is iterated through Views.iterable().cursor()
+	 * imgRA for every move. This way, the outOfBounds can work very efficiently when it is iterated through Views.iterable().cursor()
 	 */
 	public class BlendedRandomAccess extends Point implements RandomAccess<T>
 	{
@@ -183,17 +182,12 @@ public class BlendedExtendedMirroredRandomAccesible2 <T extends RealType<T>>impl
 		}
 
 		@Override
-		public Sampler<T> copy() {
-			return copyRandomAccess();
-		}
-
-		@Override
-		public RandomAccess<T> copyRandomAccess() {
+		public RandomAccess<T> copy() {
 			BlendedRandomAccess a = new BlendedRandomAccess();
 			a.move(this);
 			return a;
 		}
-		
+
 	}
 	
 	@Override
@@ -213,12 +207,12 @@ public class BlendedExtendedMirroredRandomAccesible2 <T extends RealType<T>>impl
 		Img<FloatType> img1 = ImgLib2Util.openAs32Bit(new File("src/main/resources/img1.tif"));
 		long[] dims = new long[img1.numDimensions()];
 
-		BlendedExtendedMirroredRandomAccesible2<FloatType> ext = new BlendedExtendedMirroredRandomAccesible2<FloatType>(img1, new int[]{100, 100, 10});
+		BlendedExtendedMirroredRandomAccessible2<FloatType> ext = new BlendedExtendedMirroredRandomAccessible2<>(img1, new int[]{100, 100, 10});
 		
 		ext.getExtInterval().dimensions(dims);		
 		Img<FloatType> img2 = ArrayImgs.floats(dims);
 
-		// TODO: For efficiency reasons we should now also iterate the BlendedExtendedMirroredRandomAccesible and not the image
+		// TODO: For efficiency reasons we should now also iterate the BlendedExtendedMirroredRandomAccessible and not the image
 		long start = System.currentTimeMillis();
 		
 		Cursor<FloatType> c = img2.cursor();
@@ -231,13 +225,6 @@ public class BlendedExtendedMirroredRandomAccesible2 <T extends RealType<T>>impl
 		long end = System.currentTimeMillis();		
 		System.out.println(end-start);
 		
-		ImageJFunctions.show(img2);	
-		
-		//RandomAccessibleInterval<FloatType> img3 = Views.interval(ext, ext.getExtInterval());		
-		//ImageJFunctions.show(img3);
-		
-
-		
-
+		ImageJFunctions.show(img2);
 	}
 }

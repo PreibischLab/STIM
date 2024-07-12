@@ -2,11 +2,10 @@ package data;
 
 import data.STDataUtils.DistanceStats;
 import net.imglib2.KDTree;
-import util.KDTreeUtil;
 
 public class STDataStatistics
 {
-	public DistanceStats ds;
+	private final DistanceStats ds;
 
 	public STDataStatistics( final STData data )
 	{

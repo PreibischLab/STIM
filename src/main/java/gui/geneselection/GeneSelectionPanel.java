@@ -164,7 +164,7 @@ public class GeneSelectionPanel extends JPanel
 
 				final String search = input;
 
-				if ( search.length() == 0 )
+				if (search.isEmpty())
 					return;
 
 				for ( final String s : allGenesLowerCase )
@@ -285,7 +285,7 @@ public class GeneSelectionPanel extends JPanel
 			SwingUtilities.invokeLater( () -> action.accept( selected ) );
 		}
 
-		SwingUtilities.invokeLater( () -> parent.quit() );
+		SwingUtilities.invokeLater(parent::quit);
 	}
 
 	protected static class MyRenderer extends DefaultTableCellRenderer

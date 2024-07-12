@@ -48,9 +48,9 @@ public class ExpValueRealIterable< T > implements IterableRealInterval< T >
 	@Override
 	public RealCursor< T > localizingCursor()
 	{
-		return new ExpValueRealCursor< T >(
+		return new ExpValueRealCursor<>(
 				locations,
-				iterableValues );
+				iterableValues);
 	}
 
 	@Override
