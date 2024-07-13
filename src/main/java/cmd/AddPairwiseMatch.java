@@ -26,7 +26,7 @@ import java.util.concurrent.Executors;
 import org.apache.logging.log4j.Logger;
 import util.LoggerUtil;
 
-@Command(name = "st-align-pairs-add", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - add manual landmarks to align pairs of slices")
+@Command(name = "st-align-pairs-add", mixinStandardHelpOptions = true, version = "0.3.1", description = "Spatial Transcriptomics as IMages project - add manual landmarks to align pairs of slices")
 public class AddPairwiseMatch implements Callable<Void> {
 
 	private static final Logger logger = LoggerUtil.getLogger();

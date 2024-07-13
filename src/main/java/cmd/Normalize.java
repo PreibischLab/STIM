@@ -19,7 +19,7 @@ import picocli.CommandLine.Command;
 import org.apache.logging.log4j.Logger;
 import util.LoggerUtil;
 
-@Command(name = "st-normalize", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - normalize dataset")
+@Command(name = "st-normalize", mixinStandardHelpOptions = true, version = "0.3.1", description = "Spatial Transcriptomics as IMages project - normalize dataset")
 public class Normalize implements Callable<Void> {
 	
 		private static final Logger logger = LoggerUtil.getLogger();

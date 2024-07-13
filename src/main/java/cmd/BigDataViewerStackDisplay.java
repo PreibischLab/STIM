@@ -41,7 +41,7 @@ import render.Render;
 import org.apache.logging.log4j.Logger;
 import util.LoggerUtil;
 
-@Command(name = "st-bdv-view3d", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - visualize ST data in BigDataViewer")
+@Command(name = "st-bdv-view3d", mixinStandardHelpOptions = true, version = "0.3.1", description = "Spatial Transcriptomics as IMages project - visualize ST data in BigDataViewer")
 public class BigDataViewerStackDisplay implements Callable<Void> {
 	
 	private static final Logger logger = LoggerUtil.getLogger();

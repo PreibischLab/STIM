@@ -8,7 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-@Command(name = "st-help", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - command line interface help")
+@Command(name = "st-help", mixinStandardHelpOptions = true, version = "0.3.1", description = "Spatial Transcriptomics as IMages project - command line interface help")
 public class PrintHelp implements Callable<Void> {
 
 	@Override

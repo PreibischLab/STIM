@@ -54,7 +54,7 @@ import render.Render;
 import org.apache.logging.log4j.Logger;
 import util.LoggerUtil;
 
-@Command(name = "st-render", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - render ST data as images in Fiji/ImageJ")
+@Command(name = "st-render", mixinStandardHelpOptions = true, version = "0.3.1", description = "Spatial Transcriptomics as IMages project - render ST data as images in Fiji/ImageJ")
 public class RenderImage implements Callable<Void> {
 	
 	private static final Logger logger = LoggerUtil.getLogger();

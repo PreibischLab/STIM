@@ -18,7 +18,7 @@ import org.apache.logging.log4j.Logger;
 import util.LoggerUtil;
 
 // In the future, this will support more methods for computing the std
-@Command(name = "st-add-entropy", mixinStandardHelpOptions = true, version = "0.3.0", description = "Spatial Transcriptomics as IMages project - add annotations to slice-dataset")
+@Command(name = "st-add-entropy", mixinStandardHelpOptions = true, version = "0.3.1", description = "Spatial Transcriptomics as IMages project - add annotations to slice-dataset")
 public class AddEntropy implements Callable<Void> {
 
 	private static final Logger logger = LoggerUtil.getLogger();
