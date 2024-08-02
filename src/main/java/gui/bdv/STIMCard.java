@@ -258,11 +258,14 @@ public class STIMCard
 				sourceData.values().forEach( list -> {
 					list.forEach( gene -> {
 
-						final double displayMin = AddedGene.getDisplayMin( gene.min(), gene.max(), currentBrightnessMin );
-						final double displayMax = AddedGene.getDisplayMax( gene.max(), currentBrightnessMax );
+						double displayMin = AddedGene.getDisplayMin( gene.min(), gene.max(), currentBrightnessMin );
+						double displayMax = AddedGene.getDisplayMax( gene.max(), currentBrightnessMax );
+
+						displayMin = Math.min( displayMin, displayMax );
+						displayMax = Math.max( displayMin, displayMax );
 
 						gene.source().setDisplayRange(displayMin, displayMax);
-						gene.source().setDisplayRange(displayMin, displayMax);
+						//gene.source().setDisplayRange(displayMin, displayMax);
 					});
 					/*
 					final double displayMin = AddedGene.getDisplayMin( p.getA().min(), p.getA().max(), currentBrightnessMin );
@@ -301,11 +304,14 @@ public class STIMCard
 				sourceData.values().forEach( list -> {
 					list.forEach( gene -> {
 
-						final double displayMin = AddedGene.getDisplayMin( gene.min(), gene.max(), currentBrightnessMin );
-						final double displayMax = AddedGene.getDisplayMax( gene.max(), currentBrightnessMax );
+						double displayMin = AddedGene.getDisplayMin( gene.min(), gene.max(), currentBrightnessMin );
+						double displayMax = AddedGene.getDisplayMax( gene.max(), currentBrightnessMax );
+
+						displayMin = Math.min( displayMin, displayMax );
+						displayMax = Math.max( displayMin, displayMax );
 
 						gene.source().setDisplayRange(displayMin, displayMax);
-						gene.source().setDisplayRange(displayMin, displayMax);
+						//gene.source().setDisplayRange(displayMin, displayMax);
 					});
 					/*
 					final double displayMin = AddedGene.getDisplayMin( p.getA().min(), p.getA().max(), currentBrightnessMin );
