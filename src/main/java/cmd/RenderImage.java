@@ -340,8 +340,24 @@ public class RenderImage implements Callable<Void> {
 		// we work at full resolution so rendering and filter parameters are independent of the scale
 		final IterableRealInterval< DoubleType > data = Render.getRealIterable( stdata, null, gene, filterFactories );
 
+		return display(data, stStats.getMedianDistance(), coordinateTransform, renderType, renderingFactor, renderInterval );
+		/*
 		final RealRandomAccessible< DoubleType > renderRRA =
 				createRRA( data, stStats.getMedianDistance(), renderType, renderingFactor );
+
+		return Views.interval( RealViews.affine( renderRRA, coordinateTransform ), renderInterval );*/
+	}
+
+	public static RandomAccessibleInterval< DoubleType > display(
+			final IterableRealInterval< DoubleType > data,
+			final double medianDistance,
+			final AffineGet coordinateTransform,
+			final Rendering renderType,
+			final double renderingFactor,
+			final Interval renderInterval )
+	{
+		final RealRandomAccessible< DoubleType > renderRRA =
+				createRRA( data, medianDistance, renderType, renderingFactor );
 
 		return Views.interval( RealViews.affine( renderRRA, coordinateTransform ), renderInterval );
 	}
