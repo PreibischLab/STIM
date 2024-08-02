@@ -9,8 +9,6 @@ import java.util.concurrent.Executors;
 
 import org.apache.commons.lang3.RandomStringUtils;
 
-import analyze.Entropy;
-import analyze.ExtractGeneLists;
 import cmd.InteractiveAlignment;
 import data.STData;
 import data.STDataImgLib2;
@@ -18,12 +16,10 @@ import data.STDataImgLib2.STDataImgLib2Factory;
 import gui.STDataAssembly;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
-import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.view.Views;
-import util.Threads;
 
 public class CreateSTData
 {
