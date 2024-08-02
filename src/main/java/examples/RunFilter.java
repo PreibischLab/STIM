@@ -8,7 +8,6 @@ import data.STDataStatistics;
 import filter.FilterFactory;
 import filter.Filters;
 import filter.GaussianFilterFactory;
-import filter.MedianFilterFactory;
 import gui.bdv.AddedGene.Rendering;
 import ij.ImageJ;
 import ij.ImagePlus;

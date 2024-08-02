@@ -9,15 +9,27 @@ import java.util.concurrent.Executors;
 
 import org.apache.commons.lang3.RandomStringUtils;
 
+import bdv.util.BdvFunctions;
+import bdv.util.BdvOptions;
+import bdv.util.BdvStackSource;
 import cmd.InteractiveAlignment;
+import cmd.RenderImage;
 import data.STData;
 import data.STDataImgLib2;
+import data.STDataStatistics;
 import data.STDataImgLib2.STDataImgLib2Factory;
 import gui.STDataAssembly;
+import gui.bdv.AddedGene.Rendering;
+import ij.ImageJ;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.cell.CellImgFactory;
+import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.multithreading.SimpleMultiThreading;
+import net.imglib2.realtransform.AffineTransform2D;
+import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.view.Views;
 
@@ -118,7 +130,45 @@ public class CreateSTData
 		final STData data1 = createRandomSTDATA( rnd );
 		final STData data2 = createRandomSTDATA( rnd, data1 );
 
-		// save
+		// create single example slides as image
+		final RandomAccessibleInterval<DoubleType> raw1 = RenderImage.display(
+				data1,
+				new STDataStatistics( data1 ),
+				new AffineTransform2D(),
+				Rendering.Gauss,
+				1.0,
+				null,
+				data1.getGeneNames().get( 0 ),
+				data1.getRenderInterval( 10 ) );
+
+		final RandomAccessibleInterval<DoubleType> raw2 = RenderImage.display(
+				data2,
+				new STDataStatistics( data2 ),
+				new AffineTransform2D(),
+				Rendering.Gauss,
+				1.0,
+				null,
+				data2.getGeneNames().get( 0 ),
+				data2.getRenderInterval( 10 ) );
+
+		// show in ImageJ
+		new ImageJ();
+		ImageJFunctions.show( raw1 );
+		ImageJFunctions.show( raw2 );
+
+		// show in BDV
+		BdvOptions options = BdvOptions.options().is2D();
+		BdvStackSource<DoubleType> bdv;
+
+		bdv = BdvFunctions.show( raw1, "data1", options );
+		bdv.setColor( new ARGBType( ARGBType.rgba( 255, 0, 255, 0) ) );
+		bdv.setDisplayRange( 0, 10000 );
+
+		bdv = BdvFunctions.show( raw2, "data2", options.addTo( bdv ) );
+		bdv.setColor( new ARGBType( ARGBType.rgba( 0, 255, 0, 0) ) );
+		bdv.setDisplayRange( 0, 10000 );
+
+		// save dataset to temporary directory
 		final ExecutorService service = Executors.newFixedThreadPool(8);
 		final String tmpDir = System.getProperty("java.io.tmpdir") + "random-dataset_" + System.currentTimeMillis() + ".n5";
 
@@ -135,7 +185,7 @@ public class CreateSTData
 
 		System.out.println( "Written successfully.");
 
-		// display in GUI
+		// display in alignemnt GUI
 		InteractiveAlignment.main(
 				"-c", tmpDir,
 				"-d1", "data1.n5",
