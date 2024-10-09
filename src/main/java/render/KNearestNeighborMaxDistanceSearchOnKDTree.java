@@ -50,7 +50,7 @@ public class KNearestNeighborMaxDistanceSearchOnKDTree< T > extends KNearestNeig
 
 		for ( int i = 0; i < getK(); ++i )
 		{
-			if ( getSquareDistance( i ) > param.maxSqDistance() )
+			if ( super.getSquareDistance( i ) > param.maxSqDistance() )
 			{
 				if ( i == 0 )
 				{
@@ -66,9 +66,9 @@ public class KNearestNeighborMaxDistanceSearchOnKDTree< T > extends KNearestNeig
 			}
 			else
 			{
-				values[ i ] = getSampler( i );
-				points[ i ] = getPosition( i );
-				newBestSquDistances[ i ] = getSquareDistance( i );
+				values[ i ] = super.getSampler( i );
+				points[ i ] = super.getPosition( i );
+				newBestSquDistances[ i ] = super.getSquareDistance( i );
 			}
 		}
 	}
@@ -125,7 +125,7 @@ public class KNearestNeighborMaxDistanceSearchOnKDTree< T > extends KNearestNeig
 	public KNearestNeighborMaxDistanceSearchOnKDTree< T > copy()
 	{
 		final KNearestNeighborMaxDistanceSearchOnKDTree< T > copy =
-				new KNearestNeighborMaxDistanceSearchOnKDTree<>(tree, getK(), outOfBounds, param);
+				new KNearestNeighborMaxDistanceSearchOnKDTree<>(new KDTree<>( tree.treeData() ), getK(), outOfBounds, param);
 
 		// make sure the state is preserved
 		copy.search( position );

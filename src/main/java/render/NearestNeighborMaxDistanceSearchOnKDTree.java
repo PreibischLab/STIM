@@ -40,7 +40,7 @@ public class NearestNeighborMaxDistanceSearchOnKDTree< T > extends NearestNeighb
 		super.search( p );
 		p.localize( pos );
 
-		if ( getSquareDistance() > param.maxSqDistance() )
+		if ( super.getSquareDistance() > param.maxSqDistance() )
 		{
 			value = oobsSampler;
 			point = position;
@@ -48,9 +48,9 @@ public class NearestNeighborMaxDistanceSearchOnKDTree< T > extends NearestNeighb
 		}
 		else
 		{
-			value = getSampler();
-			point = getPosition();
-			newbestSquDistance = getSquareDistance();
+			value = super.getSampler();
+			point = super.getPosition();
+			newbestSquDistance = super.getSquareDistance();
 		}
 	}
 
@@ -82,7 +82,7 @@ public class NearestNeighborMaxDistanceSearchOnKDTree< T > extends NearestNeighb
 	public NearestNeighborMaxDistanceSearchOnKDTree< T > copy()
 	{
 		final NearestNeighborMaxDistanceSearchOnKDTree< T > copy =
-				new NearestNeighborMaxDistanceSearchOnKDTree<>(tree, outOfBounds, param);
+				new NearestNeighborMaxDistanceSearchOnKDTree<>( new KDTree<>( tree.treeData() ), outOfBounds, param);
 
 		// make sure the state is preserved
 		copy.search( position );
