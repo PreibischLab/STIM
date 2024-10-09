@@ -189,7 +189,11 @@
 			<groupId>org.janelia.saalfeldlab</groupId>
 			<artifactId>n5-universe</artifactId>
 		</dependency>
-
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-aws-s3</artifactId>
+			<version>4.2.0</version>
+		</dependency>
 		<!-- JUnit framework -->
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
@@ -202,7 +206,7 @@
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-csv</artifactId>
-			<version>1.7</version>
+			<!-- <version>1.7</version> -->
 		</dependency>
 
 		<dependency>
@@ -222,13 +226,13 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
-			<version>2.14.1</version>
+			<!-- <version>2.14.1</version> -->
 		</dependency>
 		<!-- Log4j API -->
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-api</artifactId>
-			<version>2.14.1</version>
+			<!-- <version>2.14.1</version> -->
 		</dependency>
 	</dependencies>
 
