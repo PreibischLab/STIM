@@ -111,7 +111,15 @@ public class SpatialDataContainer {
 		if (numDatasets != datasets.size())
 			throw new SpatialDataException("Incompatible number of datasets: expected " + numDatasets + ", found " + datasets.size() + ".");
 
-		matches = new ArrayList<>(Arrays.asList(n5.list(n5.groupPath("matches"))));
+		try
+		{
+			matches = new ArrayList<>(Arrays.asList(n5.list(n5.groupPath("matches"))));
+		}
+		catch ( Exception e )
+		{
+			System.out.println( "Unable to read matches: " + e);
+			e.printStackTrace();
+		}
 	}
 
 	protected void updateDatasetMetadata() {
