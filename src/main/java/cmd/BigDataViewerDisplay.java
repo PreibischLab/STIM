@@ -54,6 +54,9 @@ import util.LoggerUtil;
 @Command(name = "st-bdv-view", mixinStandardHelpOptions = true, version = "0.3.1", description = "Spatial Transcriptomics as IMages project - visualize ST data in BigDataViewer")
 public class BigDataViewerDisplay implements Callable<Void>
 {
+	// -i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d Puck_180531_23.n5 -g Calm2 -bmax 0.25
+	// -i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d Puck_180531_22.n5 -g Malat1,Calm2,Calm1 --rendering Gauss -bmin 0.0 -bmax 0.141 -rf 1.5384 --ffSingleSpot 1.25 -a celltype
+
 	private static final Logger logger = LoggerUtil.getLogger();
 
 	@Option(names = {"-i", "--input"}, required = true, description = "input file (AnnData) or N5 container, e.g. -i /home/ssq.n5")
