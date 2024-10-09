@@ -126,6 +126,11 @@ public class Cloud
 		return !hasScheme || FILE_SCHEME.asPredicate().test( scheme );
 	}
 
+	public static String appendName( final URI uri, final String name )
+	{
+		return uri.toString() + ( uri.toString().endsWith( "/" ) ? "" : "/") + name;
+	}
+
 	public static String removeFilePrefix( URI uri )
 	{
 		final String scheme = uri.getScheme();
