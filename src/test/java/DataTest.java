@@ -4,10 +4,14 @@ import data.STDataImgLib2;
 import data.STDataStatistics;
 import data.STDataText;
 import net.imglib2.Interval;
+import net.imglib2.KDTree;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealCursor;
+import net.imglib2.RealLocalizable;
 import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.neighborsearch.KNearestNeighborSearch;
+import net.imglib2.neighborsearch.KNearestNeighborSearchOnKDTree;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.ValuePair;
 import net.imglib2.util.Pair;
@@ -56,6 +60,11 @@ public class DataTest {
 		// nearest neighbor distances: 2x 1 (nodes 1 and 5), 3x 1/2 (nodes 2, 3, and 4)
 		STDataStatistics statistics = new STDataStatistics(data);
 
+		final KDTree<RealLocalizable> tree = new KDTree<>( data );
+		final KNearestNeighborSearch<RealLocalizable> search =  new KNearestNeighborSearchOnKDTree<>( tree, 2 );
+		tree.iterator().forEachRemaining( p -> System.out.println( Arrays.toString( p.positionAsDoubleArray() ) ) );;
+
+		// TODO: seems like the KDTree iterator is not working ... 
 		assertEquals(0.7, statistics.getMeanDistance(), 1e-8);
 		assertEquals(0.5, statistics.getMedianDistance(), 1e-8);
 		assertEquals(0.5, statistics.getMinDistance(), 1e-8);
