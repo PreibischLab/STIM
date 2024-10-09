@@ -19,15 +19,23 @@ public class KNearestNeighborMaxDistanceSearchOnKDTree< T > extends KNearestNeig
 	final Sampler[] values;
 	final RealLocalizable[] points;
 	final double[] newBestSquDistances;
+	final double[] pos;
+	final KDTree< T > tree; // is private in superclass
 
-	public KNearestNeighborMaxDistanceSearchOnKDTree(final KDTree< T > tree, final int k, final Supplier<T> outOfBounds, final MaxDistanceParam param )
+	public KNearestNeighborMaxDistanceSearchOnKDTree(
+			final KDTree< T > tree,
+			final int k,
+			final Supplier<T> outOfBounds,
+			final MaxDistanceParam param )
 	{
 		super( tree, k );
 
+		this.pos = new double[ tree.numDimensions() ];
 		this.oobsSampler = new SimpleSampler<>(outOfBounds);
 		this.position = new SimpleRealLocalizable( pos );
 		this.param = param;
 		this.outOfBounds = outOfBounds;
+		this.tree = tree;
 
 		this.values = new Sampler[ k ];
 		this.points = new RealLocalizable[ k ];
@@ -38,10 +46,11 @@ public class KNearestNeighborMaxDistanceSearchOnKDTree< T > extends KNearestNeig
 	public void search( final RealLocalizable p )
 	{
 		super.search( p );
+		p.localize( pos );
 
-		for ( int i = 0; i < k; ++i )
+		for ( int i = 0; i < getK(); ++i )
 		{
-			if ( bestSquDistances[ i ] > param.maxSqDistance() )
+			if ( getSquareDistance( i ) > param.maxSqDistance() )
 			{
 				if ( i == 0 )
 				{
@@ -57,9 +66,9 @@ public class KNearestNeighborMaxDistanceSearchOnKDTree< T > extends KNearestNeig
 			}
 			else
 			{
-				values[ i ] = bestPoints[ i ];
-				points[ i ] = bestPoints[ i ];
-				newBestSquDistances[ i ] = bestSquDistances[ i ];
+				values[ i ] = getSampler( i );
+				points[ i ] = getPosition( i );
+				newBestSquDistances[ i ] = getSquareDistance( i );
 			}
 		}
 	}
@@ -115,17 +124,11 @@ public class KNearestNeighborMaxDistanceSearchOnKDTree< T > extends KNearestNeig
 	@Override
 	public KNearestNeighborMaxDistanceSearchOnKDTree< T > copy()
 	{
-		final KNearestNeighborMaxDistanceSearchOnKDTree< T > copy = new KNearestNeighborMaxDistanceSearchOnKDTree<>(tree, k, outOfBounds, param);
-		System.arraycopy( pos, 0, copy.pos, 0, pos.length );
+		final KNearestNeighborMaxDistanceSearchOnKDTree< T > copy =
+				new KNearestNeighborMaxDistanceSearchOnKDTree<>(tree, getK(), outOfBounds, param);
 
-		for ( int i = 0; i < k; ++i )
-		{
-			copy.bestPoints[ i ] = bestPoints[ i ];
-			copy.bestSquDistances[ i ] = bestSquDistances[ i ];
-			copy.newBestSquDistances[ i ] = newBestSquDistances[ i ];
-			copy.points[ i ] = points[ i ];
-			copy.values[ i ] = values[ i ];
-		}
+		// make sure the state is preserved
+		copy.search( position );
 
 		return copy;
 	}

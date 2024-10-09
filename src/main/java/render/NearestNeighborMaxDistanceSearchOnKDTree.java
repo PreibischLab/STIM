@@ -16,6 +16,7 @@ public class NearestNeighborMaxDistanceSearchOnKDTree< T > extends NearestNeighb
 	final SimpleRealLocalizable position;
 	final MaxDistanceParam param;
 	final KDTree< T > tree; // is private in superclass
+	final double[] pos;
 
 	Sampler< T > value;
 	RealLocalizable point;
@@ -25,9 +26,10 @@ public class NearestNeighborMaxDistanceSearchOnKDTree< T > extends NearestNeighb
 	{
 		super( tree );
 
+		this.pos = new double[ tree.numDimensions() ];
 		this.tree = tree;
 		this.oobsSampler = new SimpleSampler<>(outOfBounds);
-		this.position = new SimpleRealLocalizable( pos ); // TODO: what was pos??
+		this.position = new SimpleRealLocalizable( pos ); // last queried location
 		this.outOfBounds = outOfBounds;
 		this.param = param;
 	}
@@ -36,6 +38,7 @@ public class NearestNeighborMaxDistanceSearchOnKDTree< T > extends NearestNeighb
 	public void search( final RealLocalizable p )
 	{
 		super.search( p );
+		p.localize( pos );
 
 		if ( getSquareDistance() > param.maxSqDistance() )
 		{
@@ -78,13 +81,12 @@ public class NearestNeighborMaxDistanceSearchOnKDTree< T > extends NearestNeighb
 	@Override
 	public NearestNeighborMaxDistanceSearchOnKDTree< T > copy()
 	{
-		final NearestNeighborMaxDistanceSearchOnKDTree< T > copy = new NearestNeighborMaxDistanceSearchOnKDTree<>(tree, outOfBounds, param);
-		System.arraycopy( pos, 0, copy.pos, 0, pos.length );
-		copy.bestPoint = bestPoint;
-		copy.bestSquDistance = bestSquDistance;
-		copy.newbestSquDistance = newbestSquDistance;
-		copy.point = point;
-		copy.value = value;
+		final NearestNeighborMaxDistanceSearchOnKDTree< T > copy =
+				new NearestNeighborMaxDistanceSearchOnKDTree<>(tree, outOfBounds, param);
+
+		// make sure the state is preserved
+		copy.search( position );
+
 		return copy;
 	}
 }
