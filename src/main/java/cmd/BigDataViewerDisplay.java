@@ -1,6 +1,7 @@
 package cmd;
 
 import java.io.File;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -46,6 +47,8 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import render.Render;
 import org.apache.logging.log4j.Logger;
+
+import util.Cloud;
 import util.LoggerUtil;
 
 @Command(name = "st-bdv-view", mixinStandardHelpOptions = true, version = "0.3.1", description = "Spatial Transcriptomics as IMages project - visualize ST data in BigDataViewer")
@@ -97,7 +100,7 @@ public class BigDataViewerDisplay implements Callable<Void>
 
 		final boolean useTransform = true;
 
-		if (!(new File(inputPath)).exists()) {
+		if ( Cloud.isFile( URI.create( inputPath ) ) && !(new File(inputPath)).exists()) {
 			logger.error("Container / dataset '{}' does not exist. Stopping.", inputPath);
 			return null;
 		}

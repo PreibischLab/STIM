@@ -1,6 +1,7 @@
 package cmd;
 
 import java.io.File;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -17,6 +18,8 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Command;
 import util.Threads;
 import org.apache.logging.log4j.Logger;
+
+import util.Cloud;
 import util.LoggerUtil;
 
 @Command(name = "st-align-global", mixinStandardHelpOptions = true, version = "0.3.1", description = "Spatial Transcriptomics as IMages project - global alignment of all slices")
@@ -83,7 +86,7 @@ public class GlobalOpt implements Callable<Void> {
 
 	@Override
 	public Void call() throws Exception {
-		if (!(new File(containerPath)).exists()) {
+		if ( Cloud.isFile( URI.create( containerPath ) ) && !(new File(containerPath)).exists()) {
 			logger.error("Container '{}' does not exist. Stopping.", containerPath);
 			return null;
 		}

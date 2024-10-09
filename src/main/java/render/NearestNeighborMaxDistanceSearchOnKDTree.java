@@ -15,6 +15,7 @@ public class NearestNeighborMaxDistanceSearchOnKDTree< T > extends NearestNeighb
 	final SimpleSampler< T > oobsSampler;
 	final SimpleRealLocalizable position;
 	final MaxDistanceParam param;
+	final KDTree< T > tree; // is private in superclass
 
 	Sampler< T > value;
 	RealLocalizable point;
@@ -24,8 +25,9 @@ public class NearestNeighborMaxDistanceSearchOnKDTree< T > extends NearestNeighb
 	{
 		super( tree );
 
+		this.tree = tree;
 		this.oobsSampler = new SimpleSampler<>(outOfBounds);
-		this.position = new SimpleRealLocalizable( pos );
+		this.position = new SimpleRealLocalizable( pos ); // TODO: what was pos??
 		this.outOfBounds = outOfBounds;
 		this.param = param;
 	}
@@ -35,7 +37,7 @@ public class NearestNeighborMaxDistanceSearchOnKDTree< T > extends NearestNeighb
 	{
 		super.search( p );
 
-		if ( bestSquDistance > param.maxSqDistance() )
+		if ( getSquareDistance() > param.maxSqDistance() )
 		{
 			value = oobsSampler;
 			point = position;
@@ -43,9 +45,9 @@ public class NearestNeighborMaxDistanceSearchOnKDTree< T > extends NearestNeighb
 		}
 		else
 		{
-			value = bestPoint;
-			point = bestPoint;
-			newbestSquDistance = bestSquDistance;
+			value = getSampler();
+			point = getPosition();
+			newbestSquDistance = getSquareDistance();
 		}
 	}
 

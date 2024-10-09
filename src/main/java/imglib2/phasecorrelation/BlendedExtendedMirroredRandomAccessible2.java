@@ -199,7 +199,12 @@ public class BlendedExtendedMirroredRandomAccessible2<T extends RealType<T>>impl
 	public RandomAccess<T> randomAccess(Interval interval) {
 		return randomAccess();
 	}
-	
+
+	@Override
+	public T getType() {
+		return img.getType();
+	}
+
 
 	public static void main(String[] args) {
 		

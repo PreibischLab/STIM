@@ -2,6 +2,7 @@ package cmd;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -17,6 +18,8 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import org.apache.logging.log4j.Logger;
+
+import util.Cloud;
 import util.LoggerUtil;
 import util.Threads;
 
@@ -33,7 +36,7 @@ public class View implements Callable<Void> {
 
 	@Override
 	public Void call() throws IOException {
-		if (!(new File(inputPath)).exists()) {
+		if ( Cloud.isFile( URI.create( inputPath ) ) && !(new File(inputPath)).exists()) {
 			logger.error("Container / dataset '{}' does not exist. Stopping.", inputPath);
 			return null;
 		}

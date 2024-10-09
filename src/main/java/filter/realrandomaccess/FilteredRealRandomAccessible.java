@@ -10,13 +10,16 @@ public class FilteredRealRandomAccessible< S, T > implements RealRandomAccessibl
 {
 	final IterableRealInterval< S > data;
 	final FilterFactory< S, T > filterFactory;
+	final T type;
 
 	public FilteredRealRandomAccessible(
 			final IterableRealInterval< S > data,
-			final FilterFactory< S, T > filterFactory )
+			final FilterFactory< S, T > filterFactory,
+			final T type )
 	{
 		this.data = data;
 		this.filterFactory = filterFactory;
+		this.type = type;
 	}
 
 	@Override
@@ -36,4 +39,7 @@ public class FilteredRealRandomAccessible< S, T > implements RealRandomAccessibl
 	{
 		return realRandomAccess();
 	}
+
+	@Override
+	public T getType() { return type; }
 }

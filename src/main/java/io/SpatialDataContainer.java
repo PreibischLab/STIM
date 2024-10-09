@@ -1,6 +1,8 @@
 package io;
 
 import mpicbg.models.PointMatch;
+import util.Cloud;
+
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5FSReader;
@@ -8,6 +10,7 @@ import org.janelia.saalfeldlab.n5.N5FSWriter;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,6 +27,7 @@ import java.util.function.BinaryOperator;
 import align.SiftMatch;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
 
 public class SpatialDataContainer {
 
@@ -48,28 +52,43 @@ public class SpatialDataContainer {
 		this.readOnly = readOnly;
 		this.service = service;
 
-		this.n5 = readOnly ? new N5FSReader(path) : new N5FSWriter(path);
+		this.n5 = readOnly ?
+					Cloud.instantiateN5Reader( StorageFormat.N5, URI.create( path )) //new N5FSReader(path)
+				:
+					Cloud.instantiateN5Writer( StorageFormat.N5, URI.create( path ));
 	}
 
-	public static SpatialDataContainer openExisting(final String path, final ExecutorService service) throws IOException {
-		if (!(new File(path)).exists())
+	public static SpatialDataContainer openExisting(final String path, final ExecutorService service) throws IOException
+	{
+		final URI pathURI = URI.create( path );
+
+		if ( Cloud.isFile( pathURI ) && !(new File(path)).exists())
 			throw new IOException("N5 '" + path + "' does not exist.");
+
 		SpatialDataContainer container = new SpatialDataContainer(path, service, false);
 		container.readFromDisk();
 		return container;
 	}
 
-	public static SpatialDataContainer openForReading(final String path, final ExecutorService service) throws IOException {
-		if (!(new File(path)).exists())
+	public static SpatialDataContainer openForReading(final String path, final ExecutorService service) throws IOException
+	{
+		final URI pathURI = URI.create( path );
+
+		if ( Cloud.isFile( pathURI ) && !(new File(path)).exists())
 			throw new IOException("N5 '" + path + "' does not exist.");
+
 		SpatialDataContainer container = new SpatialDataContainer(path, service, true);
 		container.readFromDisk();
 		return container;
 	}
 
-	public static SpatialDataContainer createNew(final String path, final ExecutorService service) throws IOException {
-		if ((new File(path)).exists())
+	public static SpatialDataContainer createNew(final String path, final ExecutorService service) throws IOException
+	{
+		final URI pathURI = URI.create( path );
+
+		if ( Cloud.isFile( pathURI ) && (new File(path)).exists())
 			throw new IOException("N5 '" + path + "' already exists.");
+
 		SpatialDataContainer container = new SpatialDataContainer(path, service, false);
 		container.initializeContainer();
 		return container;
@@ -204,7 +223,8 @@ public class SpatialDataContainer {
 	}
 
 	public static boolean isCompatibleContainer(String path) {
-		try (N5FSReader reader = new N5FSReader(path)) {
+		try (N5Reader reader = Cloud.instantiateN5Reader( StorageFormat.N5, URI.create( path ))/*new N5FSReader(path)*/)
+		{
 			String actualVersion = reader.getAttribute("/", versionKey, String.class);
 			return (actualVersion.equals(version));
 		} catch (Exception e) {

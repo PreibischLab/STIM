@@ -8,7 +8,7 @@ public class MedianRealRandomAccessible< T extends RealType< T > > extends Filte
 {
 	public MedianRealRandomAccessible( final IterableRealInterval< T > data, final T outofbounds, final double radius )
 	{
-		super( data, new MedianFilterFactory<>( outofbounds, radius ) );
+		super( data, new MedianFilterFactory<>( outofbounds, radius ), data.getType() );
 	}
 
 	@Override
