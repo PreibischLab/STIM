@@ -295,7 +295,7 @@ public class SpatialDataContainer {
 	public void deleteFileOrDirectory(Path path) throws IOException
 	{
 		// TODO: no cloud support yet
-		if ( Cloud.isFile( rootPathURI ))
+		if ( !Cloud.isFile( rootPathURI ))
 			throw new RuntimeException( "not supported for cloud yet." );
 
 		File file = new File(path.toString());
