@@ -28,6 +28,8 @@ import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealCursor;
 import net.imglib2.RealLocalizable;
+import net.imglib2.RealPoint;
+import net.imglib2.RealPointSampleList;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.kdtree.KDTreeData;
 import net.imglib2.neighborsearch.KNearestNeighborSearch;
@@ -64,30 +66,41 @@ public class DataTest {
 
 		System.out.println( data.getClass().getName() ); // data.STDataImgLib2
 		System.out.println( data.cursor().getClass().getName() ); // imglib2.LocationRealCursor
-		data.cursor().copy().forEachRemaining( p -> System.out.println( "cursor on STDATA: " + Arrays.toString( p.positionAsDoubleArray() ) ) );
+		data.cursor().copy().forEachRemaining( p -> System.out.println( "values on STDATA: " + Arrays.toString( p.positionAsDoubleArray() ) ) );
 
 		/*
 		// this works ...
 		RealPointSampleList<RealLocalizable> psl = new RealPointSampleList<>( 2 );
-		RealPoint p = new RealPoint( 1, 1 );
-		psl.add( p,p );
+		RealPoint point = new RealPoint( 1, 1 );
+		psl.add( point, point );
 
-		p = new RealPoint( 2, 2 );
-		psl.add( p,p );
+		point = new RealPoint( 2, 2 );
+		psl.add( point, point );
 		*/
 
 		// the treedata iterator already fails (argument will always be always false, because it is not a NativeType)
-		KDTreeData.create( (int)data.size(), data.copy(), data.copy(), false ).values().forEach( p ->
-				System.out.println( "cursor on KDTreeData (false): " + Arrays.toString( p.positionAsDoubleArray() ) ) );
+		KDTreeData<RealLocalizable> treeData = KDTreeData.create( (int)data.size(), data.copy(), data.copy(), false );
+
+		// incorrect
+		treeData.values().forEach( p -> System.out.println( "values on KDTreeData: " + Arrays.toString( p.positionAsDoubleArray() ) ) );
+
+		// correct
+		System.out.println( "positions on KDTreeData: " + Arrays.toString( treeData.positions().asFlatArray() ));
+
+		// System.out.println( "deep: " + Arrays.deepToString( treeData.positions().asNestedArray() ));
+		// Throws a NullPointerException
+		// java.lang.ArrayIndexOutOfBoundsException: 5
+		// at net.imglib2.kdtree.KDTreeUtils.unflatten(KDTreeUtils.java:229)
+		// at net.imglib2.kdtree.KDTreePositions$Flat.asNestedArray(KDTreePositions.java:151)
 
 		// Note (KDTreeData): final double[][] points = KDTreeUtils.initPositions( numDimensions, numPoints, positions ); << works
 
-		
+
 		final KDTree<RealLocalizable> tree = new KDTree<>( KDTreeData.create( (int)data.size(), data.copy(), data.copy(), false ) ); // also doesn't work
 		//final KDTree<RealLocalizable> tree = new KDTree<>( KDTreeData.create( (int)data.size(), data, data, false ) ); // also doesn't work
 		//final KDTree<RealLocalizable> tree = new KDTree<>( (int)data.size(), data, data ); // also doesn't work
 		//final KDTree<RealLocalizable> tree = new KDTree<>( data ); // doesn't work
-		tree.iterator().forEachRemaining( po -> System.out.println( "iterator on tree: " + Arrays.toString( po.positionAsDoubleArray() ) ) );;
+		tree.iterator().forEachRemaining( po -> System.out.println( "values on tree: " + Arrays.toString( po.positionAsDoubleArray() ) ) );;
 
 		final KNearestNeighborSearch<RealLocalizable> search =  new KNearestNeighborSearchOnKDTree<>( tree, 2 );
 

@@ -47,12 +47,12 @@ public class ImgLib2Util
 		final ExecutorService service = Threads.createFixedExecutorService();
 		final CellImgFactory< DoubleType > factory = new CellImgFactory<>(new DoubleType());
 
-		long time = System.currentTimeMillis();
+		//long time = System.currentTimeMillis();
 
 		final RandomAccessibleInterval< DoubleType > exprValues = ImgLib2Util.copyImg( data.getAllExprValues(), factory, service );
 		final RandomAccessibleInterval< DoubleType > locations = ImgLib2Util.copyImg( data.getLocations(), factory, service );
 
-		System.out.println( "Copy took: " + ( System.currentTimeMillis() - time ) );
+		//System.out.println( "Copy took: " + ( System.currentTimeMillis() - time ) );
 
 		service.shutdown();
 
