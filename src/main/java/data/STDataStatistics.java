@@ -1,7 +1,8 @@
 package data;
 
 import data.STDataUtils.DistanceStats;
-import net.imglib2.KDTree;
+import net.imglib2.RealPoint;
+import util.KDTreeUtil;
 
 public class STDataStatistics
 {
@@ -9,8 +10,7 @@ public class STDataStatistics
 
 	public STDataStatistics( final STData data )
 	{
-		// TODO: KDTreeUtil.createParallelizableKDTreeFrom?
-		this.ds = STDataUtils.distanceStats( new KDTree<>( data ) );
+		this.ds = STDataUtils.distanceStats( KDTreeUtil.createParallelizableKDTreeFrom( data, p -> new RealPoint( p ) ) );//new KDTree<>( data ) );
 	}
 
 	public double getMeanDistance() { return ds.avgDist; }
