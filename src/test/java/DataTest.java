@@ -1,29 +1,8 @@
-import data.NormalizingSTData;
-import data.STData;
-import data.STDataImgLib2;
-import data.STDataStatistics;
-import data.STDataText;
-import net.imglib2.Interval;
-import net.imglib2.KDTree;
-import net.imglib2.PointSampleList;
-import net.imglib2.RandomAccess;
-import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.RealCursor;
-import net.imglib2.RealLocalizable;
-import net.imglib2.RealPoint;
-import net.imglib2.RealPointSampleList;
-import net.imglib2.img.array.ArrayImgFactory;
-import net.imglib2.kdtree.KDTreeData;
-import net.imglib2.neighborsearch.KNearestNeighborSearch;
-import net.imglib2.neighborsearch.KNearestNeighborSearchOnKDTree;
-import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.util.ValuePair;
-import net.imglib2.util.Pair;
-import org.junit.jupiter.api.DisplayNameGeneration;
-import org.junit.jupiter.api.DisplayNameGenerator;
-import org.junit.jupiter.api.Named;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Named.named;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,11 +11,30 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Named.named;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
+import org.junit.jupiter.api.Named;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import data.NormalizingSTData;
+import data.STData;
+import data.STDataImgLib2;
+import data.STDataStatistics;
+import data.STDataText;
+import net.imglib2.Interval;
+import net.imglib2.KDTree;
+import net.imglib2.RandomAccess;
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.RealCursor;
+import net.imglib2.RealLocalizable;
+import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.kdtree.KDTreeData;
+import net.imglib2.neighborsearch.KNearestNeighborSearch;
+import net.imglib2.neighborsearch.KNearestNeighborSearchOnKDTree;
+import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.util.Pair;
+import net.imglib2.util.ValuePair;
 
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -78,10 +76,13 @@ public class DataTest {
 		psl.add( p,p );
 		*/
 
-		// the treedata iterator already fails
-		KDTreeData<RealLocalizable> treeData = KDTreeData.create( (int)data.size(), data.copy(), data.copy(), false );
-		treeData.values().forEach( p -> System.out.println( "cursor on KDTreeData: " + Arrays.toString( p.positionAsDoubleArray() ) ) );
+		// the treedata iterator already fails (argument will always be always false, because it is not a NativeType)
+		KDTreeData.create( (int)data.size(), data.copy(), data.copy(), false ).values().forEach( p ->
+				System.out.println( "cursor on KDTreeData (false): " + Arrays.toString( p.positionAsDoubleArray() ) ) );
 
+		// Note (KDTreeData): final double[][] points = KDTreeUtils.initPositions( numDimensions, numPoints, positions ); << works
+
+		
 		final KDTree<RealLocalizable> tree = new KDTree<>( KDTreeData.create( (int)data.size(), data.copy(), data.copy(), false ) ); // also doesn't work
 		//final KDTree<RealLocalizable> tree = new KDTree<>( KDTreeData.create( (int)data.size(), data, data, false ) ); // also doesn't work
 		//final KDTree<RealLocalizable> tree = new KDTree<>( (int)data.size(), data, data ); // also doesn't work
