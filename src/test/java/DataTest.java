@@ -64,47 +64,6 @@ public class DataTest {
 		// nearest neighbor distances: 2x 1 (nodes 1 and 5), 3x 1/2 (nodes 2, 3, and 4)
 		STDataStatistics statistics = new STDataStatistics( data );
 
-		System.out.println( data.getClass().getName() ); // data.STDataImgLib2
-		System.out.println( data.cursor().getClass().getName() ); // imglib2.LocationRealCursor
-		data.cursor().copy().forEachRemaining( p -> System.out.println( "values on STDATA: " + Arrays.toString( p.positionAsDoubleArray() ) ) );
-
-		/*
-		// this works ...
-		RealPointSampleList<RealLocalizable> psl = new RealPointSampleList<>( 2 );
-		RealPoint point = new RealPoint( 1, 1 );
-		psl.add( point, point );
-
-		point = new RealPoint( 2, 2 );
-		psl.add( point, point );
-		*/
-
-		// the treedata iterator already fails (argument will always be always false, because it is not a NativeType)
-		KDTreeData<RealLocalizable> treeData = KDTreeData.create( (int)data.size(), data.copy(), data.copy(), false );
-
-		// incorrect
-		treeData.values().forEach( p -> System.out.println( "values on KDTreeData: " + Arrays.toString( p.positionAsDoubleArray() ) ) );
-
-		// correct
-		System.out.println( "positions on KDTreeData: " + Arrays.toString( treeData.positions().asFlatArray() ));
-
-		// System.out.println( "deep: " + Arrays.deepToString( treeData.positions().asNestedArray() ));
-		// Throws a NullPointerException
-		// java.lang.ArrayIndexOutOfBoundsException: 5
-		// at net.imglib2.kdtree.KDTreeUtils.unflatten(KDTreeUtils.java:229)
-		// at net.imglib2.kdtree.KDTreePositions$Flat.asNestedArray(KDTreePositions.java:151)
-
-		// Note (KDTreeData): final double[][] points = KDTreeUtils.initPositions( numDimensions, numPoints, positions ); << works
-
-
-		final KDTree<RealLocalizable> tree = new KDTree<>( KDTreeData.create( (int)data.size(), data.copy(), data.copy(), false ) ); // also doesn't work
-		//final KDTree<RealLocalizable> tree = new KDTree<>( KDTreeData.create( (int)data.size(), data, data, false ) ); // also doesn't work
-		//final KDTree<RealLocalizable> tree = new KDTree<>( (int)data.size(), data, data ); // also doesn't work
-		//final KDTree<RealLocalizable> tree = new KDTree<>( data ); // doesn't work
-		tree.iterator().forEachRemaining( po -> System.out.println( "values on tree: " + Arrays.toString( po.positionAsDoubleArray() ) ) );;
-
-		final KNearestNeighborSearch<RealLocalizable> search =  new KNearestNeighborSearchOnKDTree<>( tree, 2 );
-
-		// TODO: seems like the KDTree iterator is not working ... 
 		assertEquals(0.7, statistics.getMeanDistance(), 1e-8);
 		assertEquals(0.5, statistics.getMedianDistance(), 1e-8);
 		assertEquals(0.5, statistics.getMinDistance(), 1e-8);
