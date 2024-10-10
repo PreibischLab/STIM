@@ -5,11 +5,15 @@ import data.STDataStatistics;
 import data.STDataText;
 import net.imglib2.Interval;
 import net.imglib2.KDTree;
+import net.imglib2.PointSampleList;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealCursor;
 import net.imglib2.RealLocalizable;
+import net.imglib2.RealPoint;
+import net.imglib2.RealPointSampleList;
 import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.kdtree.KDTreeData;
 import net.imglib2.neighborsearch.KNearestNeighborSearch;
 import net.imglib2.neighborsearch.KNearestNeighborSearchOnKDTree;
 import net.imglib2.type.numeric.real.DoubleType;
@@ -58,11 +62,33 @@ public class DataTest {
 	@MethodSource("createDataInstances")
 	public void statistics_are_correct(STData data) {
 		// nearest neighbor distances: 2x 1 (nodes 1 and 5), 3x 1/2 (nodes 2, 3, and 4)
-		STDataStatistics statistics = new STDataStatistics(data);
+		STDataStatistics statistics = new STDataStatistics( data );
 
-		final KDTree<RealLocalizable> tree = new KDTree<>( data );
+		System.out.println( data.getClass().getName() ); // data.STDataImgLib2
+		System.out.println( data.cursor().getClass().getName() ); // imglib2.LocationRealCursor
+		data.cursor().copy().forEachRemaining( p -> System.out.println( "cursor on STDATA: " + Arrays.toString( p.positionAsDoubleArray() ) ) );
+
+		/*
+		// this works ...
+		RealPointSampleList<RealLocalizable> psl = new RealPointSampleList<>( 2 );
+		RealPoint p = new RealPoint( 1, 1 );
+		psl.add( p,p );
+
+		p = new RealPoint( 2, 2 );
+		psl.add( p,p );
+		*/
+
+		// the treedata iterator already fails
+		KDTreeData<RealLocalizable> treeData = KDTreeData.create( (int)data.size(), data.copy(), data.copy(), false );
+		treeData.values().forEach( p -> System.out.println( "cursor on KDTreeData: " + Arrays.toString( p.positionAsDoubleArray() ) ) );
+
+		final KDTree<RealLocalizable> tree = new KDTree<>( KDTreeData.create( (int)data.size(), data.copy(), data.copy(), false ) ); // also doesn't work
+		//final KDTree<RealLocalizable> tree = new KDTree<>( KDTreeData.create( (int)data.size(), data, data, false ) ); // also doesn't work
+		//final KDTree<RealLocalizable> tree = new KDTree<>( (int)data.size(), data, data ); // also doesn't work
+		//final KDTree<RealLocalizable> tree = new KDTree<>( data ); // doesn't work
+		tree.iterator().forEachRemaining( po -> System.out.println( "iterator on tree: " + Arrays.toString( po.positionAsDoubleArray() ) ) );;
+
 		final KNearestNeighborSearch<RealLocalizable> search =  new KNearestNeighborSearchOnKDTree<>( tree, 2 );
-		tree.iterator().forEachRemaining( p -> System.out.println( Arrays.toString( p.positionAsDoubleArray() ) ) );;
 
 		// TODO: seems like the KDTree iterator is not working ... 
 		assertEquals(0.7, statistics.getMeanDistance(), 1e-8);
