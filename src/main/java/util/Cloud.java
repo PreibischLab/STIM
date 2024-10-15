@@ -55,7 +55,6 @@ public class Cloud
 			}
 
 			return n5w;
-			//return new N5Factory().openWriter( format, uri ); // cloud support, avoid dependency hell if it is a local file
 		}
 	}
 
@@ -88,7 +87,6 @@ public class Cloud
 			}
 
 			return n5r;
-			//return new N5Factory().openReader( format, uri ); // cloud support, avoid dependency hell if it is a local file
 		}
 	}
 

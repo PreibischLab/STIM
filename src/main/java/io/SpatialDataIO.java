@@ -369,9 +369,9 @@ public abstract class SpatialDataIO {
 		if (extension.startsWith("h5")) {
 			writerSupplier = () -> new N5HDF5Writer(path);
 		} else if (extension.startsWith("n5")) {
-			writerSupplier = () -> Cloud.instantiateN5Writer( StorageFormat.N5, URI.create( path ));//new N5FSWriter(path);
+			writerSupplier = () -> Cloud.instantiateN5Writer( StorageFormat.N5, URI.create(path));
 		} else if (extension.startsWith("zarr")) {
-			writerSupplier = () -> Cloud.instantiateN5Writer( StorageFormat.ZARR, URI.create( path ));//new N5ZarrWriter(path);
+			writerSupplier = () -> Cloud.instantiateN5Writer( StorageFormat.ZARR, URI.create(path));
 		} else {
 			throw new UnsupportedOperationException("Cannot find N5 backend for extension'" + extension + "'.");
 		}
@@ -398,9 +398,9 @@ public abstract class SpatialDataIO {
 		if (extension.startsWith("h5")) {
 			readerSupplier = () -> new N5HDF5Reader(path);
 		} else if (extension.startsWith("n5")) {
-			readerSupplier = () -> Cloud.instantiateN5Reader( StorageFormat.N5, URI.create( path ));//new N5FSReader(path);
+			readerSupplier = () -> Cloud.instantiateN5Reader(StorageFormat.N5, URI.create(path));
 		} else if (extension.startsWith("zarr")) {
-			readerSupplier = () -> Cloud.instantiateN5Reader( StorageFormat.ZARR, URI.create( path ));//new N5ZarrReader(path);
+			readerSupplier = () -> Cloud.instantiateN5Reader(StorageFormat.ZARR, URI.create(path));
 		} else {
 			throw new UnsupportedOperationException("Cannot find N5 backend for extension'" + extension + "'.");
 		}
