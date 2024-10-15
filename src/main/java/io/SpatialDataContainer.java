@@ -1,6 +1,7 @@
 package io;
 
 import mpicbg.models.PointMatch;
+import org.apache.logging.log4j.Logger;
 import util.Cloud;
 
 import org.janelia.saalfeldlab.n5.DataType;
@@ -26,8 +27,11 @@ import align.SiftMatch;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
+import util.LoggerUtil;
 
 public class SpatialDataContainer {
+
+	private static final Logger logger = LoggerUtil.getLogger();
 
 	final private String rootPath;
 	final private URI rootPathURI;
@@ -112,14 +116,10 @@ public class SpatialDataContainer {
 		if (numDatasets != datasets.size())
 			throw new SpatialDataException("Incompatible number of datasets: expected " + numDatasets + ", found " + datasets.size() + ".");
 
-		try
-		{
+		try {
 			matches = new ArrayList<>(Arrays.asList(n5.list(n5.groupPath("matches"))));
-		}
-		catch ( Exception e )
-		{
-			System.out.println( "Unable to read matches: " + e);
-			e.printStackTrace();
+		} catch (Exception e) {
+			logger.warn("Unable to read matches", e);
 		}
 	}
 
