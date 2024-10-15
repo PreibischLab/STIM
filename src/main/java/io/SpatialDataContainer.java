@@ -1,13 +1,15 @@
 package io;
 
 import mpicbg.models.PointMatch;
+import org.apache.logging.log4j.Logger;
+import util.Cloud;
+
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.GzipCompression;
-import org.janelia.saalfeldlab.n5.N5FSReader;
-import org.janelia.saalfeldlab.n5.N5FSWriter;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,10 +26,15 @@ import java.util.function.BinaryOperator;
 import align.SiftMatch;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
+import util.LoggerUtil;
 
 public class SpatialDataContainer {
 
+	private static final Logger logger = LoggerUtil.getLogger();
+
 	final private String rootPath;
+	final private URI rootPathURI;
 	final private boolean readOnly;
 	final private ExecutorService service;
 	final private N5Reader n5;
@@ -45,38 +52,50 @@ public class SpatialDataContainer {
 
 	protected SpatialDataContainer(final String path, final ExecutorService service, final boolean readOnly) throws IOException {
 		this.rootPath = path;
+		this.rootPathURI = URI.create( this.rootPath );
 		this.readOnly = readOnly;
 		this.service = service;
 
-		this.n5 = readOnly ? new N5FSReader(path) : new N5FSWriter(path);
+		if (readOnly) {
+			this.n5 = Cloud.instantiateN5Reader(StorageFormat.N5, URI.create(path));
+		} else {
+			this.n5 = Cloud.instantiateN5Writer(StorageFormat.N5, URI.create(path));
+		}
 	}
 
-	public static SpatialDataContainer openExisting(final String path, final ExecutorService service) throws IOException {
-		if (!(new File(path)).exists())
+	public static SpatialDataContainer openExisting(final String path, final ExecutorService service) throws IOException
+	{
+
+		if (! exists(path))
 			throw new IOException("N5 '" + path + "' does not exist.");
+
 		SpatialDataContainer container = new SpatialDataContainer(path, service, false);
 		container.readFromDisk();
 		return container;
 	}
 
-	public static SpatialDataContainer openForReading(final String path, final ExecutorService service) throws IOException {
-		if (!(new File(path)).exists())
+	public static SpatialDataContainer openForReading(final String path, final ExecutorService service) throws IOException
+	{
+		if (! exists(path))
 			throw new IOException("N5 '" + path + "' does not exist.");
+
 		SpatialDataContainer container = new SpatialDataContainer(path, service, true);
 		container.readFromDisk();
 		return container;
 	}
 
-	public static SpatialDataContainer createNew(final String path, final ExecutorService service) throws IOException {
-		if ((new File(path)).exists())
+	public static SpatialDataContainer createNew(final String path, final ExecutorService service) throws IOException
+	{
+		if (exists(path))
 			throw new IOException("N5 '" + path + "' already exists.");
+
 		SpatialDataContainer container = new SpatialDataContainer(path, service, false);
 		container.initializeContainer();
 		return container;
 	}
 
 	protected void initializeContainer() {
-		N5FSWriter writer = (N5FSWriter) n5;
+		N5Writer writer = (N5Writer) n5;
 		writer.setAttribute("/", versionKey, version);
 		writer.createGroup("/matches");
 		updateDatasetMetadata();
@@ -92,11 +111,15 @@ public class SpatialDataContainer {
 		if (numDatasets != datasets.size())
 			throw new SpatialDataException("Incompatible number of datasets: expected " + numDatasets + ", found " + datasets.size() + ".");
 
-		matches = new ArrayList<>(Arrays.asList(n5.list(n5.groupPath("matches"))));
+		try {
+			matches = new ArrayList<>(Arrays.asList(n5.list(n5.groupPath("matches"))));
+		} catch (Exception e) {
+			logger.warn("Unable to read matches", e);
+		}
 	}
 
 	protected void updateDatasetMetadata() {
-		N5FSWriter writer = (N5FSWriter) n5;
+		N5Writer writer = (N5Writer) n5;
 		writer.setAttribute("/", numDatasetsKey, datasets.size());
 		writer.setAttribute("/", datasetsKey, datasets.toArray());
 	}
@@ -107,8 +130,12 @@ public class SpatialDataContainer {
 
 	public void addExistingDataset(String path, String locationPath, String exprValuePath, String annotationPath, String geneAnnotationPath) {
 		associateDataset(path, (src, dest) -> {
-			try {return Files.move(src, dest);}
-			catch (IOException e) {throw new SpatialDataException("Could not move dataset to container.", e);}
+			try {
+				// TODO: not cloud compatible yet
+				return Files.move(src, dest);
+			} catch (IOException e) {
+				throw new SpatialDataException("Could not move dataset to container.", e);
+			}
 		}, locationPath, exprValuePath, annotationPath, geneAnnotationPath);
 	}
 
@@ -118,8 +145,12 @@ public class SpatialDataContainer {
 
 	public void linkExistingDataset(String path, String locationPath, String exprValuePath, String annotationPath, String geneAnnotationPath) {
 		associateDataset(path, (target, link) -> {
-			try {return Files.createSymbolicLink(link, target);}
-			catch (IOException e) {throw new SpatialDataException("Could not link dataset to container.", e);}
+			try {
+				// TODO: not cloud compatible yet
+				return Files.createSymbolicLink(link, target);
+			} catch (IOException e) {
+				throw new SpatialDataException("Could not link dataset to container.", e);
+			}
 		}, locationPath, exprValuePath, annotationPath, geneAnnotationPath);
 	}
 
@@ -131,6 +162,7 @@ public class SpatialDataContainer {
 			String annotationPath,
 			String geneAnnotationPath) {
 
+		// TODO: not cloud compatible yet
 		Path oldPath = Paths.get(path);
 		if (!oldPath.toFile().exists()) {
 			throw new IllegalArgumentException("Dataset '" + oldPath + "' does not exist.");
@@ -157,11 +189,20 @@ public class SpatialDataContainer {
 			writer.setAttribute("/", datasetName + geneAnnotationPathKey, geneAnnotationPath);
 	}
 
-	public void deleteDataset(String datasetName) throws IOException {
+	public void deleteDataset(String datasetName) throws IOException
+	{
 		if (readOnly)
+		{
 			throw new IllegalStateException("Trying to modify a read-only spatial data container.");
-		if (datasets.remove(datasetName)) {
-			deleteFileOrDirectory(Paths.get(rootPath, datasetName));
+		}
+		if (datasets.remove(datasetName))
+		{
+			// TODO: no cloud support yet
+			if (Cloud.isFile(rootPathURI)) {
+				deleteFileOrDirectory(Paths.get(rootPath, datasetName));
+			} else {
+				throw new RuntimeException("not supported for cloud yet.");
+			}
 			updateDatasetMetadata();
 		}
 	}
@@ -175,7 +216,15 @@ public class SpatialDataContainer {
 		String path2 = n5.getAttribute("/", datasetName + exprValuePathKey, String.class);
 		String path3 = n5.getAttribute("/", datasetName + annotationPathKey, String.class);
 		String path4 = n5.getAttribute("/", datasetName + geneAnnotationPathKey, String.class);
-		SpatialDataIO sdio = SpatialDataIO.open(Paths.get(rootPath, datasetName).toRealPath().toString(), service);
+
+		final String path;
+		if (Cloud.isFile(rootPathURI)) {
+			path = Paths.get(rootPath, datasetName).toRealPath().toString();
+		} else {
+			path = Cloud.appendName(rootPathURI, datasetName);
+		}
+
+		SpatialDataIO sdio = SpatialDataIO.open( path, service);
 		sdio.setDataPaths(path1, path2, path3, path4);
 		return sdio;
 	}
@@ -187,7 +236,15 @@ public class SpatialDataContainer {
 		String path2 = n5.getAttribute("/", datasetName + exprValuePathKey, String.class);
 		String path3 = n5.getAttribute("/", datasetName + annotationPathKey, String.class);
 		String path4 = n5.getAttribute("/", datasetName + geneAnnotationPathKey, String.class);
-		SpatialDataIO sdio = SpatialDataIO.openReadOnly(Paths.get(rootPath, datasetName).toRealPath().toString(), service);
+
+		final String path;
+		if (Cloud.isFile(rootPathURI)) {
+			path = Paths.get(rootPath, datasetName).toRealPath().toString();
+		} else {
+			path = Cloud.appendName(rootPathURI, datasetName);
+		}
+
+		SpatialDataIO sdio = SpatialDataIO.openReadOnly(path, service);
 		sdio.setDataPaths(path1, path2, path3, path4);
 		return sdio;
 	}
@@ -204,7 +261,8 @@ public class SpatialDataContainer {
 	}
 
 	public static boolean isCompatibleContainer(String path) {
-		try (N5FSReader reader = new N5FSReader(path)) {
+		try (N5Reader reader = Cloud.instantiateN5Reader( StorageFormat.N5, URI.create( path ))/*new N5FSReader(path)*/)
+		{
 			String actualVersion = reader.getAttribute("/", versionKey, String.class);
 			return (actualVersion.equals(version));
 		} catch (Exception e) {
@@ -231,7 +289,12 @@ public class SpatialDataContainer {
 			deleteFileOrDirectory(Paths.get(rootPath, "matches", matchName));
 	}
 
-	public void deleteFileOrDirectory(Path path) throws IOException {
+	public void deleteFileOrDirectory(Path path) throws IOException
+	{
+		// TODO: no cloud support yet
+		if ( !Cloud.isFile( rootPathURI ))
+			throw new RuntimeException( "not supported for cloud yet." );
+
 		File file = new File(path.toString());
 		if (file.exists()) {
 			if (file.isFile())
@@ -242,7 +305,7 @@ public class SpatialDataContainer {
 	}
 
 	public void savePairwiseMatch(final SiftMatch results) {
-		N5FSWriter writer = (N5FSWriter) n5;
+		N5Writer writer = (N5Writer) n5;
 		final String matchName = constructMatchName(results.getStDataAName(), results.getStDataBName());
 		final String pairwiseGroupName = writer.groupPath("/", "matches", matchName);
 
@@ -304,6 +367,13 @@ public class SpatialDataContainer {
 			return stDataBName + "-" + stDataAName;
 	}
 
+	public static boolean exists(String path) {
+		final URI uri = URI.create(path);
+		return Cloud.isFile(uri) && new File(path).exists();
+	}
+
+
+	// TODO: no cloud support yet
 	private static class TreeDeleter extends SimpleFileVisitor<Path> {
 		@Override
 		public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {

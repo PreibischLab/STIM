@@ -129,9 +129,9 @@ public class AnnDataIO extends SpatialDataIO {
 		if (!reader.exists("/uns/" + name))
 			return;
 
-		RandomAccessibleInterval<T> trafoValues = AnnDataUtils.readNumericalArray(reader, "/uns/" + name);
-		RandomAccess<T> ra = trafoValues.randomAccess();
-		int n = (int) trafoValues.dimension(0);
+		RandomAccessibleInterval<T> transformValues = AnnDataUtils.readNumericalArray(reader, "/uns/" + name);
+		RandomAccess<T> ra = transformValues.randomAccess();
+		int n = (int) transformValues.dimension(0);
 		double[] convertedValues = new double[n];
 
 		for (int k = 0; k < n; k++)

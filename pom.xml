@@ -34,7 +34,28 @@
 		<license.licenseName>gpl_v2</license.licenseName>
 		<license.copyrightOwners>ImgLib2-st developers.</license.copyrightOwners>
 
+		<imglib2.version>7.1.2</imglib2.version>
+		<imglib2-realtransform.version>4.0.3</imglib2-realtransform.version>
+		<imglib2-cache.version>1.0.0-beta-19</imglib2-cache.version>
+		<imglib2-algorithm.version>0.16.0</imglib2-algorithm.version>
+		<imglib2-roi.version>0.15.1</imglib2-roi.version>
+		<n5-imglib2.version>7.0.2</n5-imglib2.version>
+		<bigdataviewer-core.version>10.6.1</bigdataviewer-core.version>
+		<bigdataviewer-vistools.version>1.0.0-beta-36</bigdataviewer-vistools.version>
+
 	</properties>
+<!--
+<build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <skipTests>true</skipTests>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build> -->
 
 	<developers>
 		<developer>
@@ -52,6 +73,7 @@
 			</roles>
 		</developer>
 	</developers>
+
 	<contributors>
 		<contributor>
 			<name>StephanPreibisch</name>
@@ -158,29 +180,33 @@
 		<dependency>
 			<groupId>org.janelia.saalfeldlab</groupId>
 			<artifactId>n5</artifactId>
-			<version>3.1.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.janelia.saalfeldlab</groupId>
 			<artifactId>n5-imglib2</artifactId>
-			<version>7.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.janelia.saalfeldlab</groupId>
 			<artifactId>n5-hdf5</artifactId>
-			<version>2.2.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.janelia.saalfeldlab</groupId>
 			<artifactId>n5-zarr</artifactId>
-			<version>1.3.4</version>
 		</dependency>
 		<dependency>
 			<groupId>org.janelia.n5anndata</groupId>
 			<artifactId>n5-anndata</artifactId>
 			<version>0.1</version>
 		</dependency>
-
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-universe</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-aws-s3</artifactId>
+			<version>4.2.0</version>
+		</dependency>
 		<!-- JUnit framework -->
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
@@ -193,7 +219,7 @@
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-csv</artifactId>
-			<version>1.7</version>
+			<!-- <version>1.7</version> -->
 		</dependency>
 
 		<dependency>
@@ -213,13 +239,13 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
-			<version>2.14.1</version>
+			<!-- <version>2.14.1</version> -->
 		</dependency>
 		<!-- Log4j API -->
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-api</artifactId>
-			<version>2.14.1</version>
+			<!-- <version>2.14.1</version> -->
 		</dependency>
 	</dependencies>
 

@@ -52,6 +52,7 @@ import picocli.CommandLine.Option;
 import render.MaxDistanceParam;
 import render.Render;
 import org.apache.logging.log4j.Logger;
+
 import util.LoggerUtil;
 
 @Command(name = "st-render", mixinStandardHelpOptions = true, version = "0.3.1", description = "Spatial Transcriptomics as IMages project - render ST data as images in Fiji/ImageJ")
@@ -82,7 +83,7 @@ public class RenderImage implements Callable<Void> {
 	@Option(names = {"-bmax", "--brightnessMax"}, required = false, description = "max initial brightness relative to the maximal value (default: 0.5)")
 	private double brightnessMax = 0.5;
 
-	@Option(names = {"--rendering"}, required = false, description = "inital rendering type (Gauss, Mean, NearestNeighbor, Linear), e.g --rendering Gauss (default: Gauss)")
+	@Option(names = {"--rendering"}, required = false, description = "initial rendering type (Gauss, Mean, NearestNeighbor, Linear), e.g --rendering Gauss (default: Gauss)")
 	private Rendering rendering = Rendering.Gauss;
 
 	@Option(names = {"-rf", "--renderingFactor"}, required = false, description = "factor for the amount of filtering or radius used for rendering, corresponds to smoothness for Gauss, e.g -rf 2.0 (default: 1.5)")
@@ -108,7 +109,7 @@ public class RenderImage implements Callable<Void> {
 
 	@Override
 	public Void call() throws Exception {
-		if (!(new File(inputPath)).exists()) {
+		if (! SpatialDataContainer.exists(inputPath)) {
 			logger.error("Container / dataset '{}' does not exist. Stopping.", inputPath);
 			return null;
 		}
@@ -269,31 +270,31 @@ public class RenderImage implements Callable<Void> {
 			Double ffGauss,
 			Double ffMean)
 	{
-		final DoubleType outofbounds = new DoubleType( 0 );
+		final DoubleType outOfBounds = new DoubleType( 0 );
 		final ArrayList<FilterFactory<DoubleType, DoubleType>> filterFactories = new ArrayList<>();
 
 		if ( ffSingleSpot != null && ffSingleSpot > 0  )
 		{
 			logger.debug("Using single-spot filtering, radius={}", ffSingleSpot);
-			filterFactories.add( new SingleSpotRemovingFilterFactory<>( outofbounds, stats.getMedianDistance() * ffSingleSpot ) );
+			filterFactories.add( new SingleSpotRemovingFilterFactory<>( outOfBounds, stats.getMedianDistance() * ffSingleSpot ) );
 		}
 
 		if ( ffMedian != null && ffMedian > 0.0 )
 		{
 			logger.debug("Using median filtering, radius={}", ffMedian);
-			filterFactories.add( new MedianFilterFactory<>( outofbounds, stats.getMedianDistance() * ffMedian ) );
+			filterFactories.add( new MedianFilterFactory<>( outOfBounds, stats.getMedianDistance() * ffMedian ) );
 		}
 
 		if ( ffGauss != null && ffGauss > 0.0 )
 		{
 			logger.debug("Using Gauss filtering, radius={}", ffGauss);
-			filterFactories.add( new GaussianFilterFactory<>( outofbounds, stats.getMedianDistance() * ffGauss ) );
+			filterFactories.add( new GaussianFilterFactory<>( outOfBounds, stats.getMedianDistance() * ffGauss ) );
 		}
 
 		if ( ffMean != null && ffMean > 0.0 )
 		{
 			logger.debug("Using mean/avg filtering, radius={}", ffMean);
-			filterFactories.add( new MeanFilterFactory<>( outofbounds, stats.getMedianDistance() * ffMean ) );
+			filterFactories.add( new MeanFilterFactory<>( outOfBounds, stats.getMedianDistance() * ffMean ) );
 		}
 
 		return filterFactories;

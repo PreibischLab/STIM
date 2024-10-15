@@ -1,6 +1,5 @@
 package cmd;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -39,6 +38,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import render.Render;
 import org.apache.logging.log4j.Logger;
+
 import util.LoggerUtil;
 
 @Command(name = "st-bdv-view3d", mixinStandardHelpOptions = true, version = "0.3.1", description = "Spatial Transcriptomics as IMages project - visualize ST data in BigDataViewer")
@@ -51,7 +51,7 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 	@Option(names = {"-g", "--genes"}, required = true, description = "comma separated list of one or more gene to visualize, e.g. -g Calm2,Ubb")
 	private String genes = null;
 
-	@Option(names = {"-a", "--annotation"}, required = false, description = "comma separated list of annotations to visualize, e.g. -a celltype")
+	@Option(names = {"-a", "--annotation"}, required = false, description = "comma separated list of annotations to visualize, e.g. -a cell type")
 	private String annotations = null;
 
 	@Option(names = {"-ar", "--annotationRadius"}, required = false, description = "radius of annotation spots as a factor of their median distance, e.g. -ar 2.0 (default: 0.75; in 3d: zSpacing*0.75)")
@@ -69,7 +69,7 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 	@Option(names = {"-bmax", "--brightnessMax"}, required = false, description = "max initial brightness relative to the maximal value (default: 0.5)")
 	private double brightnessMax = 0.5;
 
-	@Option(names = {"--rendering"}, required = false, description = "inital rendering type (Gauss, Mean, NearestNeighbor, Linear), e.g --rendering Gauss (default: Gauss)")
+	@Option(names = {"--rendering"}, required = false, description = "initial rendering type (Gauss, Mean, NearestNeighbor, Linear), e.g --rendering Gauss (default: Gauss)")
 	private Rendering rendering = Rendering.Gauss;
 
 	@Option(names = {"-rf", "--renderingFactor"}, required = false, description = "factor for the amount of filtering or radius used for rendering, corresponds to smoothness for Gauss, e.g -rf 2.0 (default: 1.5)")
@@ -92,7 +92,7 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 
 		final boolean useTransform = true;
 
-		if (!(new File(inputPath)).exists()) {
+		if (! SpatialDataContainer.exists(inputPath)) {
 			logger.error("Container / dataset '{}' does not exist. Stopping.", inputPath);
 			return null;
 		}
@@ -145,16 +145,12 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 				data.transform().set(new AffineTransform2D());
 		}
 
-		if (dataToVisualize.isEmpty()) {
-			logger.error("No datasets that contain sequencing data. stopping.");
-			return null;
-		}
-
-		List< String > annotationList;
-		if ( annotations != null && !annotations.isEmpty())
-			annotationList = Arrays.asList(annotations.split("," ) );
-		else
+		List<String> annotationList;
+		if (annotations != null && !annotations.isEmpty()) {
+			annotationList = Arrays.asList(annotations.split(","));
+		} else {
 			annotationList = new ArrayList<>();
+		}
 
 		BdvStackSource< ? > source = null;
 
@@ -163,29 +159,29 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 		//
 		for ( final String annotation : annotationList )
 		{
-			final IntType outofboundsInt = new IntType( -1 );
+			final IntType outOfBoundsInt = new IntType(-1);
 			final double spotSize = dataToVisualize.get( 0 ).statistics().getMedianDistance() * annotationRadius;
 			final HashMap<Long, ARGBType > lut = new HashMap<>();
 
-			final List< FilterFactory< IntType, IntType > > filterFactorysInt = new ArrayList<>();
+			final List<FilterFactory<IntType, IntType>> filterFactoriesInt = new ArrayList<>();
 
 			if ( ffSingleSpot != null && ffSingleSpot > 0  )
 			{
 				logger.debug("Using single-spot filtering, effective radius={}", dataToVisualize.get(0).statistics().getMedianDistance() * ffSingleSpot);
-				filterFactorysInt.add( new SingleSpotRemovingFilterFactory<>( outofboundsInt, dataToVisualize.get( 0 ).statistics().getMedianDistance() * ffSingleSpot ) );
+				filterFactoriesInt.add(new SingleSpotRemovingFilterFactory<>(outOfBoundsInt, dataToVisualize.get(0).statistics().getMedianDistance() * ffSingleSpot));
 			}
 
 			final RealRandomAccessible< IntType > rra;
 			final Interval interval;
 
 			final Pair< RealRandomAccessible< IntType >, Interval > stack =
-					VisualizeAnnotations.createStack(dataToVisualize, annotation, zSpacingFactor * 0.75 * spotSize, zSpacingFactor, outofboundsInt, filterFactorysInt, lut );
+					VisualizeAnnotations.createStack(dataToVisualize, annotation, zSpacingFactor * 0.75 * spotSize, zSpacingFactor, outOfBoundsInt, filterFactoriesInt, lut);
 			rra = stack.getA();
 			interval = stack.getB();
 
 			CellTypeExplorer cte = new CellTypeExplorer( lut );
 
-			final RealRandomAccessible< ARGBType > rraRGB = Render.switchableConvertToRGB( rra, outofboundsInt, new ARGBType(), lut, cte.panel() );
+			final RealRandomAccessible< ARGBType > rraRGB = Render.switchableConvertToRGB( rra, outOfBoundsInt, new ARGBType(), lut, cte.panel() );
 
 			BdvOptions options = BdvOptions.options().numRenderingThreads( Runtime.getRuntime().availableProcessors() ).addTo( source );
 			if ( dataToVisualize.size() == 1 )
@@ -200,7 +196,7 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 		//
 		// Display genes
 		//
-		final DoubleType outofbounds = new DoubleType( 0 );
+		final DoubleType outOfBounds = new DoubleType( 0 );
 		final List<FilterFactory<DoubleType, DoubleType>> filterFactories =
 				RenderImage.assembleFilterFactories(
 						new STDataStatistics( dataToVisualize.get( 0 ).data() ),
@@ -218,7 +214,7 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 					VisualizeStack.createStack(
 							dataToVisualize,
 							gene,
-							outofbounds,
+							outOfBounds,
 							zSpacingFactor,
 							brightnessMin,
 							brightnessMax,

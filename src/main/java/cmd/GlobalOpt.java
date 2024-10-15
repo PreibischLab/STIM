@@ -1,6 +1,5 @@
 package cmd;
 
-import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -17,6 +16,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Command;
 import util.Threads;
 import org.apache.logging.log4j.Logger;
+
 import util.LoggerUtil;
 
 @Command(name = "st-align-global", mixinStandardHelpOptions = true, version = "0.3.1", description = "Spatial Transcriptomics as IMages project - global alignment of all slices")
@@ -83,7 +83,7 @@ public class GlobalOpt implements Callable<Void> {
 
 	@Override
 	public Void call() throws Exception {
-		if (!(new File(containerPath)).exists()) {
+		if (! SpatialDataContainer.exists(containerPath)) {
 			logger.error("Container '{}' does not exist. Stopping.", containerPath);
 			return null;
 		}
@@ -121,7 +121,7 @@ public class GlobalOpt implements Callable<Void> {
 		final double lambda = this.lambda;
 		final double maxAllowedError = this.maxAllowedError;
 		final int maxIterations = this.maxIterations;
-		final int maxPlateauwidth = this.minIterations;
+		final int maxPlateauWidth = this.minIterations;
 		final double relativeThreshold = this.relativeThreshold;
 		final double absoluteThreshold = this.absoluteThreshold;
 
@@ -130,7 +130,7 @@ public class GlobalOpt implements Callable<Void> {
 		final double icpErrorFraction = this.icpErrorFraction;
 		final double maxAllowedErrorICP = this.maxAllowedErrorICP;
 		final int maxIterationsICP = this.maxIterationsICP;
-		final int maxPlateauwhidthICP = this.minIterationsICP;
+		final int maxPlateauWidthICP = this.minIterationsICP;
 
 		GlobalOptSIFT.globalOpt(
 				container,
@@ -139,7 +139,7 @@ public class GlobalOpt implements Callable<Void> {
 				lambda,
 				maxAllowedError,
 				maxIterations,
-				maxPlateauwidth,
+				maxPlateauWidth,
 				relativeThreshold,
 				absoluteThreshold,
 				doICP,
@@ -147,7 +147,7 @@ public class GlobalOpt implements Callable<Void> {
 				icpErrorFraction,
 				maxAllowedErrorICP,
 				maxIterationsICP,
-				maxPlateauwhidthICP,
+				maxPlateauWidthICP,
 				Threads.numThreads(),
 				skipDisplayResults,
 				smoothnessFactor,

@@ -199,7 +199,12 @@ public class BlendedExtendedMirroredRandomAccessible2<T extends RealType<T>>impl
 	public RandomAccess<T> randomAccess(Interval interval) {
 		return randomAccess();
 	}
-	
+
+	@Override
+	public T getType() {
+		return img.getType();
+	}
+
 
 	public static void main(String[] args) {
 		
@@ -216,7 +221,7 @@ public class BlendedExtendedMirroredRandomAccessible2<T extends RealType<T>>impl
 		long start = System.currentTimeMillis();
 		
 		Cursor<FloatType> c = img2.cursor();
-		for (FloatType e : Views.iterable(Views.interval(ext, ext.getExtInterval())))
+		for (FloatType e : Views.interval(ext, ext.getExtInterval()))
 		{
 			c.fwd();
 			c.get().set(e);

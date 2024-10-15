@@ -1,6 +1,7 @@
 package io;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -14,14 +15,11 @@ import java.util.function.Supplier;
 import org.janelia.n5anndata.io.N5Options;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.GzipCompression;
-import org.janelia.saalfeldlab.n5.N5FSReader;
-import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
-import org.janelia.saalfeldlab.n5.zarr.N5ZarrReader;
-import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
+import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
 
 import data.STData;
 import data.STDataImgLib2;
@@ -36,6 +34,8 @@ import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Util;
 import org.apache.logging.log4j.Logger;
+
+import util.Cloud;
 import util.LoggerUtil;
 
 
@@ -165,20 +165,30 @@ public abstract class SpatialDataIO {
 		AffineTransform2D transform = new AffineTransform2D();
 		readAndSetTransformation(reader, transform, transformFieldName);
 
-		for (final String annotationLabel : detectAnnotations(reader)) {
-			try {
-				stData.getAnnotations().put(annotationLabel, readAnnotations(reader, annotationLabel));
-			} catch (Exception e) {
-				logger.warn("Could not read annotation '{}'. Skipping", annotationLabel);
+		try
+		{
+			for (final String annotationLabel : detectAnnotations(reader)) {
+				try {
+					stData.getAnnotations().put(annotationLabel, readAnnotations(reader, annotationLabel));
+				} catch (Exception e) {
+					logger.warn("Could not read annotation '{}'. Skipping", annotationLabel);
+				}
 			}
+		} catch (Exception e) {
+			logger.warn("Could not detectAnnotations. Skipping" );
 		}
 
-		for (final String geneAnnotationLabel : detectGeneAnnotations(reader)) {
-			try {
-				stData.getGeneAnnotations().put(geneAnnotationLabel, readGeneAnnotations(reader, geneAnnotationLabel));
-			} catch (Exception e) {
-				logger.warn("Could not read annotation '{}'. Skipping", geneAnnotationLabel);
+		try
+		{
+			for (final String geneAnnotationLabel : detectGeneAnnotations(reader)) {
+				try {
+					stData.getGeneAnnotations().put(geneAnnotationLabel, readGeneAnnotations(reader, geneAnnotationLabel));
+				} catch (Exception e) {
+					logger.warn("Could not read annotation '{}'. Skipping", geneAnnotationLabel);
+				}
 			}
+		} catch (Exception e) {
+			logger.warn("Could not detectGeneAnnotations. Skipping" );
 		}
 
 		logger.debug("Loading took {} ms.", System.currentTimeMillis() - time);
@@ -359,9 +369,9 @@ public abstract class SpatialDataIO {
 		if (extension.startsWith("h5")) {
 			writerSupplier = () -> new N5HDF5Writer(path);
 		} else if (extension.startsWith("n5")) {
-			writerSupplier = () -> new N5FSWriter(path);
+			writerSupplier = () -> Cloud.instantiateN5Writer( StorageFormat.N5, URI.create(path));
 		} else if (extension.startsWith("zarr")) {
-			writerSupplier = () -> new N5ZarrWriter(path);
+			writerSupplier = () -> Cloud.instantiateN5Writer( StorageFormat.ZARR, URI.create(path));
 		} else {
 			throw new UnsupportedOperationException("Cannot find N5 backend for extension'" + extension + "'.");
 		}
@@ -388,9 +398,9 @@ public abstract class SpatialDataIO {
 		if (extension.startsWith("h5")) {
 			readerSupplier = () -> new N5HDF5Reader(path);
 		} else if (extension.startsWith("n5")) {
-			readerSupplier = () -> new N5FSReader(path);
+			readerSupplier = () -> Cloud.instantiateN5Reader(StorageFormat.N5, URI.create(path));
 		} else if (extension.startsWith("zarr")) {
-			readerSupplier = () -> new N5ZarrReader(path);
+			readerSupplier = () -> Cloud.instantiateN5Reader(StorageFormat.ZARR, URI.create(path));
 		} else {
 			throw new UnsupportedOperationException("Cannot find N5 backend for extension'" + extension + "'.");
 		}

@@ -16,7 +16,6 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +23,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.apache.logging.log4j.Logger;
+
 import util.LoggerUtil;
 
 @Command(name = "st-align-pairs-add", mixinStandardHelpOptions = true, version = "0.3.1", description = "Spatial Transcriptomics as IMages project - add manual landmarks to align pairs of slices")
@@ -60,7 +60,7 @@ public class AddPairwiseMatch implements Callable<Void> {
 
 	@Override
 	public Void call() throws Exception {
-		if (!(new File(containerPath)).exists()) {
+		if (! SpatialDataContainer.exists(containerPath)) {
 			logger.error("Container '{}' does not exist. Stopping.", containerPath);
 			return null;
 		}

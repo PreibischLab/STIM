@@ -47,12 +47,8 @@ public class ImgLib2Util
 		final ExecutorService service = Threads.createFixedExecutorService();
 		final CellImgFactory< DoubleType > factory = new CellImgFactory<>(new DoubleType());
 
-		long time = System.currentTimeMillis();
-
 		final RandomAccessibleInterval< DoubleType > exprValues = ImgLib2Util.copyImg( data.getAllExprValues(), factory, service );
 		final RandomAccessibleInterval< DoubleType > locations = ImgLib2Util.copyImg( data.getLocations(), factory, service );
-
-		System.out.println( "Copy took: " + ( System.currentTimeMillis() - time ) );
 
 		service.shutdown();
 
@@ -85,27 +81,13 @@ public class ImgLib2Util
 		else
 			throw new RuntimeException( "dim=" + interval.numDimensions() + " not supported." );
 
-		/*
-		final double[] min = new double[ interval.numDimensions() ];
-		final double[] max = new double[ interval.numDimensions() ];
-
-		for ( int d = 0; d < min.length; ++d )
-		{
-			min[ d ] = interval.min( d );
-			max[ d ] = interval.max( d );
-		}
-
-		affine.apply( min, min );
-		affine.apply( max, max );
-		*/
-
 		final long[] minL = new long[ interval.numDimensions() ];
 		final long[] maxL = new long[ interval.numDimensions() ];
 
 		for ( int d = 0; d < minL.length; ++d )
 		{
-			minL[ d ] = Math.round( Math.floor( bounds.realMin( d ) /*min[ d ]*/ ) );
-			maxL[ d ] = Math.round( Math.ceil( bounds.realMax( d ) /*max[ d ]*/ ) );
+			minL[d] = Math.round(Math.floor(bounds.realMin(d)));
+			maxL[d] = Math.round(Math.ceil(bounds.realMax(d)));
 		}
 
 		return new FinalInterval( minL, maxL );
@@ -387,7 +369,7 @@ public class ImgLib2Util
 
 	public static < T extends Type< T > > void copyImg( final RandomAccessibleInterval< T > input, final RandomAccessibleInterval< T > output, final ExecutorService service )
 	{
-		final long numPixels = Views.iterable( input ).size();
+		final long numPixels = input.size();
 		final Vector< ImagePortion > portions = Threads.divideIntoPortions( numPixels );
 		final ArrayList< Callable< Void > > tasks = new ArrayList<>();
 
@@ -408,13 +390,10 @@ public class ImgLib2Util
 			final RandomAccessibleInterval<T> source,
 			final RandomAccessibleInterval<T> target)
 	{
-		final IterableInterval< T > sourceIterable = Views.iterable( source );
-		final IterableInterval< T > targetIterable = Views.iterable( target );
-
-		if ( sourceIterable.iterationOrder().equals( targetIterable.iterationOrder() ) )
+		if (source.iterationOrder().equals(target.iterationOrder()))
 		{
-			final Cursor< T > cursorSource = sourceIterable.cursor();
-			final Cursor< T > cursorTarget = targetIterable.cursor();
+			final Cursor<T> cursorSource = source.cursor();
+			final Cursor<T> cursorTarget = target.cursor();
 	
 			cursorSource.jumpFwd( start );
 			cursorTarget.jumpFwd( start );
@@ -425,7 +404,7 @@ public class ImgLib2Util
 		else
 		{
 			final RandomAccess< T > raSource = source.randomAccess();
-			final Cursor< T > cursorTarget = targetIterable.localizingCursor();
+			final Cursor< T > cursorTarget = target.localizingCursor();
 
 			cursorTarget.jumpFwd( start );
 
