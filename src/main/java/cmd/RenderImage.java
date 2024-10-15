@@ -109,7 +109,7 @@ public class RenderImage implements Callable<Void> {
 
 	@Override
 	public Void call() throws Exception {
-		if (SpatialDataContainer.exists(inputPath)) {
+		if (! SpatialDataContainer.exists(inputPath)) {
 			logger.error("Container / dataset '{}' does not exist. Stopping.", inputPath);
 			return null;
 		}

@@ -100,7 +100,7 @@ public class BigDataViewerDisplay implements Callable<Void>
 
 		final boolean useTransform = true;
 
-		if (SpatialDataContainer.exists(inputPath)) {
+		if (! SpatialDataContainer.exists(inputPath)) {
 			logger.error("Container / dataset '{}' does not exist. Stopping.", inputPath);
 			return null;
 		}

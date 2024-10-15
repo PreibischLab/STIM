@@ -51,12 +51,12 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 
 	@Override
 	public Void call() throws Exception {
-		if (SpatialDataContainer.exists(containerPath)) {
+		if (! SpatialDataContainer.exists(containerPath)) {
 			logger.error("Container '{}' does not exist. Stopping.", containerPath);
 			return null;
 		}
 
-		if (!SpatialDataContainer.isCompatibleContainer(containerPath)) {
+		if (! SpatialDataContainer.isCompatibleContainer(containerPath)) {
 			logger.error("Pairwise visualization does not work for single dataset '{}'. Stopping.", containerPath);
 			return null;
 		}

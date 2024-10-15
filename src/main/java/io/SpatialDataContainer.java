@@ -66,7 +66,7 @@ public class SpatialDataContainer {
 	public static SpatialDataContainer openExisting(final String path, final ExecutorService service) throws IOException
 	{
 
-		if (exists(path))
+		if (! exists(path))
 			throw new IOException("N5 '" + path + "' does not exist.");
 
 		SpatialDataContainer container = new SpatialDataContainer(path, service, false);
@@ -76,8 +76,7 @@ public class SpatialDataContainer {
 
 	public static SpatialDataContainer openForReading(final String path, final ExecutorService service) throws IOException
 	{
-
-		if (exists(path))
+		if (! exists(path))
 			throw new IOException("N5 '" + path + "' does not exist.");
 
 		SpatialDataContainer container = new SpatialDataContainer(path, service, true);
@@ -87,7 +86,6 @@ public class SpatialDataContainer {
 
 	public static SpatialDataContainer createNew(final String path, final ExecutorService service) throws IOException
 	{
-
 		if (exists(path))
 			throw new IOException("N5 '" + path + "' already exists.");
 
@@ -371,7 +369,7 @@ public class SpatialDataContainer {
 
 	public static boolean exists(String path) {
 		final URI uri = URI.create(path);
-		return Cloud.isFile(uri) && !(new File(path)).exists();
+		return Cloud.isFile(uri) && new File(path).exists();
 	}
 
 

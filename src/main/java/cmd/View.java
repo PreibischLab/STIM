@@ -33,7 +33,7 @@ public class View implements Callable<Void> {
 
 	@Override
 	public Void call() throws IOException {
-		if (SpatialDataContainer.exists(inputPath)) {
+		if (! SpatialDataContainer.exists(inputPath)) {
 			logger.error("Container / dataset '{}' does not exist. Stopping.", inputPath);
 			return null;
 		}

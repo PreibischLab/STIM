@@ -60,7 +60,7 @@ public class AddPairwiseMatch implements Callable<Void> {
 
 	@Override
 	public Void call() throws Exception {
-		if (SpatialDataContainer.exists(containerPath)) {
+		if (! SpatialDataContainer.exists(containerPath)) {
 			logger.error("Container '{}' does not exist. Stopping.", containerPath);
 			return null;
 		}
