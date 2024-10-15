@@ -1,7 +1,5 @@
 package cmd;
 
-import java.io.File;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -26,7 +24,6 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Command;
 import org.apache.logging.log4j.Logger;
 
-import util.Cloud;
 import util.LoggerUtil;
 
 @Command(name = "st-align-pairs-view", mixinStandardHelpOptions = true, version = "0.3.1", description = "Spatial Transcriptomics as IMages project - view and check pairwise alignments")
@@ -54,7 +51,7 @@ public class ViewPairwiseAlignment implements Callable<Void> {
 
 	@Override
 	public Void call() throws Exception {
-		if ( Cloud.isFile( URI.create( containerPath ) ) && !(new File(containerPath)).exists()) {
+		if (SpatialDataContainer.exists(containerPath)) {
 			logger.error("Container '{}' does not exist. Stopping.", containerPath);
 			return null;
 		}

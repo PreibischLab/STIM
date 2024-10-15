@@ -65,9 +65,8 @@ public class SpatialDataContainer {
 
 	public static SpatialDataContainer openExisting(final String path, final ExecutorService service) throws IOException
 	{
-		final URI pathURI = URI.create( path );
 
-		if ( Cloud.isFile( pathURI ) && !(new File(path)).exists())
+		if (exists(path))
 			throw new IOException("N5 '" + path + "' does not exist.");
 
 		SpatialDataContainer container = new SpatialDataContainer(path, service, false);
@@ -77,9 +76,8 @@ public class SpatialDataContainer {
 
 	public static SpatialDataContainer openForReading(final String path, final ExecutorService service) throws IOException
 	{
-		final URI pathURI = URI.create( path );
 
-		if ( Cloud.isFile( pathURI ) && !(new File(path)).exists())
+		if (exists(path))
 			throw new IOException("N5 '" + path + "' does not exist.");
 
 		SpatialDataContainer container = new SpatialDataContainer(path, service, true);
@@ -89,9 +87,8 @@ public class SpatialDataContainer {
 
 	public static SpatialDataContainer createNew(final String path, final ExecutorService service) throws IOException
 	{
-		final URI pathURI = URI.create( path );
 
-		if ( Cloud.isFile( pathURI ) && (new File(path)).exists())
+		if (exists(path))
 			throw new IOException("N5 '" + path + "' already exists.");
 
 		SpatialDataContainer container = new SpatialDataContainer(path, service, false);
@@ -134,14 +131,13 @@ public class SpatialDataContainer {
 	}
 
 	public void addExistingDataset(String path, String locationPath, String exprValuePath, String annotationPath, String geneAnnotationPath) {
-		associateDataset(path, (src, dest) ->
-		{
-			try
-			{
+		associateDataset(path, (src, dest) -> {
+			try {
 				// TODO: not cloud compatible yet
 				return Files.move(src, dest);
+			} catch (IOException e) {
+				throw new SpatialDataException("Could not move dataset to container.", e);
 			}
-			catch (IOException e) {throw new SpatialDataException("Could not move dataset to container.", e);}
 		}, locationPath, exprValuePath, annotationPath, geneAnnotationPath);
 	}
 
@@ -150,14 +146,13 @@ public class SpatialDataContainer {
 	}
 
 	public void linkExistingDataset(String path, String locationPath, String exprValuePath, String annotationPath, String geneAnnotationPath) {
-		associateDataset(path, (target, link) ->
-		{
-			try
-			{
+		associateDataset(path, (target, link) -> {
+			try {
 				// TODO: not cloud compatible yet
 				return Files.createSymbolicLink(link, target);
+			} catch (IOException e) {
+				throw new SpatialDataException("Could not link dataset to container.", e);
 			}
-			catch (IOException e) {throw new SpatialDataException("Could not link dataset to container.", e);}
 		}, locationPath, exprValuePath, annotationPath, geneAnnotationPath);
 	}
 
@@ -205,10 +200,11 @@ public class SpatialDataContainer {
 		if (datasets.remove(datasetName))
 		{
 			// TODO: no cloud support yet
-			if ( Cloud.isFile( rootPathURI ))
+			if (Cloud.isFile(rootPathURI)) {
 				deleteFileOrDirectory(Paths.get(rootPath, datasetName));
-			else
-				throw new RuntimeException( "not supported for cloud yet." );
+			} else {
+				throw new RuntimeException("not supported for cloud yet.");
+			}
 			updateDatasetMetadata();
 		}
 	}
@@ -224,10 +220,11 @@ public class SpatialDataContainer {
 		String path4 = n5.getAttribute("/", datasetName + geneAnnotationPathKey, String.class);
 
 		final String path;
-		if ( Cloud.isFile( rootPathURI ))
+		if (Cloud.isFile(rootPathURI)) {
 			path = Paths.get(rootPath, datasetName).toRealPath().toString();
-		else
+		} else {
 			path = Cloud.appendName(rootPathURI, datasetName);
+		}
 
 		SpatialDataIO sdio = SpatialDataIO.open( path, service);
 		sdio.setDataPaths(path1, path2, path3, path4);
@@ -243,10 +240,11 @@ public class SpatialDataContainer {
 		String path4 = n5.getAttribute("/", datasetName + geneAnnotationPathKey, String.class);
 
 		final String path;
-		if ( Cloud.isFile( rootPathURI ))
+		if (Cloud.isFile(rootPathURI)) {
 			path = Paths.get(rootPath, datasetName).toRealPath().toString();
-		else
+		} else {
 			path = Cloud.appendName(rootPathURI, datasetName);
+		}
 
 		SpatialDataIO sdio = SpatialDataIO.openReadOnly(path, service);
 		sdio.setDataPaths(path1, path2, path3, path4);
@@ -370,6 +368,12 @@ public class SpatialDataContainer {
 		else
 			return stDataBName + "-" + stDataAName;
 	}
+
+	public static boolean exists(String path) {
+		final URI uri = URI.create(path);
+		return Cloud.isFile(uri) && !(new File(path)).exists();
+	}
+
 
 	// TODO: no cloud support yet
 	private static class TreeDeleter extends SimpleFileVisitor<Path> {
