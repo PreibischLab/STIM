@@ -369,7 +369,12 @@ public class SpatialDataContainer {
 
 	public static boolean exists(String path) {
 		final URI uri = URI.create(path);
-		return Cloud.isFile(uri) && new File(path).exists();
+		if (Cloud.isFile(uri))
+			return new File(path).exists();
+		else {
+			// TODO: this only verifies that the scheme is supported, not that the path actually exists
+			return Cloud.isGC(uri) || Cloud.isS3(uri);
+		}
 	}
 
 
