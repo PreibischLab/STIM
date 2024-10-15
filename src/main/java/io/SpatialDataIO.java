@@ -15,15 +15,11 @@ import java.util.function.Supplier;
 import org.janelia.n5anndata.io.N5Options;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.GzipCompression;
-import org.janelia.saalfeldlab.n5.N5FSReader;
-import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
-import org.janelia.saalfeldlab.n5.zarr.N5ZarrReader;
-import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
 
 import data.STData;
 import data.STDataImgLib2;

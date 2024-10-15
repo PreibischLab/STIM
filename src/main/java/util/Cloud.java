@@ -23,11 +23,6 @@ public class Cloud
 	private final static Pattern HTTPS_SCHEME = Pattern.compile( "http(s)?", Pattern.CASE_INSENSITIVE );
 	private final static Pattern FILE_SCHEME = Pattern.compile( "file", Pattern.CASE_INSENSITIVE );
 
-	public static int cloudThreads = 256;
-
-	public static boolean useS3CredentialsWrite = true;
-	public static boolean useS3CredentialsRead = true;
-
 	public static N5Writer instantiateN5Writer( final StorageFormat format, final URI uri )
 	{
 		if ( isFile( uri ) )
@@ -137,7 +132,7 @@ public class Cloud
 		final boolean hasScheme = scheme != null;
 
 		if ( hasScheme && FILE_SCHEME.asPredicate().test( scheme ) )
-			return uri.toString().substring( 5, uri.toString().length() ); // cut off 'file:'
+			return uri.toString().substring(5); // cut off 'file:'
 		else
 			return uri.toString();
 	}

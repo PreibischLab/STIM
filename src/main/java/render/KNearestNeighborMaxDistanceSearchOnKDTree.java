@@ -12,16 +12,17 @@ import util.SimpleSampler;
 public class KNearestNeighborMaxDistanceSearchOnKDTree< T > extends KNearestNeighborSearchOnKDTree< T >
 {
 	final Supplier<T> outOfBounds;
-	final SimpleSampler< T > oobsSampler;
+	final SimpleSampler<T> oobSampler;
 	final SimpleRealLocalizable position;
 	final MaxDistanceParam param;
 
-	final Sampler[] values;
+	final Sampler<T>[] values;
 	final RealLocalizable[] points;
 	final double[] newBestSquDistances;
 	final double[] pos;
 	final KDTree< T > tree; // is private in superclass
 
+	@SuppressWarnings("unchecked")
 	public KNearestNeighborMaxDistanceSearchOnKDTree(
 			final KDTree< T > tree,
 			final int k,

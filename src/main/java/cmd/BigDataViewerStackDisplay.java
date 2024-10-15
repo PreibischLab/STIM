@@ -148,16 +148,12 @@ public class BigDataViewerStackDisplay implements Callable<Void> {
 				data.transform().set(new AffineTransform2D());
 		}
 
-		if (dataToVisualize.isEmpty()) {
-			logger.error("No datasets that contain sequencing data. stopping.");
-			return null;
-		}
-
-		List< String > annotationList;
-		if ( annotations != null && !annotations.isEmpty())
-			annotationList = Arrays.asList(annotations.split("," ) );
-		else
+		List<String> annotationList;
+		if (annotations != null && !annotations.isEmpty()) {
+			annotationList = Arrays.asList(annotations.split(","));
+		} else {
 			annotationList = new ArrayList<>();
+		}
 
 		BdvStackSource< ? > source = null;
 
