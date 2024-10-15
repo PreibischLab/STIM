@@ -182,7 +182,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 						container.deleteMatch(pairwiseMatchName);
 					}
 					else {
-						logger.error("Previous results exist '{}', stopping. [Rerun with --overwrite for automatic deletion of previouse results]", pairwiseMatchName);
+						logger.error("Previous results exist '{}', stopping. [Rerun with --overwrite for automatic deletion of previous results]", pairwiseMatchName);
 						return null;
 					}
 				}

@@ -12,7 +12,7 @@ import util.SimpleSampler;
 public class NearestNeighborMaxDistanceSearchOnKDTree< T > extends NearestNeighborSearchOnKDTree< T >
 {
 	final Supplier<T> outOfBounds;
-	final SimpleSampler< T > oobsSampler;
+	final SimpleSampler<T> oobSampler;
 	final SimpleRealLocalizable position;
 	final MaxDistanceParam param;
 	final KDTree< T > tree; // is private in superclass
@@ -20,7 +20,7 @@ public class NearestNeighborMaxDistanceSearchOnKDTree< T > extends NearestNeighb
 
 	Sampler< T > value;
 	RealLocalizable point;
-	double newbestSquDistance;
+	double newBestSquDistance;
 
 	public NearestNeighborMaxDistanceSearchOnKDTree(final KDTree< T > tree, final Supplier<T> outOfBounds, final MaxDistanceParam param )
 	{
@@ -28,7 +28,7 @@ public class NearestNeighborMaxDistanceSearchOnKDTree< T > extends NearestNeighb
 
 		this.pos = new double[ tree.numDimensions() ];
 		this.tree = tree;
-		this.oobsSampler = new SimpleSampler<>(outOfBounds);
+		this.oobSampler = new SimpleSampler<>(outOfBounds);
 		this.position = new SimpleRealLocalizable( pos ); // last queried location
 		this.outOfBounds = outOfBounds;
 		this.param = param;
@@ -42,15 +42,15 @@ public class NearestNeighborMaxDistanceSearchOnKDTree< T > extends NearestNeighb
 
 		if ( super.getSquareDistance() > param.maxSqDistance() )
 		{
-			value = oobsSampler;
+			value = oobSampler;
 			point = position;
-			newbestSquDistance = 0;
+			newBestSquDistance = 0;
 		}
 		else
 		{
 			value = super.getSampler();
 			point = super.getPosition();
-			newbestSquDistance = super.getSquareDistance();
+			newBestSquDistance = super.getSquareDistance();
 		}
 	}
 
@@ -69,13 +69,13 @@ public class NearestNeighborMaxDistanceSearchOnKDTree< T > extends NearestNeighb
 	@Override
 	public double getSquareDistance()
 	{
-		return newbestSquDistance;
+		return newBestSquDistance;
 	}
 
 	@Override
 	public double getDistance()
 	{
-		return Math.sqrt( newbestSquDistance );
+		return Math.sqrt(newBestSquDistance);
 	}
 
 	@Override

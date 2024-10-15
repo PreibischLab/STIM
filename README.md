@@ -52,6 +52,6 @@ pip install stimwrap
 
 ## Java code examples
 
-There are example classes in this [Java package](https://github.com/PreibischLab/STIM/tree/master/src/main/java/examples) that can help you getting started with programming in STIM, specifically `VisualizeStack.java` and `TestDisplayModes.java` could be useful.
+There are example classes in this [Java package](https://github.com/PreibischLab/STIM/tree/master/src/main/java/examples) that can help you to get started with programming in STIM, specifically `VisualizeStack.java` and `TestDisplayModes.java` could be useful.
 Additionally, the code for all command-line tools can be found [here](https://github.com/PreibischLab/STIM/tree/master/src/main/java/cmd), which is also a good starting place in combination with the [tutorials](https://github.com/preibischlab/stim/wiki/tutorials).
 *Note that the install scripts [install](https://github.com/PreibischLab/STIM/blob/master/install) and [install_windows.bat](https://github.com/PreibischLab/STIM/blob/master/install_windows.bat) show a link between the command-line tool name and Java class name, e.g., `st-bdv-view` is `cmd.DisplayStackedSlides`.*

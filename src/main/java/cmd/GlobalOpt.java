@@ -124,7 +124,7 @@ public class GlobalOpt implements Callable<Void> {
 		final double lambda = this.lambda;
 		final double maxAllowedError = this.maxAllowedError;
 		final int maxIterations = this.maxIterations;
-		final int maxPlateauwidth = this.minIterations;
+		final int maxPlateauWidth = this.minIterations;
 		final double relativeThreshold = this.relativeThreshold;
 		final double absoluteThreshold = this.absoluteThreshold;
 
@@ -133,7 +133,7 @@ public class GlobalOpt implements Callable<Void> {
 		final double icpErrorFraction = this.icpErrorFraction;
 		final double maxAllowedErrorICP = this.maxAllowedErrorICP;
 		final int maxIterationsICP = this.maxIterationsICP;
-		final int maxPlateauwhidthICP = this.minIterationsICP;
+		final int maxPlateauWidthICP = this.minIterationsICP;
 
 		GlobalOptSIFT.globalOpt(
 				container,
@@ -142,7 +142,7 @@ public class GlobalOpt implements Callable<Void> {
 				lambda,
 				maxAllowedError,
 				maxIterations,
-				maxPlateauwidth,
+				maxPlateauWidth,
 				relativeThreshold,
 				absoluteThreshold,
 				doICP,
@@ -150,7 +150,7 @@ public class GlobalOpt implements Callable<Void> {
 				icpErrorFraction,
 				maxAllowedErrorICP,
 				maxIterationsICP,
-				maxPlateauwhidthICP,
+				maxPlateauWidthICP,
 				Threads.numThreads(),
 				skipDisplayResults,
 				smoothnessFactor,

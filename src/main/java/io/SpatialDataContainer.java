@@ -52,10 +52,11 @@ public class SpatialDataContainer {
 		this.readOnly = readOnly;
 		this.service = service;
 
-		this.n5 = readOnly ?
-					Cloud.instantiateN5Reader( StorageFormat.N5, URI.create( path )) //new N5FSReader(path)
-				:
-					Cloud.instantiateN5Writer( StorageFormat.N5, URI.create( path ));
+		if (readOnly) {
+			this.n5 = Cloud.instantiateN5Reader(StorageFormat.N5, URI.create(path));
+		} else {
+			this.n5 = Cloud.instantiateN5Writer(StorageFormat.N5, URI.create(path));
+		}
 	}
 
 	public static SpatialDataContainer openExisting(final String path, final ExecutorService service) throws IOException

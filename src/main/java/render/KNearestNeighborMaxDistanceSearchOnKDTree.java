@@ -31,7 +31,7 @@ public class KNearestNeighborMaxDistanceSearchOnKDTree< T > extends KNearestNeig
 		super( tree, k );
 
 		this.pos = new double[ tree.numDimensions() ];
-		this.oobsSampler = new SimpleSampler<>(outOfBounds);
+		this.oobSampler = new SimpleSampler<>(outOfBounds);
 		this.position = new SimpleRealLocalizable( pos );
 		this.param = param;
 		this.outOfBounds = outOfBounds;
@@ -54,7 +54,7 @@ public class KNearestNeighborMaxDistanceSearchOnKDTree< T > extends KNearestNeig
 			{
 				if ( i == 0 )
 				{
-					values[ i ] = oobsSampler;
+					values[ i ] = oobSampler;
 					points[ i ] = position;
 				}
 				else
