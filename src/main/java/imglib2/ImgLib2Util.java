@@ -387,7 +387,7 @@ public class ImgLib2Util
 
 	public static < T extends Type< T > > void copyImg( final RandomAccessibleInterval< T > input, final RandomAccessibleInterval< T > output, final ExecutorService service )
 	{
-		final long numPixels = Views.iterable( input ).size();
+		final long numPixels = input.size();
 		final Vector< ImagePortion > portions = Threads.divideIntoPortions( numPixels );
 		final ArrayList< Callable< Void > > tasks = new ArrayList<>();
 
@@ -408,13 +408,10 @@ public class ImgLib2Util
 			final RandomAccessibleInterval<T> source,
 			final RandomAccessibleInterval<T> target)
 	{
-		final IterableInterval< T > sourceIterable = Views.iterable( source );
-		final IterableInterval< T > targetIterable = Views.iterable( target );
-
-		if ( sourceIterable.iterationOrder().equals( targetIterable.iterationOrder() ) )
+		if (source.iterationOrder().equals(target.iterationOrder()))
 		{
-			final Cursor< T > cursorSource = sourceIterable.cursor();
-			final Cursor< T > cursorTarget = targetIterable.cursor();
+			final Cursor<T> cursorSource = source.cursor();
+			final Cursor<T> cursorTarget = target.cursor();
 	
 			cursorSource.jumpFwd( start );
 			cursorTarget.jumpFwd( start );
@@ -425,7 +422,7 @@ public class ImgLib2Util
 		else
 		{
 			final RandomAccess< T > raSource = source.randomAccess();
-			final Cursor< T > cursorTarget = targetIterable.localizingCursor();
+			final Cursor< T > cursorTarget = target.localizingCursor();
 
 			cursorTarget.jumpFwd( start );
 
