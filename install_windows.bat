@@ -3,7 +3,7 @@ setlocal EnableExtensions
 
 :: This is a translation of the corresponding linux install script that
 :: is adapted from https://github.com/saalfeldlab/n5-utils, by @axtimwalde & co
-set "VERSION=0.3.1-SNAPSHOT"
+set "VERSION=0.3.1"
 
 :: default for installation dir = current directory
 set "INSTALL_DIR=%CD%"
