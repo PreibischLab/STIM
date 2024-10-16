@@ -19,7 +19,7 @@ import org.apache.logging.log4j.Logger;
 
 import util.LoggerUtil;
 
-@Command(name = "st-align-global", mixinStandardHelpOptions = true, version = "0.3.1", description = "Spatial Transcriptomics as IMages project - global alignment of all slices")
+@Command(name = "st-align-global", mixinStandardHelpOptions = true, version = "0.3.2-SNAPSHOT", description = "Spatial Transcriptomics as IMages project - global alignment of all slices")
 public class GlobalOpt implements Callable<Void> {
 	
 	private static final Logger logger = LoggerUtil.getLogger();

@@ -38,7 +38,7 @@ import org.apache.logging.log4j.Logger;
 import util.LoggerUtil;
 import util.ProgressBar;
 
-@Command(name = "st-align-pairs", mixinStandardHelpOptions = true, version = "0.3.1", description = "Spatial Transcriptomics as IMages project - align pairs of slices")
+@Command(name = "st-align-pairs", mixinStandardHelpOptions = true, version = "0.3.2-SNAPSHOT", description = "Spatial Transcriptomics as IMages project - align pairs of slices")
 public class PairwiseSectionAligner implements Callable<Void> {
 	private static final Logger logger = LoggerUtil.getLogger();
 

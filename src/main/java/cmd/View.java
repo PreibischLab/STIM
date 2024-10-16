@@ -20,7 +20,7 @@ import org.apache.logging.log4j.Logger;
 import util.LoggerUtil;
 import util.Threads;
 
-@Command(name = "st-explorer", mixinStandardHelpOptions = true, version = "0.3.1", description = "Spatial Transcriptomics as IMages project - interactive viewer for ST data")
+@Command(name = "st-explorer", mixinStandardHelpOptions = true, version = "0.3.2-SNAPSHOT", description = "Spatial Transcriptomics as IMages project - interactive viewer for ST data")
 public class View implements Callable<Void> {
 	
 	private static final Logger logger = LoggerUtil.getLogger();

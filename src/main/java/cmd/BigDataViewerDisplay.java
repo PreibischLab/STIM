@@ -48,7 +48,7 @@ import org.apache.logging.log4j.Logger;
 
 import util.LoggerUtil;
 
-@Command(name = "st-bdv-view", mixinStandardHelpOptions = true, version = "0.3.1", description = "Spatial Transcriptomics as IMages project - visualize ST data in BigDataViewer")
+@Command(name = "st-bdv-view", mixinStandardHelpOptions = true, version = "0.3.2-SNAPSHOT", description = "Spatial Transcriptomics as IMages project - visualize ST data in BigDataViewer")
 public class BigDataViewerDisplay implements Callable<Void>
 {
 	// -i /Users/preibischs/Documents/BIMSB/Publications/imglib2-st/slide-seq/raw/slide-seq.n5 -d Puck_180531_23.n5 -g Calm2 -bmax 0.25

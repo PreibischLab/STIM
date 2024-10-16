@@ -12,7 +12,7 @@ import java.util.concurrent.Executors;
 import org.apache.logging.log4j.Logger;
 import util.LoggerUtil;
 
-@Command(name = "st-add-slice", mixinStandardHelpOptions = true, version = "0.3.1", description = "Spatial Transcriptomics as IMages project - add slice-dataset to a container")
+@Command(name = "st-add-slice", mixinStandardHelpOptions = true, version = "0.3.2-SNAPSHOT", description = "Spatial Transcriptomics as IMages project - add slice-dataset to a container")
 public class AddSlice implements Callable<Void> {
 
 	private static final Logger logger = LoggerUtil.getLogger();

@@ -26,7 +26,7 @@ import org.apache.logging.log4j.Logger;
 
 import util.LoggerUtil;
 
-@Command(name = "st-align-pairs-view", mixinStandardHelpOptions = true, version = "0.3.1", description = "Spatial Transcriptomics as IMages project - view and check pairwise alignments")
+@Command(name = "st-align-pairs-view", mixinStandardHelpOptions = true, version = "0.3.2-SNAPSHOT", description = "Spatial Transcriptomics as IMages project - view and check pairwise alignments")
 public class ViewPairwiseAlignment implements Callable<Void> {
 	
 	private static final Logger logger = LoggerUtil.getLogger();
