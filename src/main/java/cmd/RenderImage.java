@@ -115,7 +115,7 @@ public class RenderImage implements Callable<Void> {
 		}
 
 		final ExecutorService service = Executors.newFixedThreadPool(8);
-		final Map<String, SpatialDataIO> iodata = new HashMap<>();
+		final ArrayList<Pair<String, SpatialDataIO>> iodata = new ArrayList<>();
 		if (SpatialDataContainer.isCompatibleContainer(inputPath)) {
 			SpatialDataContainer container = SpatialDataContainer.openForReading(inputPath, service);
 
@@ -129,12 +129,12 @@ public class RenderImage implements Callable<Void> {
 
 			for (String dataset : datasetNames) {
 				logger.info("Opening dataset '{}' in '{}' ...", dataset, inputPath);
-				iodata.put(dataset.trim(), container.openDatasetReadOnly(dataset.trim()));
+				iodata.add( new ValuePair<>( dataset.trim(), container.openDatasetReadOnly(dataset.trim())));
 			}
 		}
 		else {
 			logger.info("Opening dataset '{}' ...", inputPath);
-			iodata.put(inputPath, SpatialDataIO.openReadOnly(inputPath, service));
+			iodata.add( new ValuePair<>( inputPath, SpatialDataIO.openReadOnly(inputPath, service)));
 		}
 
 		if (genes == null || genes.isEmpty()) {
@@ -144,11 +144,11 @@ public class RenderImage implements Callable<Void> {
 		String[] geneList = genes.split(",");
 
 		final List<Pair<STData, AffineTransform2D>> dataToVisualize = new ArrayList<>();
-		for (final Map.Entry<String, SpatialDataIO> entry : iodata.entrySet()) {
-			final STDataAssembly stAssembly = entry.getValue().readData();
+		for (final Pair<String, SpatialDataIO> entry : iodata ) {
+			final STDataAssembly stAssembly = entry.getB().readData();
 
 			if (stAssembly != null) {
-				logger.debug("Assigning transform to {}", entry.getKey());
+				logger.info("Assigning transform to {}", entry.getA());
 				AffineTransform2D transform = ignoreTransforms ? new AffineTransform2D() : stAssembly.transform();
 				dataToVisualize.add(new ValuePair<>(stAssembly.data(), transform));
 				logger.debug(transform);
