@@ -93,7 +93,10 @@ public class PairwiseSectionAligner implements Callable<Void> {
 	@Option(names = {"--hidePairwiseRendering"}, required = false, description = "do not show pairwise renderings that apply the 2D rigid models (default: false - showing them)")
 	private boolean hidePairwiseRendering = false;
 
-	@Option(names = {"--numThreads"}, required = false, description = "number of threads for parallel processing")
+	@Option(names = {"--rendering"}, required = false, description = "inital rendering type (Gauss, Mean, NearestNeighbor, Linear), e.g --rendering Gauss (default: Gauss)")
+	private Rendering rendering = Rendering.Gauss;
+
+	@Option(names = {"--numThreads"}, required = false, description = "number of threads for parallel processing (default: 8)")
 	private int numThreads = 8;
 
 	//-c /Users/spreibi/Documents/BIMSB/Publications/imglib2-st/slide-seq-test.n5 -d 'Puck_180602_20,Puck_180602_18,Puck_180602_17,Puck_180602_16,Puck_180602_15,Puck_180531_23,Puck_180531_22,Puck_180531_19,Puck_180531_18,Puck_180531_17,Puck_180531_13,Puck_180528_22,Puck_180528_20' -n 100 --overwrite
@@ -246,7 +249,7 @@ public class PairwiseSectionAligner implements Callable<Void> {
 				logger.info("Aligning {} <> {} on {} genes ({} threads)", dataset1, dataset2, genesToTest.size(), threadsUse);
 				final SIFTParam p = new SIFTParam();
 				final List< FilterFactory< DoubleType, DoubleType > > filterFactories = null;
-				p.setDatasetParameters(maxEpsilon, scale, 1024, filterFactories, Rendering.Gauss, renderingFactor, brightnessMin, brightnessMax); 
+				p.setDatasetParameters(maxEpsilon, scale, 1024, filterFactories, rendering, renderingFactor, brightnessMin, brightnessMax);
 				p.setIntrinsicParameters( SIFTPreset.VERY_THOROUGH);
 				p.minInliersGene = minNumInliersGene;
 				p.minInliersTotal = minNumInliers;
