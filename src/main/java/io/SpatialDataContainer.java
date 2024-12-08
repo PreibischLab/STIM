@@ -1,5 +1,6 @@
 package io;
 
+import analyze.Entropy;
 import mpicbg.models.PointMatch;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.real.DoubleType;
@@ -382,23 +383,28 @@ public class SpatialDataContainer {
 		}
 	}
 
-	public RandomAccessibleInterval<DoubleType> saveEntropyValues(final String dataset, final String label) {
+	public boolean hasEntropyValues(final String dataset, final Entropy entropy) {
+		final String entropyGroupName = n5.groupPath(entropyPath, dataset, entropy.label());
+		return n5.exists(entropyGroupName);
+	}
+
+	public RandomAccessibleInterval<DoubleType> loadEntropyValues(final String dataset, final Entropy entropy) {
 		if (! datasets.contains(dataset)) {
 			throw new SpatialDataException("Dataset '" + dataset + "' does not exist.");
 		}
 
-		final String entropyGroupName = n5.groupPath(entropyPath, dataset, label);
+		final String entropyGroupName = n5.groupPath(entropyPath, dataset, entropy.label());
 		return N5Utils.open(n5, entropyGroupName);
 	}
 
-	public void saveEntropyValues(final RandomAccessibleInterval<DoubleType> entropyValues, final String dataset, final String label) {
+	public void saveEntropyValues(final RandomAccessibleInterval<DoubleType> entropyValues, final String dataset, final Entropy entropy) {
 		if (! datasets.contains(dataset)) {
 			throw new SpatialDataException("Dataset '" + dataset + "' does not exist.");
 		}
 
 		final N5Writer writer = (N5Writer) n5;
 
-		final String entropyGroupName = writer.groupPath(entropyPath, dataset, label);
+		final String entropyGroupName = writer.groupPath(entropyPath, dataset, entropy.label());
 		final int[] blockSize = Arrays.stream(entropyValues.dimensionsAsLongArray()).mapToInt(i -> (int) i).toArray();
 		N5Utils.save(entropyValues, writer, entropyGroupName, blockSize, new GzipCompression());
 	}

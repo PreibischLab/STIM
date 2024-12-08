@@ -1,11 +1,5 @@
 package cmd;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -35,12 +29,10 @@ import gui.bdv.STIMCardFilter;
 import gui.bdv.STIMCardManualAlign;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
-import io.TextFileAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
-import net.imglib2.util.ValuePair;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import util.Threads;
@@ -109,17 +101,18 @@ public class InteractiveAlignment implements Callable<Void> {
 	@Option(names = {"--ffMean"}, required = false, description = "mean/avg-filter all spots using a given radius, e.g --ffMean 2.5 (default: no filtering)")
 	private Double ffMean = null;
 
-	@Option(names = {"--entropyPath"}, required = false, description = "path where the entropy is stored as gene annotations (if no path given: compute standard deviation from scratch)")
-	private String entropyPath = null;
-
 	@Override
 	public Void call() throws Exception
 	{
 		final ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
-		if ( !SpatialDataContainer.isCompatibleContainer(inputPath) )
-		{
+		if (!SpatialDataContainer.isCompatibleContainer(inputPath)) {
 			logger.error("'{}' is not a container. Stopping.", inputPath);
+			return null;
+		}
+
+		if (numGenes <= 0) {
+			logger.error("Number of genes must be greater than 0 (is {}). Stopping.", numGenes);
 			return null;
 		}
 
@@ -157,39 +150,25 @@ public class InteractiveAlignment implements Callable<Void> {
 			final STDataAssembly stData = dataToAlign.get(i);
 			final String datasetName = datasetNames.get(i);
 
-			if (stData.data().getGeneAnnotations().containsKey(stdevLabel)) {
-				logger.debug("Gene annotation '{}' was found for {}. Omitting.", stdevLabel, datasetName);
-				continue;
-			}
-
-			final boolean computeStdev = (numGenes > 0 && entropyPath == null);
 			final RandomAccessibleInterval<DoubleType> entropyValues;
-			if (computeStdev) {
+			if (container.hasEntropyValues(datasetName, Entropy.STDEV)) {
+				logger.info("Standard deviation of genes for {} already computed. Loading.", datasetName);
+				entropyValues = container.loadEntropyValues(datasetName, Entropy.STDEV);
+			} else {
 				logger.info("Computing standard deviation of genes for {} (may take a while)", datasetName);
 				entropyValues = ExtractGeneLists.computeOrderedEntropy(stData.data(), Entropy.STDEV, Threads.numThreads());
-			} else {
-				logger.info("Loading standard deviation of genes for {} from {}", datasetName, entropyPath);
-				entropyValues = ExtractGeneLists.loadGeneEntropy(stData.data(), entropyPath);
+				container.saveEntropyValues(entropyValues, datasetName, Entropy.STDEV);
 			}
 			stData.data().getGeneAnnotations().put(stdevLabel, entropyValues);
-
-			if (computeStdev) {
-				try {
-					container.openDataset(datasetName).updateStoredGeneAnnotations(stData.data().getGeneAnnotations());
-				} catch (IOException e) {
-					logger.warn("Cannot write gene annotations to file", e);
-				}
-			}
 		}
 
 		final List<Pair<String, Double>> allGenes = Pairwise.allGenes(data1.data(), data2.data(), stdevLabel);
 
-		if ( numGenes > 0 )
+		if (allGenes.isEmpty()) {
+			logger.error("No common genes between both datasets. Stopping.");
+			return null;
+		} else {
 			logger.debug("Automatically identified {} genes that can be used for alignment", allGenes.size());
-		else
-		{
-			System.err.println( "No common genes between both datasets. stopping.");
-			System.exit( 0 );
 		}
 
 		BdvStackSource< ? > lastSource = null;

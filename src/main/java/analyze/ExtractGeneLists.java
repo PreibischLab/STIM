@@ -92,19 +92,6 @@ public class ExtractGeneLists
 		return ArrayImgs.doubles(entropyValues, stData.numGenes());
 	}
 
-	public static RandomAccessibleInterval<DoubleType> loadGeneEntropy(final STData stData, final String entropyLabel)
-			throws IllegalArgumentException {
-
-		Map<String, RandomAccessibleInterval<? extends NativeType<?>>> geneAnnotation = stData.getGeneAnnotations();
-		if (!geneAnnotation.containsKey(entropyLabel)) {
-			throw new IllegalArgumentException("The property '" + entropyLabel + "' was not found as gene annotation");
-		}
-
-		final RandomAccessibleInterval<? extends NativeType<?>> entropyValues = geneAnnotation.get(entropyLabel);
-		// TODO: this will blow up if the annotation is not doubles; fix this!
-		return (RandomAccessibleInterval<DoubleType>) entropyValues;
-	}
-
 	/**
 	 * Combine gene names and entropy values into a list of pairs.
 	 *

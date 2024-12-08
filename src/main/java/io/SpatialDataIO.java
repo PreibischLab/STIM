@@ -287,27 +287,6 @@ public abstract class SpatialDataIO {
 		}
 	}
 
-	/**
-	 * Write the given annotations to the underlying file; existing annotations are not updated.
-	 *
-	 * @param metadata map of annotations
-	 */
-	public void updateStoredGeneAnnotations(Map<String, RandomAccessibleInterval<? extends NativeType<?>>> metadata) throws IOException {
-		if (readOnly)
-			throw new IllegalStateException("Trying to write to read-only file.");
-
-		try (N5Writer writer = (N5Writer) ioSupplier.get()) {
-			List<String> existingGeneAnnotations = detectGeneAnnotations(writer);
-
-			for (Entry<String, RandomAccessibleInterval<? extends NativeType<?>>> newEntry : metadata.entrySet()) {
-				if (existingGeneAnnotations.contains(newEntry.getKey()))
-					logger.warn("Metadata '{}' already exists. Skip writing.", newEntry.getKey());
-				else
-					writeGeneAnnotations(writer, newEntry.getKey(), newEntry.getValue());
-			}
-		}
-	}
-
 	protected abstract void initializeDataset(N5Writer writer, STData data) throws IOException;
 
 	protected void writeLocations(N5Writer writer, RandomAccessibleInterval<DoubleType> locations) throws IOException {

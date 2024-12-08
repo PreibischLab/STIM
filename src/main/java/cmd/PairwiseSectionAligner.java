@@ -78,9 +78,6 @@ public class PairwiseSectionAligner implements Callable<Void> {
 	@Option(names = {"-n", "--numGenes"}, required = false, description = "initial number of genes for alignment that have the highest entropy (default: 10)")
 	private int numGenes = 10;
 
-	@Option(names = {"--entropyPath"}, required = false, description = "path where the entropy is stored as gene annotations (if no path given: compute standard deviation from scratch)")
-	private String entropyPath = null;
-
 	@Option(names = {"-e", "--maxEpsilon"}, required = false, description = "maximally allowed alignment error (in global space, independent of scaling factor) for SIFT on a 2D rigid model (default: 10 times the average distance between sequenced locations)")
 	private double maxEpsilon = -Double.MAX_VALUE;
 
@@ -193,22 +190,15 @@ public class PairwiseSectionAligner implements Callable<Void> {
 			}
 
 			final RandomAccessibleInterval<DoubleType> entropyValues;
-			if (entropyPath == null) {
-				logger.info("Computing standard deviation of genes for {} (may take a while)", datasetName);
-				entropyValues = ExtractGeneLists.computeOrderedEntropy(stData.data(), Entropy.STDEV, numThreads);
+			if (container.hasEntropyValues(datasetName, Entropy.STDEV)) {
+				logger.info("Standard deviation of genes for {} already computed. Loading.", datasetName);
+				entropyValues = container.loadEntropyValues(datasetName, Entropy.STDEV);
 			} else {
-				logger.info("Loading standard deviation of genes for {} from {}", datasetName, entropyPath);
-				entropyValues = ExtractGeneLists.loadGeneEntropy(stData.data(), entropyPath);
+				logger.info("Computing standard deviation of genes for {} (may take a while)", datasetName);
+				entropyValues = ExtractGeneLists.computeOrderedEntropy(stData.data(), Entropy.STDEV, Threads.numThreads());
+				container.saveEntropyValues(entropyValues, datasetName, Entropy.STDEV);
 			}
 			stData.data().getGeneAnnotations().put(stdevLabel, entropyValues);
-
-			if (entropyPath == null) {
-				try {
-					container.openDataset(datasetName).updateStoredGeneAnnotations(stData.data().getGeneAnnotations());
-				} catch (IOException e) {
-					logger.warn("Cannot write gene annotations to file", e);
-				}
-			}
 		}
 
 		for ( int i = 0; i < dataToAlign.size() - 1; ++i ) {
