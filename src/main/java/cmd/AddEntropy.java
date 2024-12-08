@@ -28,6 +28,9 @@ public class AddEntropy implements Callable<Void> {
 	@Option(names = {"-m", "--method"}, required = false, description = "method to compute gene entropy")
 	private Entropy entropy = Entropy.STDEV;
 
+	@Option(names = {"--overwrite"}, required = false, description = "overwrite existing entropy values")
+	private boolean overwrite = false;
+
 	@Option(names = {"--numThreads"}, required = false, description = "number of threads for parallel processing")
 	private int numThreads = 8;
 
@@ -46,10 +49,13 @@ public class AddEntropy implements Callable<Void> {
 		int i = 0;
 		for (final String dataset : container.getDatasets()) {
 			logger.info("Computing gene variability for {} ({}/{})", dataset, ++i, container.getDatasets().size());
+			if (container.hasEntropyValues(dataset, entropy) && !overwrite) {
+				logger.info("Entropy values already exist for dataset '{}', skipping.", dataset);
+				continue;
+			}
 			final STData stData = container.openDataset(dataset).readData().data();
 			final RandomAccessibleInterval<DoubleType> entropyValues = ExtractGeneLists.computeOrderedEntropy(stData, entropy, numThreads);
-			container.saveEntropyValues(entropyValues, dataset, entropy.label());
-
+			container.saveEntropyValues(entropyValues, dataset, entropy);
 		}
 
 		logger.debug("Done.");
