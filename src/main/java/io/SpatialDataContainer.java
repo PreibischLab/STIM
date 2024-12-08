@@ -1,7 +1,10 @@
 package io;
 
 import mpicbg.models.PointMatch;
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.type.numeric.real.DoubleType;
 import org.apache.logging.log4j.Logger;
+import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import util.Cloud;
 
 import org.janelia.saalfeldlab.n5.DataType;
@@ -48,6 +51,8 @@ public class SpatialDataContainer {
 	final private static String exprValuePathKey = "-exprValues";
 	final private static String annotationPathKey = "-annotations";
 	final private static String geneAnnotationPathKey = "-geneAnnotations";
+	final private static String entropyPath = "/entropies";
+	final private static String matchPath = "/matches";
 
 
 	protected SpatialDataContainer(final String path, final ExecutorService service, final boolean readOnly) throws IOException {
@@ -97,7 +102,7 @@ public class SpatialDataContainer {
 	protected void initializeContainer() {
 		N5Writer writer = (N5Writer) n5;
 		writer.setAttribute("/", versionKey, version);
-		writer.createGroup("/matches");
+		writer.createGroup(matchPath);
 		updateDatasetMetadata();
 	}
 
@@ -112,7 +117,7 @@ public class SpatialDataContainer {
 			throw new SpatialDataException("Incompatible number of datasets: expected " + numDatasets + ", found " + datasets.size() + ".");
 
 		try {
-			matches = new ArrayList<>(Arrays.asList(n5.list(n5.groupPath("matches"))));
+			matches = new ArrayList<>(Arrays.asList(n5.list(n5.groupPath(matchPath))));
 		} catch (Exception e) {
 			logger.warn("Unable to read matches", e);
 		}
@@ -286,7 +291,7 @@ public class SpatialDataContainer {
 		if (readOnly)
 			throw new IllegalStateException("Trying to modify a read-only spatial data container.");
 		if (matches.remove(matchName))
-			deleteFileOrDirectory(Paths.get(rootPath, "matches", matchName));
+			deleteFileOrDirectory(Paths.get(rootPath, matchPath, matchName));
 	}
 
 	public void deleteFileOrDirectory(Path path) throws IOException
@@ -307,7 +312,7 @@ public class SpatialDataContainer {
 	public void savePairwiseMatch(final SiftMatch results) {
 		N5Writer writer = (N5Writer) n5;
 		final String matchName = constructMatchName(results.getStDataAName(), results.getStDataBName());
-		final String pairwiseGroupName = writer.groupPath("/", "matches", matchName);
+		final String pairwiseGroupName = writer.groupPath(matchPath, matchName);
 
 		if (readOnly)
 			throw new IllegalStateException("Trying to modify a read-only spatial data container.");
@@ -340,7 +345,7 @@ public class SpatialDataContainer {
 
 	public SiftMatch loadPairwiseMatch(final String stDataAName, final String stDataBName) throws ClassNotFoundException {
 		final String matchName = constructMatchName(stDataAName, stDataBName);
-		final String pairwiseGroupName = n5.groupPath("/", "matches", matchName);
+		final String pairwiseGroupName = n5.groupPath(matchPath, matchName);
 
 		if (!matches.contains(matchName))
 			throw new SpatialDataException("Match '" + matchName + "' does not exist.");
@@ -375,6 +380,27 @@ public class SpatialDataContainer {
 			// TODO: this only verifies that the scheme is supported, not that the path actually exists
 			return Cloud.isGC(uri) || Cloud.isS3(uri);
 		}
+	}
+
+	public RandomAccessibleInterval<DoubleType> saveEntropyValues(final String dataset, final String label) {
+		if (! datasets.contains(dataset)) {
+			throw new SpatialDataException("Dataset '" + dataset + "' does not exist.");
+		}
+
+		final String entropyGroupName = n5.groupPath(entropyPath, dataset, label);
+		return N5Utils.open(n5, entropyGroupName);
+	}
+
+	public void saveEntropyValues(final RandomAccessibleInterval<DoubleType> entropyValues, final String dataset, final String label) {
+		if (! datasets.contains(dataset)) {
+			throw new SpatialDataException("Dataset '" + dataset + "' does not exist.");
+		}
+
+		final N5Writer writer = (N5Writer) n5;
+
+		final String entropyGroupName = writer.groupPath(entropyPath, dataset, label);
+		final int[] blockSize = Arrays.stream(entropyValues.dimensionsAsLongArray()).mapToInt(i -> (int) i).toArray();
+		N5Utils.save(entropyValues, writer, entropyGroupName, blockSize, new GzipCompression());
 	}
 
 
