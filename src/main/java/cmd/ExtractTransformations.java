@@ -16,7 +16,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 // In the future, this will support more methods for computing the std
-@Command(name = "st-add-entropy", mixinStandardHelpOptions = true, version = "0.3.2-SNAPSHOT", description = "Spatial Transcriptomics as IMages project - add annotations to slice-dataset")
+@Command(name = "st-extract-transformations", mixinStandardHelpOptions = true, version = "0.3.2-SNAPSHOT", description = "Spatial Transcriptomics as IMages project - extract transformations from slice-dataset")
 public class ExtractTransformations implements Callable<Void> {
 
 	private static final Logger logger = LoggerUtil.getLogger();
@@ -38,7 +38,7 @@ public class ExtractTransformations implements Callable<Void> {
 				final SpatialDataIO sdio = container.openDatasetReadOnly(dataset);
 				final AffineTransform2D transform = sdio.readData().transform();
 
-				writer.write(dataset + "," + transform.toString());
+				writer.write(dataset + ";" + transform.toString());
 				writer.newLine();
 			}
 		}
