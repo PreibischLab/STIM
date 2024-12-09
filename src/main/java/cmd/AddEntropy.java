@@ -1,14 +1,13 @@
 package cmd;
 
-import java.io.IOException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import analyze.Entropy;
 import analyze.ExtractGeneLists;
-import gui.STDataAssembly;
-import io.SpatialDataIO;
+import data.STData;
+import io.SpatialDataContainer;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.real.DoubleType;
 import picocli.CommandLine;
@@ -23,14 +22,14 @@ public class AddEntropy implements Callable<Void> {
 
 	private static final Logger logger = LoggerUtil.getLogger();
 
-	@Option(names = {"-i", "--input"}, required = true, description = "input dataset, e.g. -i /home/ssq.n5/Puck_180528_20")
+	@Option(names = {"-i", "--input"}, required = true, description = "input container for which to pre-compute entropy, e.g. -i /home/ssq.n5")
 	private String inputPath = null;
 
 	@Option(names = {"-m", "--method"}, required = false, description = "method to compute gene entropy")
 	private Entropy entropy = Entropy.STDEV;
 
-	@Option(names = {"-gl", "--geneLabel"}, required = false, description = "custom label where to save the computed entropy (if not given: name of the method)")
-	private String geneLabels = null;
+	@Option(names = {"--overwrite"}, required = false, description = "overwrite existing entropy values")
+	private boolean overwrite = false;
 
 	@Option(names = {"--numThreads"}, required = false, description = "number of threads for parallel processing")
 	private int numThreads = 8;
@@ -43,22 +42,23 @@ public class AddEntropy implements Callable<Void> {
 		}
 
 		final ExecutorService service = Executors.newFixedThreadPool(numThreads);
-		final SpatialDataIO sdio = SpatialDataIO.open(inputPath, service);
-		final STDataAssembly stData = sdio.readData();
+		final SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath, service);
 
 		logger.info("Computing gene variability with method '{}' (might take a while)", entropy.label());
-		final RandomAccessibleInterval<DoubleType> entropyValues = ExtractGeneLists.computeOrderedEntropy(stData.data(), entropy, numThreads);
 
-		final String actualLabel = (geneLabels == null) ? entropy.label() : geneLabels;
-		stData.data().getGeneAnnotations().put(actualLabel, entropyValues);
-		try {
-			sdio.updateStoredGeneAnnotations(stData.data().getGeneAnnotations());
-		}
-		catch (IOException e) {
-			throw new IllegalStateException("Trying to write to read-only file.");
+		int i = 0;
+		for (final String dataset : container.getDatasets()) {
+			logger.info("Computing gene variability for {} ({}/{})", dataset, ++i, container.getDatasets().size());
+			if (container.hasEntropyValues(dataset, entropy) && !overwrite) {
+				logger.info("Entropy values already exist for dataset '{}', skipping.", dataset);
+				continue;
+			}
+			final STData stData = container.openDataset(dataset).readData().data();
+			final RandomAccessibleInterval<DoubleType> entropyValues = ExtractGeneLists.computeOrderedEntropy(stData, entropy, numThreads);
+			container.saveEntropyValues(entropyValues, dataset, entropy);
 		}
 
-		logger.debug( "Done." );
+		logger.debug("Done.");
 
 		service.shutdown();
 		return null;

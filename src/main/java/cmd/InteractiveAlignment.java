@@ -1,11 +1,5 @@
 package cmd;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -35,12 +29,10 @@ import gui.bdv.STIMCardFilter;
 import gui.bdv.STIMCardManualAlign;
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
-import io.TextFileAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.util.Pair;
-import net.imglib2.util.ValuePair;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import util.Threads;
@@ -70,11 +62,11 @@ public class InteractiveAlignment implements Callable<Void> {
 	@Option(names = {"-c", "--container"}, required = true, description = "input N5 container path, e.g. -c /home/ssq.n5.")
 	private String inputPath = null;
 
-	@Option(names = {"-d1", "--dataset1"}, required = false, description = "the first dataset (slice), e.g. -d1 'Puck_180528_20'")
-	private String dataset1 = null;
+	@Option(names = {"-f", "--fixed"}, required = false, description = "the fixed dataset (slice), e.g. -f 'Puck_180528_20'")
+	private String fixedDataset = null;
 
-	@Option(names = {"-d2", "--dataset2"}, required = false, description = "the second dataset (slice), e.g. -d2 'Puck_180528_22'")
-	private String dataset2 = null;
+	@Option(names = {"-m", "--moving"}, required = false, description = "the moving dataset (slice), e.g. -m 'Puck_180528_22'")
+	private String movingDataset = null;
 
 	@Option(names = {"-s", "--scale"}, required = false, description = "initial scaling factor for rendering the coordinates into images, can be changed interactively (default: 0.05 for slideseq data)")
 	private double scale = 0.05;
@@ -109,34 +101,35 @@ public class InteractiveAlignment implements Callable<Void> {
 	@Option(names = {"--ffMean"}, required = false, description = "mean/avg-filter all spots using a given radius, e.g --ffMean 2.5 (default: no filtering)")
 	private Double ffMean = null;
 
-	@Option(names = {"--entropyPath"}, required = false, description = "path where the entropy is stored as gene annotations (if no path given: compute standard deviation from scratch)")
-	private String entropyPath = null;
-
 	@Override
 	public Void call() throws Exception
 	{
 		final ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
-		if ( !SpatialDataContainer.isCompatibleContainer(inputPath) )
-		{
+		if (!SpatialDataContainer.isCompatibleContainer(inputPath)) {
 			logger.error("'{}' is not a container. Stopping.", inputPath);
+			return null;
+		}
+
+		if (numGenes <= 0) {
+			logger.error("Number of genes must be greater than 0 (is {}). Stopping.", numGenes);
 			return null;
 		}
 
 		// we might save the transformation, so open for writing
 		final SpatialDataContainer container = SpatialDataContainer.openExisting(inputPath, service);
 
-		logger.info("Opening dataset '{}' in '{}' ...", dataset1, inputPath);
+		logger.info("Opening dataset '{}' in '{}' ...", movingDataset, inputPath);
 
-		final SpatialDataIO io1 = container.openDataset( dataset1 );
+		final SpatialDataIO io1 = container.openDataset(movingDataset);
 		final STDataAssembly data1 = io1.readData();
 
 		//data1.transform().set( new AffineTransform2D() );
 		logger.debug("Current transform: {}", data1.transform());
 
-		logger.info("Opening dataset '{}' in '{}' ...", dataset2, inputPath);
+		logger.info("Opening dataset '{}' in '{}' ...", fixedDataset, inputPath);
 
-		final SpatialDataIO io2 = container.openDataset( dataset2 );
+		final SpatialDataIO io2 = container.openDataset(fixedDataset);
 		final STDataAssembly data2 = io2.readData();
 
 		//data2.transform().set( new AffineTransform2D() );
@@ -149,7 +142,7 @@ public class InteractiveAlignment implements Callable<Void> {
 
 		final String stdevLabel = Entropy.STDEV.label();
 		final List<STDataAssembly> dataToAlign = Arrays.asList(data1, data2);
-		final List<String> datasetNames = Arrays.asList(dataset1, dataset2);
+		final List<String> datasetNames = Arrays.asList(movingDataset, fixedDataset);
 
 		// ensure that the standard deviation of genes is present for all datasets
 		logger.info("Retrieving standard deviation of genes for all sections");
@@ -157,39 +150,25 @@ public class InteractiveAlignment implements Callable<Void> {
 			final STDataAssembly stData = dataToAlign.get(i);
 			final String datasetName = datasetNames.get(i);
 
-			if (stData.data().getGeneAnnotations().containsKey(stdevLabel)) {
-				logger.debug("Gene annotation '{}' was found for {}. Omitting.", stdevLabel, datasetName);
-				continue;
-			}
-
-			final boolean computeStdev = (numGenes > 0 && entropyPath == null);
 			final RandomAccessibleInterval<DoubleType> entropyValues;
-			if (computeStdev) {
+			if (container.hasEntropyValues(datasetName, Entropy.STDEV)) {
+				logger.info("Standard deviation of genes for {} already computed. Loading.", datasetName);
+				entropyValues = container.loadEntropyValues(datasetName, Entropy.STDEV);
+			} else {
 				logger.info("Computing standard deviation of genes for {} (may take a while)", datasetName);
 				entropyValues = ExtractGeneLists.computeOrderedEntropy(stData.data(), Entropy.STDEV, Threads.numThreads());
-			} else {
-				logger.info("Loading standard deviation of genes for {} from {}", datasetName, entropyPath);
-				entropyValues = ExtractGeneLists.loadGeneEntropy(stData.data(), entropyPath);
+				container.saveEntropyValues(entropyValues, datasetName, Entropy.STDEV);
 			}
 			stData.data().getGeneAnnotations().put(stdevLabel, entropyValues);
-
-			if (computeStdev) {
-				try {
-					container.openDataset(datasetName).updateStoredGeneAnnotations(stData.data().getGeneAnnotations());
-				} catch (IOException e) {
-					logger.warn("Cannot write gene annotations to file", e);
-				}
-			}
 		}
 
 		final List<Pair<String, Double>> allGenes = Pairwise.allGenes(data1.data(), data2.data(), stdevLabel);
 
-		if ( numGenes > 0 )
+		if (allGenes.isEmpty()) {
+			logger.error("No common genes between both datasets. Stopping.");
+			return null;
+		} else {
 			logger.debug("Automatically identified {} genes that can be used for alignment", allGenes.size());
-		else
-		{
-			System.err.println( "No common genes between both datasets. stopping.");
-			System.exit( 0 );
 		}
 
 		BdvStackSource< ? > lastSource = null;
@@ -205,7 +184,7 @@ public class InteractiveAlignment implements Callable<Void> {
 
 			final AddedGene addedGene1 = AddedGene.addGene(
 					inputPath,
-					dataset1,
+					movingDataset,
 					rendering,
 					lastSource,
 					data1,
@@ -218,7 +197,7 @@ public class InteractiveAlignment implements Callable<Void> {
 
 			final AddedGene addedGene2 = AddedGene.addGene(
 					inputPath,
-					dataset2,
+					fixedDataset,
 					rendering,
 					addedGene1.source(),
 					data2,
@@ -302,11 +281,11 @@ public class InteractiveAlignment implements Callable<Void> {
 
 		// add STIMCardAlignSIFT panel
 		final STIMCardAlignSIFT cardAlignSIFT =
-				new STIMCardAlignSIFT( dataset1, dataset2, card, cardFilter, service );
+				new STIMCardAlignSIFT(movingDataset, fixedDataset, card, cardFilter, service );
 
 		// add STIMCardAlignICP panel
 		final STIMCardAlignICP cardAlignICP =
-				new STIMCardAlignICP( dataset1, dataset2, overlay, card, cardFilter, cardAlignSIFT, service );
+				new STIMCardAlignICP(movingDataset, fixedDataset, overlay, card, cardFilter, cardAlignSIFT, service );
 
 		cardAlignSIFT.setICPCard( cardAlignICP );
 
