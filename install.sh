@@ -94,7 +94,6 @@ install_command st-align-global "cmd.GlobalOpt"
 install_command st-align-interactive "cmd.InteractiveAlignment"
 install_command st-help "cmd.PrintHelp"
 
-install_command st-test-stdev "cmd.ComputeVariance"
 
 if [ $(pwd) == "${INSTALL_DIR}" ]; then
     echo "Installation directory equals current directory, we are done."
@@ -111,12 +110,11 @@ else
     mv st-add-annotations ${INSTALL_DIR}/
     mv st-add-entropy ${INSTALL_DIR}/
     mv st-align-pairs ${INSTALL_DIR}/
-	  mv st-align-pairs-add ${INSTALL_DIR}/
+	mv st-align-pairs-add ${INSTALL_DIR}/
     mv st-align-pairs-view ${INSTALL_DIR}/
     mv st-align-global ${INSTALL_DIR}/
     mv st-align-interactive ${INSTALL_DIR}/
     mv st-help ${INSTALL_DIR}/
-    mv st-test-stdev ${INSTALL_DIR}/
 fi
 
 rm cp.txt
