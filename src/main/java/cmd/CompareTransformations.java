@@ -25,7 +25,12 @@ import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-// In the future, this will support more methods for computing the std
+/**
+ * Compare transformations for datasets given as a csv file. A line in the csv file should have the following format:
+ * dataset-name;2d-affine: (a,b,c,d,e,f)
+ * where dataset-name is the name of the dataset and a-f are the elements of the 2d affine transformation matrix.
+ * The transformations are compared based on the locations of the corresponding datasets.
+ */
 public class CompareTransformations implements Callable<Void> {
 
 	private static final Logger logger = LoggerUtil.getLogger();

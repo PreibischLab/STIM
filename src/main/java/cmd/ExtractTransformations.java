@@ -15,7 +15,10 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-// In the future, this will support more methods for computing the std
+/**
+ * Extract transformations from container with multiple slices. This is used to extract the transformations from the
+ * containers to generate plots for the STIM paper.
+ */
 @Command(name = "st-extract-transformations", mixinStandardHelpOptions = true, version = "0.3.2-SNAPSHOT", description = "Spatial Transcriptomics as IMages project - extract transformations from slice-dataset")
 public class ExtractTransformations implements Callable<Void> {
 
