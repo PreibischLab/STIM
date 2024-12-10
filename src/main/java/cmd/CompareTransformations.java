@@ -64,7 +64,6 @@ public class CompareTransformations implements Callable<Void> {
 
 		// get all datasets as sorted list to be able to identify previous dataset
 		final List<String> allDatasets = container.getDatasets();
-		Collections.sort(allDatasets);
 
 		// write header
 		final BufferedWriter writer = new BufferedWriter(new FileWriter(outputPath));
@@ -74,15 +73,10 @@ public class CompareTransformations implements Callable<Void> {
 			logger.info("Comparing transformations for dataset: {}", dataset);
 
 			// find previous dataset
-			final int index = allDatasets.indexOf(dataset);
-			final String previousDataset;
-			if (index < 0) {
-				throw new IllegalArgumentException("Dataset " + dataset + " not found in container");
-			} else if (index == 0) {
+			final String previousDataset = getPreviousDataset(dataset, allDatasets);
+			if (previousDataset == null) {
 				// first dataset; since we assume that this is fixed, the error is 0 by definition
 				continue;
-			} else {
-				previousDataset = allDatasets.get(index - 1);
 			}
 
 			// get transformations (previous transformations can be missing, in which case we assume the identity)
@@ -102,15 +96,7 @@ public class CompareTransformations implements Callable<Void> {
 			// compute error
 			final SpatialDataIO sdio = container.openDatasetReadOnly(dataset);
 			final List<double[]> locations = sdio.readData().data().getLocationsCopy();
-			final double[] transformed = new double[2];
-
-			final double[] distances = locations.stream()
-					.map(location -> {
-						relativeTransform.apply(location, transformed);
-						return distance(location, transformed);
-					})
-					.mapToDouble(Double::doubleValue)
-					.toArray();
+			final double[] distances = computeDistances(locations, relativeTransform);
 
 			final double count = distances.length;
 			final double mean = Arrays.stream(distances).average().orElse(0);
@@ -123,6 +109,26 @@ public class CompareTransformations implements Callable<Void> {
 		return null;
 	}
 
+	static String getPreviousDataset(String dataset, List<String> allDatasets) {
+		Collections.sort(allDatasets);
+		final int index = allDatasets.indexOf(dataset);
+		if (index < 0) {
+			throw new IllegalArgumentException("Dataset " + dataset + " not found in container");
+		}
+		return (index == 0) ? null : allDatasets.get(index - 1);
+	}
+
+	static double[] computeDistances(List<double[]> locations, AffineTransform2D relativeTransform) {
+		final double[] transformed = new double[2];
+		return locations.stream()
+				.map(location -> {
+					relativeTransform.apply(location, transformed);
+					return distance(location, transformed);
+				})
+				.mapToDouble(Double::doubleValue)
+				.toArray();
+	}
+
 	public static double distance(final double[] a, final double[] b) {
 		double sum = 0;
 		for (int i = 0; i < a.length; i++) {
@@ -132,7 +138,7 @@ public class CompareTransformations implements Callable<Void> {
 		return Math.sqrt(sum);
 	}
 
-	private static void readTransformations(final String path, final List<String> datasets, final Map<String, AffineTransform2D> transformations) throws IOException {
+	static void readTransformations(final String path, final List<String> datasets, final Map<String, AffineTransform2D> transformations) throws IOException {
 		try (final BufferedReader reader = new BufferedReader(new FileReader(path))) {
 			String line;
 			while ((line = reader.readLine()) != null) {
