@@ -89,7 +89,7 @@ public class ExtractPairwiseTransformations implements Callable<Void> {
 
 			final InterpolatedAffineModel2D<SimilarityModel2D, RigidModel2D> model = new InterpolatedAffineModel2D<>(new SimilarityModel2D(), new RigidModel2D(), 0.1);
 			model.fit(pointMatches);
-			final AffineTransform2D target = affineFromModel(model.createAffineModel2D());
+			final AffineTransform2D target = affineFromModel(model.createAffineModel2D()).inverse();
 
 			final AffineTransform2D baseline = baselineTransformations.get(dataset);
 			final AffineTransform2D previousBaseline = baselineTransformations.get(previousDataset) == null ? new AffineTransform2D() : baselineTransformations.get(previousDataset);
