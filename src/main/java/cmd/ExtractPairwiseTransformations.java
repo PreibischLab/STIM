@@ -97,6 +97,9 @@ public class ExtractPairwiseTransformations implements Callable<Void> {
 			final AffineTransform2D relativeBaseline = CompareTransformations.computeRelativeTransform(previousBaseline, baseline);
 			final AffineTransform2D relativeTransform = CompareTransformations.computeRelativeTransform(relativeBaseline, target);
 
+			logger.info("Baseline: {}", relativeBaseline);
+			logger.info("Transform: {}", target);
+
 			// compute error
 			final SpatialDataIO sdio = fullContainer.openDatasetReadOnly(dataset);
 			final List<double[]> locations = sdio.readData().data().getLocationsCopy();
