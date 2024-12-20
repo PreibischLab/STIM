@@ -94,6 +94,7 @@ install_command st-align-global "cmd.GlobalOpt"
 install_command st-align-interactive "cmd.InteractiveAlignment"
 install_command st-help "cmd.PrintHelp"
 install_command st-extract-transformations "cmd.ExtractTransformations"
+install_command st-extract-pairwise "cmd.ExtractPairwiseTransformations"
 
 install_command st-test-stdev "cmd.ComputeVariance"
 
@@ -119,6 +120,7 @@ else
     mv st-help ${INSTALL_DIR}/
     mv st-test-stdev ${INSTALL_DIR}/
     mv st-extract-transformations ${INSTALL_DIR}/
+	mv st-extract-pairwise ${INSTALL_DIR}/
 fi
 
 rm cp.txt
