@@ -2,6 +2,7 @@ package cmd;
 
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
+import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
 import org.apache.logging.log4j.Logger;
 import picocli.CommandLine;
@@ -87,11 +88,9 @@ public class CompareTransformations implements Callable<Void> {
 			final AffineTransform2D previousTarget = targetTransformations.get(previousDataset) == null ? new AffineTransform2D() : targetTransformations.get(previousDataset);
 
 			// compute relative transformation quality
-			final AffineTransform2D relativeTransform = new AffineTransform2D();
-			relativeTransform.preConcatenate(previousTarget.inverse());
-			relativeTransform.preConcatenate(target);
-			relativeTransform.preConcatenate(baseline.inverse());
-			relativeTransform.preConcatenate(previousBaseline);
+			final AffineTransform2D relativeBaseline = computeRelativeTransform(previousBaseline, baseline);
+			final AffineTransform2D relativeTarget = computeRelativeTransform(previousTarget, target);
+			final AffineTransform2D relativeTransform = computeRelativeTransform(relativeBaseline, relativeTarget);
 
 			// compute error
 			final SpatialDataIO sdio = container.openDatasetReadOnly(dataset);
@@ -116,6 +115,16 @@ public class CompareTransformations implements Callable<Void> {
 			throw new IllegalArgumentException("Dataset " + dataset + " not found in container");
 		}
 		return (index == 0) ? null : allDatasets.get(index - 1);
+	}
+
+	/**
+	 * Compute the relative transformation BA^{-1} between two affine transformations A and B.
+	 */
+	public static AffineTransform2D computeRelativeTransform(AffineTransform2D A, AffineTransform2D B) {
+		final AffineTransform2D relativeTransform = new AffineTransform2D();
+		relativeTransform.preConcatenate(A.inverse());
+		relativeTransform.preConcatenate(B);
+		return relativeTransform;
 	}
 
 	static double[] computeDistances(List<double[]> locations, AffineTransform2D relativeTransform) {
