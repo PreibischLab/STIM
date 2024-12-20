@@ -9,8 +9,10 @@ import mpicbg.models.PointMatch;
 import mpicbg.models.RigidModel2D;
 import mpicbg.models.SimilarityModel2D;
 import net.imglib2.realtransform.AffineTransform2D;
+import org.apache.logging.log4j.Logger;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
+import util.LoggerUtil;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -44,6 +46,7 @@ public class ExtractPairwiseTransformations implements Callable<Void> {
 	@Option(names = {"-c", "--container"}, required = true, description = "input container in which the datasets exist, e.g. -i /home/openst.n5")
 	private String containerPath = null;
 
+	private static final Logger logger = LoggerUtil.getLogger();
 
 	private static final Pattern folderNamePattern = Pattern.compile("scale\\d{4}_rf\\d{3}");
 
@@ -57,7 +60,9 @@ public class ExtractPairwiseTransformations implements Callable<Void> {
 			return null;
 		}
 
-		// get the dataset name from the first container (assume that it's allways the same)
+		logger.info("Found " + containers.length + " matching folders in input directory: " + basePath);
+
+		// get the dataset name from the first container (assume that it's allways the same dataset)
 		final ExecutorService executor = Executors.newFixedThreadPool(8);
 		SpatialDataContainer container = openContainer(containers[0], inputDir, executor);
 		SiftMatch siftMatch = getSiftMatch(container);
@@ -76,6 +81,7 @@ public class ExtractPairwiseTransformations implements Callable<Void> {
 
 		for (final String containerName : containers) {
 			// extract affine model from match data
+			logger.debug("Processing container: " + containerName);
 			container = openContainer(containerName, inputDir, executor);
 			siftMatch = getSiftMatch(container);
 			dataset = siftMatch.getStDataBName();
