@@ -60,7 +60,7 @@ public class ExtractPairwiseTransformations implements Callable<Void> {
 			return null;
 		}
 
-		logger.info("Found " + containers.length + " matching folders in input directory: " + basePath);
+		logger.info("Found {} matching folders in input directory: {}", containers.length, basePath);
 
 		// get the dataset name from the first container (assume that it's allways the same dataset)
 		final ExecutorService executor = Executors.newFixedThreadPool(8);
@@ -81,7 +81,7 @@ public class ExtractPairwiseTransformations implements Callable<Void> {
 
 		for (final String containerName : containers) {
 			// extract affine model from match data
-			logger.debug("Processing container: " + containerName);
+			logger.info("Processing container: {}", containerName);
 			container = openContainer(containerName, inputDir, executor);
 			siftMatch = getSiftMatch(container);
 			dataset = siftMatch.getStDataBName();
@@ -113,6 +113,8 @@ public class ExtractPairwiseTransformations implements Callable<Void> {
 			final double renderFactor = Integer.parseInt(containerName.substring(12, 15)) / 100.0;
 			writer.write(scale + "," + renderFactor + "," + count + "," + mean + "," + std + "\n");
 		}
+
+		writer.close();
 		return null;
 	}
 
