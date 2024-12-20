@@ -45,7 +45,8 @@ st-add-slice -m -i GSM7990118_metastatic_lymph_node_S36.h5ad -c open-st.n5
 # automatic alignment
 st-align-pairs -c open-st.n5 -n 100 --scale 0.025 -rf 2.42
 st-align-global -c open-st.n5 --lambda 0.1 --skipICP --skipDisplayResults
-
-# extract transformations and compute alignment quality (baseline transformations are transformations-SP.dat)
 st-extract-transformations -c open-st.n5 -o transformations-automatic.dat
-st-extract-pairwise -c open-st.n5 -o comparison-parameter-scan.csv -i similarity-model/ -b transformations-baseline.dat
+
+# extract transformations and compute alignment quality of parameter scan
+# this expects that parameter_scan.sh is run and all output was stored to 'similarity-model/'
+st-extract-pairwise -c open-st.n5 -o comparison-parameter-scan.csv -i similarity-model/ -b transformations-SP.dat
