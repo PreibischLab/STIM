@@ -92,10 +92,10 @@ public class ExtractPairwiseTransformations implements Callable<Void> {
 			final AffineTransform2D target = affineFromModel(model.createAffineModel2D()).inverse();
 
 			final AffineTransform2D baseline = baselineTransformations.get(dataset);
-			final AffineTransform2D previousBaseline = baselineTransformations.get(previousDataset) == null ? new AffineTransform2D() : baselineTransformations.get(previousDataset);
+			final AffineTransform2D previousBaseline = baselineTransformations.getOrDefault(previousDataset, new AffineTransform2D());
 
 			final AffineTransform2D relativeBaseline = CompareTransformations.computeRelativeTransform(previousBaseline, baseline);
-			final AffineTransform2D relativeTransform = CompareTransformations.computeRelativeTransform(relativeBaseline, target);
+			final AffineTransform2D relativeTarget = CompareTransformations.computeRelativeTransform(new AffineTransform2D(), target);
 
 			logger.info("Baseline: {}", relativeBaseline);
 			logger.info("Transform: {}", target);
@@ -103,7 +103,7 @@ public class ExtractPairwiseTransformations implements Callable<Void> {
 			// compute error
 			final SpatialDataIO sdio = fullContainer.openDatasetReadOnly(dataset);
 			final List<double[]> locations = sdio.readData().data().getLocationsCopy();
-			final double[] distances = CompareTransformations.computeDistances(locations, relativeTransform);
+			final double[] distances = CompareTransformations.computeDistances(locations, relativeBaseline, relativeTarget);
 
 			final double count = distances.length;
 			final double mean = Arrays.stream(distances).average().orElse(0);

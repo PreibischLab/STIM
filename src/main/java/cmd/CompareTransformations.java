@@ -2,7 +2,6 @@ package cmd;
 
 import io.SpatialDataContainer;
 import io.SpatialDataIO;
-import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
 import org.apache.logging.log4j.Logger;
 import picocli.CommandLine;
@@ -84,18 +83,17 @@ public class CompareTransformations implements Callable<Void> {
 			final AffineTransform2D baseline = baselineTransformations.get(dataset);
 			final AffineTransform2D target = targetTransformations.get(dataset);
 
-			final AffineTransform2D previousBaseline = baselineTransformations.get(previousDataset) == null ? new AffineTransform2D() : baselineTransformations.get(previousDataset);
-			final AffineTransform2D previousTarget = targetTransformations.get(previousDataset) == null ? new AffineTransform2D() : targetTransformations.get(previousDataset);
+			final AffineTransform2D previousBaseline = baselineTransformations.getOrDefault(previousDataset, new AffineTransform2D());
+			final AffineTransform2D previousTarget = targetTransformations.getOrDefault(previousDataset, new AffineTransform2D());
 
 			// compute relative transformation quality
 			final AffineTransform2D relativeBaseline = computeRelativeTransform(previousBaseline, baseline);
 			final AffineTransform2D relativeTarget = computeRelativeTransform(previousTarget, target);
-			final AffineTransform2D relativeTransform = computeRelativeTransform(relativeBaseline, relativeTarget);
 
 			// compute error
 			final SpatialDataIO sdio = container.openDatasetReadOnly(dataset);
 			final List<double[]> locations = sdio.readData().data().getLocationsCopy();
-			final double[] distances = computeDistances(locations, relativeTransform);
+			final double[] distances = computeDistances(locations, relativeBaseline, relativeTarget);
 
 			final double count = distances.length;
 			final double mean = Arrays.stream(distances).average().orElse(0);
@@ -127,12 +125,14 @@ public class CompareTransformations implements Callable<Void> {
 		return relativeTransform;
 	}
 
-	static double[] computeDistances(List<double[]> locations, AffineTransform2D relativeTransform) {
-		final double[] transformed = new double[2];
+	static double[] computeDistances(List<double[]> locations, AffineTransform2D baselineTransform, AffineTransform2D targetTransform) {
+		final double[] baseline = new double[2];
+		final double[] target = new double[2];
 		return locations.stream()
 				.map(location -> {
-					relativeTransform.apply(location, transformed);
-					return distance(location, transformed);
+					baselineTransform.apply(location, baseline);
+					targetTransform.apply(location, target);
+					return distance(baseline, target);
 				})
 				.mapToDouble(Double::doubleValue)
 				.toArray();
