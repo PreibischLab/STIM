@@ -53,6 +53,9 @@ for label, color in zip(xtick_labels, COLORS):
     label.set_color(color)
 
 plt.savefig('pairwise_error.pdf')
+
+plt.ylim(0, 500)
+plt.savefig('pairwise_error_zoom.pdf')
 # plt.show()
 
 
