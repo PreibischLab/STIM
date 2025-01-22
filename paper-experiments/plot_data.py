@@ -86,7 +86,7 @@ plt.xticks(ticks=ticks, labels=xticks_labels, rotation=45, ha='right')
 
 plt.xlabel('Render Factor')
 plt.ylabel('Distance to Human #1 [µm]')
-plt.legend(loc='lower left', fontsize='large', facecolor=(1, 1, 1, 1))
+plt.legend(loc='upper left', fontsize='large', facecolor=(1, 1, 1, 1))
 plt.grid(linestyle='--', alpha=0.5)
 plt.tight_layout()
 plt.savefig('parameter_scan.pdf')
