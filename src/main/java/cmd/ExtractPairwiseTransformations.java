@@ -89,21 +89,17 @@ public class ExtractPairwiseTransformations implements Callable<Void> {
 
 			final InterpolatedAffineModel2D<SimilarityModel2D, RigidModel2D> model = new InterpolatedAffineModel2D<>(new SimilarityModel2D(), new RigidModel2D(), 0.1);
 			model.fit(pointMatches);
-			final AffineTransform2D target = affineFromModel(model.createAffineModel2D()).inverse();
+			final AffineTransform2D relativeTarget = affineFromModel(model.createAffineModel2D()).inverse();
 
+			final AffineTransform2D absoluteBaselineA = baselineTransformations.getOrDefault(previousDataset, new AffineTransform2D());
 			final AffineTransform2D baseline = baselineTransformations.get(dataset);
-			final AffineTransform2D previousBaseline = baselineTransformations.getOrDefault(previousDataset, new AffineTransform2D());
 
-			final AffineTransform2D relativeBaseline = CompareTransformations.computeRelativeTransform(previousBaseline, baseline);
-			final AffineTransform2D relativeTarget = CompareTransformations.computeRelativeTransform(new AffineTransform2D(), target);
-
-			logger.info("Baseline: {}", relativeBaseline);
-			logger.info("Transform: {}", target);
+			final AffineTransform2D target = relativeTarget.preConcatenate(absoluteBaselineA);
 
 			// compute error
 			final SpatialDataIO sdio = fullContainer.openDatasetReadOnly(dataset);
 			final List<double[]> locations = sdio.readData().data().getLocationsCopy();
-			final double[] distances = CompareTransformations.computeDistances(locations, relativeBaseline, relativeTarget);
+			final double[] distances = CompareTransformations.computeDistances(locations, baseline, target);
 
 			final double count = distances.length;
 			final double mean = Arrays.stream(distances).average().orElse(0);
