@@ -80,20 +80,19 @@ public class CompareTransformations implements Callable<Void> {
 			}
 
 			// get transformations (previous transformations can be missing, in which case we assume the identity)
-			final AffineTransform2D baseline = baselineTransformations.get(dataset);
-			final AffineTransform2D target = targetTransformations.get(dataset);
+			final AffineTransform2D baselineB = baselineTransformations.get(dataset);
+			final AffineTransform2D targetB = targetTransformations.get(dataset);
 
-			final AffineTransform2D previousBaseline = baselineTransformations.getOrDefault(previousDataset, new AffineTransform2D());
-			final AffineTransform2D previousTarget = targetTransformations.getOrDefault(previousDataset, new AffineTransform2D());
+			final AffineTransform2D baselineA = baselineTransformations.getOrDefault(previousDataset, new AffineTransform2D());
+			final AffineTransform2D targetA = targetTransformations.getOrDefault(previousDataset, new AffineTransform2D());
 
-			// compute relative transformation quality
-			final AffineTransform2D relativeBaseline = computeRelativeTransform(previousBaseline, baseline);
-			final AffineTransform2D relativeTarget = computeRelativeTransform(previousTarget, target);
+			// compute relative transformation quality (transform target so that previous slice is aligned with the same slice from the baseline)
+			final AffineTransform2D target = targetB.copy().preConcatenate(targetA.inverse()).preConcatenate(baselineA);
 
 			// compute error
 			final SpatialDataIO sdio = container.openDatasetReadOnly(dataset);
 			final List<double[]> locations = sdio.readData().data().getLocationsCopy();
-			final double[] distances = computeDistances(locations, relativeBaseline, relativeTarget);
+			final double[] distances = computeDistances(locations, baselineB, target);
 
 			final double count = distances.length;
 			final double mean = Arrays.stream(distances).average().orElse(0);
