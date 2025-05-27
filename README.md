@@ -35,9 +35,9 @@ You can also build STIM from source, see the [detailed instructions](https://git
 
 ## Cite STIM
 
-If you use STIM in your research, please cite our [publication](https://www.biorxiv.org/content/10.1101/2021.12.07.471629):
+If you use STIM in your research, please cite our [publication](https://doi.org/10.1016/j.cels.2025.101264):
 
-> Preibisch, S., Innerberger, M., Leon-Perinan, D., Karaiskos, N., & Rajewsky, N. (2024). Scalable image-based visualization and alignment of spatial transcriptomics datasets. bioRxiv.
+> Preibisch, S., Innerberger, M., Leon-Perinan, D., Karaiskos, N., & Rajewsky, N. (2024). Scalable image-based visualization and alignment of spatial transcriptomics datasets. Cell Systems, Vol. 16, No. 5 (2025).
 
 
 ## Wrapping in Python
